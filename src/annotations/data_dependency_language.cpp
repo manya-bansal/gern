@@ -21,4 +21,24 @@ std::ostream &operator<<(std::ostream &os, const Expr &e) {
   return os;
 }
 
+Expr operator+(const Expr &a, const Expr &b) {
+  return Expr(std::make_shared<const AddNode>(a, b));
+}
+
+Expr operator-(const Expr &a, const Expr &b) {
+  return Expr(std::make_shared<const SubNode>(a, b));
+}
+
+Expr operator*(const Expr &a, const Expr &b) {
+  return Expr(std::make_shared<const MulNode>(a, b));
+}
+
+Expr operator/(const Expr &a, const Expr &b) {
+  return Expr(std::make_shared<const DivNode>(a, b));
+}
+
+Expr operator%(const Expr &a, const Expr &b) {
+  return Expr(std::make_shared<const ModNode>(a, b));
+}
+
 } // namespace gern

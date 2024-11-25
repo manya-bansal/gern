@@ -19,3 +19,8 @@ TEST(Expr, Literal) {
   node = e3.getNode();
   ASSERT_EQ(node->getDatatype().getKind(), Datatype::Kind::Float64);
 }
+
+TEST(Expr, BinaryNodes) {
+  Expr e = 1 - 1 + 3;
+  std::cout << e << std::endl;
+}

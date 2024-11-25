@@ -2,6 +2,7 @@
 #define GERN_LANG_NODES_H
 
 #include "annotations/abstract_nodes.h"
+#include "annotations/data_dependency_language.h"
 #include "annotations/visitor.h"
 
 #include <any>
@@ -18,8 +19,42 @@ struct LiteralNode : public ExprNode {
 
   std::any val;
 };
-
 std::ostream &operator<<(std::ostream &os, const LiteralNode &);
+
+struct AddNode : public ExprNode {
+  AddNode(Expr a, Expr b) : a(a), b(b) {}
+  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
+  Expr a;
+  Expr b;
+};
+
+struct SubNode : public ExprNode {
+  SubNode(Expr a, Expr b) : a(a), b(b) {}
+  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
+  Expr a;
+  Expr b;
+};
+
+struct DivNode : public ExprNode {
+  DivNode(Expr a, Expr b) : a(a), b(b) {}
+  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
+  Expr a;
+  Expr b;
+};
+
+struct MulNode : public ExprNode {
+  MulNode(Expr a, Expr b) : a(a), b(b) {}
+  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
+  Expr a;
+  Expr b;
+};
+
+struct ModNode : public ExprNode {
+  ModNode(Expr a, Expr b) : a(a), b(b) {}
+  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
+  Expr a;
+  Expr b;
+};
 
 } // namespace gern
 

@@ -27,6 +27,11 @@ private:
 };
 
 std::ostream &operator<<(std::ostream &os, const Expr &);
+Expr operator+(const Expr &, const Expr &);
+Expr operator-(const Expr &, const Expr &);
+Expr operator*(const Expr &, const Expr &);
+Expr operator/(const Expr &, const Expr &);
+Expr operator%(const Expr &, const Expr &);
 
 } // namespace gern
 #endif
