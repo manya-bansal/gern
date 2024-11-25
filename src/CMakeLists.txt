@@ -1,6 +1,6 @@
 file(GLOB SRC_FILES *.cpp)
 
-set(GERN_SRC_DIRS .)
+set(GERN_SRC_DIRS . annotations)
 
 foreach(dir ${GERN_SRC_DIRS})
   file(GLOB SRC_FILES ${SRC_FILES} ${dir}/*.cpp)
