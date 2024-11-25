@@ -21,6 +21,13 @@ struct LiteralNode : public ExprNode {
 };
 std::ostream &operator<<(std::ostream &os, const LiteralNode &);
 
+struct VariableNode : public ExprNode {
+  VariableNode(const std::string &name)
+      : ExprNode(Datatype::Kind::Int64), name(name) {}
+  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
+  std::string name;
+};
+
 struct AddNode : public ExprNode {
   AddNode(Expr a, Expr b) : a(a), b(b) {}
   void accept(ExprVisitorStrict *v) const override { v->visit(this); }

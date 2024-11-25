@@ -11,5 +11,6 @@ void Printer::visit(const SubNode *op) { os << op->a << " - " << op->b; }
 void Printer::visit(const DivNode *op) { os << op->a << " / " << op->b; }
 void Printer::visit(const MulNode *op) { os << op->a << " * " << op->b; }
 void Printer::visit(const ModNode *op) { os << op->a << " % " << op->b; }
+void Printer::visit(const VariableNode *op) { os << op->name; }
 
 } // namespace gern

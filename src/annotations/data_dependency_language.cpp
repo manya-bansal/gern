@@ -14,6 +14,8 @@ Expr::Expr(int32_t val) : Expr(std::make_shared<const LiteralNode>(val)) {}
 Expr::Expr(int64_t val) : Expr(std::make_shared<const LiteralNode>(val)) {}
 Expr::Expr(float val) : Expr(std::make_shared<const LiteralNode>(val)) {}
 Expr::Expr(double val) : Expr(std::make_shared<const LiteralNode>(val)) {}
+Expr::Expr(const std::string &s)
+    : Expr(std::make_shared<const VariableNode>(s)) {}
 
 std::ostream &operator<<(std::ostream &os, const Expr &e) {
   Printer p{os};

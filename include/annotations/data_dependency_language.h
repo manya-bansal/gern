@@ -19,6 +19,7 @@ public:
   Expr(int64_t);
   Expr(float);
   Expr(double);
+  Expr(const std::string &);
 
   std::shared_ptr<const ExprNode> getNode() { return node; }
 

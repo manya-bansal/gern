@@ -11,6 +11,7 @@ struct MulNode;
 struct SubNode;
 struct DivNode;
 struct ModNode;
+struct VariableNode;
 
 class ExprVisitorStrict {
 public:
@@ -23,6 +24,7 @@ public:
   virtual void visit(const MulNode *) = 0;
   virtual void visit(const DivNode *) = 0;
   virtual void visit(const ModNode *) = 0;
+  virtual void visit(const VariableNode *) = 0;
 };
 
 class Printer : public ExprVisitorStrict {
@@ -35,6 +37,7 @@ public:
   virtual void visit(const MulNode *);
   virtual void visit(const DivNode *);
   virtual void visit(const ModNode *);
+  virtual void visit(const VariableNode *);
 
   std::ostream &os;
 };
