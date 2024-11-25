@@ -22,5 +22,6 @@ TEST(Expr, Literal) {
 
 TEST(Expr, BinaryNodes) {
   Expr e = 1 - 1 + 3;
-  std::cout << e << std::endl;
+  Expr v{"v"};
+  std::cout << v + e << std::endl;
 }
