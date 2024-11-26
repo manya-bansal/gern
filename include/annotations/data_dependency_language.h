@@ -87,9 +87,9 @@ DEFINE_BINARY_EXPR_CLASS(Geq);
 DEFINE_BINARY_EXPR_CLASS(Less);
 DEFINE_BINARY_EXPR_CLASS(Greater);
 
-class VarDecl : public Stmt {
+class Constraint : public Stmt {
 public:
-  VarDecl(Variable b, Expr where = Expr());
+  Constraint(Variable b, Expr where = Expr());
 };
 
 } // namespace gern

@@ -10,4 +10,6 @@ TEST(StmtNode, Constraint) {
   Variable v("v");
   Expr e = 1 - v;
   std::cout << (e || e) << std::endl;
+  Constraint test(v, e == e);
+  std::cout << test << std::endl;
 }

@@ -53,8 +53,8 @@ DEFINE_BINARY_EXPR_NODE(GeqNode);
 DEFINE_BINARY_EXPR_NODE(LessNode);
 DEFINE_BINARY_EXPR_NODE(GreaterNode);
 
-struct VarDeclNode : public StmtNode {
-  VarDeclNode(Variable v, Expr where = Expr()) : v(v), where(where) {}
+struct ConstraintNode : public StmtNode {
+  ConstraintNode(Variable v, Expr where = Expr()) : v(v), where(where) {}
   void accept(StmtVisitorStrict *v) const override { v->visit(this); }
   Variable v;
   Expr where;

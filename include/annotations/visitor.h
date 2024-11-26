@@ -21,7 +21,7 @@ struct GreaterNode;
 struct AndNode;
 struct OrNode;
 
-struct VarDeclNode;
+struct ConstraintNode;
 
 class ExprVisitorStrict {
 public:
@@ -50,7 +50,7 @@ public:
   virtual ~StmtVisitorStrict() = default;
 
   virtual void visit(Stmt);
-  virtual void visit(const VarDeclNode *) = 0;
+  virtual void visit(const ConstraintNode *) = 0;
 };
 
 class Printer : public ExprVisitorStrict, public StmtVisitorStrict {
@@ -75,7 +75,7 @@ public:
   virtual void visit(const OrNode *);
   virtual void visit(const AndNode *);
 
-  virtual void visit(const VarDeclNode *);
+  virtual void visit(const ConstraintNode *);
 
   std::ostream &os;
 };
