@@ -2,6 +2,7 @@
 #define ANNOT_ABSTRACT_NODES
 
 #include "annotations/datatypes.h"
+#include "utils/name_generator.h"
 #include "utils/uncopyable.h"
 
 namespace gern {
@@ -28,6 +29,20 @@ public:
   virtual ~StmtNode() = default;
   virtual void accept(StmtVisitorStrict *) const = 0;
 };
+
+class AbstractDataType : private gern::Uncopyable {
+public:
+  AbstractDataType() : name(gern::getUniqueName()) {}
+  AbstractDataType(const std::string &name) : name(name) {}
+  virtual ~AbstractDataType() = default;
+
+  virtual std::string getName() const { return name; }
+
+private:
+  std::string name;
+};
+
+std::ostream &operator<<(std::ostream &os, const AbstractDataType &ads);
 
 } // namespace gern
 

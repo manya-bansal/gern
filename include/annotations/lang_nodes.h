@@ -53,11 +53,20 @@ DEFINE_BINARY_EXPR_NODE(GeqNode);
 DEFINE_BINARY_EXPR_NODE(LessNode);
 DEFINE_BINARY_EXPR_NODE(GreaterNode);
 
-struct ConstraintNode : public ExprNode{
+struct ConstraintNode : public ExprNode {
   ConstraintNode(Expr e, Expr where = Expr()) : e(e), where(where) {}
   void accept(ExprVisitorStrict *v) const override { v->visit(this); }
   Expr e;
   Expr where;
+};
+
+struct SubsetNode : public StmtNode {
+  SubsetNode(std::shared_ptr<const AbstractDataType> data,
+             std::vector<Expr> meta_fields)
+      : data(data), meta_fields(meta_fields) {}
+  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
+  std::shared_ptr<const AbstractDataType> data;
+  std::vector<Expr> meta_fields;
 };
 
 } // namespace gern

@@ -92,5 +92,11 @@ public:
   Constraint(Expr e, Expr where = Expr());
 };
 
+class Subset : public Stmt {
+public: 
+  Subset(std::shared_ptr<const AbstractDataType> data,
+             std::vector<Expr> meta_fields);
+};
+
 } // namespace gern
 #endif

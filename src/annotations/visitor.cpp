@@ -17,6 +17,12 @@ void StmtVisitorStrict::visit(Stmt s) {
   s.getNode()->accept(this);
 }
 
+static void printIdent(std::ostream &os, int ident) {
+  for (int i = 0; i < ident; i++) {
+    os << "  ";
+  }
+}
+
 void Printer::visit(const LiteralNode *op) { os << (*op); }
 void Printer::visit(const AddNode *op) { os << op->a << " + " << op->b; }
 void Printer::visit(const SubNode *op) { os << op->a << " - " << op->b; }
@@ -42,6 +48,24 @@ DEFINE_PRINTER_METHOD(OrNode, ||)
 
 void Printer::visit(const ConstraintNode *op) {
   os << op->e << " where " << op->where;
+}
+
+void Printer::visit(const SubsetNode *op) {
+  printIdent(os, ident);
+  os << *(op->data) << " {" << std::endl;
+  ident++;
+  int size_mf = op->meta_fields.size();
+  for (int i = 0; i < size_mf - 1; i++) {
+    printIdent(os, ident);
+    os << op->meta_fields[i] << "," << std::endl;
+  }
+  if (size_mf > 0) {
+    printIdent(os, ident);
+    os << op->meta_fields[size_mf - 1] << std::endl;
+  }
+  ident--;
+  printIdent(os, ident);
+  os << "}" << std::endl;
 }
 
 } // namespace gern

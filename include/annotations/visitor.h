@@ -22,6 +22,7 @@ struct AndNode;
 struct OrNode;
 struct ConstraintNode;
 
+struct SubsetNode;
 
 class ExprVisitorStrict {
 public:
@@ -51,6 +52,7 @@ public:
   virtual ~StmtVisitorStrict() = default;
 
   virtual void visit(Stmt);
+  virtual void visit(const SubsetNode *) = 0;
 };
 
 class Printer : public ExprVisitorStrict, public StmtVisitorStrict {
@@ -58,7 +60,7 @@ public:
   using ExprVisitorStrict::visit;
   using StmtVisitorStrict::visit;
 
-  Printer(std::ostream &os) : os(os) {}
+  Printer(std::ostream &os, int ident = 0) : os(os), ident(ident) {}
   void visit(const LiteralNode *);
   virtual void visit(const AddNode *);
   virtual void visit(const SubNode *);
@@ -74,10 +76,13 @@ public:
   virtual void visit(const GreaterNode *);
   virtual void visit(const OrNode *);
   virtual void visit(const AndNode *);
-
   virtual void visit(const ConstraintNode *);
 
+  virtual void visit(const SubsetNode *);
+
+private:
   std::ostream &os;
+  int ident;
 };
 
 } // namespace gern

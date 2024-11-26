@@ -72,4 +72,8 @@ DEFINE_BINARY_EXPR_CONSTRUCTOR(Greater);
 Constraint::Constraint(Expr e, Expr where)
     : Expr(std::make_shared<const ConstraintNode>(e, where)) {}
 
+Subset::Subset(std::shared_ptr<const AbstractDataType> data,
+               std::vector<Expr> meta_fields)
+    : Stmt(std::make_shared<const SubsetNode>(data, meta_fields)) {}
+
 } // namespace gern
