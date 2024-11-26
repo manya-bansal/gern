@@ -28,39 +28,36 @@ struct VariableNode : public ExprNode {
   std::string name;
 };
 
-struct AddNode : public ExprNode {
-  AddNode(Expr a, Expr b) : a(a), b(b) {}
-  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
-  Expr a;
-  Expr b;
-};
+#define DEFINE_BINARY_EXPR_NODE(NAME)                                          \
+  struct NAME : public ExprNode {                                              \
+  public:                                                                      \
+    NAME(Expr a, Expr b) : a(a), b(b) {};                                      \
+    void accept(ExprVisitorStrict *v) const override { v->visit(this); }       \
+    Expr a;                                                                    \
+    Expr b;                                                                    \
+  };
 
-struct SubNode : public ExprNode {
-  SubNode(Expr a, Expr b) : a(a), b(b) {}
-  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
-  Expr a;
-  Expr b;
-};
+DEFINE_BINARY_EXPR_NODE(AddNode);
+DEFINE_BINARY_EXPR_NODE(SubNode);
+DEFINE_BINARY_EXPR_NODE(DivNode);
+DEFINE_BINARY_EXPR_NODE(MulNode);
+DEFINE_BINARY_EXPR_NODE(ModNode);
 
-struct DivNode : public ExprNode {
-  DivNode(Expr a, Expr b) : a(a), b(b) {}
-  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
-  Expr a;
-  Expr b;
-};
+DEFINE_BINARY_EXPR_NODE(AndNode);
+DEFINE_BINARY_EXPR_NODE(OrNode);
 
-struct MulNode : public ExprNode {
-  MulNode(Expr a, Expr b) : a(a), b(b) {}
-  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
-  Expr a;
-  Expr b;
-};
+DEFINE_BINARY_EXPR_NODE(EqNode);
+DEFINE_BINARY_EXPR_NODE(NeqNode);
+DEFINE_BINARY_EXPR_NODE(LeqNode);
+DEFINE_BINARY_EXPR_NODE(GeqNode);
+DEFINE_BINARY_EXPR_NODE(LessNode);
+DEFINE_BINARY_EXPR_NODE(GreaterNode);
 
-struct ModNode : public ExprNode {
-  ModNode(Expr a, Expr b) : a(a), b(b) {}
-  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
-  Expr a;
-  Expr b;
+struct VarDeclNode : public StmtNode {
+  VarDeclNode(Variable v, Stmt where = Stmt()) : v(v), where(where) {}
+  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
+  Variable v;
+  Stmt where;
 };
 
 } // namespace gern

@@ -6,7 +6,7 @@
 
 using namespace gern;
 
-TEST(Expr, Literal) {
+TEST(ExprNode, Literal) {
   Expr e1{(uint64_t)4};
   auto node = e1.getNode();
   ASSERT_EQ(node->getDatatype().getKind(), Datatype::Kind::UInt64);
@@ -22,6 +22,6 @@ TEST(Expr, Literal) {
 
 TEST(Expr, BinaryNodes) {
   Expr e = 1 - 1 + 3;
-  Expr v{"v"};
+  Variable v{"v"};
   std::cout << v + e << std::endl;
 }
