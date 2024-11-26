@@ -20,8 +20,8 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
-
 struct ConstraintNode;
+
 
 class ExprVisitorStrict {
 public:
@@ -43,6 +43,7 @@ public:
   virtual void visit(const GreaterNode *) = 0;
   virtual void visit(const OrNode *) = 0;
   virtual void visit(const AndNode *) = 0;
+  virtual void visit(const ConstraintNode *) = 0;
 };
 
 class StmtVisitorStrict {
@@ -50,7 +51,6 @@ public:
   virtual ~StmtVisitorStrict() = default;
 
   virtual void visit(Stmt);
-  virtual void visit(const ConstraintNode *) = 0;
 };
 
 class Printer : public ExprVisitorStrict, public StmtVisitorStrict {

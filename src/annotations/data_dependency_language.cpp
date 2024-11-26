@@ -69,7 +69,7 @@ DEFINE_BINARY_EXPR_CONSTRUCTOR(Geq);
 DEFINE_BINARY_EXPR_CONSTRUCTOR(Less);
 DEFINE_BINARY_EXPR_CONSTRUCTOR(Greater);
 
-Constraint::Constraint(Variable v, Expr where)
-    : Stmt(std::make_shared<const ConstraintNode>(v, where)) {}
+Constraint::Constraint(Expr e, Expr where)
+    : Expr(std::make_shared<const ConstraintNode>(e, where)) {}
 
 } // namespace gern

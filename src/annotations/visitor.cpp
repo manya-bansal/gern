@@ -41,7 +41,7 @@ DEFINE_PRINTER_METHOD(AndNode, &&)
 DEFINE_PRINTER_METHOD(OrNode, ||)
 
 void Printer::visit(const ConstraintNode *op) {
-  os << op->v << " where " << op->where;
+  os << op->e << " where " << op->where;
 }
 
 } // namespace gern
