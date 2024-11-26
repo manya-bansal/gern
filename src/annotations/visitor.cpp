@@ -54,18 +54,76 @@ void Printer::visit(const SubsetNode *op) {
   printIdent(os, ident);
   os << *(op->data) << " {" << std::endl;
   ident++;
-  int size_mf = op->meta_fields.size();
-  for (int i = 0; i < size_mf - 1; i++) {
+  int size_mf = op->mdFields.size();
+  for (int i = 0; i < size_mf; i++) {
     printIdent(os, ident);
-    os << op->meta_fields[i] << "," << std::endl;
-  }
-  if (size_mf > 0) {
-    printIdent(os, ident);
-    os << op->meta_fields[size_mf - 1] << std::endl;
+    os << op->mdFields[i];
+    os << ((i != size_mf - 1) ? "," : "") << std::endl;
   }
   ident--;
   printIdent(os, ident);
-  os << "}" << std::endl;
+  os << "}";
+}
+
+void Printer::visit(const SubsetsNode *op) {
+  Printer p{os, ident};
+  int size_mf = op->subsets.size();
+  for (int i = 0; i < size_mf; i++) {
+    p.visit(op->subsets[i]);
+    os << ((i != size_mf - 1) ? ",\n" : "");
+  }
+}
+
+void Printer::visit(const ProducesNode *op) {
+  printIdent(os, ident);
+  os << "produces {" << std::endl;
+  ident++;
+  Printer p{os, ident};
+  p.visit(op->output);
+  os << std::endl;
+  ident--;
+  printIdent(os, ident);
+  os << "}";
+}
+
+void Printer::visit(const ConsumesNode *op) {
+  printIdent(os, ident);
+  os << "when consumes {" << std::endl;
+  ident++;
+  Printer p{os, ident};
+  p.visit(op->stmt);
+  ident--;
+  os << std::endl;
+  printIdent(os, ident);
+  os << "}";
+}
+
+void Printer::visit(const ForNode *op) {
+  printIdent(os, ident);
+  os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
+     << op->step << " ] {" << std::endl;
+  ident++;
+  Printer p{os, ident};
+  p.visit(op->body);
+  ident--;
+  os << std::endl;
+  printIdent(os, ident);
+  os << "}";
+}
+
+void Printer::visit(const ComputesNode *op) {
+  printIdent(os, ident);
+  os << "computes {" << std::endl;
+  ident++;
+  Printer p{os, ident};
+  p.visit(op->p);
+  os << std::endl;
+  p.visit(op->c);
+  os << std::endl;
+  ident--;
+  os << std::endl;
+  printIdent(os, ident);
+  os << "}";
 }
 
 } // namespace gern

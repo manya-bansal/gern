@@ -21,4 +21,12 @@ TEST(StmtNode, Constraint) {
   auto testDataSTructure = std::make_shared<const TestDataStructure>();
   Subset subset{testDataSTructure, {1 - v, v * 2}};
   std::cout << subset << std::endl;
+
+  std::cout << Produces(subset) << std::endl;
+
+  std::cout << Consumes(Subsets({subset, subset, subset})) << std::endl;
+
+  std::cout << Computes(Produces(subset),
+                        Consumes(For(v, e, e + 4, 4, Consumes({subset}))))
+            << std::endl;
 }

@@ -93,9 +93,35 @@ public:
 };
 
 class Subset : public Stmt {
-public: 
+public:
   Subset(std::shared_ptr<const AbstractDataType> data,
-             std::vector<Expr> meta_fields);
+         std::vector<Expr> mdFields);
+};
+
+class Subsets : public Stmt {
+public:
+  Subsets(const std::vector<Subset> &subsets);
+};
+
+class For : public Stmt {
+public:
+  For(Variable v, Expr start, Expr end, Expr step, Stmt body,
+      bool parallel = false);
+};
+
+class Produces : public Stmt {
+public:
+  Produces(Subset s);
+};
+
+class Consumes : public Stmt {
+public:
+  Consumes(Stmt stmt);
+};
+
+class Computes : public Stmt {
+public:
+  Computes(Produces p, Consumes c);
 };
 
 } // namespace gern

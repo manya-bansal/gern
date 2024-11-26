@@ -73,7 +73,22 @@ Constraint::Constraint(Expr e, Expr where)
     : Expr(std::make_shared<const ConstraintNode>(e, where)) {}
 
 Subset::Subset(std::shared_ptr<const AbstractDataType> data,
-               std::vector<Expr> meta_fields)
-    : Stmt(std::make_shared<const SubsetNode>(data, meta_fields)) {}
+               std::vector<Expr> mdFields)
+    : Stmt(std::make_shared<const SubsetNode>(data, mdFields)) {}
+
+Subsets::Subsets(const std::vector<Subset> &inputs)
+    : Stmt(std::make_shared<const SubsetsNode>(inputs)) {}
+
+For::For(Variable v, Expr start, Expr end, Expr step, Stmt body, bool parallel)
+    : Stmt(std::make_shared<const ForNode>(v, start, end, step, body,
+                                           parallel)) {}
+
+Produces::Produces(Subset s) : Stmt(std::make_shared<const ProducesNode>(s)) {}
+
+Consumes::Consumes(Stmt stmt)
+    : Stmt(std::make_shared<const ConsumesNode>(stmt)) {}
+
+Computes::Computes(Produces p, Consumes c)
+    : Stmt(std::make_shared<const ComputesNode>(p, c)) {}
 
 } // namespace gern

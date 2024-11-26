@@ -23,6 +23,11 @@ struct OrNode;
 struct ConstraintNode;
 
 struct SubsetNode;
+struct SubsetsNode;
+struct ProducesNode;
+struct ConsumesNode;
+struct ForNode;
+struct ComputesNode;
 
 class ExprVisitorStrict {
 public:
@@ -53,6 +58,11 @@ public:
 
   virtual void visit(Stmt);
   virtual void visit(const SubsetNode *) = 0;
+  virtual void visit(const SubsetsNode *) = 0;
+  virtual void visit(const ProducesNode *) = 0;
+  virtual void visit(const ConsumesNode *) = 0;
+  virtual void visit(const ForNode *) = 0;
+  virtual void visit(const ComputesNode *) = 0;
 };
 
 class Printer : public ExprVisitorStrict, public StmtVisitorStrict {
@@ -62,23 +72,28 @@ public:
 
   Printer(std::ostream &os, int ident = 0) : os(os), ident(ident) {}
   void visit(const LiteralNode *);
-  virtual void visit(const AddNode *);
-  virtual void visit(const SubNode *);
-  virtual void visit(const MulNode *);
-  virtual void visit(const DivNode *);
-  virtual void visit(const ModNode *);
-  virtual void visit(const VariableNode *);
-  virtual void visit(const EqNode *);
-  virtual void visit(const NeqNode *);
-  virtual void visit(const LeqNode *);
-  virtual void visit(const GeqNode *);
-  virtual void visit(const LessNode *);
-  virtual void visit(const GreaterNode *);
-  virtual void visit(const OrNode *);
-  virtual void visit(const AndNode *);
-  virtual void visit(const ConstraintNode *);
+  void visit(const AddNode *);
+  void visit(const SubNode *);
+  void visit(const MulNode *);
+  void visit(const DivNode *);
+  void visit(const ModNode *);
+  void visit(const VariableNode *);
+  void visit(const EqNode *);
+  void visit(const NeqNode *);
+  void visit(const LeqNode *);
+  void visit(const GeqNode *);
+  void visit(const LessNode *);
+  void visit(const GreaterNode *);
+  void visit(const OrNode *);
+  void visit(const AndNode *);
+  void visit(const ConstraintNode *);
 
-  virtual void visit(const SubsetNode *);
+  void visit(const SubsetNode *);
+  void visit(const SubsetsNode *);
+  void visit(const ProducesNode *);
+  void visit(const ConsumesNode *);
+  void visit(const ForNode *);
+  void visit(const ComputesNode *);
 
 private:
   std::ostream &os;
