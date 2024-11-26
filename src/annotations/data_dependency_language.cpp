@@ -69,7 +69,7 @@ DEFINE_BINARY_EXPR_CONSTRUCTOR(Geq);
 DEFINE_BINARY_EXPR_CONSTRUCTOR(Less);
 DEFINE_BINARY_EXPR_CONSTRUCTOR(Greater);
 
-VarDecl::VarDecl(Variable v, Stmt where)
+VarDecl::VarDecl(Variable v, Expr where)
     : Stmt(std::make_shared<const VarDeclNode>(v, where)) {}
 
 } // namespace gern

@@ -89,7 +89,7 @@ DEFINE_BINARY_EXPR_CLASS(Greater);
 
 class VarDecl : public Stmt {
 public:
-  VarDecl(Variable b, Stmt where = Stmt());
+  VarDecl(Variable b, Expr where = Expr());
 };
 
 } // namespace gern
