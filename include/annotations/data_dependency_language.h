@@ -119,9 +119,14 @@ public:
   Consumes(Stmt stmt);
 };
 
+class Allocates : public Stmt {
+public:
+  Allocates(Expr reg = Expr(), Expr smem = Expr());
+};
+
 class Computes : public Stmt {
 public:
-  Computes(Produces p, Consumes c);
+  Computes(Produces p, Consumes c, Allocates a = Allocates());
 };
 
 } // namespace gern

@@ -101,11 +101,19 @@ struct ForNode : public StmtNode {
   bool parallel;
 };
 
+struct AllocatesNode : public StmtNode {
+  AllocatesNode(Expr reg, Expr smem) : reg(reg), smem(smem) {}
+  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
+  Expr reg;
+  Expr smem;
+};
+
 struct ComputesNode : public StmtNode {
-  ComputesNode(Produces p, Consumes c) : p(p), c(c) {}
+  ComputesNode(Produces p, Consumes c, Allocates a) : p(p), c(c), a(a) {}
   void accept(StmtVisitorStrict *v) const override { v->visit(this); }
   Produces p;
   Consumes c;
+  Allocates a;
 };
 
 } // namespace gern

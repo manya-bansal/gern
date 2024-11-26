@@ -98,6 +98,11 @@ void Printer::visit(const ConsumesNode *op) {
   os << "}";
 }
 
+void Printer::visit(const AllocatesNode *op) {
+  printIdent(os, ident);
+  os << "allocates { register : " << op->reg << " , smem : " << op->smem << "}";
+}
+
 void Printer::visit(const ForNode *op) {
   printIdent(os, ident);
   os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
@@ -120,8 +125,9 @@ void Printer::visit(const ComputesNode *op) {
   os << std::endl;
   p.visit(op->c);
   os << std::endl;
-  ident--;
+  p.visit(op->a);
   os << std::endl;
+  ident--;
   printIdent(os, ident);
   os << "}";
 }

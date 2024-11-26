@@ -26,6 +26,7 @@ struct SubsetNode;
 struct SubsetsNode;
 struct ProducesNode;
 struct ConsumesNode;
+struct AllocatesNode;
 struct ForNode;
 struct ComputesNode;
 
@@ -61,6 +62,7 @@ public:
   virtual void visit(const SubsetsNode *) = 0;
   virtual void visit(const ProducesNode *) = 0;
   virtual void visit(const ConsumesNode *) = 0;
+  virtual void visit(const AllocatesNode *) = 0;
   virtual void visit(const ForNode *) = 0;
   virtual void visit(const ComputesNode *) = 0;
 };
@@ -92,6 +94,7 @@ public:
   void visit(const SubsetsNode *);
   void visit(const ProducesNode *);
   void visit(const ConsumesNode *);
+  void visit(const AllocatesNode *);
   void visit(const ForNode *);
   void visit(const ComputesNode *);
 

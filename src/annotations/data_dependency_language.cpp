@@ -88,7 +88,10 @@ Produces::Produces(Subset s) : Stmt(std::make_shared<const ProducesNode>(s)) {}
 Consumes::Consumes(Stmt stmt)
     : Stmt(std::make_shared<const ConsumesNode>(stmt)) {}
 
-Computes::Computes(Produces p, Consumes c)
-    : Stmt(std::make_shared<const ComputesNode>(p, c)) {}
+Allocates::Allocates(Expr reg, Expr smem)
+    : Stmt(std::make_shared<const AllocatesNode>(reg, smem)) {}
+
+Computes::Computes(Produces p, Consumes c, Allocates a)
+    : Stmt(std::make_shared<const ComputesNode>(p, c, a)) {}
 
 } // namespace gern
