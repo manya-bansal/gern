@@ -94,4 +94,8 @@ Allocates::Allocates(Expr reg, Expr smem)
 Computes::Computes(Produces p, Consumes c, Allocates a)
     : Stmt(std::make_shared<const ComputesNode>(p, c, a)) {}
 
+bool isValidDataDependencyPattern(Stmt s){
+
+}
+
 } // namespace gern
