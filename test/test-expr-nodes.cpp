@@ -7,7 +7,6 @@
 
 using namespace gern;
 
-
 TEST(ExprNode, Literal) {
   Expr e1{(uint64_t)4};
   auto node = e1.getNode();
