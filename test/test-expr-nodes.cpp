@@ -46,7 +46,6 @@ TEST(Expr, BinaryNodes) {
 TEST(StmtNode, Constraint) {
   Variable v("v_");
   Expr e = 1 - v;
-  std::cout << (e || e) << std::endl;
   Constraint test(v, e == e);
 
   ASSERT_TRUE(getStrippedString(test) == "v_where((1-v_)==(1-v_))");
@@ -54,6 +53,5 @@ TEST(StmtNode, Constraint) {
   auto testDataSTructure = std::make_shared<const TestDataStructure>();
   Subset subset{testDataSTructure, {1 - v, v * 2}};
 
-  std::cout << getStrippedString(subset) << std::endl;
   ASSERT_TRUE(getStrippedString(subset) == "test{1-v_,v_*2}");
 }
