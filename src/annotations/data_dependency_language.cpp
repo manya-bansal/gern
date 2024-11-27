@@ -1,6 +1,9 @@
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
+#include "utils/debug.h"
+
+#include <set>
 
 namespace gern {
 
@@ -94,8 +97,69 @@ Allocates::Allocates(Expr reg, Expr smem)
 Computes::Computes(Produces p, Consumes c, Allocates a)
     : Stmt(std::make_shared<const ComputesNode>(p, c, a)) {}
 
-bool isValidDataDependencyPattern(Stmt s){
+bool isValidDataDependencyPattern(Stmt s) {
 
+  bool found_compute_node = false;
+  bool found_produces_node = false;
+  bool found_consumes_node = false;
+  bool ill_formed = false;
+
+  std::set<std::shared_ptr<const ExprNode>> seen;
+
+  match(s,
+        std::function<void(const ComputesNode *, Matcher *)>(
+            [&](const ComputesNode *op, Matcher *ctx) {
+              if (found_compute_node) {
+                DEBUG("Found two computes nodes");
+                ill_formed = true;
+              }
+              found_compute_node = true;
+              ctx->match(op->p);
+              ctx->match(op->c);
+              ctx->match(op->a);
+            }),
+        std::function<void(const ProducesNode *, Matcher *)>(
+            [&](const ProducesNode *op, Matcher *ctx) {
+              if (!found_compute_node || found_consumes_node) {
+                DEBUG("Found produces node before computes node, or after a "
+                      "consumes node");
+                ill_formed = true;
+              }
+              if (found_produces_node) {
+                DEBUG("Found two consumes nodes");
+                ill_formed = true;
+              }
+              found_produces_node = true;
+            }),
+        std::function<void(const ConsumesNode *, Matcher *)>(
+            [&](const ConsumesNode *op, Matcher *ctx) {
+              if (!found_compute_node) {
+                DEBUG("Found consumes node before computes node");
+                ill_formed = true;
+              }
+              if (found_consumes_node) {
+                DEBUG("Found two produces nodes");
+                ill_formed = true;
+              }
+              found_consumes_node = true;
+              ctx->match(op->stmt);
+            }),
+        std::function<void(const ForNode *, Matcher *)>(
+            [&](const ForNode *op, Matcher *ctx) {
+              if (seen.count(op->v.getNode()) != 0) {
+                DEBUG("Same interval variable being used twice");
+                ill_formed = true;
+              }
+              seen.insert(op->v.getNode());
+              ctx->match(op->body);
+            }));
+
+  if (!found_compute_node || !found_consumes_node || !found_produces_node) {
+    DEBUG("Did not find a consumes, produces or computes node");
+    ill_formed = true;
+  }
+
+  return !ill_formed;
 }
 
 } // namespace gern

@@ -159,12 +159,17 @@ public:
       Rule##CtxFunc(op, this);                                                 \
       return;                                                                  \
     }                                                                          \
-    AnnotVisitor::visit(op);                                              \
+    AnnotVisitor::visit(op);                                                   \
   }
 
 class Matcher : public AnnotVisitor {
 public:
-  template <class Stmt> void match(Stmt stmt) { stmt.accept(this); }
+  template <class T> void match(T stmt) {
+    if (!stmt.isDefined()) {
+      return;
+    }
+    stmt.accept(this);
+  }
 
   template <class IR, class... Patterns>
   void process(IR ir, Patterns... patterns) {
@@ -235,9 +240,8 @@ private:
 
   function<void(const Add*, Matcher* ctx)>([&](const Add* op, Matcher* ctx) {
 **/
-template <class Stmt, class... Patterns>
-void match(Stmt stmt, Patterns... patterns) {
-  if (!stmt.defined()) {
+template <class T, class... Patterns> void match(T stmt, Patterns... patterns) {
+  if (!stmt.isDefined()) {
     return;
   }
   Matcher().process(stmt, patterns...);

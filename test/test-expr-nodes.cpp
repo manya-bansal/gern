@@ -3,14 +3,10 @@
 #include <iostream>
 
 #include "annotations/data_dependency_language.h"
-#include <iostream>
+#include "test-utils.h"
 
 using namespace gern;
 
-class TestDataStructure : public AbstractDataType {
-public:
-  std::string getName() const override { return "test"; }
-};
 
 TEST(ExprNode, Literal) {
   Expr e1{(uint64_t)4};
@@ -50,7 +46,7 @@ TEST(StmtNode, Constraint) {
 
   ASSERT_TRUE(getStrippedString(test) == "v_where((1-v_)==(1-v_))");
 
-  auto testDataSTructure = std::make_shared<const TestDataStructure>();
+  auto testDataSTructure = std::make_shared<const dummy::TestDataStructure>();
   Subset subset{testDataSTructure, {1 - v, v * 2}};
 
   ASSERT_TRUE(getStrippedString(subset) == "test{1-v_,v_*2}");

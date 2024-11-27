@@ -23,7 +23,7 @@ public:
   Expr(double);
 
   void accept(ExprVisitorStrict *v) const { node->accept(v); }
-  bool isDefined() const { return (node == nullptr); }
+  bool isDefined() const { return (node != nullptr); }
   std::shared_ptr<const ExprNode> getNode() const { return node; }
 
 private:
@@ -43,7 +43,7 @@ public:
   Stmt(std::shared_ptr<const StmtNode> e) : node(e) {}
 
   void accept(StmtVisitorStrict *v) const { node->accept(v); }
-  bool isDefined() const { return (node == nullptr); }
+  bool isDefined() const { return (node != nullptr); }
   std::shared_ptr<const StmtNode> getNode() const { return node; }
 
 private:
@@ -123,7 +123,8 @@ public:
 
 class Allocates : public Stmt {
 public:
-  Allocates(Expr reg = Expr(), Expr smem = Expr());
+  Allocates() : Stmt() {} 
+  Allocates(Expr reg, Expr smem = Expr());
 };
 
 class Computes : public Stmt {

@@ -4,14 +4,14 @@
 namespace gern {
 
 void ExprVisitorStrict::visit(Expr e) {
-  if (e.isDefined()) {
+  if (!e.isDefined()) {
     return;
   }
   e.getNode()->accept(this);
 }
 
 void StmtVisitorStrict::visit(Stmt s) {
-  if (s.isDefined()) {
+  if (!s.isDefined()) {
     return;
   }
   s.getNode()->accept(this);
@@ -174,20 +174,16 @@ void AnnotVisitor::visit(const SubsetsNode *op) {
   }
 }
 
-void AnnotVisitor::visit(const ProducesNode * op) {
-  op->output.accept(this);
-}
+void AnnotVisitor::visit(const ProducesNode *op) { op->output.accept(this); }
 
-void AnnotVisitor::visit(const ConsumesNode * op) {
-  op->stmt.accept(this);
-}
+void AnnotVisitor::visit(const ConsumesNode *op) { op->stmt.accept(this); }
 
-void AnnotVisitor::visit(const AllocatesNode * op) {
+void AnnotVisitor::visit(const AllocatesNode *op) {
   op->reg.accept(this);
   op->smem.accept(this);
 }
 
-void AnnotVisitor::visit(const ForNode * op) {
+void AnnotVisitor::visit(const ForNode *op) {
   op->v.accept(this);
   op->start.accept(this);
   op->end.accept(this);
@@ -195,7 +191,7 @@ void AnnotVisitor::visit(const ForNode * op) {
   op->body.accept(this);
 }
 
-void AnnotVisitor::visit(const ComputesNode * op) {
+void AnnotVisitor::visit(const ComputesNode *op) {
   op->p.accept(this);
   op->c.accept(this);
   op->a.accept(this);
