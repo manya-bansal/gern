@@ -22,8 +22,9 @@ public:
   Expr(float);
   Expr(double);
 
-  bool isDefined() { return (node == nullptr); }
-  std::shared_ptr<const ExprNode> getNode() { return node; }
+  void accept(ExprVisitorStrict *v) const { node->accept(v); }
+  bool isDefined() const { return (node != nullptr); }
+  std::shared_ptr<const ExprNode> getNode() const { return node; }
 
 private:
   std::shared_ptr<const ExprNode> node;
@@ -41,8 +42,9 @@ public:
   Stmt() : node(std::shared_ptr<const StmtNode>(nullptr)) {}
   Stmt(std::shared_ptr<const StmtNode> e) : node(e) {}
 
-  bool isDefined() { return (node == nullptr); }
-  std::shared_ptr<const StmtNode> getNode() { return node; }
+  void accept(StmtVisitorStrict *v) const { node->accept(v); }
+  bool isDefined() const { return (node != nullptr); }
+  std::shared_ptr<const StmtNode> getNode() const { return node; }
 
 private:
   std::shared_ptr<const StmtNode> node;
@@ -121,13 +123,29 @@ public:
 
 class Allocates : public Stmt {
 public:
-  Allocates(Expr reg = Expr(), Expr smem = Expr());
+  Allocates() : Stmt() {} 
+  Allocates(Expr reg, Expr smem = Expr());
 };
 
 class Computes : public Stmt {
 public:
   Computes(Produces p, Consumes c, Allocates a = Allocates());
 };
+
+/**
+ * \brief Checks whether a data dependence pattern.
+ *
+ * A data dependence pattern is valid if:
+ * - It contains 1 produces and 1 consumes node at the same nesting level
+ *    inside a for node.
+ * - The consumer can only contain a vector of subsets, optionally nested inside
+ *    a for node.
+ * - Different bound variables are introduced for every interval (no shadowing).
+ *
+ * \param s The data dependence pattern to check.
+ * \return Whether the data dependence pattern is valid.
+ */
+bool isValidDataDependencyPattern(Stmt s);
 
 } // namespace gern
 #endif

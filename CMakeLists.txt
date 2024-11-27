@@ -4,6 +4,10 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(GERN_PROJECT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(_DEBUG)
+endif()
+
 include_directories(include)
 
 
