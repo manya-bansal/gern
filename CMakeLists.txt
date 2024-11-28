@@ -18,6 +18,12 @@ ADD_SUBDIRECTORY (googletest)
 enable_testing()
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
+################################
+# SymEngine 
+################################
+add_subdirectory(symengine)
+include_directories(symengine)
+
 add_executable(test_exec main.cpp)
 
 # Add compiler flags for the test executable
@@ -34,6 +40,7 @@ target_compile_options(test_exec PRIVATE
 
 target_link_libraries(test_exec
     ${CMAKE_DL_LIBS}
+    symengine
 )
 
 
