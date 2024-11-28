@@ -3,6 +3,11 @@
 To build gern, run: 
 
 ```
+git submodule update --init --recursive
+cd symengine
+mkdir build 
+cd build && cmake .. & make
+cd ../../
 mkdir build && cd build
 cmake .. 
 make -j 8

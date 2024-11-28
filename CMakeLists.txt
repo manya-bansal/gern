@@ -21,8 +21,9 @@ include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 ################################
 # SymEngine 
 ################################
-add_subdirectory(symengine)
-include_directories(symengine)
+set(CMAKE_PREFIX_PATH ${GERN_PROJECT_DIR}/symengine/build ${CMAKE_PREFIX_PATH})
+find_package(SymEngine CONFIG REQUIRED)
+include_directories(${SYMENGINE_INCLUDE_DIRS})
 
 add_executable(test_exec main.cpp)
 
@@ -38,9 +39,9 @@ target_compile_options(test_exec PRIVATE
     -fvisibility=hidden
 )
 
-target_link_libraries(test_exec
+target_link_libraries(test_exec PUBLIC
     ${CMAKE_DL_LIBS}
-    symengine
+    ${SYMENGINE_LIBRARIES} 
 )
 
 
