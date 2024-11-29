@@ -21,15 +21,18 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
-struct ConstraintNode;
 
 struct SubsetNode;
 struct SubsetsNode;
 struct ProducesNode;
 struct ConsumesNode;
+struct ConsumesForNode;
 struct AllocatesNode;
-struct ForNode;
+struct ComputesForNode;
 struct ComputesNode;
+struct PatternNode;
+
+struct ConstraintNode;
 
 class ExprVisitorStrict {
 public:
@@ -43,6 +46,14 @@ public:
   virtual void visit(const DivNode *) = 0;
   virtual void visit(const ModNode *) = 0;
   virtual void visit(const VariableNode *) = 0;
+};
+
+class ConstraintVisitorStrict : public ExprVisitorStrict {
+public:
+  virtual ~ConstraintVisitorStrict() = default;
+  using ExprVisitorStrict::visit;
+
+  virtual void visit(Constraint);
   virtual void visit(const EqNode *) = 0;
   virtual void visit(const NeqNode *) = 0;
   virtual void visit(const LeqNode *) = 0;
@@ -51,7 +62,6 @@ public:
   virtual void visit(const GreaterNode *) = 0;
   virtual void visit(const OrNode *) = 0;
   virtual void visit(const AndNode *) = 0;
-  virtual void visit(const ConstraintNode *) = 0;
 };
 
 class StmtVisitorStrict {
@@ -63,14 +73,17 @@ public:
   virtual void visit(const SubsetsNode *) = 0;
   virtual void visit(const ProducesNode *) = 0;
   virtual void visit(const ConsumesNode *) = 0;
+  virtual void visit(const ConsumesForNode *) = 0;
   virtual void visit(const AllocatesNode *) = 0;
-  virtual void visit(const ForNode *) = 0;
+  virtual void visit(const ComputesForNode *) = 0;
   virtual void visit(const ComputesNode *) = 0;
+  virtual void visit(const PatternNode *) = 0;
 };
 
-class AnnotVisitorStrict : public ExprVisitorStrict, public StmtVisitorStrict {
+class AnnotVisitorStrict : public ConstraintVisitorStrict,
+                           public StmtVisitorStrict {
 public:
-  using ExprVisitorStrict::visit;
+  using ConstraintVisitorStrict::visit;
   using StmtVisitorStrict::visit;
 };
 
@@ -79,6 +92,11 @@ public:
   using AnnotVisitorStrict::visit;
 
   Printer(std::ostream &os, int ident = 0) : os(os), ident(ident) {}
+
+  void visit(Consumes c);
+  void visit(ConsumeMany many);
+  void visit(Allocates a);
+
   void visit(const LiteralNode *);
   void visit(const AddNode *);
   void visit(const SubNode *);
@@ -86,6 +104,7 @@ public:
   void visit(const DivNode *);
   void visit(const ModNode *);
   void visit(const VariableNode *);
+
   void visit(const EqNode *);
   void visit(const NeqNode *);
   void visit(const LeqNode *);
@@ -94,15 +113,16 @@ public:
   void visit(const GreaterNode *);
   void visit(const OrNode *);
   void visit(const AndNode *);
-  void visit(const ConstraintNode *);
 
   void visit(const SubsetNode *);
   void visit(const SubsetsNode *);
   void visit(const ProducesNode *);
   void visit(const ConsumesNode *);
   void visit(const AllocatesNode *);
-  void visit(const ForNode *);
+  void visit(const ComputesForNode *);
+  void visit(const ConsumesForNode *);
   void visit(const ComputesNode *);
+  void visit(const PatternNode *);
 
 private:
   std::ostream &os;
@@ -122,6 +142,7 @@ public:
   void visit(const DivNode *);
   void visit(const ModNode *);
   void visit(const VariableNode *);
+
   void visit(const EqNode *);
   void visit(const NeqNode *);
   void visit(const LeqNode *);
@@ -130,15 +151,16 @@ public:
   void visit(const GreaterNode *);
   void visit(const OrNode *);
   void visit(const AndNode *);
-  void visit(const ConstraintNode *);
 
   void visit(const SubsetNode *);
   void visit(const SubsetsNode *);
   void visit(const ProducesNode *);
   void visit(const ConsumesNode *);
   void visit(const AllocatesNode *);
-  void visit(const ForNode *);
+  void visit(const ComputesForNode *);
+  void visit(const ConsumesForNode *);
   void visit(const ComputesNode *);
+  void visit(const PatternNode *);
 };
 
 #define RULE(Rule)                                                             \
@@ -198,7 +220,6 @@ private:
   RULE(GeqNode);
   RULE(LessNode);
   RULE(GreaterNode);
-  RULE(ConstraintNode);
   RULE(VariableNode);
   RULE(LiteralNode);
   RULE(SubsetNode);
@@ -206,8 +227,10 @@ private:
   RULE(ProducesNode);
   RULE(ConsumesNode);
   RULE(AllocatesNode);
-  RULE(ForNode);
+  RULE(ComputesForNode);
+  RULE(ConsumesForNode);
   RULE(ComputesNode);
+  RULE(PatternNode);
 };
 
 /**

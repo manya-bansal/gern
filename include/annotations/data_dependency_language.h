@@ -37,62 +37,84 @@ Expr operator*(const Expr &, const Expr &);
 Expr operator/(const Expr &, const Expr &);
 Expr operator%(const Expr &, const Expr &);
 
+class Constraint {
+public:
+  Constraint() : node(std::shared_ptr<const ConstraintNode>(nullptr)) {}
+  Constraint(std::shared_ptr<const ConstraintNode> node) : node(node) {}
+
+  void accept(ConstraintVisitorStrict *v) const { node->accept(v); }
+  bool isDefined() const { return (node != nullptr); }
+  std::shared_ptr<const ConstraintNode> getNode() const { return node; }
+
+private:
+  std::shared_ptr<const ConstraintNode> node;
+};
+std::ostream &operator<<(std::ostream &os, const Constraint &);
+Constraint operator==(const Expr &, const Expr &);
+Constraint operator!=(const Expr &, const Expr &);
+Constraint operator<=(const Expr &, const Expr &);
+Constraint operator>=(const Expr &, const Expr &);
+Constraint operator<(const Expr &, const Expr &);
+Constraint operator>(const Expr &, const Expr &);
+Constraint operator&&(const Expr &, const Expr &);
+Constraint operator||(const Expr &, const Expr &);
+
 class Stmt {
 public:
   Stmt() : node(std::shared_ptr<const StmtNode>(nullptr)) {}
   Stmt(std::shared_ptr<const StmtNode> e) : node(e) {}
+
+  /**
+   * @brief Add a constraint to a statement
+   *
+   *  The function checks that only variables that are in
+   *  scope are used within the constraint.
+   *
+   * @param constraint Constraint to add.
+   * @return Stmt New statement with the constraint attached.
+   */
+  Stmt where(Constraint constraint);
 
   void accept(StmtVisitorStrict *v) const { node->accept(v); }
   bool isDefined() const { return (node != nullptr); }
   std::shared_ptr<const StmtNode> getNode() const { return node; }
 
 private:
+  Stmt(std::shared_ptr<const StmtNode> e, Constraint c) : node(e), c(c) {}
   std::shared_ptr<const StmtNode> node;
+  Constraint c;
 };
 
 std::ostream &operator<<(std::ostream &os, const Stmt &);
-Expr operator==(const Expr &, const Expr &);
-Expr operator!=(const Expr &, const Expr &);
-Expr operator<=(const Expr &, const Expr &);
-Expr operator>=(const Expr &, const Expr &);
-Expr operator<(const Expr &, const Expr &);
-Expr operator>(const Expr &, const Expr &);
-Expr operator&&(const Expr &, const Expr &);
-Expr operator||(const Expr &, const Expr &);
 
 class Variable : public Expr {
 public:
   Variable(const std::string &name);
 };
 
-#define DEFINE_BINARY_EXPR_CLASS(NAME)                                         \
-  class NAME : public Expr {                                                   \
+#define DEFINE_BINARY_CLASS(NAME, NODE)                                        \
+  class NAME : public NODE {                                                   \
   public:                                                                      \
     NAME(Expr a, Expr b);                                                      \
     Expr a;                                                                    \
     Expr b;                                                                    \
   };
 
-DEFINE_BINARY_EXPR_CLASS(Add);
-DEFINE_BINARY_EXPR_CLASS(Sub);
-DEFINE_BINARY_EXPR_CLASS(Div);
-DEFINE_BINARY_EXPR_CLASS(Mul);
-DEFINE_BINARY_EXPR_CLASS(Mod);
+DEFINE_BINARY_CLASS(Add, Expr);
+DEFINE_BINARY_CLASS(Sub, Expr);
+DEFINE_BINARY_CLASS(Div, Expr);
+DEFINE_BINARY_CLASS(Mul, Expr);
+DEFINE_BINARY_CLASS(Mod, Expr);
 
-DEFINE_BINARY_EXPR_CLASS(And);
-DEFINE_BINARY_EXPR_CLASS(Or);
+DEFINE_BINARY_CLASS(And, Constraint);
+DEFINE_BINARY_CLASS(Or, Constraint);
 
-DEFINE_BINARY_EXPR_CLASS(Eq);
-DEFINE_BINARY_EXPR_CLASS(Neq);
-DEFINE_BINARY_EXPR_CLASS(Leq);
-DEFINE_BINARY_EXPR_CLASS(Geq);
-DEFINE_BINARY_EXPR_CLASS(Less);
-DEFINE_BINARY_EXPR_CLASS(Greater);
-
-class Constraint : public Expr {
-public:
-  Constraint(Expr e, Expr where = Expr());
-};
+DEFINE_BINARY_CLASS(Eq, Constraint);
+DEFINE_BINARY_CLASS(Neq, Constraint);
+DEFINE_BINARY_CLASS(Leq, Constraint);
+DEFINE_BINARY_CLASS(Geq, Constraint);
+DEFINE_BINARY_CLASS(Less, Constraint);
+DEFINE_BINARY_CLASS(Greater, Constraint);
 
 class Subset : public Stmt {
 public:
@@ -100,52 +122,57 @@ public:
          std::vector<Expr> mdFields);
 };
 
-class Subsets : public Stmt {
-public:
-  Subsets(const std::vector<Subset> &subsets);
-};
-
-class For : public Stmt {
-public:
-  For(Variable v, Expr start, Expr end, Expr step, Stmt body,
-      bool parallel = false);
-};
-
 class Produces : public Stmt {
 public:
   Produces(Subset s);
 };
 
+struct ConsumesNode;
+
 class Consumes : public Stmt {
 public:
-  Consumes(Stmt stmt);
+  Consumes(std::shared_ptr<const ConsumesNode>);
 };
+
+class ConsumeMany : public Consumes {
+public:
+  ConsumeMany(std::shared_ptr<const ConsumesNode> s) : Consumes(s) {};
+};
+
+class Subsets : public ConsumeMany {
+public:
+  Subsets(const std::vector<Subset> &subsets);
+  Subsets(Subset s) : Subsets(std::vector<Subset>{s}) {}
+};
+
+// This ensures that a consumes node will only ever contain a for loop
+// or a list of subsets. In this way, we can leverage the cpp type checker to
+// ensures that only legal patterns are written down.
+ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+                bool parallel = false);
 
 class Allocates : public Stmt {
 public:
-  Allocates() : Stmt() {} 
+  Allocates() : Stmt() {}
   Allocates(Expr reg, Expr smem = Expr());
 };
 
-class Computes : public Stmt {
+struct PatternNode;
+class Pattern : public Stmt {
+public:
+  Pattern(std::shared_ptr<const PatternNode>);
+};
+
+class Computes : public Pattern {
 public:
   Computes(Produces p, Consumes c, Allocates a = Allocates());
 };
 
-/**
- * \brief Checks whether a data dependence pattern.
- *
- * A data dependence pattern is valid if:
- * - It contains 1 produces and 1 consumes node at the same nesting level
- *    inside a for node.
- * - The consumer can only contain a vector of subsets, optionally nested inside
- *    a for node.
- * - Different bound variables are introduced for every interval (no shadowing).
- *
- * \param s The data dependence pattern to check.
- * \return Whether the data dependence pattern is valid.
- */
-bool isValidDataDependencyPattern(Stmt s);
+// This ensures that a computes node will only ever contain a for loop
+// or a (Produces, Consumes) node. In this way, we can leverage the cpp type
+// checker to ensures that only legal patterns are written down.
+Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
+            bool parallel = false);
 
 } // namespace gern
 #endif
