@@ -9,6 +9,7 @@ namespace gern {
 
 class ExprVisitorStrict;
 class ConstraintVisitorStrict;
+class ConsumesVisitorStrict;
 class StmtVisitorStrict;
 
 class ExprNode : private gern::Uncopyable {

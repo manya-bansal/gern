@@ -30,6 +30,27 @@ static void printIdent(std::ostream &os, int ident) {
   }
 }
 
+void Printer::visit(Consumes p) {
+  if (!p.isDefined()) {
+    return;
+  }
+  printIdent(os, ident);
+  os << " when consumes {" << std::endl;
+  ident++;
+  p.getNode()->accept(this);
+  os << std::endl;
+  ident--;
+  printIdent(os, ident);
+  os << "}";
+}
+
+void Printer::visit(ConsumeMany many) {
+  if (!many.isDefined()) {
+    return;
+  }
+  many.getNode()->accept(this);
+}
+
 void Printer::visit(const LiteralNode *op) { os << (*op); }
 void Printer::visit(const AddNode *op) { os << op->a << " + " << op->b; }
 void Printer::visit(const SubNode *op) { os << op->a << " - " << op->b; }
@@ -89,16 +110,15 @@ void Printer::visit(const ProducesNode *op) {
   os << "}";
 }
 
-void Printer::visit(const ConsumesNode *op) {
-  printIdent(os, ident);
-  os << "when consumes {" << std::endl;
-  ident++;
-  Printer p{os, ident};
-  p.visit(op->stmt);
-  ident--;
-  os << std::endl;
-  printIdent(os, ident);
-  os << "}";
+void Printer::visit(const ConsumesNode *op) {}
+
+void Printer::visit(Allocates a) {
+  if (!a.isDefined()) {
+    printIdent(os, ident);
+    os << "allocates()";
+    return;
+  }
+  this->visit(a.getNode());
 }
 
 void Printer::visit(const AllocatesNode *op) {
@@ -106,7 +126,20 @@ void Printer::visit(const AllocatesNode *op) {
   os << "allocates { register : " << op->reg << " , smem : " << op->smem << "}";
 }
 
-void Printer::visit(const ForNode *op) {
+void Printer::visit(const ConsumesForNode *op) {
+  printIdent(os, ident);
+  os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
+     << op->step << " ] {" << std::endl;
+  ident++;
+  Printer p{os, ident};
+  p.visit(op->body);
+  ident--;
+  os << std::endl;
+  printIdent(os, ident);
+  os << "}";
+}
+
+void Printer::visit(const ComputesForNode *op) {
   printIdent(os, ident);
   os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
      << op->step << " ] {" << std::endl;
@@ -134,6 +167,8 @@ void Printer::visit(const ComputesNode *op) {
   printIdent(os, ident);
   os << "}";
 }
+
+void Printer::visit(const PatternNode *op) {}
 
 #define DEFINE_BINARY_VISITOR_METHOD(CLASS_NAME)                               \
   void AnnotVisitor::visit(const CLASS_NAME *op) {                             \
@@ -174,14 +209,24 @@ void AnnotVisitor::visit(const SubsetsNode *op) {
 
 void AnnotVisitor::visit(const ProducesNode *op) { this->visit(op->output); }
 
-void AnnotVisitor::visit(const ConsumesNode *op) { this->visit(op->stmt); }
+void AnnotVisitor::visit(const ConsumesNode *op) {}
+
+void AnnotVisitor::visit(const PatternNode *op) {}
 
 void AnnotVisitor::visit(const AllocatesNode *op) {
   this->visit(op->reg);
   this->visit(op->smem);
 }
 
-void AnnotVisitor::visit(const ForNode *op) {
+void AnnotVisitor::visit(const ConsumesForNode *op) {
+  this->visit(op->v);
+  this->visit(op->start);
+  this->visit(op->end);
+  this->visit(op->step);
+  this->visit(op->body);
+}
+
+void AnnotVisitor::visit(const ComputesForNode *op) {
   this->visit(op->v);
   this->visit(op->start);
   this->visit(op->end);

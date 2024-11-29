@@ -26,9 +26,11 @@ struct SubsetNode;
 struct SubsetsNode;
 struct ProducesNode;
 struct ConsumesNode;
+struct ConsumesForNode;
 struct AllocatesNode;
-struct ForNode;
+struct ComputesForNode;
 struct ComputesNode;
+struct PatternNode;
 
 struct ConstraintNode;
 
@@ -71,9 +73,11 @@ public:
   virtual void visit(const SubsetsNode *) = 0;
   virtual void visit(const ProducesNode *) = 0;
   virtual void visit(const ConsumesNode *) = 0;
+  virtual void visit(const ConsumesForNode *) = 0;
   virtual void visit(const AllocatesNode *) = 0;
-  virtual void visit(const ForNode *) = 0;
+  virtual void visit(const ComputesForNode *) = 0;
   virtual void visit(const ComputesNode *) = 0;
+  virtual void visit(const PatternNode *) = 0;
 };
 
 class AnnotVisitorStrict : public ConstraintVisitorStrict,
@@ -88,6 +92,11 @@ public:
   using AnnotVisitorStrict::visit;
 
   Printer(std::ostream &os, int ident = 0) : os(os), ident(ident) {}
+
+  void visit(Consumes c);
+  void visit(ConsumeMany many);
+  void visit(Allocates a);
+
   void visit(const LiteralNode *);
   void visit(const AddNode *);
   void visit(const SubNode *);
@@ -110,8 +119,10 @@ public:
   void visit(const ProducesNode *);
   void visit(const ConsumesNode *);
   void visit(const AllocatesNode *);
-  void visit(const ForNode *);
+  void visit(const ComputesForNode *);
+  void visit(const ConsumesForNode *);
   void visit(const ComputesNode *);
+  void visit(const PatternNode *);
 
 private:
   std::ostream &os;
@@ -146,8 +157,10 @@ public:
   void visit(const ProducesNode *);
   void visit(const ConsumesNode *);
   void visit(const AllocatesNode *);
-  void visit(const ForNode *);
+  void visit(const ComputesForNode *);
+  void visit(const ConsumesForNode *);
   void visit(const ComputesNode *);
+  void visit(const PatternNode *);
 };
 
 #define RULE(Rule)                                                             \
@@ -214,8 +227,10 @@ private:
   RULE(ProducesNode);
   RULE(ConsumesNode);
   RULE(AllocatesNode);
-  RULE(ForNode);
+  RULE(ComputesForNode);
+  RULE(ConsumesForNode);
   RULE(ComputesNode);
+  RULE(PatternNode);
 };
 
 /**

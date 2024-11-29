@@ -63,12 +63,6 @@ struct SubsetNode : public StmtNode {
   std::vector<Expr> mdFields;
 };
 
-struct SubsetsNode : public StmtNode {
-  SubsetsNode(const std::vector<Subset> &subsets) : subsets(subsets) {}
-  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
-  std::vector<Subset> subsets;
-};
-
 struct ProducesNode : public StmtNode {
   ProducesNode(Subset output) : output(output) {}
   void accept(StmtVisitorStrict *v) const override { v->visit(this); }
@@ -76,21 +70,43 @@ struct ProducesNode : public StmtNode {
 };
 
 struct ConsumesNode : public StmtNode {
-  ConsumesNode(Stmt stmt) : stmt(stmt) {}
-  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
-  Stmt stmt;
+  ConsumesNode() = default;
+  virtual void accept(StmtVisitorStrict *v) const override { v->visit(this); }
 };
 
-struct ForNode : public StmtNode {
-  ForNode(Variable v, Expr start, Expr end, Expr step, Stmt body,
-          bool parallel = false)
+struct ConsumesForNode : public ConsumesNode {
+  ConsumesForNode(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+                  bool parallel = false)
       : v(v), start(start), end(end), step(step), body(body) {}
   void accept(StmtVisitorStrict *v) const override { v->visit(this); }
   Variable v;
   Expr start;
   Expr end;
   Expr step;
-  Stmt body;
+  ConsumeMany body;
+};
+
+struct SubsetsNode : public ConsumesNode {
+  SubsetsNode(const std::vector<Subset> &subsets) : subsets(subsets) {}
+  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
+  std::vector<Subset> subsets;
+};
+
+struct PatternNode : public StmtNode {
+  PatternNode() = default;
+  virtual void accept(StmtVisitorStrict *v) const override { v->visit(this); }
+};
+
+struct ComputesForNode : public PatternNode {
+  ComputesForNode(Variable v, Expr start, Expr end, Expr step, Pattern body,
+                  bool parallel = false)
+      : v(v), start(start), end(end), step(step), body(body) {}
+  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
+  Variable v;
+  Expr start;
+  Expr end;
+  Expr step;
+  Pattern body;
   bool parallel;
 };
 
@@ -101,7 +117,7 @@ struct AllocatesNode : public StmtNode {
   Expr smem;
 };
 
-struct ComputesNode : public StmtNode {
+struct ComputesNode : public PatternNode {
   ComputesNode(Produces p, Consumes c, Allocates a) : p(p), c(c), a(a) {}
   void accept(StmtVisitorStrict *v) const override { v->visit(this); }
   Produces p;

@@ -103,86 +103,30 @@ Subset::Subset(std::shared_ptr<const AbstractDataType> data,
     : Stmt(std::make_shared<const SubsetNode>(data, mdFields)) {}
 
 Subsets::Subsets(const std::vector<Subset> &inputs)
-    : Stmt(std::make_shared<const SubsetsNode>(inputs)) {}
-
-For::For(Variable v, Expr start, Expr end, Expr step, Stmt body, bool parallel)
-    : Stmt(std::make_shared<const ForNode>(v, start, end, step, body,
-                                           parallel)) {}
+    : ConsumeMany(std::make_shared<const SubsetsNode>(inputs)) {}
 
 Produces::Produces(Subset s) : Stmt(std::make_shared<const ProducesNode>(s)) {}
 
-Consumes::Consumes(Stmt stmt)
-    : Stmt(std::make_shared<const ConsumesNode>(stmt)) {}
+Consumes::Consumes(std::shared_ptr<const ConsumesNode> c) : Stmt(c) {}
+
+ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+                bool parallel) {
+  return ConsumeMany(std::make_shared<const ConsumesForNode>(
+      v, start, end, step, body, parallel));
+}
 
 Allocates::Allocates(Expr reg, Expr smem)
     : Stmt(std::make_shared<const AllocatesNode>(reg, smem)) {}
 
 Computes::Computes(Produces p, Consumes c, Allocates a)
-    : Stmt(std::make_shared<const ComputesNode>(p, c, a)) {}
+    : Pattern(std::make_shared<const ComputesNode>(p, c, a)) {}
 
-bool isValidDataDependencyPattern(Stmt s) {
+Pattern::Pattern(std::shared_ptr<const PatternNode> p) : Stmt(p) {}
 
-  bool found_compute_node = false;
-  bool found_produces_node = false;
-  bool found_consumes_node = false;
-  bool ill_formed = false;
-
-  std::set<std::shared_ptr<const ExprNode>> seen;
-
-  match(s,
-        std::function<void(const ComputesNode *, Matcher *)>(
-            [&](const ComputesNode *op, Matcher *ctx) {
-              if (found_compute_node) {
-                DEBUG("Found two computes nodes");
-                ill_formed = true;
-              }
-              found_compute_node = true;
-              ctx->match(op->p);
-              ctx->match(op->c);
-              ctx->match(op->a);
-            }),
-        std::function<void(const ProducesNode *, Matcher *)>(
-            [&](const ProducesNode *op, Matcher *ctx) {
-              if (!found_compute_node || found_consumes_node) {
-                DEBUG("Found produces node before computes node, or after a "
-                      "consumes node");
-                ill_formed = true;
-              }
-              if (found_produces_node) {
-                DEBUG("Found two consumes nodes");
-                ill_formed = true;
-              }
-              found_produces_node = true;
-            }),
-        std::function<void(const ConsumesNode *, Matcher *)>(
-            [&](const ConsumesNode *op, Matcher *ctx) {
-              if (!found_compute_node) {
-                DEBUG("Found consumes node before computes node");
-                ill_formed = true;
-              }
-              if (found_consumes_node) {
-                DEBUG("Found two produces nodes");
-                ill_formed = true;
-              }
-              found_consumes_node = true;
-              ctx->match(op->stmt);
-            }),
-        std::function<void(const ForNode *, Matcher *)>(
-            [&](const ForNode *op, Matcher *ctx) {
-              if (seen.count(op->v.getNode()) != 0) {
-                DEBUG("Same interval variable being used twice");
-                ill_formed = true;
-              }
-              seen.insert(op->v.getNode());
-              ctx->match(op->body);
-            }));
-
-  if (!found_compute_node || !found_consumes_node || !found_produces_node) {
-    DEBUG("Did not find a consumes, produces or computes node");
-    ill_formed = true;
-  }
-
-  return !ill_formed;
+Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
+            bool parallel) {
+  return Pattern(std::make_shared<const ComputesForNode>(v, start, end, step,
+                                                         body, parallel));
 }
 
 } // namespace gern
