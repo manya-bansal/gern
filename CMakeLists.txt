@@ -19,11 +19,9 @@ enable_testing()
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 ################################
-# SymEngine 
+# GiNac 
 ################################
-set(CMAKE_PREFIX_PATH ${GERN_PROJECT_DIR}/symengine/build ${CMAKE_PREFIX_PATH})
-find_package(SymEngine CONFIG REQUIRED)
-include_directories(${SYMENGINE_INCLUDE_DIRS})
+add_subdirectory(ginac)
 
 add_executable(test_exec main.cpp)
 
@@ -41,7 +39,7 @@ target_compile_options(test_exec PRIVATE
 
 target_link_libraries(test_exec PUBLIC
     ${CMAKE_DL_LIBS}
-    ${SYMENGINE_LIBRARIES} 
+    ginac::ginac
 )
 
 
