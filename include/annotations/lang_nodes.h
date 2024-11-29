@@ -29,37 +29,30 @@ struct VariableNode : public ExprNode {
   bool argument;
 };
 
-#define DEFINE_BINARY_EXPR_NODE(NAME)                                          \
-  struct NAME : public ExprNode {                                              \
+#define DEFINE_BINARY_NODE(NAME, NODE)                                         \
+  struct NAME : public NODE##Node {                                            \
   public:                                                                      \
     NAME(Expr a, Expr b) : a(a), b(b) {};                                      \
-    void accept(ExprVisitorStrict *v) const override { v->visit(this); }       \
+    void accept(NODE##VisitorStrict *v) const override { v->visit(this); }     \
     Expr a;                                                                    \
     Expr b;                                                                    \
   };
 
-DEFINE_BINARY_EXPR_NODE(AddNode);
-DEFINE_BINARY_EXPR_NODE(SubNode);
-DEFINE_BINARY_EXPR_NODE(DivNode);
-DEFINE_BINARY_EXPR_NODE(MulNode);
-DEFINE_BINARY_EXPR_NODE(ModNode);
+DEFINE_BINARY_NODE(AddNode, Expr);
+DEFINE_BINARY_NODE(SubNode, Expr);
+DEFINE_BINARY_NODE(DivNode, Expr);
+DEFINE_BINARY_NODE(MulNode, Expr);
+DEFINE_BINARY_NODE(ModNode, Expr);
 
-DEFINE_BINARY_EXPR_NODE(AndNode);
-DEFINE_BINARY_EXPR_NODE(OrNode);
+DEFINE_BINARY_NODE(AndNode, Constraint);
+DEFINE_BINARY_NODE(OrNode, Constraint);
 
-DEFINE_BINARY_EXPR_NODE(EqNode);
-DEFINE_BINARY_EXPR_NODE(NeqNode);
-DEFINE_BINARY_EXPR_NODE(LeqNode);
-DEFINE_BINARY_EXPR_NODE(GeqNode);
-DEFINE_BINARY_EXPR_NODE(LessNode);
-DEFINE_BINARY_EXPR_NODE(GreaterNode);
-
-struct ConstraintNode : public ExprNode {
-  ConstraintNode(Expr e, Expr where = Expr()) : e(e), where(where) {}
-  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
-  Expr e;
-  Expr where;
-};
+DEFINE_BINARY_NODE(EqNode, Constraint);
+DEFINE_BINARY_NODE(NeqNode, Constraint);
+DEFINE_BINARY_NODE(LeqNode, Constraint);
+DEFINE_BINARY_NODE(GeqNode, Constraint);
+DEFINE_BINARY_NODE(LessNode, Constraint);
+DEFINE_BINARY_NODE(GreaterNode, Constraint);
 
 struct SubsetNode : public StmtNode {
   SubsetNode(std::shared_ptr<const AbstractDataType> data,

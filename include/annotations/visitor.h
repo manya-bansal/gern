@@ -21,7 +21,6 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
-struct ConstraintNode;
 
 struct SubsetNode;
 struct SubsetsNode;
@@ -30,6 +29,8 @@ struct ConsumesNode;
 struct AllocatesNode;
 struct ForNode;
 struct ComputesNode;
+
+struct ConstraintNode;
 
 class ExprVisitorStrict {
 public:
@@ -43,6 +44,14 @@ public:
   virtual void visit(const DivNode *) = 0;
   virtual void visit(const ModNode *) = 0;
   virtual void visit(const VariableNode *) = 0;
+};
+
+class ConstraintVisitorStrict : public ExprVisitorStrict {
+public:
+  virtual ~ConstraintVisitorStrict() = default;
+  using ExprVisitorStrict::visit;
+
+  virtual void visit(Constraint);
   virtual void visit(const EqNode *) = 0;
   virtual void visit(const NeqNode *) = 0;
   virtual void visit(const LeqNode *) = 0;
@@ -51,7 +60,6 @@ public:
   virtual void visit(const GreaterNode *) = 0;
   virtual void visit(const OrNode *) = 0;
   virtual void visit(const AndNode *) = 0;
-  virtual void visit(const ConstraintNode *) = 0;
 };
 
 class StmtVisitorStrict {
@@ -68,9 +76,10 @@ public:
   virtual void visit(const ComputesNode *) = 0;
 };
 
-class AnnotVisitorStrict : public ExprVisitorStrict, public StmtVisitorStrict {
+class AnnotVisitorStrict : public ConstraintVisitorStrict,
+                           public StmtVisitorStrict {
 public:
-  using ExprVisitorStrict::visit;
+  using ConstraintVisitorStrict::visit;
   using StmtVisitorStrict::visit;
 };
 
@@ -86,6 +95,7 @@ public:
   void visit(const DivNode *);
   void visit(const ModNode *);
   void visit(const VariableNode *);
+
   void visit(const EqNode *);
   void visit(const NeqNode *);
   void visit(const LeqNode *);
@@ -94,7 +104,6 @@ public:
   void visit(const GreaterNode *);
   void visit(const OrNode *);
   void visit(const AndNode *);
-  void visit(const ConstraintNode *);
 
   void visit(const SubsetNode *);
   void visit(const SubsetsNode *);
@@ -122,6 +131,7 @@ public:
   void visit(const DivNode *);
   void visit(const ModNode *);
   void visit(const VariableNode *);
+
   void visit(const EqNode *);
   void visit(const NeqNode *);
   void visit(const LeqNode *);
@@ -130,7 +140,6 @@ public:
   void visit(const GreaterNode *);
   void visit(const OrNode *);
   void visit(const AndNode *);
-  void visit(const ConstraintNode *);
 
   void visit(const SubsetNode *);
   void visit(const SubsetsNode *);
@@ -198,7 +207,6 @@ private:
   RULE(GeqNode);
   RULE(LessNode);
   RULE(GreaterNode);
-  RULE(ConstraintNode);
   RULE(VariableNode);
   RULE(LiteralNode);
   RULE(SubsetNode);

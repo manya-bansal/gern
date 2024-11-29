@@ -8,6 +8,7 @@
 namespace gern {
 
 class ExprVisitorStrict;
+class ConstraintVisitorStrict;
 class StmtVisitorStrict;
 
 class ExprNode : private gern::Uncopyable {
@@ -21,6 +22,13 @@ public:
 
 private:
   Datatype datatype;
+};
+
+class ConstraintNode : private gern::Uncopyable {
+public:
+  ConstraintNode() = default;
+  virtual ~ConstraintNode() = default;
+  virtual void accept(ConstraintVisitorStrict *) const = 0;
 };
 
 class StmtNode : private gern::Uncopyable {

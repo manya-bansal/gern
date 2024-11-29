@@ -10,6 +10,13 @@ void ExprVisitorStrict::visit(Expr e) {
   e.getNode()->accept(this);
 }
 
+void ConstraintVisitorStrict::visit(Constraint c) {
+  if (!c.isDefined()) {
+    return;
+  }
+  c.getNode()->accept(this);
+}
+
 void StmtVisitorStrict::visit(Stmt s) {
   if (!s.isDefined()) {
     return;
@@ -45,10 +52,6 @@ DEFINE_PRINTER_METHOD(LessNode, <)
 DEFINE_PRINTER_METHOD(GreaterNode, >)
 DEFINE_PRINTER_METHOD(AndNode, &&)
 DEFINE_PRINTER_METHOD(OrNode, ||)
-
-void Printer::visit(const ConstraintNode *op) {
-  os << op->e << " where " << op->where;
-}
 
 void Printer::visit(const SubsetNode *op) {
   printIdent(os, ident);
@@ -134,8 +137,8 @@ void Printer::visit(const ComputesNode *op) {
 
 #define DEFINE_BINARY_VISITOR_METHOD(CLASS_NAME)                               \
   void AnnotVisitor::visit(const CLASS_NAME *op) {                             \
-    op->a.accept(this);                                                        \
-    op->b.accept(this);                                                        \
+    this->visit(op->a);                                                        \
+    this->visit(op->b);                                                        \
   }
 
 void AnnotVisitor::visit(const LiteralNode *) {}
@@ -157,44 +160,39 @@ DEFINE_BINARY_VISITOR_METHOD(GreaterNode);
 
 void AnnotVisitor::visit(const VariableNode *) {}
 
-void AnnotVisitor::visit(const ConstraintNode *op) {
-  op->e.accept(this);
-  op->where.accept(this);
-}
-
 void AnnotVisitor::visit(const SubsetNode *op) {
   for (const auto field : op->mdFields) {
-    field.accept(this);
+    this->visit(field);
   }
 }
 
 void AnnotVisitor::visit(const SubsetsNode *op) {
   for (const auto &subset : op->subsets) {
-    subset.accept(this);
+    this->visit(subset);
   }
 }
 
-void AnnotVisitor::visit(const ProducesNode *op) { op->output.accept(this); }
+void AnnotVisitor::visit(const ProducesNode *op) { this->visit(op->output); }
 
-void AnnotVisitor::visit(const ConsumesNode *op) { op->stmt.accept(this); }
+void AnnotVisitor::visit(const ConsumesNode *op) { this->visit(op->stmt); }
 
 void AnnotVisitor::visit(const AllocatesNode *op) {
-  op->reg.accept(this);
-  op->smem.accept(this);
+  this->visit(op->reg);
+  this->visit(op->smem);
 }
 
 void AnnotVisitor::visit(const ForNode *op) {
-  op->v.accept(this);
-  op->start.accept(this);
-  op->end.accept(this);
-  op->step.accept(this);
-  op->body.accept(this);
+  this->visit(op->v);
+  this->visit(op->start);
+  this->visit(op->end);
+  this->visit(op->step);
+  this->visit(op->body);
 }
 
 void AnnotVisitor::visit(const ComputesNode *op) {
-  op->p.accept(this);
-  op->c.accept(this);
-  op->a.accept(this);
+  this->visit(op->p);
+  this->visit(op->c);
+  this->visit(op->a);
 }
 
 } // namespace gern

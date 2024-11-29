@@ -41,9 +41,9 @@ TEST(Expr, BinaryNodes) {
 TEST(StmtNode, Constraint) {
   Variable v("v_");
   Expr e = 1 - v;
-  Constraint test(v, e == e);
 
-  ASSERT_TRUE(getStrippedString(test) == "v_where((1-v_)==(1-v_))");
+  Constraint test(e == e);
+  ASSERT_TRUE(getStrippedString(test) == "((1-v_)==(1-v_))");
 
   auto testDataSTructure = std::make_shared<const dummy::TestDataStructure>();
   Subset subset{testDataSTructure, {1 - v, v * 2}};

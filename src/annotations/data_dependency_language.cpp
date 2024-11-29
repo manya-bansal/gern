@@ -2,6 +2,7 @@
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
 #include "utils/debug.h"
+#include "utils/error.h"
 
 #include <set>
 
@@ -27,24 +28,30 @@ std::ostream &operator<<(std::ostream &os, const Expr &e) {
   return os;
 }
 
-#define DEFINE_BINARY_OPERATOR(CLASS_NAME, OPERATOR)                           \
-  Expr operator OPERATOR(const Expr &a, const Expr &b) {                       \
+std::ostream &operator<<(std::ostream &os, const Constraint &c) {
+  Printer p{os};
+  p.visit(c);
+  return os;
+}
+
+#define DEFINE_BINARY_OPERATOR(CLASS_NAME, OPERATOR, NODE)                     \
+  NODE operator OPERATOR(const Expr &a, const Expr &b) {                       \
     return CLASS_NAME(a, b);                                                   \
   }
 
-DEFINE_BINARY_OPERATOR(Add, +)
-DEFINE_BINARY_OPERATOR(Sub, -)
-DEFINE_BINARY_OPERATOR(Mul, *)
-DEFINE_BINARY_OPERATOR(Div, /)
-DEFINE_BINARY_OPERATOR(Mod, %)
-DEFINE_BINARY_OPERATOR(Eq, ==)
-DEFINE_BINARY_OPERATOR(Neq, !=)
-DEFINE_BINARY_OPERATOR(Leq, <=)
-DEFINE_BINARY_OPERATOR(Geq, >=)
-DEFINE_BINARY_OPERATOR(Less, <)
-DEFINE_BINARY_OPERATOR(Greater, >)
-DEFINE_BINARY_OPERATOR(And, &&)
-DEFINE_BINARY_OPERATOR(Or, ||)
+DEFINE_BINARY_OPERATOR(Add, +, Expr)
+DEFINE_BINARY_OPERATOR(Sub, -, Expr)
+DEFINE_BINARY_OPERATOR(Mul, *, Expr)
+DEFINE_BINARY_OPERATOR(Div, /, Expr)
+DEFINE_BINARY_OPERATOR(Mod, %, Expr)
+DEFINE_BINARY_OPERATOR(Eq, ==, Constraint)
+DEFINE_BINARY_OPERATOR(Neq, !=, Constraint)
+DEFINE_BINARY_OPERATOR(Leq, <=, Constraint)
+DEFINE_BINARY_OPERATOR(Geq, >=, Constraint)
+DEFINE_BINARY_OPERATOR(Less, <, Constraint)
+DEFINE_BINARY_OPERATOR(Greater, >, Constraint)
+DEFINE_BINARY_OPERATOR(And, &&, Constraint)
+DEFINE_BINARY_OPERATOR(Or, ||, Constraint)
 
 std::ostream &operator<<(std::ostream &os, const Stmt &s) {
   Printer p{os};
@@ -52,28 +59,44 @@ std::ostream &operator<<(std::ostream &os, const Stmt &s) {
   return os;
 }
 
-#define DEFINE_BINARY_EXPR_CONSTRUCTOR(CLASS_NAME)                             \
+template <typename T> std::set<const VariableNode *> getVariables(T annot) {
+  std::set<const VariableNode *> vars;
+  match(annot,
+        std::function<void(const VariableNode *, Matcher *)>(
+            [&](const VariableNode *op, Matcher *ctx) { vars.insert(op); }));
+  return vars;
+}
+
+Stmt Stmt::where(Constraint constraint) {
+  auto stmtVars = getVariables(*this);
+  auto constraintVars = getVariables(constraint);
+  if (!std::includes(stmtVars.begin(), stmtVars.end(), constraintVars.begin(),
+                     constraintVars.end())) {
+    throw error::UserError("Putting constraints on variables that are not "
+                           "present in statement's scope");
+  }
+  return Stmt(node, constraint);
+}
+
+#define DEFINE_BINARY_CONSTRUCTOR(CLASS_NAME, NODE)                            \
   CLASS_NAME::CLASS_NAME(Expr a, Expr b)                                       \
-      : Expr(std::make_shared<const CLASS_NAME##Node>(a, b)) {}
+      : NODE(std::make_shared<const CLASS_NAME##Node>(a, b)) {}
 
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Add)
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Sub)
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Div)
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Mod)
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Mul)
+DEFINE_BINARY_CONSTRUCTOR(Add, Expr)
+DEFINE_BINARY_CONSTRUCTOR(Sub, Expr)
+DEFINE_BINARY_CONSTRUCTOR(Div, Expr)
+DEFINE_BINARY_CONSTRUCTOR(Mod, Expr)
+DEFINE_BINARY_CONSTRUCTOR(Mul, Expr)
 
-DEFINE_BINARY_EXPR_CONSTRUCTOR(And);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Or);
+DEFINE_BINARY_CONSTRUCTOR(And, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Or, Constraint);
 
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Eq);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Neq);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Leq);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Geq);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Less);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Greater);
-
-Constraint::Constraint(Expr e, Expr where)
-    : Expr(std::make_shared<const ConstraintNode>(e, where)) {}
+DEFINE_BINARY_CONSTRUCTOR(Eq, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Neq, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Leq, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Geq, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Less, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
 
 Subset::Subset(std::shared_ptr<const AbstractDataType> data,
                std::vector<Expr> mdFields)
