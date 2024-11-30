@@ -29,36 +29,30 @@ struct VariableNode : public ExprNode {
   bool argument;
 };
 
-#define DEFINE_BINARY_EXPR_NODE(NAME)                                          \
-  struct NAME : public ExprNode {                                              \
+#define DEFINE_BINARY_NODE(NAME, NODE)                                         \
+  struct NAME : public NODE##Node {                                            \
   public:                                                                      \
     NAME(Expr a, Expr b) : a(a), b(b) {};                                      \
-    void accept(ExprVisitorStrict *v) const override { v->visit(this); }       \
+    void accept(NODE##VisitorStrict *v) const override { v->visit(this); }     \
     Expr a;                                                                    \
     Expr b;                                                                    \
   };
 
-DEFINE_BINARY_EXPR_NODE(AddNode);
-DEFINE_BINARY_EXPR_NODE(SubNode);
-DEFINE_BINARY_EXPR_NODE(DivNode);
-DEFINE_BINARY_EXPR_NODE(MulNode);
-DEFINE_BINARY_EXPR_NODE(ModNode);
+DEFINE_BINARY_NODE(AddNode, Expr);
+DEFINE_BINARY_NODE(SubNode, Expr);
+DEFINE_BINARY_NODE(DivNode, Expr);
+DEFINE_BINARY_NODE(MulNode, Expr);
+DEFINE_BINARY_NODE(ModNode, Expr);
 
-DEFINE_BINARY_EXPR_NODE(AndNode);
-DEFINE_BINARY_EXPR_NODE(OrNode);
-DEFINE_BINARY_EXPR_NODE(EqNode);
-DEFINE_BINARY_EXPR_NODE(NeqNode);
-DEFINE_BINARY_EXPR_NODE(LeqNode);
-DEFINE_BINARY_EXPR_NODE(GeqNode);
-DEFINE_BINARY_EXPR_NODE(LessNode);
-DEFINE_BINARY_EXPR_NODE(GreaterNode);
+DEFINE_BINARY_NODE(AndNode, Constraint);
+DEFINE_BINARY_NODE(OrNode, Constraint);
 
-struct ConstraintNode : public ExprNode {
-  ConstraintNode(Expr e, Expr where = Expr()) : e(e), where(where) {}
-  void accept(ExprVisitorStrict *v) const override { v->visit(this); }
-  Expr e;
-  Expr where;
-};
+DEFINE_BINARY_NODE(EqNode, Constraint);
+DEFINE_BINARY_NODE(NeqNode, Constraint);
+DEFINE_BINARY_NODE(LeqNode, Constraint);
+DEFINE_BINARY_NODE(GeqNode, Constraint);
+DEFINE_BINARY_NODE(LessNode, Constraint);
+DEFINE_BINARY_NODE(GreaterNode, Constraint);
 
 struct SubsetNode : public StmtNode {
   SubsetNode(std::shared_ptr<const AbstractDataType> data,
@@ -69,12 +63,6 @@ struct SubsetNode : public StmtNode {
   std::vector<Expr> mdFields;
 };
 
-struct SubsetsNode : public StmtNode {
-  SubsetsNode(const std::vector<Subset> &subsets) : subsets(subsets) {}
-  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
-  std::vector<Subset> subsets;
-};
-
 struct ProducesNode : public StmtNode {
   ProducesNode(Subset output) : output(output) {}
   void accept(StmtVisitorStrict *v) const override { v->visit(this); }
@@ -82,21 +70,43 @@ struct ProducesNode : public StmtNode {
 };
 
 struct ConsumesNode : public StmtNode {
-  ConsumesNode(Stmt stmt) : stmt(stmt) {}
-  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
-  Stmt stmt;
+  ConsumesNode() = default;
+  virtual void accept(StmtVisitorStrict *v) const override { v->visit(this); }
 };
 
-struct ForNode : public StmtNode {
-  ForNode(Variable v, Expr start, Expr end, Expr step, Stmt body,
-          bool parallel = false)
+struct ConsumesForNode : public ConsumesNode {
+  ConsumesForNode(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+                  bool parallel = false)
       : v(v), start(start), end(end), step(step), body(body) {}
   void accept(StmtVisitorStrict *v) const override { v->visit(this); }
   Variable v;
   Expr start;
   Expr end;
   Expr step;
-  Stmt body;
+  ConsumeMany body;
+};
+
+struct SubsetsNode : public ConsumesNode {
+  SubsetsNode(const std::vector<Subset> &subsets) : subsets(subsets) {}
+  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
+  std::vector<Subset> subsets;
+};
+
+struct PatternNode : public StmtNode {
+  PatternNode() = default;
+  virtual void accept(StmtVisitorStrict *v) const override { v->visit(this); }
+};
+
+struct ComputesForNode : public PatternNode {
+  ComputesForNode(Variable v, Expr start, Expr end, Expr step, Pattern body,
+                  bool parallel = false)
+      : v(v), start(start), end(end), step(step), body(body) {}
+  void accept(StmtVisitorStrict *v) const override { v->visit(this); }
+  Variable v;
+  Expr start;
+  Expr end;
+  Expr step;
+  Pattern body;
   bool parallel;
 };
 
@@ -107,7 +117,7 @@ struct AllocatesNode : public StmtNode {
   Expr smem;
 };
 
-struct ComputesNode : public StmtNode {
+struct ComputesNode : public PatternNode {
   ComputesNode(Produces p, Consumes c, Allocates a) : p(p), c(c), a(a) {}
   void accept(StmtVisitorStrict *v) const override { v->visit(this); }
   Produces p;

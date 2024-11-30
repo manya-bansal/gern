@@ -5,6 +5,8 @@
 #include "annotations/data_dependency_language.h"
 #include "test-utils.h"
 
+#include "utils/error.h"
+
 using namespace gern;
 
 TEST(ExprNode, Literal) {
@@ -41,12 +43,25 @@ TEST(Expr, BinaryNodes) {
 TEST(StmtNode, Constraint) {
   Variable v("v_");
   Expr e = 1 - v;
-  Constraint test(v, e == e);
 
-  ASSERT_TRUE(getStrippedString(test) == "v_where((1-v_)==(1-v_))");
+  Constraint test(e == e);
+  ASSERT_TRUE(getStrippedString(test) == "((1-v_)==(1-v_))");
 
-  auto testDataSTructure = std::make_shared<const dummy::TestDataStructure>();
-  Subset subset{testDataSTructure, {1 - v, v * 2}};
+  auto testDS = std::make_shared<const dummy::TestDataStructure>();
+  Subset subset{testDS, {1 - v, v * 2}};
 
   ASSERT_TRUE(getStrippedString(subset) == "test{1-v_,v_*2}");
+}
+
+TEST(Annotations, ConstrainPatterns) {
+  Variable v("v");
+  Variable v1("v1");
+  auto testDS = std::make_shared<const dummy::TestDataStructure>();
+  Subset s{testDS, {1 - v, v * 2}};
+
+  ASSERT_NO_THROW(For(v, 0, 0, 0, Computes(Produces(s), Consumes(Subsets(s))))
+                      .where(v == 1));
+  ASSERT_THROW(For(v, 0, 0, 0, Computes(Produces(s), Consumes(Subsets(s))))
+                   .where(v1 == 1),
+               error::UserError);
 }

@@ -2,6 +2,7 @@
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
 #include "utils/debug.h"
+#include "utils/error.h"
 
 #include <set>
 
@@ -27,24 +28,31 @@ std::ostream &operator<<(std::ostream &os, const Expr &e) {
   return os;
 }
 
-#define DEFINE_BINARY_OPERATOR(CLASS_NAME, OPERATOR)                           \
-  Expr operator OPERATOR(const Expr &a, const Expr &b) {                       \
+std::ostream &operator<<(std::ostream &os, const Constraint &c) {
+  Printer p{os};
+  p.visit(c);
+  return os;
+}
+
+#define DEFINE_BINARY_OPERATOR(CLASS_NAME, OPERATOR, NODE)                     \
+  CLASS_NAME operator OPERATOR(const Expr &a, const Expr &b) {                 \
     return CLASS_NAME(a, b);                                                   \
   }
 
-DEFINE_BINARY_OPERATOR(Add, +)
-DEFINE_BINARY_OPERATOR(Sub, -)
-DEFINE_BINARY_OPERATOR(Mul, *)
-DEFINE_BINARY_OPERATOR(Div, /)
-DEFINE_BINARY_OPERATOR(Mod, %)
-DEFINE_BINARY_OPERATOR(Eq, ==)
-DEFINE_BINARY_OPERATOR(Neq, !=)
-DEFINE_BINARY_OPERATOR(Leq, <=)
-DEFINE_BINARY_OPERATOR(Geq, >=)
-DEFINE_BINARY_OPERATOR(Less, <)
-DEFINE_BINARY_OPERATOR(Greater, >)
-DEFINE_BINARY_OPERATOR(And, &&)
-DEFINE_BINARY_OPERATOR(Or, ||)
+DEFINE_BINARY_OPERATOR(Add, +, Expr)
+DEFINE_BINARY_OPERATOR(Sub, -, Expr)
+DEFINE_BINARY_OPERATOR(Mul, *, Expr)
+DEFINE_BINARY_OPERATOR(Div, /, Expr)
+DEFINE_BINARY_OPERATOR(Mod, %, Expr)
+
+DEFINE_BINARY_OPERATOR(Eq, ==, Constraint)
+DEFINE_BINARY_OPERATOR(Neq, !=, Constraint)
+DEFINE_BINARY_OPERATOR(Leq, <=, Constraint)
+DEFINE_BINARY_OPERATOR(Geq, >=, Constraint)
+DEFINE_BINARY_OPERATOR(Less, <, Constraint)
+DEFINE_BINARY_OPERATOR(Greater, >, Constraint)
+DEFINE_BINARY_OPERATOR(And, &&, Constraint)
+DEFINE_BINARY_OPERATOR(Or, ||, Constraint)
 
 std::ostream &operator<<(std::ostream &os, const Stmt &s) {
   Printer p{os};
@@ -52,114 +60,80 @@ std::ostream &operator<<(std::ostream &os, const Stmt &s) {
   return os;
 }
 
-#define DEFINE_BINARY_EXPR_CONSTRUCTOR(CLASS_NAME)                             \
+template <typename T> std::set<const VariableNode *> getVariables(T annot) {
+  std::set<const VariableNode *> vars;
+  match(annot,
+        std::function<void(const VariableNode *, Matcher *)>(
+            [&](const VariableNode *op, Matcher *ctx) { vars.insert(op); }));
+  return vars;
+}
+
+Stmt Stmt::where(Constraint constraint) {
+  auto stmtVars = getVariables(*this);
+  auto constraintVars = getVariables(constraint);
+  if (!std::includes(stmtVars.begin(), stmtVars.end(), constraintVars.begin(),
+                     constraintVars.end())) {
+    throw error::UserError("Putting constraints on variables that are not "
+                           "present in statement's scope");
+  }
+  return Stmt(node, constraint);
+}
+
+#define DEFINE_BINARY_CONSTRUCTOR(CLASS_NAME, NODE)                            \
   CLASS_NAME::CLASS_NAME(Expr a, Expr b)                                       \
-      : Expr(std::make_shared<const CLASS_NAME##Node>(a, b)) {}
+      : NODE(std::make_shared<const CLASS_NAME##Node>(a, b)) {}                \
+  Expr CLASS_NAME::getA() const {                                              \
+    return std::static_pointer_cast<const CLASS_NAME##Node>(getNode())->a;     \
+  }                                                                            \
+  Expr CLASS_NAME::getB() const {                                              \
+    return std::static_pointer_cast<const CLASS_NAME##Node>(getNode())->b;     \
+  }
 
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Add)
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Sub)
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Div)
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Mod)
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Mul)
+DEFINE_BINARY_CONSTRUCTOR(Add, Expr)
+DEFINE_BINARY_CONSTRUCTOR(Sub, Expr)
+DEFINE_BINARY_CONSTRUCTOR(Div, Expr)
+DEFINE_BINARY_CONSTRUCTOR(Mod, Expr)
+DEFINE_BINARY_CONSTRUCTOR(Mul, Expr)
 
-DEFINE_BINARY_EXPR_CONSTRUCTOR(And);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Or);
+DEFINE_BINARY_CONSTRUCTOR(And, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Or, Constraint);
 
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Eq);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Neq);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Leq);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Geq);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Less);
-DEFINE_BINARY_EXPR_CONSTRUCTOR(Greater);
-
-Constraint::Constraint(Expr e, Expr where)
-    : Expr(std::make_shared<const ConstraintNode>(e, where)) {}
+DEFINE_BINARY_CONSTRUCTOR(Eq, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Neq, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Leq, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Geq, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Less, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
 
 Subset::Subset(std::shared_ptr<const AbstractDataType> data,
                std::vector<Expr> mdFields)
     : Stmt(std::make_shared<const SubsetNode>(data, mdFields)) {}
 
 Subsets::Subsets(const std::vector<Subset> &inputs)
-    : Stmt(std::make_shared<const SubsetsNode>(inputs)) {}
-
-For::For(Variable v, Expr start, Expr end, Expr step, Stmt body, bool parallel)
-    : Stmt(std::make_shared<const ForNode>(v, start, end, step, body,
-                                           parallel)) {}
+    : ConsumeMany(std::make_shared<const SubsetsNode>(inputs)) {}
 
 Produces::Produces(Subset s) : Stmt(std::make_shared<const ProducesNode>(s)) {}
 
-Consumes::Consumes(Stmt stmt)
-    : Stmt(std::make_shared<const ConsumesNode>(stmt)) {}
+Consumes::Consumes(std::shared_ptr<const ConsumesNode> c) : Stmt(c) {}
+
+ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+                bool parallel) {
+  return ConsumeMany(std::make_shared<const ConsumesForNode>(
+      v, start, end, step, body, parallel));
+}
 
 Allocates::Allocates(Expr reg, Expr smem)
     : Stmt(std::make_shared<const AllocatesNode>(reg, smem)) {}
 
 Computes::Computes(Produces p, Consumes c, Allocates a)
-    : Stmt(std::make_shared<const ComputesNode>(p, c, a)) {}
+    : Pattern(std::make_shared<const ComputesNode>(p, c, a)) {}
 
-bool isValidDataDependencyPattern(Stmt s) {
+Pattern::Pattern(std::shared_ptr<const PatternNode> p) : Stmt(p) {}
 
-  bool found_compute_node = false;
-  bool found_produces_node = false;
-  bool found_consumes_node = false;
-  bool ill_formed = false;
-
-  std::set<std::shared_ptr<const ExprNode>> seen;
-
-  match(s,
-        std::function<void(const ComputesNode *, Matcher *)>(
-            [&](const ComputesNode *op, Matcher *ctx) {
-              if (found_compute_node) {
-                DEBUG("Found two computes nodes");
-                ill_formed = true;
-              }
-              found_compute_node = true;
-              ctx->match(op->p);
-              ctx->match(op->c);
-              ctx->match(op->a);
-            }),
-        std::function<void(const ProducesNode *, Matcher *)>(
-            [&](const ProducesNode *op, Matcher *ctx) {
-              if (!found_compute_node || found_consumes_node) {
-                DEBUG("Found produces node before computes node, or after a "
-                      "consumes node");
-                ill_formed = true;
-              }
-              if (found_produces_node) {
-                DEBUG("Found two consumes nodes");
-                ill_formed = true;
-              }
-              found_produces_node = true;
-            }),
-        std::function<void(const ConsumesNode *, Matcher *)>(
-            [&](const ConsumesNode *op, Matcher *ctx) {
-              if (!found_compute_node) {
-                DEBUG("Found consumes node before computes node");
-                ill_formed = true;
-              }
-              if (found_consumes_node) {
-                DEBUG("Found two produces nodes");
-                ill_formed = true;
-              }
-              found_consumes_node = true;
-              ctx->match(op->stmt);
-            }),
-        std::function<void(const ForNode *, Matcher *)>(
-            [&](const ForNode *op, Matcher *ctx) {
-              if (seen.count(op->v.getNode()) != 0) {
-                DEBUG("Same interval variable being used twice");
-                ill_formed = true;
-              }
-              seen.insert(op->v.getNode());
-              ctx->match(op->body);
-            }));
-
-  if (!found_compute_node || !found_consumes_node || !found_produces_node) {
-    DEBUG("Did not find a consumes, produces or computes node");
-    ill_formed = true;
-  }
-
-  return !ill_formed;
+Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
+            bool parallel) {
+  return Pattern(std::make_shared<const ComputesForNode>(v, start, end, step,
+                                                         body, parallel));
 }
 
 } // namespace gern

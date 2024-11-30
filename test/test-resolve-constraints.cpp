@@ -2,4 +2,9 @@
 #include <gtest/gtest.h>
 
 using namespace gern;
-TEST(ResolveConstraints, Simple) { resolve::solve({}); }
+
+TEST(ResolveConstraints, Simple) {
+  Variable x("x");
+  Variable y("y");
+  resolve::solve({x == y});
+}

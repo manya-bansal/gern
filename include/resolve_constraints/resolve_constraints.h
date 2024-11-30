@@ -21,7 +21,7 @@ namespace resolve {
  * @return std::map<Variable, Expr> Map from system of equations to
  *                                  solutions.
  */
-std::map<Variable, Expr> solve(std::vector<Expr> system_of_equations);
+std::map<Variable, Expr> solve(std::vector<Eq> system_of_equations);
 
 } // namespace resolve
 } // namespace gern
