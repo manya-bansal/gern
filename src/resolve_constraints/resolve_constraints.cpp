@@ -77,7 +77,7 @@ static Expr convertToGern(GiNaC::ex ginacExpr, SymbolToVariableMap names) {
 
   struct GinacToExpr : public GiNaC::visitor, public GiNaC::symbol::visitor {
     GinacToExpr(SymbolToVariableMap variables) : variables(variables) {}
-    void visit(const GiNaC::symbol &s) { e = variables[s]; }
+    void visit(const GiNaC::symbol &s) {}
 
     SymbolToVariableMap variables;
     Expr e;
@@ -115,6 +115,22 @@ std::map<Variable, Expr> solve(std::vector<Eq> system_of_equations) {
 
   GiNaC::ex solutions = GiNaC::lsolve(ginacSystemOfEq, to_solve);
   std::cout << "Solved" << solutions;
+
+  class VariableCollector : public AnnotVisitor {
+  public:
+    using AnnotVisitor::visit;
+    void visit(Expr e) {
+      if (dynamic_cast<const VariableNode *>(e.getNode().get()) != nullptr) {
+        visit(Variable(e.getNode()));
+      }
+      AnnotVisitor::visit(e);
+    };
+  };
+
+  Variable V{"V"};
+  Expr e = V;
+  VisitorTest v;
+  v.visit(e);
 
   GiNaC::symbol y("x");
   return {};
