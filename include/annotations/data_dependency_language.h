@@ -2,14 +2,40 @@
 #define GERN_DATA_DEP_LANG_H
 
 #include "annotations/abstract_nodes.h"
+#include "utils/uncopyable.h"
 #include <memory>
 
 namespace gern {
 
-class Expr {
+struct AddNode;
+struct SubNode;
+struct MulNode;
+struct DivNode;
+struct ModNode;
+struct EqNode;
+struct NeqNode;
+struct LeqNode;
+struct GeqNode;
+struct LessNode;
+struct GreaterNode;
+struct AndNode;
+struct OrNode;
+struct VariableNode;
+
+struct SubsetNode;
+struct SubsetsNode;
+struct ProducesNode;
+struct ConsumesNode;
+struct ConsumesForNode;
+struct AllocatesNode;
+struct ComputesForNode;
+struct ComputesNode;
+struct PatternNode;
+
+class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
-  Expr() : node(std::shared_ptr<const ExprNode>(nullptr)) {}
-  Expr(std::shared_ptr<const ExprNode> e) : node(e) {}
+  Expr() : util::IntrusivePtr<const ExprNode>(nullptr) {}
+  Expr(const ExprNode *n) : util::IntrusivePtr<const ExprNode>(n) {}
 
   Expr(uint8_t);
   Expr(uint16_t);
@@ -22,34 +48,26 @@ public:
   Expr(float);
   Expr(double);
 
-  void accept(ExprVisitorStrict *v) const { node->accept(v); }
-  bool isDefined() const { return (node != nullptr); }
-  std::shared_ptr<const ExprNode> getNode() const { return node; }
-
-private:
-  std::shared_ptr<const ExprNode> node;
+  void accept(ExprVisitorStrict *v) const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Expr &);
 
-class Constraint {
+class Constraint : public util::IntrusivePtr<const ConstraintNode> {
 public:
-  Constraint() : node(std::shared_ptr<const ConstraintNode>(nullptr)) {}
-  Constraint(std::shared_ptr<const ConstraintNode> node) : node(node) {}
+  Constraint() : util::IntrusivePtr<const ConstraintNode>(nullptr) {}
+  Constraint(const ConstraintNode *n)
+      : util::IntrusivePtr<const ConstraintNode>(n) {}
 
-  void accept(ConstraintVisitorStrict *v) const { node->accept(v); }
-  bool isDefined() const { return (node != nullptr); }
-  std::shared_ptr<const ConstraintNode> getNode() const { return node; }
-
-private:
-  std::shared_ptr<const ConstraintNode> node;
+  void accept(ConstraintVisitorStrict *v) const;
 };
+
 std::ostream &operator<<(std::ostream &os, const Constraint &);
 
-class Stmt {
+class Stmt : public util::IntrusivePtr<const StmtNode> {
 public:
-  Stmt() : node(std::shared_ptr<const StmtNode>(nullptr)) {}
-  Stmt(std::shared_ptr<const StmtNode> e) : node(e) {}
+  Stmt() : util::IntrusivePtr<const StmtNode>(nullptr) {}
+  Stmt(const StmtNode *n) : util::IntrusivePtr<const StmtNode>(n) {}
 
   /**
    * @brief Add a constraint to a statement
@@ -62,13 +80,11 @@ public:
    */
   Stmt where(Constraint constraint);
 
-  void accept(StmtVisitorStrict *v) const { node->accept(v); }
-  bool isDefined() const { return (node != nullptr); }
-  std::shared_ptr<const StmtNode> getNode() const { return node; }
+  void accept(StmtVisitorStrict *v) const;
 
 private:
-  Stmt(std::shared_ptr<const StmtNode> e, Constraint c) : node(e), c(c) {}
-  std::shared_ptr<const StmtNode> node;
+  Stmt(const StmtNode *n, Constraint c)
+      : util::IntrusivePtr<const StmtNode>(n), c(c) {}
   Constraint c;
 };
 
@@ -77,6 +93,7 @@ std::ostream &operator<<(std::ostream &os, const Stmt &);
 class Variable : public Expr {
 public:
   Variable(const std::string &name);
+  typedef VariableNode Node;
 };
 
 #define DEFINE_BINARY_CLASS(NAME, NODE)                                        \
@@ -85,6 +102,7 @@ public:
     NAME(Expr a, Expr b);                                                      \
     Expr getA() const;                                                         \
     Expr getB() const;                                                         \
+    typedef NAME##Node Node;                                                   \
   };
 
 DEFINE_BINARY_CLASS(Add, Expr);
@@ -121,30 +139,34 @@ class Subset : public Stmt {
 public:
   Subset(std::shared_ptr<const AbstractDataType> data,
          std::vector<Expr> mdFields);
+  typedef SubsetNode Node;
 };
 
 class Produces : public Stmt {
 public:
   Produces(Subset s);
+  typedef ProducesNode Node;
 };
 
 struct ConsumesNode;
 
 class Consumes : public Stmt {
 public:
-  Consumes(std::shared_ptr<const ConsumesNode>);
+  Consumes(const ConsumesNode *);
   Consumes(Subset s);
+  typedef ConsumesNode Node;
 };
 
 class ConsumeMany : public Consumes {
 public:
-  ConsumeMany(std::shared_ptr<const ConsumesNode> s) : Consumes(s) {};
+  ConsumeMany(const ConsumesNode *s) : Consumes(s) {};
 };
 
 class Subsets : public ConsumeMany {
 public:
   Subsets(const std::vector<Subset> &subsets);
   Subsets(Subset s) : Subsets(std::vector<Subset>{s}) {}
+  typedef SubsetsNode Node;
 };
 
 // This ensures that a consumes node will only ever contain a for loop
@@ -157,17 +179,20 @@ class Allocates : public Stmt {
 public:
   Allocates() : Stmt() {}
   Allocates(Expr reg, Expr smem = Expr());
+  typedef AllocatesNode Node;
 };
 
 struct PatternNode;
 class Pattern : public Stmt {
 public:
-  Pattern(std::shared_ptr<const PatternNode>);
+  Pattern(const PatternNode *);
+  typedef PatternNode Node;
 };
 
 class Computes : public Pattern {
 public:
   Computes(Produces p, Consumes c, Allocates a = Allocates());
+  typedef ComputesNode Node;
 };
 
 // This ensures that a computes node will only ever contain a for loop

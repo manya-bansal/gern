@@ -11,15 +11,15 @@ using namespace gern;
 
 TEST(ExprNode, Literal) {
   Expr e1{(uint64_t)4};
-  auto node = e1.getNode();
+  auto node = e1.ptr;
   ASSERT_EQ(node->getDatatype().getKind(), Datatype::Kind::UInt64);
 
   Expr e2{(uint32_t)4};
-  node = e2.getNode();
+  node = e2.ptr;
   ASSERT_EQ(node->getDatatype().getKind(), Datatype::Kind::UInt32);
 
   Expr e3{(double)4};
-  node = e3.getNode();
+  node = e3.ptr;
   ASSERT_EQ(node->getDatatype().getKind(), Datatype::Kind::Float64);
 }
 
