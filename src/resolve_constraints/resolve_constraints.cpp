@@ -20,12 +20,14 @@ namespace resolve {
 #define COMPLAIN(op)                                                           \
   void visit(const op *node) { assert("bad"); }
 
-typedef std::map<const VariableNode *, GiNaC::symbol> SymbolVariableMap;
+typedef std::map<const VariableNode *, GiNaC::symbol> VariableToSymbolMap;
+typedef std::map<GiNaC::symbol, const VariableNode *> SymbolToVariableMap;
 
-GiNaC::ex convertToGinac(Eq q, SymbolVariableMap names) {
-  std::cout << q << std::endl;
+// Helper function to convert an equality constraint to a GiNaC
+// expression. Currently, only equality constraints are accepted.
+static GiNaC::ex convertToGinac(Eq q, VariableToSymbolMap names) {
   struct ExprToGinac : public ExprVisitorStrict {
-    ExprToGinac(SymbolVariableMap names) : names(names) {}
+    ExprToGinac(VariableToSymbolMap names) : names(names) {}
     using ExprVisitorStrict::visit;
 
     void visit(const VariableNode *op) {
@@ -58,7 +60,7 @@ GiNaC::ex convertToGinac(Eq q, SymbolVariableMap names) {
     COMPLAIN(ModNode);
 
     GiNaC::ex ginacExpr;
-    SymbolVariableMap names;
+    VariableToSymbolMap names;
   };
 
   ExprToGinac convert_a{names};
@@ -71,31 +73,48 @@ GiNaC::ex convertToGinac(Eq q, SymbolVariableMap names) {
   return a == b;
 }
 
+static Expr convertToGern(GiNaC::ex ginacExpr, SymbolToVariableMap names) {
+
+  struct GinacToExpr : public GiNaC::visitor, public GiNaC::symbol::visitor {
+    GinacToExpr(SymbolToVariableMap variables) : variables(variables) {}
+    void visit(const GiNaC::symbol &s) { e = variables[s]; }
+
+    SymbolToVariableMap variables;
+    Expr e;
+  };
+
+  GinacToExpr convertor{names};
+  ginacExpr.accept(convertor);
+
+  return convertor.e;
+}
+
 std::map<Variable, Expr> solve(std::vector<Eq> system_of_equations) {
   // Generate a GiNaC symbol for each variable node that we want to lower.
-  SymbolVariableMap symbols;
+  VariableToSymbolMap symbols;
 
   for (const auto &eq : system_of_equations) {
     match(eq, std::function<void(const VariableNode *, Matcher *)>(
                   [&](const VariableNode *op, Matcher *ctx) {
                     symbols[op] = GiNaC::symbol(op->name);
-                    std::cout << symbols[op] << std::endl;
                   }));
   }
 
   GiNaC::lst ginacSystemOfEq;
   for (const auto &eq : system_of_equations) {
-    std::cout << convertToGinac(eq, symbols) << std::endl;
+    DEBUG(convertToGinac(eq, symbols));
     ginacSystemOfEq.append(convertToGinac(eq, symbols));
   }
 
-  for (const auto &eq : system_of_equations) {
-    match(eq, std::function<void(const VariableNode *, Matcher *)>(
-                  [&](const VariableNode *op, Matcher *ctx) {
-                    std::cout
-                        << lsolve(ginacSystemOfEq, GiNaC::lst{symbols[op]});
-                  }));
+  SymbolToVariableMap variables;
+  GiNaC::lst to_solve;
+  for (const auto &var : symbols) {
+    to_solve.append(var.second);
+    variables[var.second] = var.first;
   }
+
+  GiNaC::ex solutions = GiNaC::lsolve(ginacSystemOfEq, to_solve);
+  std::cout << "Solved" << solutions;
 
   GiNaC::symbol y("x");
   return {};
