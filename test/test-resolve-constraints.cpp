@@ -34,3 +34,13 @@ TEST(ResolveConstraints, Multiply) {
   string_sol = getStrippedString(sol);
   ASSERT_TRUE((string_sol == "(y*(1/z))") || string_sol == "((1/z)*y)");
 }
+
+TEST(ResolveConstraints, MultiplyAdds) {
+  Variable x("x");
+  Variable y("y");
+  Variable z("z");
+
+  auto sol = resolve::solve((x * 4) + z == y, x);
+  auto string_sol = getStrippedString(sol);
+  ASSERT_TRUE(string_sol == "((y*0.25)+(z*-0.25))");
+}
