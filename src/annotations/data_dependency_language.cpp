@@ -8,19 +8,42 @@
 
 namespace gern {
 
-Expr::Expr(uint8_t val) : Expr(std::make_shared<const LiteralNode>(val)) {}
-Expr::Expr(uint16_t val) : Expr(std::make_shared<const LiteralNode>(val)) {}
-Expr::Expr(uint32_t val) : Expr(std::make_shared<const LiteralNode>(val)) {}
-Expr::Expr(uint64_t val) : Expr(std::make_shared<const LiteralNode>(val)) {}
-Expr::Expr(int8_t val) : Expr(std::make_shared<const LiteralNode>(val)) {}
-Expr::Expr(int16_t val) : Expr(std::make_shared<const LiteralNode>(val)) {}
-Expr::Expr(int32_t val) : Expr(std::make_shared<const LiteralNode>(val)) {}
-Expr::Expr(int64_t val) : Expr(std::make_shared<const LiteralNode>(val)) {}
-Expr::Expr(float val) : Expr(std::make_shared<const LiteralNode>(val)) {}
-Expr::Expr(double val) : Expr(std::make_shared<const LiteralNode>(val)) {}
+Expr::Expr(uint8_t val) : Expr(new LiteralNode(val)) {}
+Expr::Expr(uint16_t val) : Expr(new LiteralNode(val)) {}
+Expr::Expr(uint32_t val) : Expr(new LiteralNode(val)) {}
+Expr::Expr(uint64_t val) : Expr(new LiteralNode(val)) {}
+Expr::Expr(int8_t val) : Expr(new LiteralNode(val)) {}
+Expr::Expr(int16_t val) : Expr(new LiteralNode(val)) {}
+Expr::Expr(int32_t val) : Expr(new LiteralNode(val)) {}
+Expr::Expr(int64_t val) : Expr(new LiteralNode(val)) {}
+Expr::Expr(float val) : Expr(new LiteralNode(val)) {}
+Expr::Expr(double val) : Expr(new LiteralNode(val)) {}
+
+void Expr::accept(ExprVisitorStrict *v) const {
+  if (!defined()) {
+    return;
+  }
+  ptr->accept(v);
+}
+
+void Constraint::accept(ConstraintVisitorStrict *v) const {
+  if (!defined()) {
+    return;
+  }
+  ptr->accept(v);
+}
+
+void Stmt::accept(StmtVisitorStrict *v) const {
+  if (!defined()) {
+    return;
+  }
+  ptr->accept(v);
+}
+
+Variable::Variable(const VariableNode *n) : Expr(n) {}
 
 Variable::Variable(const std::string &name)
-    : Expr(std::make_shared<const VariableNode>(name)) {}
+    : Expr(new const VariableNode(name)) {}
 
 std::ostream &operator<<(std::ostream &os, const Expr &e) {
   Printer p{os};
@@ -35,7 +58,7 @@ std::ostream &operator<<(std::ostream &os, const Constraint &c) {
 }
 
 #define DEFINE_BINARY_OPERATOR(CLASS_NAME, OPERATOR, NODE)                     \
-  NODE operator OPERATOR(const Expr &a, const Expr &b) {                       \
+  CLASS_NAME operator OPERATOR(const Expr &a, const Expr &b) {                 \
     return CLASS_NAME(a, b);                                                   \
   }
 
@@ -44,6 +67,7 @@ DEFINE_BINARY_OPERATOR(Sub, -, Expr)
 DEFINE_BINARY_OPERATOR(Mul, *, Expr)
 DEFINE_BINARY_OPERATOR(Div, /, Expr)
 DEFINE_BINARY_OPERATOR(Mod, %, Expr)
+
 DEFINE_BINARY_OPERATOR(Eq, ==, Constraint)
 DEFINE_BINARY_OPERATOR(Neq, !=, Constraint)
 DEFINE_BINARY_OPERATOR(Leq, <=, Constraint)
@@ -75,12 +99,14 @@ Stmt Stmt::where(Constraint constraint) {
     throw error::UserError("Putting constraints on variables that are not "
                            "present in statement's scope");
   }
-  return Stmt(node, constraint);
+  return Stmt(ptr, constraint);
 }
 
 #define DEFINE_BINARY_CONSTRUCTOR(CLASS_NAME, NODE)                            \
   CLASS_NAME::CLASS_NAME(Expr a, Expr b)                                       \
-      : NODE(std::make_shared<const CLASS_NAME##Node>(a, b)) {}
+      : NODE(new const CLASS_NAME##Node(a, b)) {}                              \
+  Expr CLASS_NAME::getA() const { return getNode(*this)->a; }                  \
+  Expr CLASS_NAME::getB() const { return getNode(*this)->b; }
 
 DEFINE_BINARY_CONSTRUCTOR(Add, Expr)
 DEFINE_BINARY_CONSTRUCTOR(Sub, Expr)
@@ -100,33 +126,33 @@ DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
 
 Subset::Subset(std::shared_ptr<const AbstractDataType> data,
                std::vector<Expr> mdFields)
-    : Stmt(std::make_shared<const SubsetNode>(data, mdFields)) {}
+    : Stmt(new const SubsetNode(data, mdFields)) {}
 
 Subsets::Subsets(const std::vector<Subset> &inputs)
-    : ConsumeMany(std::make_shared<const SubsetsNode>(inputs)) {}
+    : ConsumeMany(new const SubsetsNode(inputs)) {}
 
-Produces::Produces(Subset s) : Stmt(std::make_shared<const ProducesNode>(s)) {}
+Produces::Produces(Subset s) : Stmt(new const ProducesNode(s)) {}
 
-Consumes::Consumes(std::shared_ptr<const ConsumesNode> c) : Stmt(c) {}
+Consumes::Consumes(const ConsumesNode *c) : Stmt(c) {}
 
 ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
                 bool parallel) {
-  return ConsumeMany(std::make_shared<const ConsumesForNode>(
-      v, start, end, step, body, parallel));
+  return ConsumeMany(
+      new const ConsumesForNode(v, start, end, step, body, parallel));
 }
 
 Allocates::Allocates(Expr reg, Expr smem)
-    : Stmt(std::make_shared<const AllocatesNode>(reg, smem)) {}
+    : Stmt(new const AllocatesNode(reg, smem)) {}
 
 Computes::Computes(Produces p, Consumes c, Allocates a)
-    : Pattern(std::make_shared<const ComputesNode>(p, c, a)) {}
+    : Pattern(new const ComputesNode(p, c, a)) {}
 
-Pattern::Pattern(std::shared_ptr<const PatternNode> p) : Stmt(p) {}
+Pattern::Pattern(const PatternNode *p) : Stmt(p) {}
 
 Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
             bool parallel) {
-  return Pattern(std::make_shared<const ComputesForNode>(v, start, end, step,
-                                                         body, parallel));
+  return Pattern(
+      new const ComputesForNode(v, start, end, step, body, parallel));
 }
 
 } // namespace gern

@@ -4,24 +4,24 @@
 namespace gern {
 
 void ExprVisitorStrict::visit(Expr e) {
-  if (!e.isDefined()) {
+  if (!e.defined()) {
     return;
   }
-  e.getNode()->accept(this);
+  e.accept(this);
 }
 
 void ConstraintVisitorStrict::visit(Constraint c) {
-  if (!c.isDefined()) {
+  if (!c.defined()) {
     return;
   }
-  c.getNode()->accept(this);
+  c.accept(this);
 }
 
 void StmtVisitorStrict::visit(Stmt s) {
-  if (!s.isDefined()) {
+  if (!s.defined()) {
     return;
   }
-  s.getNode()->accept(this);
+  s.accept(this);
 }
 
 static void printIdent(std::ostream &os, int ident) {
@@ -31,13 +31,13 @@ static void printIdent(std::ostream &os, int ident) {
 }
 
 void Printer::visit(Consumes p) {
-  if (!p.isDefined()) {
+  if (!p.defined()) {
     return;
   }
   printIdent(os, ident);
   os << " when consumes {" << std::endl;
   ident++;
-  p.getNode()->accept(this);
+  p.accept(this);
   os << std::endl;
   ident--;
   printIdent(os, ident);
@@ -45,26 +45,25 @@ void Printer::visit(Consumes p) {
 }
 
 void Printer::visit(ConsumeMany many) {
-  if (!many.isDefined()) {
+  if (!many.defined()) {
     return;
   }
-  many.getNode()->accept(this);
+  many.accept(this);
 }
 
 void Printer::visit(const LiteralNode *op) { os << (*op); }
-void Printer::visit(const AddNode *op) { os << op->a << " + " << op->b; }
-void Printer::visit(const SubNode *op) { os << op->a << " - " << op->b; }
-void Printer::visit(const DivNode *op) { os << op->a << " / " << op->b; }
-void Printer::visit(const MulNode *op) { os << op->a << " * " << op->b; }
-void Printer::visit(const ModNode *op) { os << op->a << " % " << op->b; }
 void Printer::visit(const VariableNode *op) { os << op->name; }
 
 #define DEFINE_PRINTER_METHOD(CLASS_NAME, OPERATOR)                            \
   void Printer::visit(const CLASS_NAME *op) {                                  \
-    os << "((" << op->a << ") " << #OPERATOR << " (" << op->b << "))"          \
-       << std::endl;                                                           \
+    os << "(" << op->a << #OPERATOR << op->b << ")";                           \
   }
 
+DEFINE_PRINTER_METHOD(AddNode, +)
+DEFINE_PRINTER_METHOD(SubNode, -)
+DEFINE_PRINTER_METHOD(MulNode, *)
+DEFINE_PRINTER_METHOD(DivNode, /)
+DEFINE_PRINTER_METHOD(ModNode, %)
 DEFINE_PRINTER_METHOD(EqNode, ==)
 DEFINE_PRINTER_METHOD(NeqNode, !=)
 DEFINE_PRINTER_METHOD(LeqNode, <=)
@@ -113,12 +112,12 @@ void Printer::visit(const ProducesNode *op) {
 void Printer::visit(const ConsumesNode *op) {}
 
 void Printer::visit(Allocates a) {
-  if (!a.isDefined()) {
+  if (!a.defined()) {
     printIdent(os, ident);
     os << "allocates()";
     return;
   }
-  this->visit(a.getNode());
+  this->visit(a.ptr);
 }
 
 void Printer::visit(const AllocatesNode *op) {

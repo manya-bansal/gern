@@ -187,7 +187,7 @@ public:
 class Matcher : public AnnotVisitor {
 public:
   template <class T> void match(T stmt) {
-    if (!stmt.isDefined()) {
+    if (!stmt.defined()) {
       return;
     }
     stmt.accept(this);
@@ -264,7 +264,7 @@ private:
   function<void(const Add*, Matcher* ctx)>([&](const Add* op, Matcher* ctx) {
 **/
 template <class T, class... Patterns> void match(T stmt, Patterns... patterns) {
-  if (!stmt.isDefined()) {
+  if (!stmt.defined()) {
     return;
   }
   Matcher().process(stmt, patterns...);

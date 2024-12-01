@@ -125,6 +125,38 @@ struct ComputesNode : public PatternNode {
   Allocates a;
 };
 
+template <typename E> inline bool isa(const ExprNode *e) {
+  return e != nullptr && dynamic_cast<const E *>(e) != nullptr;
+};
+
+template <typename E> inline const E *to(const ExprNode *e) {
+  assert(isa<E>(e));
+  return static_cast<const E *>(e);
+}
+
+template <typename E> inline bool isa(const StmtNode *e) {
+  return e != nullptr && dynamic_cast<const E *>(e) != nullptr;
+};
+
+template <typename E> inline const E *to(const StmtNode *e) {
+  assert(isa<E>(e));
+  return static_cast<const E *>(e);
+}
+
+template <typename E> inline bool isa(const ConstraintNode *e) {
+  return e != nullptr && dynamic_cast<const E *>(e) != nullptr;
+};
+
+template <typename E> inline const E *to(const ConstraintNode *e) {
+  assert(isa<E>(e));
+  return static_cast<const E *>(e);
+}
+
+template <typename I> inline const typename I::Node *getNode(const I &stmt) {
+  assert(isa<typename I::Node>(stmt.ptr));
+  return static_cast<const typename I::Node *>(stmt.ptr);
+};
+
 } // namespace gern
 
 #endif

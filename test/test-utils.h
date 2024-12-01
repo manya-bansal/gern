@@ -12,6 +12,15 @@ public:
 };
 
 } // namespace dummy
+
+template <typename T> static std::string getStrippedString(T e) {
+  std::stringstream ss;
+  ss << e;
+  auto str = ss.str();
+  str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
+  return std::string(str);
+}
+
 } // namespace gern
 
 #endif

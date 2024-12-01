@@ -18,6 +18,10 @@ ADD_SUBDIRECTORY (googletest)
 enable_testing()
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
+################################
+# GiNac 
+################################
+add_subdirectory(ginac)
 add_executable(test_exec main.cpp)
 
 # Add compiler flags for the test executable
@@ -32,8 +36,9 @@ target_compile_options(test_exec PRIVATE
     -fvisibility=hidden
 )
 
-target_link_libraries(test_exec
+target_link_libraries(test_exec PUBLIC
     ${CMAKE_DL_LIBS}
+    ginac::ginac
 )
 
 

@@ -3,6 +3,7 @@
 To build gern, run: 
 
 ```
+git submodule update --init --recursive
 mkdir build && cd build
 cmake .. 
 make -j 8
