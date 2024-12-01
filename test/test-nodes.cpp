@@ -23,14 +23,6 @@ TEST(ExprNode, Literal) {
   ASSERT_EQ(node->getDatatype().getKind(), Datatype::Kind::Float64);
 }
 
-template <typename T> static std::string getStrippedString(T e) {
-  std::stringstream ss;
-  ss << e;
-  auto str = ss.str();
-  str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
-  return std::string(str);
-}
-
 TEST(Expr, BinaryNodes) {
   Expr e = 4;
   Variable v{"v"};

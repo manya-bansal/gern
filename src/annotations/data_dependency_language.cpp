@@ -106,7 +106,7 @@ Stmt Stmt::where(Constraint constraint) {
   CLASS_NAME::CLASS_NAME(Expr a, Expr b)                                       \
       : NODE(new const CLASS_NAME##Node(a, b)) {}                              \
   Expr CLASS_NAME::getA() const { return getNode(*this)->a; }                  \
-  Expr CLASS_NAME::getB() const { return getNode(*this)->a; }
+  Expr CLASS_NAME::getB() const { return getNode(*this)->b; }
 
 DEFINE_BINARY_CONSTRUCTOR(Add, Expr)
 DEFINE_BINARY_CONSTRUCTOR(Sub, Expr)

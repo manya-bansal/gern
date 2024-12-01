@@ -159,44 +159,29 @@ static Expr convertToGern(GiNaC::ex ginacExpr, SymbolToVariableMap variables) {
   return convertor.e;
 }
 
-std::map<Variable, Expr, ExprLess> solve(std::vector<Eq> system_of_equations) {
+Expr solve(Eq eq, Variable v) {
   // Generate a GiNaC symbol for each variable node that we want to lower.
   VariableToSymbolMap symbols;
-  for (const auto &eq : system_of_equations) {
-    match(eq, std::function<void(const VariableNode *, Matcher *)>(
-                  [&](const VariableNode *op, Matcher *ctx) {
-                    symbols[op] = GiNaC::symbol(op->name);
-                  }));
-  }
+  match(eq, std::function<void(const VariableNode *, Matcher *)>(
+                [&](const VariableNode *op, Matcher *ctx) {
+                  symbols[op] = GiNaC::symbol(op->name);
+                }));
 
   // Convert the Gern equations into GiNaC equations.
-  GiNaC::lst ginacSystemOfEq;
-  for (const auto &eq : system_of_equations) {
-    DEBUG(convertToGinac(eq, symbols));
-    ginacSystemOfEq.append(convertToGinac(eq, symbols));
-  }
+  DEBUG(convertToGinac(eq, symbols));
 
   // Track all the symbols that we would like solutions for (may be an
   // overestimate).
   SymbolToVariableMap variables;
-  GiNaC::lst to_solve;
   for (const auto &var : symbols) {
-    to_solve.append(var.second);
     variables[var.second] = var.first;
   }
 
   // Solve the equations.
-  GiNaC::ex solutions = GiNaC::lsolve(ginacSystemOfEq, to_solve);
+  GiNaC::ex solution = GiNaC::lsolve(convertToGinac(eq, symbols), symbols[v]);
 
   // Convert back into a Gern expressions.
-  std::map<Variable, Expr, ExprLess> solved;
-  for (const auto &sol : solutions) {
-    assert(GiNaC::is_a<GiNaC::symbol>(sol.lhs()));
-    GiNaC::symbol sym = GiNaC::ex_to<GiNaC::symbol>(sol.lhs());
-    solved[variables[sym]] = convertToGern(sol.rhs(), variables);
-  }
-
-  return solved;
+  return convertToGern(solution, variables);
 }
 
 } // namespace resolve
