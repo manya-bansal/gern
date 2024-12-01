@@ -12,7 +12,7 @@ class ConstraintVisitorStrict;
 class ConsumesVisitorStrict;
 class StmtVisitorStrict;
 
-class ExprNode : private gern::Uncopyable {
+class ExprNode : public util::Manageable<ExprNode>, public util::Uncopyable {
 public:
   ExprNode() = default;
   ExprNode(Datatype type) : datatype(type) {};
@@ -25,21 +25,22 @@ private:
   Datatype datatype;
 };
 
-class ConstraintNode : private gern::Uncopyable {
+class ConstraintNode : public util::Manageable<ConstraintNode>,
+                       public util::Uncopyable {
 public:
   ConstraintNode() = default;
   virtual ~ConstraintNode() = default;
   virtual void accept(ConstraintVisitorStrict *) const = 0;
 };
 
-class StmtNode : private gern::Uncopyable {
+class StmtNode : public util::Manageable<StmtNode>, public util::Uncopyable {
 public:
   StmtNode() = default;
   virtual ~StmtNode() = default;
   virtual void accept(StmtVisitorStrict *) const = 0;
 };
 
-class AbstractDataType : private gern::Uncopyable {
+class AbstractDataType : private util::Uncopyable {
 public:
   AbstractDataType() : name(gern::getUniqueName()) {}
   AbstractDataType(const std::string &name) : name(name) {}
