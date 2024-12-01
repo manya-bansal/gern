@@ -35,7 +35,7 @@ TEST(Expr, BinaryNodes) {
   Expr e = 4;
   Variable v{"v"};
 
-  ASSERT_TRUE(getStrippedString(v + 4 / v * 4) == "v+4/v*4");
+  ASSERT_TRUE(getStrippedString((v + 4) / (v * 4)) == "((v+4)/(v*4))");
   ASSERT_TRUE(getStrippedString(v + 4 && v * 4) == "((v+4)&&(v*4))");
   ASSERT_TRUE(getStrippedString(v % 4 >= v * 4) == "((v%4)>=(v*4))");
 }
@@ -50,7 +50,7 @@ TEST(StmtNode, Constraint) {
   auto testDS = std::make_shared<const dummy::TestDataStructure>();
   Subset subset{testDS, {1 - v, v * 2}};
 
-  ASSERT_TRUE(getStrippedString(subset) == "test{1-v_,v_*2}");
+  ASSERT_TRUE(getStrippedString(subset) == "test{(1-v_),(v_*2)}");
 }
 
 TEST(Annotations, ConstrainPatterns) {

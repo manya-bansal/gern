@@ -1,5 +1,6 @@
 #include <ginac/ginac.h>
 
+#include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
 #include "resolve_constraints/resolve_constraints.h"
@@ -20,8 +21,14 @@ namespace resolve {
 #define COMPLAIN(op)                                                           \
   void visit(const op *node) { assert("bad"); }
 
-typedef std::map<const VariableNode *, GiNaC::symbol> VariableToSymbolMap;
-typedef std::map<GiNaC::symbol, const VariableNode *> SymbolToVariableMap;
+struct GinacLess {
+  bool operator()(const GiNaC::symbol &a, const GiNaC::symbol &b) const {
+    return GiNaC::ex_is_less()(a, b);
+  }
+};
+
+typedef std::map<Variable, GiNaC::symbol, ExprLess> VariableToSymbolMap;
+typedef std::map<GiNaC::symbol, Variable, GinacLess> SymbolToVariableMap;
 
 // Helper function to convert an equality constraint to a GiNaC
 // expression. Currently, only equality constraints are accepted.
@@ -31,7 +38,7 @@ static GiNaC::ex convertToGinac(Eq q, VariableToSymbolMap names) {
     using ExprVisitorStrict::visit;
 
     void visit(const VariableNode *op) {
-      if (names.count(op) == 0) {
+      if (names.count(Variable(op)) == 0) {
         throw error::InternalError(
             "Map does not contain a symbol for variable");
       }
@@ -73,26 +80,85 @@ static GiNaC::ex convertToGinac(Eq q, VariableToSymbolMap names) {
   return a == b;
 }
 
-static Expr convertToGern(GiNaC::ex ginacExpr, SymbolToVariableMap names) {
+static Expr convertToGern(GiNaC::ex ginacExpr, SymbolToVariableMap variables) {
+  std::cout << "Total Expr = " << ginacExpr << std::endl;
+  std::cout << "before" << std::endl;
+  for (auto entry : variables) {
+    std::cout << entry.first << " : " << entry.second << std::endl;
+  }
+  std::cout << "before" << std::endl;
+  struct GinacToExpr : public GiNaC::visitor,
+                       public GiNaC::symbol::visitor,
+                       public GiNaC::add::visitor,
+                       public GiNaC::mul::visitor,
+                       public GiNaC::numeric::visitor {
 
-  struct GinacToExpr : public GiNaC::visitor, public GiNaC::symbol::visitor {
-    GinacToExpr(SymbolToVariableMap variables) : variables(variables) {}
-    void visit(const GiNaC::symbol &s) {}
+    GinacToExpr(SymbolToVariableMap names) : names(names) {}
 
-    SymbolToVariableMap variables;
+    void visit(const GiNaC::numeric &n) {
+      if (n.is_integer()) {
+        e = Expr(n.to_int());
+      }
+      if (n.is_real()) {
+        e = Expr(n.to_double());
+      } else {
+        throw error::InternalError("Unimplemented");
+      }
+    }
+
+    void visit(const GiNaC::symbol &s) {
+      if (names.count(s) == 0) {
+        throw error::InternalError(
+            "Map does not contain a symbol for GiNac::symbol");
+      }
+      std::cout << "Symbol = " << s << std::endl;
+      std::cout << "Return =" << names[s] << std::endl;
+
+      for (auto entry : names) {
+        std::cout << entry.first << " : " << entry.second << std::endl;
+      }
+      e = names[s];
+    }
+
+    void visit(const GiNaC::add &a) {
+      a.op(0).accept(*this);
+      Expr test = e;
+      std::cout << "First = " << test << std::endl;
+      for (size_t i = 1; i < a.nops(); i++) {
+        a.op(i).accept(*this);
+        std::cout << "Add Try=" << a.op(i) << "Mine=" << e << std::endl;
+        test = test + e;
+      }
+      e = test;
+      std::cout << "Addition = " << test << std::endl;
+    }
+
+    void visit(const GiNaC::mul &a) {
+      a.op(0).accept(*this);
+      Expr test = e;
+      std::cout << "1: Try=" << a.op(0) << "Mine=" << e << std::endl;
+      for (size_t i = 1; i < a.nops(); i++) {
+        a.op(i).accept(*this);
+        std::cout << "Try=" << a.op(i) << "Mine=" << e << std::endl;
+        test = test * e;
+      }
+      e = test;
+      std::cout << test << std::endl;
+    }
+
+    SymbolToVariableMap names;
     Expr e;
   };
 
-  GinacToExpr convertor{names};
+  GinacToExpr convertor{variables};
   ginacExpr.accept(convertor);
 
   return convertor.e;
 }
 
-std::map<Variable, Expr> solve(std::vector<Eq> system_of_equations) {
+std::map<Variable, Expr, ExprLess> solve(std::vector<Eq> system_of_equations) {
   // Generate a GiNaC symbol for each variable node that we want to lower.
   VariableToSymbolMap symbols;
-
   for (const auto &eq : system_of_equations) {
     match(eq, std::function<void(const VariableNode *, Matcher *)>(
                   [&](const VariableNode *op, Matcher *ctx) {
@@ -110,30 +176,41 @@ std::map<Variable, Expr> solve(std::vector<Eq> system_of_equations) {
   GiNaC::lst to_solve;
   for (const auto &var : symbols) {
     to_solve.append(var.second);
+    std::cout << var.second << " : " << var.first << std::endl;
     variables[var.second] = var.first;
   }
 
+  std::cout << "before ----  " << std::endl;
+  for (auto entry : variables) {
+    std::cout << entry.first << " : " << entry.second << std::endl;
+  }
+  std::cout << "before" << std::endl;
+
   GiNaC::ex solutions = GiNaC::lsolve(ginacSystemOfEq, to_solve);
-  std::cout << "Solved" << solutions;
 
-  // class VariableCollector : public AnnotVisitor {
-  // public:
-  //   using AnnotVisitor::visit;
-  //   void visit(Expr e) {
-  //     if (dynamic_cast<const VariableNode *>(e.getNode().get()) != nullptr) {
-  //       visit(Variable(e.getNode()));
-  //     }
-  //     AnnotVisitor::visit(e);
-  //   };
-  // };
+  std::cout << "before ----  " << std::endl;
+  for (auto entry : variables) {
+    std::cout << entry.first << " : " << entry.second << std::endl;
+  }
+  std::cout << "before" << std::endl;
 
-  // Variable V{"V"};
-  // Expr e = V;
-  // VisitorTest v;
-  // v.visit(e);
+  std::map<Variable, Expr, ExprLess> solved;
+  for (const auto &sol : solutions) {
+    assert(GiNaC::is_a<GiNaC::symbol>(sol.lhs()));
+    GiNaC::symbol sym = GiNaC::ex_to<GiNaC::symbol>(sol.lhs());
+    solved[variables[sym]] = convertToGern(sol.rhs(), variables);
+    std::cout << sol.rhs() << std::endl;
+  }
+  std::cout << "before ----  " << std::endl;
+  for (auto entry : variables) {
+    std::cout << entry.first << " : " << entry.second << std::endl;
+  }
+  std::cout << "before" << std::endl;
 
-  GiNaC::symbol y("x");
-  return {};
+  auto e = convertToGern(to_solve[0] - to_solve[1], variables);
+  std::cout << e << std::endl;
+  return solved;
 }
+
 } // namespace resolve
 } // namespace gern

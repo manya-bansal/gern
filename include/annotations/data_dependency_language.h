@@ -51,6 +51,12 @@ public:
   void accept(ExprVisitorStrict *v) const;
 };
 
+struct ExprLess {
+  bool operator()(const gern::Expr &lhs, const gern::Expr &rhs) const {
+    return lhs.ptr < rhs.ptr; // Compare by key
+  }
+};
+
 std::ostream &operator<<(std::ostream &os, const Expr &);
 
 class Constraint : public util::IntrusivePtr<const ConstraintNode> {
@@ -92,7 +98,9 @@ std::ostream &operator<<(std::ostream &os, const Stmt &);
 
 class Variable : public Expr {
 public:
+  Variable() = default;
   Variable(const std::string &name);
+  Variable(const VariableNode *);
   typedef VariableNode Node;
 };
 
@@ -202,4 +210,5 @@ Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
             bool parallel = false);
 
 } // namespace gern
+
 #endif

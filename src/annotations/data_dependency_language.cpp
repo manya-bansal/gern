@@ -40,6 +40,8 @@ void Stmt::accept(StmtVisitorStrict *v) const {
   ptr->accept(v);
 }
 
+Variable::Variable(const VariableNode *n) : Expr(n) {}
+
 Variable::Variable(const std::string &name)
     : Expr(new const VariableNode(name)) {}
 
