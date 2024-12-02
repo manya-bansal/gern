@@ -1,2 +1,7 @@
-build/
+.idea/
+.local/
 .vscode/
+_local/
+build*/
+cmake-build*/
+vcpkg_installed/
