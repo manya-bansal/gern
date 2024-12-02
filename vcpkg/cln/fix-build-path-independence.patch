@@ -1,0 +1,24 @@
+diff --git a/cmake/modules/AsmNoexecstack.cmake b/cmake/modules/AsmNoexecstack.cmake
+index 172d9f9..2747d0d 100644
+--- a/cmake/modules/AsmNoexecstack.cmake
++++ b/cmake/modules/AsmNoexecstack.cmake
+@@ -19,6 +19,7 @@ file(WRITE ${_conftest_c} "void foo() { }")
+ execute_process(
+ 	COMMAND ${CMAKE_C_COMPILER} ${_c_compiler_arg1} -S ${_conftest_c}
+ 	RESULT_VARIABLE _cc_ret
++	WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+ )
+ 
+ if ("${_cc_ret}" EQUAL "0")
+diff --git a/cmake/modules/AsmUnderscore.cmake b/cmake/modules/AsmUnderscore.cmake
+index 5f20237..ed9a390 100644
+--- a/cmake/modules/AsmUnderscore.cmake
++++ b/cmake/modules/AsmUnderscore.cmake
+@@ -13,6 +13,7 @@ string(STRIP "${CMAKE_C_COMPILER_ARG1}" _c_compiler_arg1)
+ execute_process(
+ 	COMMAND ${CMAKE_C_COMPILER} ${_c_compiler_arg1} -S ${_conftest_c}
+ 	RESULT_VARIABLE _cc_ret
++	WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+ )
+ if ("${_cc_ret}" EQUAL "0")
+ 	file(STRINGS ${_conftest_s} _asm_underscore REGEX "_foo")

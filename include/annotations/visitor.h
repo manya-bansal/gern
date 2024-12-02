@@ -3,6 +3,7 @@
 
 #include "annotations/data_dependency_language.h"
 #include <cassert>
+#include <functional>
 
 namespace gern {
 
@@ -32,7 +33,7 @@ struct ComputesForNode;
 struct ComputesNode;
 struct PatternNode;
 
-struct ConstraintNode;
+class ConstraintNode;
 
 class ExprVisitorStrict {
 public:

@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#ifndef _DEBUG
+#ifndef GERN_DEBUG_BUILD
 #define DEBUG(x)
 #else
 #define DEBUG(x)                                                               \

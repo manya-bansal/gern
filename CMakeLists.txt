@@ -1,46 +1,111 @@
-cmake_minimum_required(VERSION 3.18)
-project(Gern)
-set(CMAKE_CXX_STANDARD 17)
+cmake_minimum_required(VERSION 3.30)
+project(Gern VERSION 0.1.0)
 
-set(GERN_PROJECT_DIR ${CMAKE_CURRENT_LIST_DIR})
+if (PROJECT_IS_TOP_LEVEL)
+    include(CTest)
+endif ()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_definitions(_DEBUG)
-endif()
+##
+# Find dependencies
 
-include_directories(include)
+find_package(ginac 1.8.7 REQUIRED)
 
+##
+# Main library target
 
-################################
-# GTest
-################################
-ADD_SUBDIRECTORY (googletest)
-enable_testing()
-include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-
-################################
-# GiNac 
-################################
-add_subdirectory(ginac)
-add_executable(test_exec main.cpp)
-
-# Add compiler flags for the test executable
-target_compile_options(test_exec PRIVATE
-    -Wall
-    -Wextra
-    -pedantic
-    -stdlib=libc++
-    -Wc++17-attribute-extensions
-    -O3
-    -Wl,-no_compact_unwind
-    -fvisibility=hidden
+add_library(Gern_Gern STATIC)
+add_library(Gern::Gern ALIAS Gern_Gern)
+set_target_properties(
+    Gern_Gern
+    PROPERTIES
+    EXPORT_NAME Gern
+    OUTPUT_NAME Gern
 )
 
-target_link_libraries(test_exec PUBLIC
-    ${CMAKE_DL_LIBS}
-    ginac::ginac
+target_sources(
+    Gern_Gern
+    PRIVATE
+        src/annotations/abstract_data.cpp
+        src/annotations/data_dependency_language.cpp
+        src/annotations/datatypes.cpp
+        src/annotations/lang_nodes.cpp
+        src/annotations/visitor.cpp
+        src/resolve_constraints/resolve_constraints.cpp
+        src/utils/name_generator.cpp
+    PUBLIC
+    FILE_SET HEADERS
+    BASE_DIRS include
+    FILES
+        include/annotations/abstract_nodes.h
+        include/annotations/data_dependency_language.h
+        include/annotations/datatypes.h
+        include/annotations/lang_nodes.h
+        include/annotations/visitor.h
+        include/resolve_constraints/resolve_constraints.h
+        include/utils/debug.h
+        include/utils/error.h
+        include/utils/name_generator.h
+        include/utils/uncopyable.h
 )
+target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
+target_compile_features(Gern_Gern PUBLIC cxx_std_17)
+target_link_libraries(Gern_Gern PRIVATE ginac::ginac)
 
+##
+# Testing
 
-add_subdirectory(src)
-add_subdirectory(test)
+option(Gern_BUILD_TESTING "Build Gern's test suite" "${BUILD_TESTING}")
+if (Gern_BUILD_TESTING)
+    add_subdirectory(test)
+endif ()
+
+##
+# Installation and packaging
+
+option(Gern_INSTALL_RULES "Include Gern's install rules" "${PROJECT_IS_TOP_LEVEL}")
+if (Gern_INSTALL_RULES)
+    include(GNUInstallDirs)
+    include(CMakePackageConfigHelpers)
+
+    # Install executable and library targets
+    install(
+        TARGETS Gern_Gern
+        EXPORT gern-targets
+        RUNTIME COMPONENT Gern_Runtime
+        LIBRARY COMPONENT Gern_Runtime
+        NAMELINK_COMPONENT Gern_Development
+        ARCHIVE COMPONENT Gern_Development
+        FILE_SET HEADERS COMPONENT Gern_Development
+    )
+
+    # Install CMake package files
+    set(Gern_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/gern"
+        CACHE STRING "Install destination for Gern's CMake package")
+
+    configure_package_config_file(
+        cmake/GernConfig.cmake.in cmake/GernConfig.cmake
+        INSTALL_DESTINATION "${Gern_INSTALL_CMAKEDIR}"
+        NO_SET_AND_CHECK_MACRO
+    )
+
+    write_basic_package_version_file(
+        cmake/GernConfigVersion.cmake COMPATIBILITY SameMajorVersion
+    )
+
+    install(
+        FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/cmake/GernConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/cmake/GernConfigVersion.cmake"
+        DESTINATION "${Gern_INSTALL_CMAKEDIR}"
+        COMPONENT Gern_Development
+    )
+
+    install(
+        EXPORT gern-targets
+        DESTINATION "${Gern_INSTALL_CMAKEDIR}"
+        NAMESPACE Gern::
+        FILE gern-targets.cmake
+        COMPONENT Gern_Development
+    )
+endif ()
+

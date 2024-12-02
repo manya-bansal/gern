@@ -1,20 +1,27 @@
 ## GERN: Lightweight Fusion for GPUs
 
-To build gern, run: 
+To build gern, install [vcpkg] and make sure `VCPKG_ROOT` is set in your
+environment. Then run:
 
-```
-git submodule update --init --recursive
-mkdir build && cd build
-cmake .. 
-make -j 8
-```
-
-To run test, run in the ```build/test``` directory:
-
-```
-./gern_test
+```shell
+$ cmake --preset dev
+$ cmake --build build/dev
 ```
 
-Since Gern uses google test as its testing infrastructure, it is also
-possible to passing in a regular expression. For eg. 
-```./gern_test --gtest_filer=<RegEx>```.
+To run tests:
+
+```shell
+$ ctest --test-dir build/dev
+```
+
+Or to run a single test:
+
+```shell
+$ ctest --test-dir build/dev -R ExprNode.Literal
+```
+
+See the [CTest documentation] for more detail.
+
+[CTest documentation]: https://cmake.org/cmake/help/latest/manual/ctest.1.html
+
+[vcpkg]: https://vcpkg.io
