@@ -6,11 +6,20 @@
 namespace gern {
 namespace dummy {
 
-class TestDataStructure : public AbstractDataType {
+class TestDS : public AbstractDataType {
 public:
-    std::string getName() const override {
-        return "test";
+    TestDS(const std::string &name)
+        : name(name) {
     }
+    TestDS()
+        : TestDS("test") {
+    }
+    std::string getName() const override {
+        return name;
+    }
+
+private:
+    std::string name;
 };
 
 }  // namespace dummy

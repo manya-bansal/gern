@@ -26,6 +26,7 @@ target_sources(
     Gern_Gern
     PRIVATE
         src/annotations/abstract_data.cpp
+        src/annotations/abstract_function.cpp
         src/annotations/data_dependency_language.cpp
         src/annotations/datatypes.cpp
         src/annotations/lang_nodes.cpp
@@ -37,6 +38,7 @@ target_sources(
     BASE_DIRS include
     FILES
         include/annotations/abstract_nodes.h
+        include/annotations/abstract_function.h
         include/annotations/data_dependency_language.h
         include/annotations/datatypes.h
         include/annotations/lang_nodes.h

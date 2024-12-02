@@ -169,6 +169,10 @@ Consumes::Consumes(const ConsumesNode *c)
     : Stmt(c) {
 }
 
+Consumes::Consumes(Subset s)
+    : Consumes(new const SubsetsNode({s})) {
+}
+
 ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
                 bool parallel) {
     return ConsumeMany(
