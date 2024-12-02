@@ -42,5 +42,6 @@ TEST(ResolveConstraints, MultiplyAdds) {
 
   auto sol = resolve::solve((x * 4) + z == y, x);
   auto string_sol = getStrippedString(sol);
-  ASSERT_TRUE(string_sol == "((y*0.25)+(z*-0.25))");
+  ASSERT_TRUE(string_sol == "((y*0.25)+(z*-0.25))" ||
+              string_sol == "((z*-0.25)+(y*0.25))");
 }
