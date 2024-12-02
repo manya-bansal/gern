@@ -14,46 +14,55 @@ class StmtVisitorStrict;
 
 class ExprNode : public util::Manageable<ExprNode>, public util::Uncopyable {
 public:
-  ExprNode() = default;
-  ExprNode(Datatype type) : datatype(type) {};
-  virtual ~ExprNode() = default;
+    ExprNode() = default;
+    ExprNode(Datatype type)
+        : datatype(type) {};
+    virtual ~ExprNode() = default;
 
-  virtual void accept(ExprVisitorStrict *) const = 0;
-  Datatype getDatatype() const { return datatype; }
+    virtual void accept(ExprVisitorStrict *) const = 0;
+    Datatype getDatatype() const {
+        return datatype;
+    }
 
 private:
-  Datatype datatype;
+    Datatype datatype;
 };
 
 class ConstraintNode : public util::Manageable<ConstraintNode>,
                        public util::Uncopyable {
 public:
-  ConstraintNode() = default;
-  virtual ~ConstraintNode() = default;
-  virtual void accept(ConstraintVisitorStrict *) const = 0;
+    ConstraintNode() = default;
+    virtual ~ConstraintNode() = default;
+    virtual void accept(ConstraintVisitorStrict *) const = 0;
 };
 
 class StmtNode : public util::Manageable<StmtNode>, public util::Uncopyable {
 public:
-  StmtNode() = default;
-  virtual ~StmtNode() = default;
-  virtual void accept(StmtVisitorStrict *) const = 0;
+    StmtNode() = default;
+    virtual ~StmtNode() = default;
+    virtual void accept(StmtVisitorStrict *) const = 0;
 };
 
 class AbstractDataType : private util::Uncopyable {
 public:
-  AbstractDataType() : name(gern::getUniqueName()) {}
-  AbstractDataType(const std::string &name) : name(name) {}
-  virtual ~AbstractDataType() = default;
+    AbstractDataType()
+        : name(gern::getUniqueName()) {
+    }
+    AbstractDataType(const std::string &name)
+        : name(name) {
+    }
+    virtual ~AbstractDataType() = default;
 
-  virtual std::string getName() const { return name; }
+    virtual std::string getName() const {
+        return name;
+    }
 
 private:
-  std::string name;
+    std::string name;
 };
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataType &ads);
 
-} // namespace gern
+}  // namespace gern
 
 #endif

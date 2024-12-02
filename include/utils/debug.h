@@ -8,7 +8,7 @@
 #else
 #define DEBUG(x)                                                               \
   do {                                                                         \
-    std::cout << x << std::endl;                                               \
+    std::cout << x << "\n";                                                    \
   } while (0)
 #endif
 

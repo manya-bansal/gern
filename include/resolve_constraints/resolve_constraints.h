@@ -1,5 +1,5 @@
-#ifndef GERN_RESOLVE_CONTRAINTS_H
-#define GERN_RESOLVE_CONTRAINTS_H
+#ifndef GERN_RESOLVE_CONSTRAINTS_H
+#define GERN_RESOLVE_CONSTRAINTS_H
 
 #include <map>
 
@@ -23,7 +23,7 @@ namespace resolve {
  */
 Expr solve(Eq eq, Variable v);
 
-} // namespace resolve
-} // namespace gern
+}  // namespace resolve
+}  // namespace gern
 
 #endif

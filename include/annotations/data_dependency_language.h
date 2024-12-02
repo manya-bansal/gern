@@ -34,84 +34,96 @@ struct PatternNode;
 
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
-  Expr() : util::IntrusivePtr<const ExprNode>(nullptr) {}
-  Expr(const ExprNode *n) : util::IntrusivePtr<const ExprNode>(n) {}
+    Expr()
+        : util::IntrusivePtr<const ExprNode>(nullptr) {
+    }
+    Expr(const ExprNode *n)
+        : util::IntrusivePtr<const ExprNode>(n) {
+    }
 
-  Expr(uint8_t);
-  Expr(uint16_t);
-  Expr(uint32_t);
-  Expr(uint64_t);
-  Expr(int8_t);
-  Expr(int16_t);
-  Expr(int32_t);
-  Expr(int64_t);
-  Expr(float);
-  Expr(double);
+    Expr(uint8_t);
+    Expr(uint16_t);
+    Expr(uint32_t);
+    Expr(uint64_t);
+    Expr(int8_t);
+    Expr(int16_t);
+    Expr(int32_t);
+    Expr(int64_t);
+    Expr(float);
+    Expr(double);
 
-  void accept(ExprVisitorStrict *v) const;
+    void accept(ExprVisitorStrict *v) const;
 };
 
 struct ExprLess {
-  bool operator()(const gern::Expr &lhs, const gern::Expr &rhs) const {
-    return lhs.ptr < rhs.ptr; // Compare by key
-  }
+    bool operator()(const gern::Expr &lhs, const gern::Expr &rhs) const {
+        return lhs.ptr < rhs.ptr;  // Compare by key
+    }
 };
 
 std::ostream &operator<<(std::ostream &os, const Expr &);
 
 class Constraint : public util::IntrusivePtr<const ConstraintNode> {
 public:
-  Constraint() : util::IntrusivePtr<const ConstraintNode>(nullptr) {}
-  Constraint(const ConstraintNode *n)
-      : util::IntrusivePtr<const ConstraintNode>(n) {}
+    Constraint()
+        : util::IntrusivePtr<const ConstraintNode>(nullptr) {
+    }
+    Constraint(const ConstraintNode *n)
+        : util::IntrusivePtr<const ConstraintNode>(n) {
+    }
 
-  void accept(ConstraintVisitorStrict *v) const;
+    void accept(ConstraintVisitorStrict *v) const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Constraint &);
 
 class Stmt : public util::IntrusivePtr<const StmtNode> {
 public:
-  Stmt() : util::IntrusivePtr<const StmtNode>(nullptr) {}
-  Stmt(const StmtNode *n) : util::IntrusivePtr<const StmtNode>(n) {}
+    Stmt()
+        : util::IntrusivePtr<const StmtNode>(nullptr) {
+    }
+    Stmt(const StmtNode *n)
+        : util::IntrusivePtr<const StmtNode>(n) {
+    }
 
-  /**
-   * @brief Add a constraint to a statement
-   *
-   *  The function checks that only variables that are in
-   *  scope are used within the constraint.
-   *
-   * @param constraint Constraint to add.
-   * @return Stmt New statement with the constraint attached.
-   */
-  Stmt where(Constraint constraint);
+    /**
+     * @brief Add a constraint to a statement
+     *
+     *  The function checks that only variables that are in
+     *  scope are used within the constraint.
+     *
+     * @param constraint Constraint to add.
+     * @return Stmt New statement with the constraint attached.
+     */
+    Stmt where(Constraint constraint);
 
-  void accept(StmtVisitorStrict *v) const;
+    void accept(StmtVisitorStrict *v) const;
 
 private:
-  Stmt(const StmtNode *n, Constraint c)
-      : util::IntrusivePtr<const StmtNode>(n), c(c) {}
-  Constraint c;
+    Stmt(const StmtNode *n, Constraint c)
+        : util::IntrusivePtr<const StmtNode>(n), c(c) {
+    }
+    Constraint c;
 };
 
 std::ostream &operator<<(std::ostream &os, const Stmt &);
 
 class Variable : public Expr {
 public:
-  Variable() = default;
-  Variable(const std::string &name);
-  Variable(const VariableNode *);
-  typedef VariableNode Node;
+    Variable() = default;
+    Variable(const std::string &name);
+    Variable(const VariableNode *);
+    typedef VariableNode Node;
 };
 
-#define DEFINE_BINARY_CLASS(NAME, NODE)                                        \
-  class NAME : public NODE {                                                   \
-  public:                                                                      \
-    NAME(Expr a, Expr b);                                                      \
-    Expr getA() const;                                                         \
-    Expr getB() const;                                                         \
-    typedef NAME##Node Node;                                                   \
-  };
+#define DEFINE_BINARY_CLASS(NAME, NODE) \
+    class NAME : public NODE {          \
+    public:                             \
+        NAME(Expr a, Expr b);           \
+        Expr getA() const;              \
+        Expr getB() const;              \
+        typedef NAME##Node Node;        \
+    };
 
 DEFINE_BINARY_CLASS(Add, Expr);
 DEFINE_BINARY_CLASS(Sub, Expr);
@@ -145,36 +157,39 @@ Or operator||(const Expr &, const Expr &);
 
 class Subset : public Stmt {
 public:
-  Subset(std::shared_ptr<const AbstractDataType> data,
-         std::vector<Expr> mdFields);
-  typedef SubsetNode Node;
+    Subset(std::shared_ptr<const AbstractDataType> data,
+           std::vector<Expr> mdFields);
+    typedef SubsetNode Node;
 };
 
 class Produces : public Stmt {
 public:
-  Produces(Subset s);
-  typedef ProducesNode Node;
+    Produces(Subset s);
+    typedef ProducesNode Node;
 };
 
 struct ConsumesNode;
 
 class Consumes : public Stmt {
 public:
-  Consumes(const ConsumesNode *);
-  Consumes(Subset s);
-  typedef ConsumesNode Node;
+    Consumes(const ConsumesNode *);
+    Consumes(Subset s);
+    typedef ConsumesNode Node;
 };
 
 class ConsumeMany : public Consumes {
 public:
-  ConsumeMany(const ConsumesNode *s) : Consumes(s) {};
+    ConsumeMany(const ConsumesNode *s)
+        : Consumes(s) {};
 };
 
 class Subsets : public ConsumeMany {
 public:
-  Subsets(const std::vector<Subset> &subsets);
-  Subsets(Subset s) : Subsets(std::vector<Subset>{s}) {}
-  typedef SubsetsNode Node;
+    Subsets(const std::vector<Subset> &subsets);
+    Subsets(Subset s)
+        : Subsets(std::vector<Subset>{s}) {
+    }
+    typedef SubsetsNode Node;
 };
 
 // This ensures that a consumes node will only ever contain a for loop
@@ -185,22 +200,24 @@ ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
 
 class Allocates : public Stmt {
 public:
-  Allocates() : Stmt() {}
-  Allocates(Expr reg, Expr smem = Expr());
-  typedef AllocatesNode Node;
+    Allocates()
+        : Stmt() {
+    }
+    Allocates(Expr reg, Expr smem = Expr());
+    typedef AllocatesNode Node;
 };
 
 struct PatternNode;
 class Pattern : public Stmt {
 public:
-  Pattern(const PatternNode *);
-  typedef PatternNode Node;
+    Pattern(const PatternNode *);
+    typedef PatternNode Node;
 };
 
 class Computes : public Pattern {
 public:
-  Computes(Produces p, Consumes c, Allocates a = Allocates());
-  typedef ComputesNode Node;
+    Computes(Produces p, Consumes c, Allocates a = Allocates());
+    typedef ComputesNode Node;
 };
 
 // This ensures that a computes node will only ever contain a for loop
@@ -209,6 +226,6 @@ public:
 Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
             bool parallel = false);
 
-} // namespace gern
+}  // namespace gern
 
 #endif
