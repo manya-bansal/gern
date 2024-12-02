@@ -37,201 +37,205 @@ class ConstraintNode;
 
 class ExprVisitorStrict {
 public:
-  virtual ~ExprVisitorStrict() = default;
+    virtual ~ExprVisitorStrict() = default;
 
-  virtual void visit(Expr);
-  virtual void visit(const LiteralNode *) = 0;
-  virtual void visit(const AddNode *) = 0;
-  virtual void visit(const SubNode *) = 0;
-  virtual void visit(const MulNode *) = 0;
-  virtual void visit(const DivNode *) = 0;
-  virtual void visit(const ModNode *) = 0;
-  virtual void visit(const VariableNode *) = 0;
+    virtual void visit(Expr);
+    virtual void visit(const LiteralNode *) = 0;
+    virtual void visit(const AddNode *) = 0;
+    virtual void visit(const SubNode *) = 0;
+    virtual void visit(const MulNode *) = 0;
+    virtual void visit(const DivNode *) = 0;
+    virtual void visit(const ModNode *) = 0;
+    virtual void visit(const VariableNode *) = 0;
 };
 
 class ConstraintVisitorStrict : public ExprVisitorStrict {
 public:
-  virtual ~ConstraintVisitorStrict() = default;
-  using ExprVisitorStrict::visit;
+    virtual ~ConstraintVisitorStrict() = default;
+    using ExprVisitorStrict::visit;
 
-  virtual void visit(Constraint);
-  virtual void visit(const EqNode *) = 0;
-  virtual void visit(const NeqNode *) = 0;
-  virtual void visit(const LeqNode *) = 0;
-  virtual void visit(const GeqNode *) = 0;
-  virtual void visit(const LessNode *) = 0;
-  virtual void visit(const GreaterNode *) = 0;
-  virtual void visit(const OrNode *) = 0;
-  virtual void visit(const AndNode *) = 0;
+    virtual void visit(Constraint);
+    virtual void visit(const EqNode *) = 0;
+    virtual void visit(const NeqNode *) = 0;
+    virtual void visit(const LeqNode *) = 0;
+    virtual void visit(const GeqNode *) = 0;
+    virtual void visit(const LessNode *) = 0;
+    virtual void visit(const GreaterNode *) = 0;
+    virtual void visit(const OrNode *) = 0;
+    virtual void visit(const AndNode *) = 0;
 };
 
 class StmtVisitorStrict {
 public:
-  virtual ~StmtVisitorStrict() = default;
+    virtual ~StmtVisitorStrict() = default;
 
-  virtual void visit(Stmt);
-  virtual void visit(const SubsetNode *) = 0;
-  virtual void visit(const SubsetsNode *) = 0;
-  virtual void visit(const ProducesNode *) = 0;
-  virtual void visit(const ConsumesNode *) = 0;
-  virtual void visit(const ConsumesForNode *) = 0;
-  virtual void visit(const AllocatesNode *) = 0;
-  virtual void visit(const ComputesForNode *) = 0;
-  virtual void visit(const ComputesNode *) = 0;
-  virtual void visit(const PatternNode *) = 0;
+    virtual void visit(Stmt);
+    virtual void visit(const SubsetNode *) = 0;
+    virtual void visit(const SubsetsNode *) = 0;
+    virtual void visit(const ProducesNode *) = 0;
+    virtual void visit(const ConsumesNode *) = 0;
+    virtual void visit(const ConsumesForNode *) = 0;
+    virtual void visit(const AllocatesNode *) = 0;
+    virtual void visit(const ComputesForNode *) = 0;
+    virtual void visit(const ComputesNode *) = 0;
+    virtual void visit(const PatternNode *) = 0;
 };
 
 class AnnotVisitorStrict : public ConstraintVisitorStrict,
                            public StmtVisitorStrict {
 public:
-  using ConstraintVisitorStrict::visit;
-  using StmtVisitorStrict::visit;
+    using ConstraintVisitorStrict::visit;
+    using StmtVisitorStrict::visit;
 };
 
 class Printer : public AnnotVisitorStrict {
 public:
-  using AnnotVisitorStrict::visit;
+    using AnnotVisitorStrict::visit;
 
-  Printer(std::ostream &os, int ident = 0) : os(os), ident(ident) {}
+    Printer(std::ostream &os, int ident = 0)
+        : os(os), ident(ident) {
+    }
 
-  void visit(Consumes c);
-  void visit(ConsumeMany many);
-  void visit(Allocates a);
+    void visit(Consumes c);
+    void visit(ConsumeMany many);
+    void visit(Allocates a);
 
-  void visit(const LiteralNode *);
-  void visit(const AddNode *);
-  void visit(const SubNode *);
-  void visit(const MulNode *);
-  void visit(const DivNode *);
-  void visit(const ModNode *);
-  void visit(const VariableNode *);
+    void visit(const LiteralNode *);
+    void visit(const AddNode *);
+    void visit(const SubNode *);
+    void visit(const MulNode *);
+    void visit(const DivNode *);
+    void visit(const ModNode *);
+    void visit(const VariableNode *);
 
-  void visit(const EqNode *);
-  void visit(const NeqNode *);
-  void visit(const LeqNode *);
-  void visit(const GeqNode *);
-  void visit(const LessNode *);
-  void visit(const GreaterNode *);
-  void visit(const OrNode *);
-  void visit(const AndNode *);
+    void visit(const EqNode *);
+    void visit(const NeqNode *);
+    void visit(const LeqNode *);
+    void visit(const GeqNode *);
+    void visit(const LessNode *);
+    void visit(const GreaterNode *);
+    void visit(const OrNode *);
+    void visit(const AndNode *);
 
-  void visit(const SubsetNode *);
-  void visit(const SubsetsNode *);
-  void visit(const ProducesNode *);
-  void visit(const ConsumesNode *);
-  void visit(const AllocatesNode *);
-  void visit(const ComputesForNode *);
-  void visit(const ConsumesForNode *);
-  void visit(const ComputesNode *);
-  void visit(const PatternNode *);
+    void visit(const SubsetNode *);
+    void visit(const SubsetsNode *);
+    void visit(const ProducesNode *);
+    void visit(const ConsumesNode *);
+    void visit(const AllocatesNode *);
+    void visit(const ComputesForNode *);
+    void visit(const ConsumesForNode *);
+    void visit(const ComputesNode *);
+    void visit(const PatternNode *);
 
 private:
-  std::ostream &os;
-  int ident;
+    std::ostream &os;
+    int ident;
 };
 
 class AnnotVisitor : public AnnotVisitorStrict {
 
 public:
-  using AnnotVisitorStrict::visit;
+    using AnnotVisitorStrict::visit;
 
-  virtual ~AnnotVisitor() = default;
-  void visit(const LiteralNode *);
-  void visit(const AddNode *);
-  void visit(const SubNode *);
-  void visit(const MulNode *);
-  void visit(const DivNode *);
-  void visit(const ModNode *);
-  void visit(const VariableNode *);
+    virtual ~AnnotVisitor() = default;
+    void visit(const LiteralNode *);
+    void visit(const AddNode *);
+    void visit(const SubNode *);
+    void visit(const MulNode *);
+    void visit(const DivNode *);
+    void visit(const ModNode *);
+    void visit(const VariableNode *);
 
-  void visit(const EqNode *);
-  void visit(const NeqNode *);
-  void visit(const LeqNode *);
-  void visit(const GeqNode *);
-  void visit(const LessNode *);
-  void visit(const GreaterNode *);
-  void visit(const OrNode *);
-  void visit(const AndNode *);
+    void visit(const EqNode *);
+    void visit(const NeqNode *);
+    void visit(const LeqNode *);
+    void visit(const GeqNode *);
+    void visit(const LessNode *);
+    void visit(const GreaterNode *);
+    void visit(const OrNode *);
+    void visit(const AndNode *);
 
-  void visit(const SubsetNode *);
-  void visit(const SubsetsNode *);
-  void visit(const ProducesNode *);
-  void visit(const ConsumesNode *);
-  void visit(const AllocatesNode *);
-  void visit(const ComputesForNode *);
-  void visit(const ConsumesForNode *);
-  void visit(const ComputesNode *);
-  void visit(const PatternNode *);
+    void visit(const SubsetNode *);
+    void visit(const SubsetsNode *);
+    void visit(const ProducesNode *);
+    void visit(const ConsumesNode *);
+    void visit(const AllocatesNode *);
+    void visit(const ComputesForNode *);
+    void visit(const ConsumesForNode *);
+    void visit(const ComputesNode *);
+    void visit(const PatternNode *);
 };
 
-#define RULE(Rule)                                                             \
-  std::function<void(const Rule *)> Rule##Func;                                \
-  std::function<void(const Rule *, Matcher *)> Rule##CtxFunc;                  \
-  void unpack(std::function<void(const Rule *)> pattern) {                     \
-    assert(!Rule##CtxFunc && !Rule##Func);                                     \
-    Rule##Func = pattern;                                                      \
-  }                                                                            \
-  void unpack(std::function<void(const Rule *, Matcher *)> pattern) {          \
-    assert(!Rule##CtxFunc && !Rule##Func);                                     \
-    Rule##CtxFunc = pattern;                                                   \
-  }                                                                            \
-  void visit(const Rule *op) {                                                 \
-    if (Rule##Func) {                                                          \
-      Rule##Func(op);                                                          \
-    } else if (Rule##CtxFunc) {                                                \
-      Rule##CtxFunc(op, this);                                                 \
-      return;                                                                  \
-    }                                                                          \
-    AnnotVisitor::visit(op);                                                   \
-  }
+#define RULE(Rule)                                                      \
+    std::function<void(const Rule *)> Rule##Func;                       \
+    std::function<void(const Rule *, Matcher *)> Rule##CtxFunc;         \
+    void unpack(std::function<void(const Rule *)> pattern) {            \
+        assert(!Rule##CtxFunc && !Rule##Func);                          \
+        Rule##Func = pattern;                                           \
+    }                                                                   \
+    void unpack(std::function<void(const Rule *, Matcher *)> pattern) { \
+        assert(!Rule##CtxFunc && !Rule##Func);                          \
+        Rule##CtxFunc = pattern;                                        \
+    }                                                                   \
+    void visit(const Rule *op) {                                        \
+        if (Rule##Func) {                                               \
+            Rule##Func(op);                                             \
+        } else if (Rule##CtxFunc) {                                     \
+            Rule##CtxFunc(op, this);                                    \
+            return;                                                     \
+        }                                                               \
+        AnnotVisitor::visit(op);                                        \
+    }
 
 class Matcher : public AnnotVisitor {
 public:
-  template <class T> void match(T stmt) {
-    if (!stmt.defined()) {
-      return;
+    template<class T>
+    void match(T stmt) {
+        if (!stmt.defined()) {
+            return;
+        }
+        stmt.accept(this);
     }
-    stmt.accept(this);
-  }
 
-  template <class IR, class... Patterns>
-  void process(IR ir, Patterns... patterns) {
-    unpack(patterns...);
-    ir.accept(this);
-  }
+    template<class IR, class... Patterns>
+    void process(IR ir, Patterns... patterns) {
+        unpack(patterns...);
+        ir.accept(this);
+    }
 
 private:
-  template <class First, class... Rest> void unpack(First first, Rest... rest) {
-    unpack(first);
-    unpack(rest...);
-  }
+    template<class First, class... Rest>
+    void unpack(First first, Rest... rest) {
+        unpack(first);
+        unpack(rest...);
+    }
 
-  using AnnotVisitor::visit;
+    using AnnotVisitor::visit;
 
-  RULE(AddNode);
-  RULE(SubNode);
-  RULE(DivNode);
-  RULE(MulNode);
-  RULE(ModNode);
-  RULE(AndNode);
-  RULE(OrNode);
-  RULE(EqNode);
-  RULE(NeqNode);
-  RULE(LeqNode);
-  RULE(GeqNode);
-  RULE(LessNode);
-  RULE(GreaterNode);
-  RULE(VariableNode);
-  RULE(LiteralNode);
-  RULE(SubsetNode);
-  RULE(SubsetsNode);
-  RULE(ProducesNode);
-  RULE(ConsumesNode);
-  RULE(AllocatesNode);
-  RULE(ComputesForNode);
-  RULE(ConsumesForNode);
-  RULE(ComputesNode);
-  RULE(PatternNode);
+    RULE(AddNode);
+    RULE(SubNode);
+    RULE(DivNode);
+    RULE(MulNode);
+    RULE(ModNode);
+    RULE(AndNode);
+    RULE(OrNode);
+    RULE(EqNode);
+    RULE(NeqNode);
+    RULE(LeqNode);
+    RULE(GeqNode);
+    RULE(LessNode);
+    RULE(GreaterNode);
+    RULE(VariableNode);
+    RULE(LiteralNode);
+    RULE(SubsetNode);
+    RULE(SubsetsNode);
+    RULE(ProducesNode);
+    RULE(ConsumesNode);
+    RULE(AllocatesNode);
+    RULE(ComputesForNode);
+    RULE(ConsumesForNode);
+    RULE(ComputesNode);
+    RULE(PatternNode);
 };
 
 /**
@@ -264,12 +268,13 @@ private:
 
   function<void(const Add*, Matcher* ctx)>([&](const Add* op, Matcher* ctx) {
 **/
-template <class T, class... Patterns> void match(T stmt, Patterns... patterns) {
-  if (!stmt.defined()) {
-    return;
-  }
-  Matcher().process(stmt, patterns...);
+template<class T, class... Patterns>
+void match(T stmt, Patterns... patterns) {
+    if (!stmt.defined()) {
+        return;
+    }
+    Matcher().process(stmt, patterns...);
 }
 
-} // namespace gern
+}  // namespace gern
 #endif
