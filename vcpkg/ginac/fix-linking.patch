@@ -1,0 +1,22 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index aab81f25..6f562f33 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -51,7 +51,7 @@ endif()
+ if (EXISTS ${CLN_SOURCE_DIR}/CMakeLists.txt)
+ 	add_subdirectory(${CLN_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/cln)
+ else()
+-	find_package(CLN 1.2.2 REQUIRED)
++	find_package(CLN 1.2.2 CONFIG REQUIRED)
+ endif()
+ 
+ include(CheckIncludeFile)
+@@ -147,8 +147,6 @@ install(FILES
+ 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ginac
+ )
+ 
+-include(FindFLEX)
+-include(FindBISON)
+ find_package(BISON)
+ find_package(FLEX)
+ find_package(Readline)
