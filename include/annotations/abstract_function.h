@@ -1,6 +1,7 @@
 #ifndef GERN_ABSTRACT_FUNCTION_H
 #define GERN_ABSTRACT_FUNCTION_H
 
+#include "annotations/arguments.h"
 #include "annotations/data_dependency_language.h"
 #include "utils/error.h"
 #include "utils/uncopyable.h"
@@ -10,7 +11,6 @@
 namespace gern {
 
 class FunctionCall;
-typedef int Argument;
 /**
  * @brief To add a function to gern, the user needs to
  *        define an instance of the AbstractFunction class.
@@ -27,9 +27,17 @@ public:
     virtual Stmt getAnnotation() = 0;
     virtual std::vector<Argument> getArguments() = 0;
 
+    template<typename T>
+    std::shared_ptr<FunctionCall> operator()(T argument) {
+        std::vector<Argument> arguments;
+        addArguments(arguments, argument);
+        return std::make_shared<FunctionCall>(getName(), getAnnotation(), arguments);
+    }
+
     template<typename FirstT, typename... Next>
     std::shared_ptr<FunctionCall> operator()(FirstT first, Next... remaining) {
         std::vector<Argument> arguments;
+        addArguments(arguments, first, remaining...);
         return std::make_shared<FunctionCall>(getName(), getAnnotation(), arguments);
     }
 
