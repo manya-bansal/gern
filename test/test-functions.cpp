@@ -5,6 +5,9 @@
 using namespace gern;
 
 TEST(Functions, ElementWise) {
-    auto testDS = std::make_shared<const dummy::TestDS>();
-    test::add();
+    auto inputDS = std::make_shared<const dummy::TestDS>("input");
+    auto outputDS = std::make_shared<const dummy::TestDS>("output");
+
+    test::add add_f;
+    add_f(inputDS, outputDS);
 }
