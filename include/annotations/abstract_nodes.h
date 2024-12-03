@@ -61,6 +61,8 @@ private:
     std::string name;
 };
 
+typedef std::shared_ptr<const AbstractDataType> AbstractDataTypePtr;
+
 std::ostream &operator<<(std::ostream &os, const AbstractDataType &ads);
 
 }  // namespace gern

@@ -260,4 +260,47 @@ void AnnotVisitor::visit(const ComputesNode *op) {
     this->visit(op->a);
 }
 
+// class ExprRewriterStrict
+Expr Rewriter::rewrite(Expr e) {
+    if (e.defined()) {
+        e.accept(this);
+    } else {
+        expr = Expr();
+    }
+    return expr;
+}
+
+Stmt Rewriter::rewrite(Stmt s) {
+    if (s.defined()) {
+        s.accept(this);
+    } else {
+        stmt = Stmt();
+    }
+    return stmt;
+}
+
+// void Printer::visit(const ConsumesForNode *op) {
+//     this->visit(op->v);
+//     this->visit(op->start);
+//     this->visit(op->end);
+//     this->visit(op->step);
+//     this->visit(op->body);
+// }
+
+// void Rewriter::visit(const ComputesForNode *op) {
+//     this->visit(op->v);
+//     this->visit(op->start);
+//     this->visit(op->end);
+//     this->visit(op->step);
+//     this->visit(op->body);
+// }
+
+void Rewriter::visit(const ComputesNode *op) {
+    Produces rw_produces = to<Produces>(this->rewrite(op->p));
+    Consumes rw_consumes = to<Consumes>(this->rewrite(op->c));
+    Allocates rw_allocates = to<Allocates>(this->rewrite(op->a));
+
+    stmt = Computes(rw_produces, rw_consumes, rw_allocates);
+}
+
 }  // namespace gern

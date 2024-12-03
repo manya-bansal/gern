@@ -3,6 +3,7 @@
 
 #include "annotations/abstract_nodes.h"
 #include "utils/uncopyable.h"
+#include <cassert>
 #include <memory>
 
 namespace gern {
@@ -96,7 +97,6 @@ public:
      * @return Stmt New statement with the constraint attached.
      */
     Stmt where(Constraint constraint);
-
     void accept(StmtVisitorStrict *v) const;
 
 private:
@@ -110,19 +110,19 @@ std::ostream &operator<<(std::ostream &os, const Stmt &);
 
 class Variable : public Expr {
 public:
-    Variable() = default;
     Variable(const std::string &name);
     Variable(const VariableNode *);
     typedef VariableNode Node;
 };
 
-#define DEFINE_BINARY_CLASS(NAME, NODE) \
-    class NAME : public NODE {          \
-    public:                             \
-        NAME(Expr a, Expr b);           \
-        Expr getA() const;              \
-        Expr getB() const;              \
-        typedef NAME##Node Node;        \
+#define DEFINE_BINARY_CLASS(NAME, NODE)    \
+    class NAME : public NODE {             \
+    public:                                \
+        explicit NAME(const NAME##Node *); \
+        NAME(Expr a, Expr b);              \
+        Expr getA() const;                 \
+        Expr getB() const;                 \
+        typedef NAME##Node Node;           \
     };
 
 DEFINE_BINARY_CLASS(Add, Expr);
@@ -157,14 +157,17 @@ Or operator||(const Expr &, const Expr &);
 
 class Subset : public Stmt {
 public:
-    Subset(std::shared_ptr<const AbstractDataType> data,
+    Subset() = default;
+    Subset(AbstractDataTypePtr data,
            std::vector<Expr> mdFields);
     typedef SubsetNode Node;
 };
 
 class Produces : public Stmt {
 public:
+    explicit Produces(const ProducesNode *);
     Produces(Subset s);
+    Subset getSubset();
     typedef ProducesNode Node;
 };
 
@@ -185,6 +188,7 @@ public:
 
 class Subsets : public ConsumeMany {
 public:
+    explicit Subsets(const SubsetsNode *);
     Subsets(const std::vector<Subset> &subsets);
     Subsets(Subset s)
         : Subsets(std::vector<Subset>{s}) {
@@ -203,6 +207,7 @@ public:
     Allocates()
         : Stmt() {
     }
+    explicit Allocates(const AllocatesNode *);
     Allocates(Expr reg, Expr smem = Expr());
     typedef AllocatesNode Node;
 };
@@ -210,12 +215,13 @@ public:
 struct PatternNode;
 class Pattern : public Stmt {
 public:
-    Pattern(const PatternNode *);
+    explicit Pattern(const PatternNode *);
     typedef PatternNode Node;
 };
 
 class Computes : public Pattern {
 public:
+    explicit Computes(const ComputesNode *);
     Computes(Produces p, Consumes c, Allocates a = Allocates());
     typedef ComputesNode Node;
 };
@@ -225,6 +231,17 @@ public:
 // checker to ensures that only legal patterns are written down.
 Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
             bool parallel = false);
+
+template<typename E, typename T>
+inline bool isa(const T &e) {
+    return e.ptr != nullptr && dynamic_cast<const typename E::Node *>(e.ptr) != nullptr;
+};
+
+template<typename E, typename T>
+inline const E to(const T &e) {
+    assert(isa<E>(e));
+    return E(static_cast<const typename E::Node *>(e.ptr));
+};
 
 }  // namespace gern
 

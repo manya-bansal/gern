@@ -67,14 +67,14 @@ DEFINE_BINARY_NODE(LessNode, Constraint);
 DEFINE_BINARY_NODE(GreaterNode, Constraint);
 
 struct SubsetNode : public StmtNode {
-    SubsetNode(std::shared_ptr<const AbstractDataType> data,
+    SubsetNode(AbstractDataTypePtr data,
                std::vector<Expr> mdFields)
         : data(data), mdFields(mdFields) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    std::shared_ptr<const AbstractDataType> data;
+    AbstractDataTypePtr data;
     std::vector<Expr> mdFields;
 };
 

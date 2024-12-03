@@ -125,15 +125,17 @@ Stmt Stmt::where(Constraint constraint) {
     return Stmt(ptr, constraint);
 }
 
-#define DEFINE_BINARY_CONSTRUCTOR(CLASS_NAME, NODE) \
-    CLASS_NAME::CLASS_NAME(Expr a, Expr b)          \
-        : NODE(new const CLASS_NAME##Node(a, b)) {  \
-    }                                               \
-    Expr CLASS_NAME::getA() const {                 \
-        return getNode(*this)->a;                   \
-    }                                               \
-    Expr CLASS_NAME::getB() const {                 \
-        return getNode(*this)->b;                   \
+#define DEFINE_BINARY_CONSTRUCTOR(CLASS_NAME, NODE)               \
+    CLASS_NAME::CLASS_NAME(const CLASS_NAME##Node *n) : NODE(n) { \
+    }                                                             \
+    CLASS_NAME::CLASS_NAME(Expr a, Expr b)                        \
+        : NODE(new const CLASS_NAME##Node(a, b)) {                \
+    }                                                             \
+    Expr CLASS_NAME::getA() const {                               \
+        return getNode(*this)->a;                                 \
+    }                                                             \
+    Expr CLASS_NAME::getB() const {                               \
+        return getNode(*this)->b;                                 \
     }
 
 DEFINE_BINARY_CONSTRUCTOR(Add, Expr)
@@ -152,7 +154,7 @@ DEFINE_BINARY_CONSTRUCTOR(Geq, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Less, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
 
-Subset::Subset(std::shared_ptr<const AbstractDataType> data,
+Subset::Subset(AbstractDataTypePtr data,
                std::vector<Expr> mdFields)
     : Stmt(new const SubsetNode(data, mdFields)) {
 }
@@ -161,8 +163,20 @@ Subsets::Subsets(const std::vector<Subset> &inputs)
     : ConsumeMany(new const SubsetsNode(inputs)) {
 }
 
+Produces::Produces(const ProducesNode *n)
+    : Stmt(n) {
+}
+
 Produces::Produces(Subset s)
     : Stmt(new const ProducesNode(s)) {
+}
+
+Subset Produces::getSubset() {
+    return getNode(*this)->output;
+}
+
+Subsets::Subsets(const SubsetsNode *n)
+    : ConsumeMany(n) {
 }
 
 Consumes::Consumes(const ConsumesNode *c)
@@ -177,6 +191,10 @@ ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
                 bool parallel) {
     return ConsumeMany(
         new const ConsumesForNode(v, start, end, step, body, parallel));
+}
+
+Allocates::Allocates(const AllocatesNode *n)
+    : Stmt(n) {
 }
 
 Allocates::Allocates(Expr reg, Expr smem)

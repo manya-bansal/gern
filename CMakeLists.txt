@@ -31,6 +31,7 @@ target_sources(
         src/annotations/datatypes.cpp
         src/annotations/lang_nodes.cpp
         src/annotations/visitor.cpp
+        src/compose/compose.cpp
         src/resolve_constraints/resolve_constraints.cpp
         src/utils/name_generator.cpp
     PUBLIC
@@ -39,11 +40,13 @@ target_sources(
     FILES
         include/annotations/abstract_nodes.h
         include/annotations/abstract_function.h
+        include/annotations/arguments.h
         include/annotations/data_dependency_language.h
         include/annotations/datatypes.h
         include/annotations/lang_nodes.h
         include/annotations/visitor.h
         include/resolve_constraints/resolve_constraints.h
+        include/compose/compose.h
         include/utils/debug.h
         include/utils/error.h
         include/utils/name_generator.h
