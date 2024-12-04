@@ -6,6 +6,48 @@
 #include <cassert>
 #include <map>
 #include <memory>
+#include <set>
+
+namespace gern {
+class Expr : public util::IntrusivePtr<const ExprNode> {
+public:
+    Expr()
+        : util::IntrusivePtr<const ExprNode>(nullptr) {
+    }
+    Expr(const ExprNode *n)
+        : util::IntrusivePtr<const ExprNode>(n) {
+    }
+
+    Expr(uint8_t);
+    Expr(uint16_t);
+    Expr(uint32_t);
+    Expr(uint64_t);
+    Expr(int8_t);
+    Expr(int16_t);
+    Expr(int32_t);
+    Expr(int64_t);
+    Expr(float);
+    Expr(double);
+
+    bool operator()(const Expr &e) {
+        return ptr < e.ptr;
+    }
+
+    void accept(ExprVisitorStrict *v) const;
+};
+
+}  // namespace gern
+namespace std {
+template<>
+struct less<gern::Expr> {
+    bool operator()(const ::gern::Expr &a, const ::gern::Expr &b) const {
+        // Implement your comparison logic here
+        // This should return true if a should be considered "less than" b
+        // Often this will mirror your class's operator< implementation
+        return a.ptr < b.ptr;  // or your custom comparison logic
+    }
+};
+};  // namespace std
 
 namespace gern {
 
@@ -33,35 +75,6 @@ struct AllocatesNode;
 struct ComputesForNode;
 struct ComputesNode;
 struct PatternNode;
-
-class Expr : public util::IntrusivePtr<const ExprNode> {
-public:
-    Expr()
-        : util::IntrusivePtr<const ExprNode>(nullptr) {
-    }
-    Expr(const ExprNode *n)
-        : util::IntrusivePtr<const ExprNode>(n) {
-    }
-
-    Expr(uint8_t);
-    Expr(uint16_t);
-    Expr(uint32_t);
-    Expr(uint64_t);
-    Expr(int8_t);
-    Expr(int16_t);
-    Expr(int32_t);
-    Expr(int64_t);
-    Expr(float);
-    Expr(double);
-
-    void accept(ExprVisitorStrict *v) const;
-};
-
-struct ExprLess {
-    bool operator()(const gern::Expr &lhs, const gern::Expr &rhs) const {
-        return lhs.ptr < rhs.ptr;  // Compare by key
-    }
-};
 
 std::ostream &operator<<(std::ostream &os, const Expr &);
 
@@ -109,7 +122,7 @@ public:
     Constraint getConstraint() const {
         return c;
     }
-    Stmt replaceVariables(std::map<Variable, Variable, ExprLess> rw_vars) const;
+    Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
     Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
     void accept(StmtVisitorStrict *v) const;
 

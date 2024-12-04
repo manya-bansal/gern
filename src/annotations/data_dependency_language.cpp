@@ -125,21 +125,21 @@ Stmt Stmt::where(Constraint constraint) {
     return Stmt(ptr, constraint);
 }
 
-Stmt Stmt::replaceVariables(std::map<Variable, Variable, ExprLess> rw_vars) const {
+Stmt Stmt::replaceVariables(std::map<Variable, Variable> rw_vars) const {
     struct rewriteVar : public Rewriter {
-        rewriteVar(std::map<Variable, Variable, ExprLess> rw_vars)
+        rewriteVar(std::map<Variable, Variable> rw_vars)
             : rw_vars(rw_vars) {
         }
         using Rewriter::rewrite;
 
         void visit(const VariableNode *op) {
-            if (rw_vars.count(op) > 0) {
+            if (rw_vars.find(op) != rw_vars.end()) {
                 expr = rw_vars[op];
             } else {
                 expr = op;
             }
         }
-        std::map<Variable, Variable, ExprLess> rw_vars;
+        std::map<Variable, Variable> rw_vars;
     };
     rewriteVar rw{rw_vars};
     return rw.rewrite(*this);
@@ -153,7 +153,7 @@ Stmt Stmt::replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_d
         using Rewriter::rewrite;
 
         void visit(const SubsetNode *op) {
-            if (rw_ds.count(op->data) > 0) {
+            if (rw_ds.find(op->data) != rw_ds.end()) {
                 stmt = Subset(rw_ds[op->data], op->mdFields);
             } else {
                 stmt = Subset(op->data, op->mdFields);
