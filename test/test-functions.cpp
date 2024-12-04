@@ -6,8 +6,8 @@
 using namespace gern;
 
 TEST(Functions, SingleFunction) {
-    auto inputDS = std::make_shared<const dummy::TestDS>("input");
-    auto outputDS = std::make_shared<const dummy::TestDS>("output");
+    auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
 
     test::add add_f;
     Compose compose{{add_f(inputDS, outputDS)}};

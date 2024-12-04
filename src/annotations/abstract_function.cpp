@@ -1,4 +1,6 @@
 #include "annotations/abstract_function.h"
+#include "annotations/lang_nodes.h"
+#include "annotations/visitor.h"
 #include <map>
 namespace gern {
 
@@ -25,6 +27,7 @@ Stmt AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> concre
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> abstract_to_concrete;
 
     if (concrete_arguments.size() != abstract_arguments.size()) {
+        throw error::UserError("Size of both arguments should be the same");
     }
 
     for (size_t i = 0; i < concrete_arguments.size(); i++) {
@@ -45,6 +48,8 @@ Stmt AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> concre
             abstract_to_concrete[abstract_ds->getADTPtr()] = concrete_ds->getADTPtr();
         }
     }
+
+    return getAnnotation().replaceDSArgs(abstract_to_concrete);
 }
 
 }  // namespace gern

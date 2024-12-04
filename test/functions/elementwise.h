@@ -32,7 +32,7 @@ public:
     }
 
     std::vector<Argument> getArguments() {
-        return {};
+        return {Argument(input), Argument(output)};
     }
 
 private:

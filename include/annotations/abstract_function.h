@@ -59,14 +59,18 @@ public:
     FunctionCall operator()(T argument) {
         std::vector<Argument> arguments;
         addArguments(arguments, argument);
-        return FunctionCall(getName(), getAnnotation(), arguments);
+        return FunctionCall(getName(),
+                            rewriteAnnotWithConcreteArgs(arguments),
+                            arguments);
     }
 
     template<typename FirstT, typename... Next>
     FunctionCall operator()(FirstT first, Next... remaining) {
         std::vector<Argument> arguments;
         addArguments(arguments, first, remaining...);
-        return FunctionCall(getName(), getAnnotation(), arguments);
+        return FunctionCall(getName(),
+                            rewriteAnnotWithConcreteArgs(arguments),
+                            arguments);
     }
 
     FunctionCall operator()() {
@@ -74,7 +78,7 @@ public:
             throw error::UserError("Called function " + getName() + " with 0 arguments");
         }
         return FunctionCall(getName(),
-                            getAnnotation(),
+                            rewriteAnnotWithConcreteArgs({}),
                             std::vector<Argument>());
     }
 

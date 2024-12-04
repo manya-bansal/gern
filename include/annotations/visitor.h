@@ -282,10 +282,12 @@ public:
     using AnnotVisitorStrict::visit;
     Stmt rewrite(Stmt);
     Expr rewrite(Expr);
+    Constraint rewrite(Constraint);
 
 protected:
     Expr expr;
     Stmt stmt;
+    Constraint where;
 
     void visit(const LiteralNode *);
     void visit(const AddNode *);

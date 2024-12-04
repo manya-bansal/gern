@@ -125,6 +125,46 @@ Stmt Stmt::where(Constraint constraint) {
     return Stmt(ptr, constraint);
 }
 
+Stmt Stmt::replaceVariables(std::map<Variable, Variable, ExprLess> rw_vars) const {
+    struct rewriteVar : public Rewriter {
+        rewriteVar(std::map<Variable, Variable, ExprLess> rw_vars)
+            : rw_vars(rw_vars) {
+        }
+        using Rewriter::rewrite;
+
+        void visit(const VariableNode *op) {
+            if (rw_vars.count(op) > 0) {
+                expr = rw_vars[op];
+            } else {
+                expr = op;
+            }
+        }
+        std::map<Variable, Variable, ExprLess> rw_vars;
+    };
+    rewriteVar rw{rw_vars};
+    return rw.rewrite(*this);
+}
+
+Stmt Stmt::replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const {
+    struct rewriteDS : public Rewriter {
+        rewriteDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds)
+            : rw_ds(rw_ds) {
+        }
+        using Rewriter::rewrite;
+
+        void visit(const SubsetNode *op) {
+            if (rw_ds.count(op->data) > 0) {
+                stmt = Subset(rw_ds[op->data], op->mdFields);
+            } else {
+                stmt = Subset(op->data, op->mdFields);
+            }
+        }
+        std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds;
+    };
+    rewriteDS rw{rw_ds};
+    return rw.rewrite(*this);
+}
+
 #define DEFINE_BINARY_CONSTRUCTOR(CLASS_NAME, NODE)               \
     CLASS_NAME::CLASS_NAME(const CLASS_NAME##Node *n) : NODE(n) { \
     }                                                             \
@@ -153,6 +193,10 @@ DEFINE_BINARY_CONSTRUCTOR(Leq, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Geq, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Less, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
+
+Subset::Subset(const SubsetNode *n)
+    : Stmt(n) {
+}
 
 Subset::Subset(AbstractDataTypePtr data,
                std::vector<Expr> mdFields)

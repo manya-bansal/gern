@@ -30,22 +30,6 @@ private:
     ArgumentType arg_type = UNDEFINED;
 };
 
-class Argument : public util::IntrusivePtr<const ArgumentNode> {
-public:
-    Argument()
-        : util::IntrusivePtr<const ArgumentNode>(nullptr) {
-    }
-    Argument(const ArgumentNode *a)
-        : util::IntrusivePtr<const ArgumentNode>(a) {
-    }
-    void print(std::ostream &os) const {
-        ptr->print(os);
-    }
-    ArgumentType getType() const {
-        return ptr->getType();
-    }
-};
-
 class DSArg : public ArgumentNode {
 public:
     DSArg(AbstractDataTypePtr dataStruct)
@@ -61,6 +45,25 @@ public:
 
 private:
     AbstractDataTypePtr dataStruct;
+};
+
+class Argument : public util::IntrusivePtr<const ArgumentNode> {
+public:
+    Argument()
+        : util::IntrusivePtr<const ArgumentNode>(nullptr) {
+    }
+    Argument(const ArgumentNode *a)
+        : util::IntrusivePtr<const ArgumentNode>(a) {
+    }
+    Argument(AbstractDataTypePtr dataStuct)
+        : Argument(new const DSArg(dataStuct)) {
+    }
+    void print(std::ostream &os) const {
+        ptr->print(os);
+    }
+    ArgumentType getType() const {
+        return ptr->getType();
+    }
 };
 
 /*

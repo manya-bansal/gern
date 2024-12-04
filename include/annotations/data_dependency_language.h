@@ -4,6 +4,7 @@
 #include "annotations/abstract_nodes.h"
 #include "utils/uncopyable.h"
 #include <cassert>
+#include <map>
 #include <memory>
 
 namespace gern {
@@ -78,6 +79,14 @@ public:
 
 std::ostream &operator<<(std::ostream &os, const Constraint &);
 
+class Variable : public Expr {
+public:
+    Variable() = default;
+    Variable(const std::string &name);
+    Variable(const VariableNode *);
+    typedef VariableNode Node;
+};
+
 class Stmt : public util::IntrusivePtr<const StmtNode> {
 public:
     Stmt()
@@ -97,6 +106,11 @@ public:
      * @return Stmt New statement with the constraint attached.
      */
     Stmt where(Constraint constraint);
+    Constraint getConstraint() const {
+        return c;
+    }
+    Stmt replaceVariables(std::map<Variable, Variable, ExprLess> rw_vars) const;
+    Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
     void accept(StmtVisitorStrict *v) const;
 
 private:
@@ -107,13 +121,6 @@ private:
 };
 
 std::ostream &operator<<(std::ostream &os, const Stmt &);
-
-class Variable : public Expr {
-public:
-    Variable(const std::string &name);
-    Variable(const VariableNode *);
-    typedef VariableNode Node;
-};
 
 #define DEFINE_BINARY_CLASS(NAME, NODE)    \
     class NAME : public NODE {             \
@@ -158,6 +165,7 @@ Or operator||(const Expr &, const Expr &);
 class Subset : public Stmt {
 public:
     Subset() = default;
+    explicit Subset(const SubsetNode *);
     Subset(AbstractDataTypePtr data,
            std::vector<Expr> mdFields);
     typedef SubsetNode Node;

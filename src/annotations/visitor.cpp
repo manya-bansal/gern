@@ -117,6 +117,7 @@ void Printer::visit(const ProducesNode *op) {
 }
 
 void Printer::visit(const ConsumesNode *op) {
+    (void)op;
 }
 
 void Printer::visit(Allocates a) {
@@ -273,34 +274,120 @@ Expr Rewriter::rewrite(Expr e) {
 Stmt Rewriter::rewrite(Stmt s) {
     if (s.defined()) {
         s.accept(this);
+        Constraint rw_where = this->rewrite(s.getConstraint());
+        stmt = stmt.where(rw_where);
     } else {
         stmt = Stmt();
     }
     return stmt;
 }
 
-// void Printer::visit(const ConsumesForNode *op) {
-//     this->visit(op->v);
-//     this->visit(op->start);
-//     this->visit(op->end);
-//     this->visit(op->step);
-//     this->visit(op->body);
-// }
+Constraint Rewriter::rewrite(Constraint c) {
+    if (c.defined()) {
+        c.accept(this);
+    } else {
+        where = Constraint();
+    }
+    return where;
+}
 
-// void Rewriter::visit(const ComputesForNode *op) {
-//     this->visit(op->v);
-//     this->visit(op->start);
-//     this->visit(op->end);
-//     this->visit(op->step);
-//     this->visit(op->body);
-// }
+void Rewriter::visit(const VariableNode *op) {
+    expr = Variable(op);
+}
+
+void Rewriter::visit(const LiteralNode *op) {
+    expr = op;
+}
+
+void Rewriter::visit(const ConsumesNode *op) {
+    (void)op;
+}
+
+void Rewriter::visit(const PatternNode *op) {
+    (void)op;
+}
+
+void Rewriter::visit(const SubsetNode *op) {
+    std::vector<Expr> rw_expr;
+    for (size_t i = 0; i < op->mdFields.size(); i++) {
+        rw_expr.push_back(this->rewrite(op->mdFields[i]));
+    }
+    stmt = Subset(op->data, rw_expr);
+}
+
+void Rewriter::visit(const SubsetsNode *op) {
+    std::vector<Subset> rw_subsets;
+    for (size_t i = 0; i < op->subsets.size(); i++) {
+        rw_subsets.push_back(to<Subset>(this->rewrite(op->subsets[i])));
+    }
+    stmt = Subsets(rw_subsets);
+}
+
+void Rewriter::visit(const ProducesNode *op) {
+    Subset rw_subset = to<Subset>(this->rewrite(op->output));
+    stmt = Produces(rw_subset);
+}
+
+void Rewriter::visit(const AllocatesNode *op) {
+    Expr rw_reg = op->reg;
+    Expr rw_smem = op->smem;
+    stmt = Allocates(rw_reg, rw_smem);
+}
+
+void Rewriter::visit(const ConsumesForNode *op) {
+    Variable rw_v = to<Variable>(this->rewrite(op->v));
+    Expr rw_start = this->rewrite(op->start);
+    Expr rw_end = this->rewrite(op->end);
+    Expr rw_step = this->rewrite(op->step);
+    ConsumeMany rw_body = to<ConsumeMany>(this->rewrite(op->body));
+    stmt = Consumes(new const ConsumesForNode(rw_v, rw_start,
+                                              rw_end, rw_step,
+                                              rw_body, op->parallel));
+}
+
+void Rewriter::visit(const ComputesForNode *op) {
+    Variable rw_v = to<Variable>(this->rewrite(op->v));
+    Expr rw_start = this->rewrite(op->start);
+    Expr rw_end = this->rewrite(op->end);
+    Expr rw_step = this->rewrite(op->step);
+    Pattern rw_body = to<Pattern>(this->rewrite(op->body));
+    stmt = Pattern(new const ComputesForNode(rw_v, rw_start,
+                                             rw_end, rw_step,
+                                             rw_body, op->parallel));
+}
 
 void Rewriter::visit(const ComputesNode *op) {
     Produces rw_produces = to<Produces>(this->rewrite(op->p));
     Consumes rw_consumes = to<Consumes>(this->rewrite(op->c));
-    Allocates rw_allocates = to<Allocates>(this->rewrite(op->a));
-
-    stmt = Computes(rw_produces, rw_consumes, rw_allocates);
+    if (op->a.defined()) {
+        Allocates rw_allocates = to<Allocates>(this->rewrite(op->a));
+        stmt = Computes(rw_produces, rw_consumes, rw_allocates);
+    } else {
+        stmt = Computes(rw_produces, rw_consumes);
+    }
 }
+
+#define DEFINE_BINARY_REWRITER_METHOD(CLASS_NAME, PARENT, VAR) \
+    void Rewriter::visit(const CLASS_NAME *op) {               \
+        Expr rw_a = this->rewrite(op->a);                      \
+        Expr rw_b = this->rewrite(op->b);                      \
+        VAR = PARENT(new const CLASS_NAME(rw_a, rw_b));        \
+    }
+
+DEFINE_BINARY_REWRITER_METHOD(AddNode, Expr, expr);
+DEFINE_BINARY_REWRITER_METHOD(SubNode, Expr, expr);
+DEFINE_BINARY_REWRITER_METHOD(DivNode, Expr, expr);
+DEFINE_BINARY_REWRITER_METHOD(MulNode, Expr, expr);
+DEFINE_BINARY_REWRITER_METHOD(ModNode, Expr, expr);
+
+DEFINE_BINARY_REWRITER_METHOD(AndNode, Constraint, where);
+DEFINE_BINARY_REWRITER_METHOD(OrNode, Constraint, where);
+
+DEFINE_BINARY_REWRITER_METHOD(EqNode, Constraint, where);
+DEFINE_BINARY_REWRITER_METHOD(NeqNode, Constraint, where);
+DEFINE_BINARY_REWRITER_METHOD(LeqNode, Constraint, where);
+DEFINE_BINARY_REWRITER_METHOD(GeqNode, Constraint, where);
+DEFINE_BINARY_REWRITER_METHOD(LessNode, Constraint, where);
+DEFINE_BINARY_REWRITER_METHOD(GreaterNode, Constraint, where);
 
 }  // namespace gern
