@@ -9,6 +9,22 @@
 #include <set>
 
 namespace gern {
+
+struct VariableNode;
+struct AddNode;
+struct SubNode;
+struct MulNode;
+struct DivNode;
+struct ModNode;
+struct EqNode;
+struct NeqNode;
+struct LeqNode;
+struct GeqNode;
+struct LessNode;
+struct GreaterNode;
+struct AndNode;
+struct OrNode;
+
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
     Expr()
@@ -35,47 +51,6 @@ public:
 
     void accept(ExprVisitorStrict *v) const;
 };
-
-}  // namespace gern
-namespace std {
-template<>
-struct less<gern::Expr> {
-    bool operator()(const ::gern::Expr &a, const ::gern::Expr &b) const {
-        // Implement your comparison logic here
-        // This should return true if a should be considered "less than" b
-        // Often this will mirror your class's operator< implementation
-        return a.ptr < b.ptr;  // or your custom comparison logic
-    }
-};
-};  // namespace std
-
-namespace gern {
-
-struct AddNode;
-struct SubNode;
-struct MulNode;
-struct DivNode;
-struct ModNode;
-struct EqNode;
-struct NeqNode;
-struct LeqNode;
-struct GeqNode;
-struct LessNode;
-struct GreaterNode;
-struct AndNode;
-struct OrNode;
-struct VariableNode;
-
-struct SubsetNode;
-struct SubsetsNode;
-struct ProducesNode;
-struct ConsumesNode;
-struct ConsumesForNode;
-struct AllocatesNode;
-struct ComputesForNode;
-struct ComputesNode;
-struct PatternNode;
-
 std::ostream &operator<<(std::ostream &os, const Expr &);
 
 class Constraint : public util::IntrusivePtr<const ConstraintNode> {
@@ -99,41 +74,6 @@ public:
     Variable(const VariableNode *);
     typedef VariableNode Node;
 };
-
-class Stmt : public util::IntrusivePtr<const StmtNode> {
-public:
-    Stmt()
-        : util::IntrusivePtr<const StmtNode>(nullptr) {
-    }
-    Stmt(const StmtNode *n)
-        : util::IntrusivePtr<const StmtNode>(n) {
-    }
-
-    /**
-     * @brief Add a constraint to a statement
-     *
-     *  The function checks that only variables that are in
-     *  scope are used within the constraint.
-     *
-     * @param constraint Constraint to add.
-     * @return Stmt New statement with the constraint attached.
-     */
-    Stmt where(Constraint constraint);
-    Constraint getConstraint() const {
-        return c;
-    }
-    Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
-    Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
-    void accept(StmtVisitorStrict *v) const;
-
-private:
-    Stmt(const StmtNode *n, Constraint c)
-        : util::IntrusivePtr<const StmtNode>(n), c(c) {
-    }
-    Constraint c;
-};
-
-std::ostream &operator<<(std::ostream &os, const Stmt &);
 
 #define DEFINE_BINARY_CLASS(NAME, NODE)    \
     class NAME : public NODE {             \
@@ -174,6 +114,69 @@ Less operator<(const Expr &, const Expr &);
 Greater operator>(const Expr &, const Expr &);
 And operator&&(const Expr &, const Expr &);
 Or operator||(const Expr &, const Expr &);
+
+}  // namespace gern
+
+// Defining an std::less overload so that
+// std::map<Variable, ....> in Stmt doesn't need to
+// take in a special struct. The < operator in Expr
+// is already overloaded, so it's not possible to use
+// the usual std::less definition.
+namespace std {
+template<>
+struct less<gern::Variable> {
+    bool operator()(const gern::Variable &a, const gern::Variable &b) const {
+        return a.ptr < b.ptr;
+    }
+};
+}  // namespace std
+
+namespace gern {
+
+struct SubsetNode;
+struct SubsetsNode;
+struct ProducesNode;
+struct ConsumesNode;
+struct ConsumesForNode;
+struct AllocatesNode;
+struct ComputesForNode;
+struct ComputesNode;
+struct PatternNode;
+
+class Stmt : public util::IntrusivePtr<const StmtNode> {
+public:
+    Stmt()
+        : util::IntrusivePtr<const StmtNode>(nullptr) {
+    }
+    Stmt(const StmtNode *n)
+        : util::IntrusivePtr<const StmtNode>(n) {
+    }
+
+    /**
+     * @brief Add a constraint to a statement
+     *
+     *  The function checks that only variables that are in
+     *  scope are used within the constraint.
+     *
+     * @param constraint Constraint to add.
+     * @return Stmt New statement with the constraint attached.
+     */
+    Stmt where(Constraint constraint);
+    Constraint getConstraint() const {
+        return c;
+    }
+    Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
+    Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
+    void accept(StmtVisitorStrict *v) const;
+
+private:
+    Stmt(const StmtNode *n, Constraint c)
+        : util::IntrusivePtr<const StmtNode>(n), c(c) {
+    }
+    Constraint c;
+};
+
+std::ostream &operator<<(std::ostream &os, const Stmt &);
 
 class Subset : public Stmt {
 public:
