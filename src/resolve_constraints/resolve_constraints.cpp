@@ -30,7 +30,7 @@ struct GinacLess {
     }
 };
 
-typedef std::map<Variable, GiNaC::symbol, ExprLess> VariableToSymbolMap;
+typedef std::map<Variable, GiNaC::symbol> VariableToSymbolMap;
 typedef std::map<GiNaC::symbol, Variable, GinacLess> SymbolToVariableMap;
 
 // Helper function to convert an equality constraint to a GiNaC
@@ -43,7 +43,7 @@ static GiNaC::ex convertToGinac(Eq q, VariableToSymbolMap names) {
         using ExprVisitorStrict::visit;
 
         void visit(const VariableNode *op) {
-            if (names.count(Variable(op)) == 0) {
+            if (names.find(Variable(op)) == names.end()) {
                 throw error::InternalError("Map does not contain a symbol for variable");
             }
             ginacExpr = names[op];

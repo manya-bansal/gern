@@ -3,10 +3,14 @@
 
 #include "annotations/abstract_nodes.h"
 #include "utils/uncopyable.h"
+#include <cassert>
+#include <map>
 #include <memory>
+#include <set>
 
 namespace gern {
 
+struct VariableNode;
 struct AddNode;
 struct SubNode;
 struct MulNode;
@@ -20,17 +24,6 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
-struct VariableNode;
-
-struct SubsetNode;
-struct SubsetsNode;
-struct ProducesNode;
-struct ConsumesNode;
-struct ConsumesForNode;
-struct AllocatesNode;
-struct ComputesForNode;
-struct ComputesNode;
-struct PatternNode;
 
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
@@ -52,15 +45,12 @@ public:
     Expr(float);
     Expr(double);
 
+    bool operator()(const Expr &e) {
+        return ptr < e.ptr;
+    }
+
     void accept(ExprVisitorStrict *v) const;
 };
-
-struct ExprLess {
-    bool operator()(const gern::Expr &lhs, const gern::Expr &rhs) const {
-        return lhs.ptr < rhs.ptr;  // Compare by key
-    }
-};
-
 std::ostream &operator<<(std::ostream &os, const Expr &);
 
 class Constraint : public util::IntrusivePtr<const ConstraintNode> {
@@ -77,52 +67,23 @@ public:
 
 std::ostream &operator<<(std::ostream &os, const Constraint &);
 
-class Stmt : public util::IntrusivePtr<const StmtNode> {
-public:
-    Stmt()
-        : util::IntrusivePtr<const StmtNode>(nullptr) {
-    }
-    Stmt(const StmtNode *n)
-        : util::IntrusivePtr<const StmtNode>(n) {
-    }
-
-    /**
-     * @brief Add a constraint to a statement
-     *
-     *  The function checks that only variables that are in
-     *  scope are used within the constraint.
-     *
-     * @param constraint Constraint to add.
-     * @return Stmt New statement with the constraint attached.
-     */
-    Stmt where(Constraint constraint);
-
-    void accept(StmtVisitorStrict *v) const;
-
-private:
-    Stmt(const StmtNode *n, Constraint c)
-        : util::IntrusivePtr<const StmtNode>(n), c(c) {
-    }
-    Constraint c;
-};
-
-std::ostream &operator<<(std::ostream &os, const Stmt &);
-
 class Variable : public Expr {
 public:
     Variable() = default;
     Variable(const std::string &name);
     Variable(const VariableNode *);
+    std::string getName() const;
     typedef VariableNode Node;
 };
 
-#define DEFINE_BINARY_CLASS(NAME, NODE) \
-    class NAME : public NODE {          \
-    public:                             \
-        NAME(Expr a, Expr b);           \
-        Expr getA() const;              \
-        Expr getB() const;              \
-        typedef NAME##Node Node;        \
+#define DEFINE_BINARY_CLASS(NAME, NODE)    \
+    class NAME : public NODE {             \
+    public:                                \
+        explicit NAME(const NAME##Node *); \
+        NAME(Expr a, Expr b);              \
+        Expr getA() const;                 \
+        Expr getB() const;                 \
+        typedef NAME##Node Node;           \
     };
 
 DEFINE_BINARY_CLASS(Add, Expr);
@@ -155,16 +116,99 @@ Greater operator>(const Expr &, const Expr &);
 And operator&&(const Expr &, const Expr &);
 Or operator||(const Expr &, const Expr &);
 
+}  // namespace gern
+
+// Defining an std::less overload so that
+// std::map<Variable, ....> in Stmt doesn't need to
+// take in a special struct. The < operator in Expr
+// is already overloaded, so it's not possible to use
+// the usual std::less definition.
+namespace std {
+template<>
+struct less<gern::Variable> {
+    bool operator()(const gern::Variable &a, const gern::Variable &b) const {
+        return a.ptr < b.ptr;
+    }
+};
+}  // namespace std
+
+namespace gern {
+
+struct SubsetNode;
+struct SubsetsNode;
+struct ProducesNode;
+struct ConsumesNode;
+struct ConsumesForNode;
+struct AllocatesNode;
+struct ComputesForNode;
+struct ComputesNode;
+struct PatternNode;
+
+class Stmt : public util::IntrusivePtr<const StmtNode> {
+public:
+    Stmt()
+        : util::IntrusivePtr<const StmtNode>(nullptr) {
+    }
+    Stmt(const StmtNode *n)
+        : util::IntrusivePtr<const StmtNode>(n) {
+    }
+
+    Stmt getObject() const {
+        return *this;
+    }
+    /**
+     * @brief Add a constraint to a statement
+     *
+     *  The function checks that only variables that are in
+     *  scope are used within the constraint.
+     *
+     * @param constraint Constraint to add.
+     * @return Stmt New statement with the constraint attached.
+     */
+    Stmt whereStmt(Constraint constraint) const;
+    Constraint getConstraint() const {
+        return c;
+    }
+    Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
+    Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
+    void accept(StmtVisitorStrict *v) const;
+
+private:
+    Stmt(const StmtNode *n, Constraint c)
+        : util::IntrusivePtr<const StmtNode>(n), c(c) {
+    }
+    Constraint c;
+};
+
+std::ostream &operator<<(std::ostream &os, const Stmt &);
+
+template<typename E, typename T>
+inline bool isa(const T &e) {
+    return e.ptr != nullptr && dynamic_cast<const typename E::Node *>(e.ptr) != nullptr;
+};
+
+template<typename E, typename T>
+inline const E to(const T &e) {
+    assert(isa<E>(e));
+    return E(static_cast<const typename E::Node *>(e.ptr));
+};
+
 class Subset : public Stmt {
 public:
-    Subset(std::shared_ptr<const AbstractDataType> data,
+    Subset() = default;
+    explicit Subset(const SubsetNode *);
+    Subset(AbstractDataTypePtr data,
            std::vector<Expr> mdFields);
+    Subset where(Constraint);
     typedef SubsetNode Node;
 };
 
 class Produces : public Stmt {
 public:
+    explicit Produces(const ProducesNode *);
     Produces(Subset s);
+    Subset getSubset();
+    Produces where(Constraint);
     typedef ProducesNode Node;
 };
 
@@ -174,6 +218,7 @@ class Consumes : public Stmt {
 public:
     Consumes(const ConsumesNode *);
     Consumes(Subset s);
+    Consumes where(Constraint);
     typedef ConsumesNode Node;
 };
 
@@ -181,14 +226,17 @@ class ConsumeMany : public Consumes {
 public:
     ConsumeMany(const ConsumesNode *s)
         : Consumes(s) {};
+    ConsumeMany where(Constraint);
 };
 
 class Subsets : public ConsumeMany {
 public:
+    explicit Subsets(const SubsetsNode *);
     Subsets(const std::vector<Subset> &subsets);
     Subsets(Subset s)
         : Subsets(std::vector<Subset>{s}) {
     }
+    Subsets where(Constraint);
     typedef SubsetsNode Node;
 };
 
@@ -203,20 +251,25 @@ public:
     Allocates()
         : Stmt() {
     }
+    explicit Allocates(const AllocatesNode *);
     Allocates(Expr reg, Expr smem = Expr());
+    Allocates where(Constraint);
     typedef AllocatesNode Node;
 };
 
 struct PatternNode;
 class Pattern : public Stmt {
 public:
-    Pattern(const PatternNode *);
+    explicit Pattern(const PatternNode *);
+    Pattern where(Constraint);
     typedef PatternNode Node;
 };
 
 class Computes : public Pattern {
 public:
+    explicit Computes(const ComputesNode *);
     Computes(Produces p, Consumes c, Allocates a = Allocates());
+    Computes where(Constraint);
     typedef ComputesNode Node;
 };
 

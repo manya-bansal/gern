@@ -276,5 +276,54 @@ void match(T stmt, Patterns... patterns) {
     Matcher().process(stmt, patterns...);
 }
 
+class Rewriter : public AnnotVisitorStrict {
+public:
+    virtual ~Rewriter() = default;
+    using AnnotVisitorStrict::visit;
+    Stmt rewrite(Stmt);
+    Expr rewrite(Expr);
+    Constraint rewrite(Constraint);
+
+protected:
+    Expr expr;
+    Stmt stmt;
+    Constraint where;
+
+    void visit(const LiteralNode *);
+    void visit(const AddNode *);
+    void visit(const SubNode *);
+    void visit(const MulNode *);
+    void visit(const DivNode *);
+    void visit(const ModNode *);
+    void visit(const VariableNode *);
+
+    void visit(const EqNode *);
+    void visit(const NeqNode *);
+    void visit(const LeqNode *);
+    void visit(const GeqNode *);
+    void visit(const LessNode *);
+    void visit(const GreaterNode *);
+    void visit(const OrNode *);
+    void visit(const AndNode *);
+
+    void visit(const SubsetNode *);
+    void visit(const SubsetsNode *);
+    void visit(const ProducesNode *);
+    void visit(const ConsumesNode *);
+    void visit(const AllocatesNode *);
+    void visit(const ComputesForNode *);
+    void visit(const ConsumesForNode *);
+    void visit(const ComputesNode *);
+    void visit(const PatternNode *);
+};
+
+template<typename T>
+inline std::set<Variable> getVariables(T annot) {
+    std::set<Variable> vars;
+    match(annot, std::function<void(const VariableNode *)>(
+                     [&](const VariableNode *op) { vars.insert(op); }));
+    return vars;
+}
+
 }  // namespace gern
 #endif

@@ -68,6 +68,10 @@ Variable::Variable(const std::string &name)
     : Expr(new const VariableNode(name)) {
 }
 
+std::string Variable::getName() const {
+    return getNode(*this)->name;
+}
+
 std::ostream &operator<<(std::ostream &os, const Expr &e) {
     Printer p{os};
     p.visit(e);
@@ -106,34 +110,82 @@ std::ostream &operator<<(std::ostream &os, const Stmt &s) {
     return os;
 }
 
-template<typename T>
-std::set<const VariableNode *> getVariables(T annot) {
-    std::set<const VariableNode *> vars;
-    match(annot, std::function<void(const VariableNode *)>(
-                     [&](const VariableNode *op) { vars.insert(op); }));
-    return vars;
-}
-
-Stmt Stmt::where(Constraint constraint) {
+Stmt Stmt::whereStmt(Constraint constraint) const {
     auto stmtVars = getVariables(*this);
     auto constraintVars = getVariables(constraint);
     if (!std::includes(stmtVars.begin(), stmtVars.end(), constraintVars.begin(),
-                       constraintVars.end())) {
+                       constraintVars.end(), std::less<Variable>())) {
         throw error::UserError("Putting constraints on variables that are not "
                                "present in statement's scope");
     }
     return Stmt(ptr, constraint);
 }
 
-#define DEFINE_BINARY_CONSTRUCTOR(CLASS_NAME, NODE) \
-    CLASS_NAME::CLASS_NAME(Expr a, Expr b)          \
-        : NODE(new const CLASS_NAME##Node(a, b)) {  \
-    }                                               \
-    Expr CLASS_NAME::getA() const {                 \
-        return getNode(*this)->a;                   \
-    }                                               \
-    Expr CLASS_NAME::getB() const {                 \
-        return getNode(*this)->b;                   \
+#define DEFINE_WHERE_METHOD(Type)            \
+    Type Type::where(Constraint c) {         \
+        return to<Type>(this->whereStmt(c)); \
+    }
+
+DEFINE_WHERE_METHOD(Consumes);
+DEFINE_WHERE_METHOD(Subset);
+DEFINE_WHERE_METHOD(Produces);
+DEFINE_WHERE_METHOD(ConsumeMany);
+DEFINE_WHERE_METHOD(Subsets);
+DEFINE_WHERE_METHOD(Allocates);
+DEFINE_WHERE_METHOD(Pattern);
+DEFINE_WHERE_METHOD(Computes);
+
+Stmt Stmt::replaceVariables(std::map<Variable, Variable> rw_vars) const {
+    struct rewriteVar : public Rewriter {
+        rewriteVar(std::map<Variable, Variable> rw_vars)
+            : rw_vars(rw_vars) {
+        }
+        using Rewriter::rewrite;
+
+        void visit(const VariableNode *op) {
+            if (rw_vars.find(op) != rw_vars.end()) {
+                expr = rw_vars[op];
+            } else {
+                expr = op;
+            }
+        }
+        std::map<Variable, Variable> rw_vars;
+    };
+    rewriteVar rw{rw_vars};
+    return rw.rewrite(*this);
+}
+
+Stmt Stmt::replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const {
+    struct rewriteDS : public Rewriter {
+        rewriteDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds)
+            : rw_ds(rw_ds) {
+        }
+        using Rewriter::rewrite;
+
+        void visit(const SubsetNode *op) {
+            if (rw_ds.find(op->data) != rw_ds.end()) {
+                stmt = Subset(rw_ds[op->data], op->mdFields);
+            } else {
+                stmt = Subset(op->data, op->mdFields);
+            }
+        }
+        std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds;
+    };
+    rewriteDS rw{rw_ds};
+    return rw.rewrite(*this);
+}
+
+#define DEFINE_BINARY_CONSTRUCTOR(CLASS_NAME, NODE)               \
+    CLASS_NAME::CLASS_NAME(const CLASS_NAME##Node *n) : NODE(n) { \
+    }                                                             \
+    CLASS_NAME::CLASS_NAME(Expr a, Expr b)                        \
+        : NODE(new const CLASS_NAME##Node(a, b)) {                \
+    }                                                             \
+    Expr CLASS_NAME::getA() const {                               \
+        return getNode(*this)->a;                                 \
+    }                                                             \
+    Expr CLASS_NAME::getB() const {                               \
+        return getNode(*this)->b;                                 \
     }
 
 DEFINE_BINARY_CONSTRUCTOR(Add, Expr)
@@ -152,7 +204,11 @@ DEFINE_BINARY_CONSTRUCTOR(Geq, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Less, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
 
-Subset::Subset(std::shared_ptr<const AbstractDataType> data,
+Subset::Subset(const SubsetNode *n)
+    : Stmt(n) {
+}
+
+Subset::Subset(AbstractDataTypePtr data,
                std::vector<Expr> mdFields)
     : Stmt(new const SubsetNode(data, mdFields)) {
 }
@@ -161,12 +217,28 @@ Subsets::Subsets(const std::vector<Subset> &inputs)
     : ConsumeMany(new const SubsetsNode(inputs)) {
 }
 
+Produces::Produces(const ProducesNode *n)
+    : Stmt(n) {
+}
+
 Produces::Produces(Subset s)
     : Stmt(new const ProducesNode(s)) {
 }
 
+Subset Produces::getSubset() {
+    return getNode(*this)->output;
+}
+
+Subsets::Subsets(const SubsetsNode *n)
+    : ConsumeMany(n) {
+}
+
 Consumes::Consumes(const ConsumesNode *c)
     : Stmt(c) {
+}
+
+Consumes::Consumes(Subset s)
+    : Consumes(new const SubsetsNode({s})) {
 }
 
 ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
@@ -175,8 +247,16 @@ ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
         new const ConsumesForNode(v, start, end, step, body, parallel));
 }
 
+Allocates::Allocates(const AllocatesNode *n)
+    : Stmt(n) {
+}
+
 Allocates::Allocates(Expr reg, Expr smem)
     : Stmt(new const AllocatesNode(reg, smem)) {
+}
+
+Computes::Computes(const ComputesNode *n)
+    : Pattern(n) {
 }
 
 Computes::Computes(Produces p, Consumes c, Allocates a)

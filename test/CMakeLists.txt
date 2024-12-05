@@ -7,10 +7,12 @@ target_sources(
     PRIVATE
         test-nodes.cpp
         test-resolve-constraints.cpp
+        test-functions.cpp
     PRIVATE
     FILE_SET HEADERS
     FILES
         test-utils.h
+        functions/elementwise.h
 )
 target_link_libraries(gern_test PRIVATE Gern::Gern GTest::gtest_main)
 
