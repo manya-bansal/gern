@@ -68,6 +68,10 @@ Variable::Variable(const std::string &name)
     : Expr(new const VariableNode(name)) {
 }
 
+std::string Variable::getName() const {
+    return getNode(*this)->name;
+}
+
 std::ostream &operator<<(std::ostream &os, const Expr &e) {
     Printer p{os};
     p.visit(e);
@@ -106,19 +110,11 @@ std::ostream &operator<<(std::ostream &os, const Stmt &s) {
     return os;
 }
 
-template<typename T>
-std::set<const VariableNode *> getVariables(T annot) {
-    std::set<const VariableNode *> vars;
-    match(annot, std::function<void(const VariableNode *)>(
-                     [&](const VariableNode *op) { vars.insert(op); }));
-    return vars;
-}
-
-Stmt Stmt::where(Constraint constraint) {
+Stmt Stmt::where(Constraint constraint) const {
     auto stmtVars = getVariables(*this);
     auto constraintVars = getVariables(constraint);
     if (!std::includes(stmtVars.begin(), stmtVars.end(), constraintVars.begin(),
-                       constraintVars.end())) {
+                       constraintVars.end(), std::less<Variable>())) {
         throw error::UserError("Putting constraints on variables that are not "
                                "present in statement's scope");
     }

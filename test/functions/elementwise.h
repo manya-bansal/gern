@@ -18,7 +18,7 @@ public:
         return "add";
     }
 
-    Stmt getAnnotation() {
+    Pattern getAnnotation() {
         Variable x("x");
         Variable step("step");
         Variable end("end");

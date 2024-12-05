@@ -1,11 +1,12 @@
 #include "annotations/abstract_function.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
+#include "utils/name_generator.h"
 #include <map>
 namespace gern {
 
 std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
-
+    os << f.getAnnotation() << "\n";
     os << f.getName() << "(";
     auto args = f.getArguments();
     auto args_size = args.size();
@@ -48,8 +49,18 @@ Stmt AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> concre
             abstract_to_concrete[abstract_ds->getADTPtr()] = concrete_ds->getADTPtr();
         }
     }
+    Pattern annotation = getAnnotation();
+    std::set<Variable> old_vars = getVariables(annotation);
+    // Convert all variables to fresh names for each
+    // individual callsite.
+    std::map<Variable, Variable> fresh_names;
+    for (const auto &v : old_vars) {
+        fresh_names[v] = getUniqueName("_gern_" + v.getName());
+    }
 
-    return getAnnotation().replaceDSArgs(abstract_to_concrete);
+    return to<Pattern>(annotation
+                           .replaceDSArgs(abstract_to_concrete)
+                           .replaceVariables(fresh_names));
 }
 
 }  // namespace gern

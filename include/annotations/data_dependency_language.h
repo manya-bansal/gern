@@ -72,6 +72,7 @@ public:
     Variable() = default;
     Variable(const std::string &name);
     Variable(const VariableNode *);
+    std::string getName() const;
     typedef VariableNode Node;
 };
 
@@ -161,7 +162,7 @@ public:
      * @param constraint Constraint to add.
      * @return Stmt New statement with the constraint attached.
      */
-    Stmt where(Constraint constraint);
+    Stmt where(Constraint constraint) const;
     Constraint getConstraint() const {
         return c;
     }

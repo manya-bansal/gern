@@ -14,7 +14,7 @@ class FunctionCall {
 public:
     FunctionCall() = delete;
     FunctionCall(const std::string &name,
-                 Stmt annotation,
+                 Pattern annotation,
                  std::vector<Argument> arguments)
         : name(name), annotation(annotation),
           arguments(arguments) {
@@ -22,7 +22,7 @@ public:
     const std::string &getName() const {
         return name;
     }
-    const Stmt &getAnnotation() const {
+    const Pattern &getAnnotation() const {
         return annotation;
     }
     const std::vector<Argument> &getArguments() const {
@@ -31,7 +31,7 @@ public:
 
 private:
     std::string name;
-    Stmt annotation;
+    Pattern annotation;
     std::vector<Argument> arguments;
 };
 
@@ -52,7 +52,7 @@ public:
     // because users can meta-program these class
     // using cpp if they would like.
     virtual std::string getName() = 0;
-    virtual Stmt getAnnotation() = 0;
+    virtual Pattern getAnnotation() = 0;
     virtual std::vector<Argument> getArguments() = 0;
 
     template<typename T>
@@ -83,7 +83,7 @@ public:
     }
 
 private:
-    Stmt rewriteAnnotWithConcreteArgs(std::vector<Argument> concrete_arguments);
+    Pattern rewriteAnnotWithConcreteArgs(std::vector<Argument> concrete_arguments);
 };
 
 }  // namespace gern

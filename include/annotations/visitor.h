@@ -317,5 +317,13 @@ protected:
     void visit(const PatternNode *);
 };
 
+template<typename T>
+inline std::set<Variable> getVariables(T annot) {
+    std::set<Variable> vars;
+    match(annot, std::function<void(const VariableNode *)>(
+                     [&](const VariableNode *op) { vars.insert(op); }));
+    return vars;
+}
+
 }  // namespace gern
 #endif

@@ -33,6 +33,16 @@ static std::string getStrippedString(T e) {
     return std::string(str);
 }
 
+template<typename T>
+static bool areDisjoint(std::set<T> s1, std::set<T> s2) {
+    for (const auto &e : s1) {
+        if (s2.find(e) != s2.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 }  // namespace gern
 
 #endif
