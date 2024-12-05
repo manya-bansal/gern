@@ -33,6 +33,7 @@ void ComposePrinter::visit(const ComposeVec *c) {
     ComposePrinter print(os, ident);
     for (const auto &funcs : c->compose) {
         print.visit(funcs);
+        os << "\n";
     }
     ident--;
     os << "}";

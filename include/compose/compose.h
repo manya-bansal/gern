@@ -37,7 +37,7 @@ public:
     Compose(const CompositionObject *n)
         : util::IntrusivePtr<const CompositionObject>(n) {
     }
-
+    Compose(std::vector<Compose> compose);
     void concretize();
     bool concretized() const;
 

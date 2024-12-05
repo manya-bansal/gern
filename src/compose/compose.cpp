@@ -2,6 +2,10 @@
 #include "compose/compose_visitor.h"
 
 namespace gern {
+
+Compose::Compose(std::vector<Compose> compose)
+    : Compose(new const ComposeVec(compose)) {
+}
 // I am pulling concretize out since I expect
 // certain scheduling commands to have loops be
 // explicitly instantiated. If this is not the case,
