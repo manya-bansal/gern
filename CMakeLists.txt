@@ -32,6 +32,8 @@ target_sources(
         src/annotations/lang_nodes.cpp
         src/annotations/visitor.cpp
         src/compose/compose.cpp
+        src/codegen/codegen_ir.cpp
+        src/codegen/codegen_visitor.cpp
         src/resolve_constraints/resolve_constraints.cpp
         src/utils/name_generator.cpp
     PUBLIC
@@ -47,6 +49,8 @@ target_sources(
         include/annotations/visitor.h
         include/resolve_constraints/resolve_constraints.h
         include/compose/compose.h
+        include/codegen/codegen_ir.h
+        include/codegen/codegen_visitor.h
         include/utils/debug.h
         include/utils/error.h
         include/utils/name_generator.h
