@@ -28,6 +28,19 @@ public:
     const std::vector<Argument> &getArguments() const {
         return arguments;
     }
+    /**
+     * @brief Returns the data structure that the function computes as output.
+     *
+     * @return Pointer to the data structure.
+     */
+    AbstractDataTypePtr getOutput() const;
+
+    /**
+     * @brief Returns the data structures that the function treats as inputs.
+     *
+     * @return std::set<AbstractDataTypePtr>
+     */
+    std::set<AbstractDataTypePtr> getInput() const;
 
 private:
     std::string name;

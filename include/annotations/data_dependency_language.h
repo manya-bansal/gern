@@ -200,6 +200,7 @@ public:
     Subset(AbstractDataTypePtr data,
            std::vector<Expr> mdFields);
     Subset where(Constraint);
+    AbstractDataTypePtr getDS() const;
     typedef SubsetNode Node;
 };
 

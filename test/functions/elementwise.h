@@ -26,9 +26,9 @@ public:
         return For(x, 0, end, step,
                    Computes(
                        Produces(
-                           Subset(input, {x})),
+                           Subset(output, {x})),
                        Consumes(
-                           Subset(output, {x}))));
+                           Subset(input, {x}))));
     }
 
     std::vector<Argument> getArguments() {

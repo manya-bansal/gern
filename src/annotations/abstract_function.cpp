@@ -5,6 +5,24 @@
 #include <map>
 namespace gern {
 
+AbstractDataTypePtr FunctionCall::getOutput() const {
+    AbstractDataTypePtr ds;
+    match(getAnnotation(), std::function<void(const ProducesNode *)>(
+                               [&](const ProducesNode *op) { ds = op->output.getDS(); }));
+    return ds;
+}
+
+std::set<AbstractDataTypePtr> FunctionCall::getInput() const {
+    std::set<AbstractDataTypePtr> inputs;
+    match(getAnnotation(), std::function<void(const SubsetsNode *)>(
+                               [&](const SubsetsNode *op) {
+                                   for (const auto &s : op->subsets) {
+                                       inputs.insert(s.getDS());
+                                   }
+                               }));
+    return inputs;
+}
+
 std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
     os << f.getAnnotation() << "\n";
     os << f.getName() << "(";
@@ -49,6 +67,7 @@ Pattern AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> con
             abstract_to_concrete[abstract_ds->getADTPtr()] = concrete_ds->getADTPtr();
         }
     }
+
     Pattern annotation = getAnnotation();
     std::set<Variable> old_vars = getVariables(annotation);
     // Convert all variables to fresh names for each

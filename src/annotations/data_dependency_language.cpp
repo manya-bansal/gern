@@ -213,6 +213,10 @@ Subset::Subset(AbstractDataTypePtr data,
     : Stmt(new const SubsetNode(data, mdFields)) {
 }
 
+AbstractDataTypePtr Subset::getDS() const {
+    return getNode(*this)->data;
+}
+
 Subsets::Subsets(const std::vector<Subset> &inputs)
     : ConsumeMany(new const SubsetsNode(inputs)) {
 }
