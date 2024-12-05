@@ -24,7 +24,6 @@ std::set<AbstractDataTypePtr> FunctionCall::getInput() const {
 }
 
 std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
-    os << f.getAnnotation() << "\n";
     os << f.getName() << "(";
     auto args = f.getArguments();
     auto args_size = args.size();

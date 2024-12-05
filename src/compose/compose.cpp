@@ -1,11 +1,7 @@
 #include "compose/compose.h"
+#include "compose/compose_visitor.h"
 
 namespace gern {
-
-Compose::Compose(const std::vector<FunctionCall> &funcs)
-    : funcs(funcs) {
-}
-
 // I am pulling concretize out since I expect
 // certain scheduling commands to have loops be
 // explicitly instantiated. If this is not the case,
@@ -18,14 +14,24 @@ bool Compose::concretized() const {
     return concrete;
 }
 
-const std::vector<FunctionCall> &Compose::getFunctions() const {
-    return funcs;
+void Compose::accept(CompositionVisitor *v) const {
+    if (!defined()) {
+        return;
+    }
+    ptr->accept(v);
+}
+
+void FunctionCall::accept(CompositionVisitor *v) const {
+    v->visit(this);
+}
+
+void ComposeVec::accept(CompositionVisitor *v) const {
+    v->visit(this);
 }
 
 std::ostream &operator<<(std::ostream &os, const Compose &compose) {
-    for (const auto &f : compose.getFunctions()) {
-        os << f << "\n";
-    }
+    ComposePrinter p{os, 0};
+    p.visit(compose);
     return os;
 }
 

@@ -13,29 +13,29 @@ TEST(Functions, SingleFunction) {
     auto output_2_DS = std::make_shared<const dummy::TestDS>("output_con_2");
 
     test::add add_f;
-    FunctionCall concreteCall1 = add_f(inputDS, outputDS);
-    FunctionCall concreteCall2 = add_f(outputDS, output_2_DS);
+    const FunctionCall *concreteCall1 = add_f(inputDS, outputDS);
+    const FunctionCall *concreteCall2 = add_f(outputDS, output_2_DS);
 
     // Test that all variables were replaced
     std::set<Variable> abstract_vars = getVariables(add_f.getAnnotation());
-    std::set<Variable> concrete_vars_1 = getVariables(concreteCall1.getAnnotation());
-    std::set<Variable> concrete_vars_2 = getVariables(concreteCall2.getAnnotation());
+    std::set<Variable> concrete_vars_1 = getVariables(concreteCall1->getAnnotation());
+    std::set<Variable> concrete_vars_2 = getVariables(concreteCall2->getAnnotation());
 
     // All the variables should now be different.
     ASSERT_TRUE(areDisjoint(concrete_vars_1, abstract_vars));
     ASSERT_TRUE(areDisjoint(concrete_vars_2, abstract_vars));
     ASSERT_TRUE(areDisjoint(concrete_vars_2, concrete_vars_1));
 
-    AbstractDataTypePtr output_1 = concreteCall1.getOutput();
+    AbstractDataTypePtr output_1 = concreteCall1->getOutput();
     ASSERT_TRUE(output_1 == outputDS);
-    AbstractDataTypePtr output_2 = concreteCall2.getOutput();
+    AbstractDataTypePtr output_2 = concreteCall2->getOutput();
     ASSERT_TRUE(output_2 == output_2_DS);
 
-    std::set<AbstractDataTypePtr> all_inputs = concreteCall1.getInput();
+    std::set<AbstractDataTypePtr> all_inputs = concreteCall1->getInput();
     ASSERT_TRUE(all_inputs.size() == 1);
     ASSERT_TRUE(*(all_inputs.begin()) == inputDS);
 
-    std::set<AbstractDataTypePtr> all_inputs_2 = concreteCall2.getInput();
+    std::set<AbstractDataTypePtr> all_inputs_2 = concreteCall2->getInput();
     ASSERT_TRUE(all_inputs_2.size() == 1);
     ASSERT_TRUE(*(all_inputs_2.begin()) == outputDS);
 }

@@ -3,52 +3,13 @@
 
 #include "annotations/arguments.h"
 #include "annotations/data_dependency_language.h"
+#include "compose/compose.h"
 #include "utils/error.h"
 #include "utils/uncopyable.h"
 #include <any>
 #include <string>
 
 namespace gern {
-
-class FunctionCall {
-public:
-    FunctionCall() = delete;
-    FunctionCall(const std::string &name,
-                 Pattern annotation,
-                 std::vector<Argument> arguments)
-        : name(name), annotation(annotation),
-          arguments(arguments) {
-    }
-    const std::string &getName() const {
-        return name;
-    }
-    const Pattern &getAnnotation() const {
-        return annotation;
-    }
-    const std::vector<Argument> &getArguments() const {
-        return arguments;
-    }
-    /**
-     * @brief Returns the data structure that the function computes as output.
-     *
-     * @return Pointer to the data structure.
-     */
-    AbstractDataTypePtr getOutput() const;
-
-    /**
-     * @brief Returns the data structures that the function treats as inputs.
-     *
-     * @return std::set<AbstractDataTypePtr>
-     */
-    std::set<AbstractDataTypePtr> getInput() const;
-
-private:
-    std::string name;
-    Pattern annotation;
-    std::vector<Argument> arguments;
-};
-
-std::ostream &operator<<(std::ostream &os, const FunctionCall &f);
 
 /**
  * @brief To add a function to gern, the user needs to
@@ -69,30 +30,30 @@ public:
     virtual std::vector<Argument> getArguments() = 0;
 
     template<typename T>
-    FunctionCall operator()(T argument) {
+    const FunctionCall *operator()(T argument) {
         std::vector<Argument> arguments;
         addArguments(arguments, argument);
-        return FunctionCall(getName(),
-                            rewriteAnnotWithConcreteArgs(arguments),
-                            arguments);
+        return new const FunctionCall(getName(),
+                                      rewriteAnnotWithConcreteArgs(arguments),
+                                      arguments);
     }
 
     template<typename FirstT, typename... Next>
-    FunctionCall operator()(FirstT first, Next... remaining) {
+    const FunctionCall *operator()(FirstT first, Next... remaining) {
         std::vector<Argument> arguments;
         addArguments(arguments, first, remaining...);
-        return FunctionCall(getName(),
-                            rewriteAnnotWithConcreteArgs(arguments),
-                            arguments);
+        return new const FunctionCall(getName(),
+                                      rewriteAnnotWithConcreteArgs(arguments),
+                                      arguments);
     }
 
-    FunctionCall operator()() {
+    const FunctionCall *operator()() {
         if (getArguments().size() != 0) {
             throw error::UserError("Called function " + getName() + " with 0 arguments");
         }
-        return FunctionCall(getName(),
-                            rewriteAnnotWithConcreteArgs({}),
-                            std::vector<Argument>());
+        return new const FunctionCall(getName(),
+                                      rewriteAnnotWithConcreteArgs({}),
+                                      std::vector<Argument>());
     }
 
 private:

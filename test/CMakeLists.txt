@@ -8,6 +8,7 @@ target_sources(
         test-nodes.cpp
         test-resolve-constraints.cpp
         test-functions.cpp
+        test-lowering.cpp
     PRIVATE
     FILE_SET HEADERS
     FILES
