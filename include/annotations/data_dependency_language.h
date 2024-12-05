@@ -153,6 +153,9 @@ public:
         : util::IntrusivePtr<const StmtNode>(n) {
     }
 
+    Stmt getObject() const {
+        return *this;
+    }
     /**
      * @brief Add a constraint to a statement
      *
@@ -162,7 +165,7 @@ public:
      * @param constraint Constraint to add.
      * @return Stmt New statement with the constraint attached.
      */
-    Stmt where(Constraint constraint) const;
+    Stmt whereStmt(Constraint constraint) const;
     Constraint getConstraint() const {
         return c;
     }
@@ -179,12 +182,24 @@ private:
 
 std::ostream &operator<<(std::ostream &os, const Stmt &);
 
+template<typename E, typename T>
+inline bool isa(const T &e) {
+    return e.ptr != nullptr && dynamic_cast<const typename E::Node *>(e.ptr) != nullptr;
+};
+
+template<typename E, typename T>
+inline const E to(const T &e) {
+    assert(isa<E>(e));
+    return E(static_cast<const typename E::Node *>(e.ptr));
+};
+
 class Subset : public Stmt {
 public:
     Subset() = default;
     explicit Subset(const SubsetNode *);
     Subset(AbstractDataTypePtr data,
            std::vector<Expr> mdFields);
+    Subset where(Constraint);
     typedef SubsetNode Node;
 };
 
@@ -193,6 +208,7 @@ public:
     explicit Produces(const ProducesNode *);
     Produces(Subset s);
     Subset getSubset();
+    Produces where(Constraint);
     typedef ProducesNode Node;
 };
 
@@ -202,6 +218,7 @@ class Consumes : public Stmt {
 public:
     Consumes(const ConsumesNode *);
     Consumes(Subset s);
+    Consumes where(Constraint);
     typedef ConsumesNode Node;
 };
 
@@ -209,6 +226,7 @@ class ConsumeMany : public Consumes {
 public:
     ConsumeMany(const ConsumesNode *s)
         : Consumes(s) {};
+    ConsumeMany where(Constraint);
 };
 
 class Subsets : public ConsumeMany {
@@ -218,6 +236,7 @@ public:
     Subsets(Subset s)
         : Subsets(std::vector<Subset>{s}) {
     }
+    Subsets where(Constraint);
     typedef SubsetsNode Node;
 };
 
@@ -234,6 +253,7 @@ public:
     }
     explicit Allocates(const AllocatesNode *);
     Allocates(Expr reg, Expr smem = Expr());
+    Allocates where(Constraint);
     typedef AllocatesNode Node;
 };
 
@@ -241,6 +261,7 @@ struct PatternNode;
 class Pattern : public Stmt {
 public:
     explicit Pattern(const PatternNode *);
+    Pattern where(Constraint);
     typedef PatternNode Node;
 };
 
@@ -248,6 +269,7 @@ class Computes : public Pattern {
 public:
     explicit Computes(const ComputesNode *);
     Computes(Produces p, Consumes c, Allocates a = Allocates());
+    Computes where(Constraint);
     typedef ComputesNode Node;
 };
 
@@ -256,17 +278,6 @@ public:
 // checker to ensures that only legal patterns are written down.
 Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
             bool parallel = false);
-
-template<typename E, typename T>
-inline bool isa(const T &e) {
-    return e.ptr != nullptr && dynamic_cast<const typename E::Node *>(e.ptr) != nullptr;
-};
-
-template<typename E, typename T>
-inline const E to(const T &e) {
-    assert(isa<E>(e));
-    return E(static_cast<const typename E::Node *>(e.ptr));
-};
 
 }  // namespace gern
 

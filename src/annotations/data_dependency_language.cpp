@@ -110,7 +110,7 @@ std::ostream &operator<<(std::ostream &os, const Stmt &s) {
     return os;
 }
 
-Stmt Stmt::where(Constraint constraint) const {
+Stmt Stmt::whereStmt(Constraint constraint) const {
     auto stmtVars = getVariables(*this);
     auto constraintVars = getVariables(constraint);
     if (!std::includes(stmtVars.begin(), stmtVars.end(), constraintVars.begin(),
@@ -120,6 +120,20 @@ Stmt Stmt::where(Constraint constraint) const {
     }
     return Stmt(ptr, constraint);
 }
+
+#define DEFINE_WHERE_METHOD(Type)            \
+    Type Type::where(Constraint c) {         \
+        return to<Type>(this->whereStmt(c)); \
+    }
+
+DEFINE_WHERE_METHOD(Consumes);
+DEFINE_WHERE_METHOD(Subset);
+DEFINE_WHERE_METHOD(Produces);
+DEFINE_WHERE_METHOD(ConsumeMany);
+DEFINE_WHERE_METHOD(Subsets);
+DEFINE_WHERE_METHOD(Allocates);
+DEFINE_WHERE_METHOD(Pattern);
+DEFINE_WHERE_METHOD(Computes);
 
 Stmt Stmt::replaceVariables(std::map<Variable, Variable> rw_vars) const {
     struct rewriteVar : public Rewriter {
@@ -239,6 +253,10 @@ Allocates::Allocates(const AllocatesNode *n)
 
 Allocates::Allocates(Expr reg, Expr smem)
     : Stmt(new const AllocatesNode(reg, smem)) {
+}
+
+Computes::Computes(const ComputesNode *n)
+    : Pattern(n) {
 }
 
 Computes::Computes(Produces p, Consumes c, Allocates a)

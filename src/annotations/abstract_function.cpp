@@ -22,7 +22,7 @@ std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
     return os;
 }
 
-Stmt AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> concrete_arguments) {
+Pattern AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> concrete_arguments) {
 
     auto abstract_arguments = getArguments();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> abstract_to_concrete;
