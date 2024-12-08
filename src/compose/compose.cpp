@@ -25,6 +25,9 @@ void Compose::accept(CompositionVisitor *v) const {
     ptr->accept(v);
 }
 
+void Compose::lower() const {
+}
+
 void FunctionCall::accept(CompositionVisitor *v) const {
     v->visit(this);
 }

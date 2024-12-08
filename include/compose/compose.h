@@ -42,6 +42,7 @@ public:
     bool concretized() const;
 
     void accept(CompositionVisitor *v) const;
+    void lower() const;
 
 private:
     bool concrete = false;
