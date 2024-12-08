@@ -14,6 +14,7 @@ target_sources(
     FILES
         test-utils.h
         functions/elementwise.h
+        functions/reduction.h
 )
 target_link_libraries(gern_test PRIVATE Gern::Gern GTest::gtest_main)
 

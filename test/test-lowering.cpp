@@ -2,18 +2,32 @@
 #include "compose/compose.h"
 #include "compose/pipeline.h"
 #include "functions/elementwise.h"
+#include "functions/reduction.h"
 #include "test-utils.h"
 #include <algorithm>
 #include <gtest/gtest.h>
 
 using namespace gern;
 
-TEST(Lowering, SingleFunction) {
+TEST(Lowering, SingleElemFunction) {
     auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
     auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
     test::add add_f;
 
     std::vector<Compose> c = {add_f(inputDS, outputDS)};
+    Pipeline p(c);
+    p.lower();
+    std::cout << p << std::endl;
+
+    // std::cout << compose << std::endl;
+}
+
+TEST(Lowering, SingleReduceFunction) {
+    auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
+    test::reduction reduce_f;
+
+    std::vector<Compose> c = {reduce_f(inputDS, outputDS)};
     Pipeline p(c);
     p.lower();
     std::cout << p << std::endl;

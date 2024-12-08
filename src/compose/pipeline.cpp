@@ -86,7 +86,6 @@ void Pipeline::visit(const FunctionCall *c) {
 
 void Pipeline::visit(const ComposeVec *c) {
     (void)c;
-
     Pipeline inner_compose(c->compose);
     for (const auto &f : c->compose) {
         inner_compose.visit(f);

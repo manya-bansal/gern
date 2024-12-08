@@ -229,7 +229,7 @@ public:
 
 class Subsets : public ConsumeMany {
 public:
-    explicit Subsets(const SubsetsNode *);
+    Subsets(const SubsetsNode *);
     Subsets(const std::vector<Subset> &subsets);
     Subsets(Subset s)
         : Subsets(std::vector<Subset>{s}) {
