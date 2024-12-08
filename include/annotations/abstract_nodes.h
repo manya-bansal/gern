@@ -57,6 +57,10 @@ public:
         return name;
     }
 
+    virtual std::string getType() const {
+        return "float";
+    };
+
 private:
     std::string name;
 };

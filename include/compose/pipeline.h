@@ -41,12 +41,13 @@ public:
     }
 
     void lower();
-    void generate_code() const;
+    void generateCode() const;
 
     using CompositionVisitor::visit;
     void visit(const FunctionCall *c);
     void visit(const ComposeVec *c);
     std::vector<LowerIR> getIRNodes() const;
+    std::map<Variable, Expr> getVariableDefinitions() const;
     void accept(PipelineVisitor *) const;
 
 private:
@@ -56,6 +57,7 @@ private:
     std::vector<LowerIR> generateOuterIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<Compose> compose;
     std::vector<LowerIR> lowered;
+    std::map<Variable, Expr> variable_definitions;
 };
 
 std::ostream &operator<<(std::ostream &os, const Pipeline &p);

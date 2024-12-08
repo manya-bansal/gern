@@ -34,9 +34,13 @@ void Pipeline::lower() {
     visit(compose_vec);
 }
 
-void Pipeline::generate_code() const {
+void Pipeline::generateCode() const {
     codegen::CodeGenerator cg;
     cg.generate_code(*this);
+}
+
+std::map<Variable, Expr> Pipeline::getVariableDefinitions() const {
+    return variable_definitions;
 }
 
 std::vector<LowerIR> Pipeline::getIRNodes() const {

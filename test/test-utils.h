@@ -18,6 +18,10 @@ public:
         return name;
     }
 
+    std::string getType() const override {
+        return "Test";
+    }
+
 private:
     std::string name;
 };

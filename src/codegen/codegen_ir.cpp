@@ -109,10 +109,6 @@ CGExpr Literal::zero(Datatype datatype) {
     return zero;
 }
 
-Literal::~Literal() {
-    free(val);
-}
-
 // printing methods
 std::ostream &operator<<(std::ostream &os, const CGStmt &stmt) {
     if (!stmt.defined())

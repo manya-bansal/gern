@@ -4,6 +4,8 @@
 // Impl more or less from TACO impl
 #include "annotations/datatypes.h"
 #include "utils/uncopyable.h"
+#include <any>
+#include <cassert>
 
 namespace gern {
 namespace codegen {
@@ -217,14 +219,13 @@ std::ostream &operator<<(std::ostream &os, const CGExpr &);
 // TODO: CHANGE TO USE ANY
 /** A literal. */
 struct Literal : public CGExprNode<Literal> {
-    void *val;
+    std::any val;
+    Datatype type;
 
-    template<typename T>
-    static CGExpr make(T val, Datatype type) {
+    static CGExpr make(std::any val, Datatype type) {
         Literal *lit = new Literal;
+        lit->val = val;
         lit->type = type;
-        lit->val = malloc(sizeof(T));
-        *static_cast<T *>(lit->val) = val;
         return lit;
     }
 
@@ -236,11 +237,9 @@ struct Literal : public CGExprNode<Literal> {
     /// Returns a zero literal of the given type.
     static CGExpr zero(Datatype datatype);
 
-    ~Literal();
-
     template<typename T>
     T getVal() const {
-        return *static_cast<T *>(val);
+        return std::any_cast<T>(val);
     }
 
     // bool getBoolValue() const;
@@ -629,13 +628,13 @@ inline bool isa(CGStmt s) {
 
 template<typename E>
 inline const E *to(CGExpr e) {
-    FERN_ASSERT(isa<E>(e), "Improper Conversion");
+    assert(isa<E>(e));
     return static_cast<const E *>(e.ptr);
 }
 
 template<typename S>
 inline const S *to(CGStmt s) {
-    FERN_ASSERT(isa<S>(s), "Improper Conversion");
+    assert(isa<S>(s));
     return static_cast<const S *>(s.ptr);
 }
 

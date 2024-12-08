@@ -18,7 +18,7 @@ TEST(Lowering, SingleElemFunction) {
     Pipeline p(c);
     p.lower();
     std::cout << p << std::endl;
-    p.generate_code();
+    p.generateCode();
 
     // std::cout << compose << std::endl;
 }

@@ -1,4 +1,5 @@
 #include "codegen/codegen_printer.h"
+#include "utils/error.h"
 
 namespace gern {
 namespace codegen {
@@ -96,7 +97,7 @@ void CGPrinter::visit(const DeclFunc *op) {
     doIdent();
     os << op->return_type << " " << op->name << "(";
     if (op->args.size() != 0) {
-        for (int i = 0; i < op->args.size() - 1; i++) {
+        for (size_t i = 0; i < op->args.size() - 1; i++) {
             os << op->args[i] << ", ";
         }
         os << op->args[op->args.size() - 1];
@@ -135,7 +136,7 @@ void CGPrinter::visit(const Call *op) {
         os << "()";
     } else {
         os << "(";
-        for (int i = 0; i < op->arg.size() - 1; i++) {
+        for (size_t i = 0; i < op->arg.size() - 1; i++) {
             os << op->arg[i] << ", ";
         }
         os << op->arg[op->arg.size() - 1] << ")";
@@ -147,7 +148,7 @@ void CGPrinter::visit(const VoidCall *op) {
     os << op->func << ";";
 }
 
-void CGPrinter::visit(const BlankLine *op) {
+void CGPrinter::visit(const BlankLine *) {
     os << std::endl;
 }
 
@@ -175,7 +176,7 @@ void CGPrinter::visit(const For *op) {
         os << "=";
         break;
     default:
-        FERN_ASSERT(false, "unreachable");
+        throw error::InternalError("Uncreachable");
         break;
     }
 
