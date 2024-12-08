@@ -52,6 +52,9 @@ void Printer::visit(const LiteralNode *op) {
 }
 void Printer::visit(const VariableNode *op) {
     os << op->name;
+    if (op->grid) {
+        os << " @ GRID ";
+    }
 }
 
 #define DEFINE_PRINTER_METHOD(CLASS_NAME, OPERATOR)      \

@@ -35,6 +35,7 @@ target_sources(
         src/compose/compose_visitor.cpp
         src/compose/pipeline.cpp
         src/compose/pipeline_visitor.cpp
+        src/codegen/codegen.cpp
         src/codegen/codegen_ir.cpp
         src/codegen/codegen_visitor.cpp
         src/resolve_constraints/resolve_constraints.cpp
@@ -55,8 +56,10 @@ target_sources(
         include/compose/compose_visitor.h
         include/compose/pipeline.h
         include/compose/pipeline_visitor.h
+        include/codegen/codegen.h
         include/codegen/codegen_ir.h
         include/codegen/codegen_visitor.h
+        include/codegen/codegen_printer.h
         include/utils/debug.h
         include/utils/error.h
         include/utils/name_generator.h

@@ -1,6 +1,7 @@
 #include "compose/pipeline.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
+#include "codegen/codegen.h"
 #include "compose/compose.h"
 #include "compose/pipeline_visitor.h"
 #include "utils/error.h"
@@ -31,6 +32,11 @@ void Pipeline::lower() {
     }
 
     visit(compose_vec);
+}
+
+void Pipeline::generate_code() const {
+    codegen::CodeGenerator cg;
+    cg.generate_code(*this);
 }
 
 std::vector<LowerIR> Pipeline::getIRNodes() const {

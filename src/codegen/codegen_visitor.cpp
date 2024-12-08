@@ -5,6 +5,7 @@
 namespace gern {
 namespace codegen {
 void CGVisitor::visit(const Literal *op) {
+    (void)op;
 }
 
 void CGVisitor::visit(const Scope *op) {
@@ -12,9 +13,11 @@ void CGVisitor::visit(const Scope *op) {
 }
 
 void CGVisitor::visit(const Type *op) {
+    (void)op;
 }
 
 void CGVisitor::visit(const VarDecl *op) {
+    (void)op;
 }
 
 void CGVisitor::visit(const DeclFunc *op) {
@@ -58,7 +61,7 @@ void CGVisitor::visit(const For *op) {
     op->body.accept(this);
 }
 
-void CGVisitor::visit(const BlankLine *op) {
+void CGVisitor::visit(const BlankLine *) {
 }
 
 void CGVisitor::visit(const Lt *op) {

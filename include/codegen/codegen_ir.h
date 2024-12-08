@@ -499,13 +499,15 @@ struct DeclFunc : public CGStmtNode<DeclFunc> {
     std::vector<CGExpr> args;
     CGStmt body;
     std::string name;
+    bool host;
 
     static CGStmt make(std::string name, CGExpr return_type, std::vector<CGExpr> args,
-                       CGStmt body) {
+                       CGStmt body, bool host = false) {
         DeclFunc *declFunc = new DeclFunc;
         declFunc->name = name;
         declFunc->return_type = return_type;
         declFunc->args = args;
+        declFunc->host = host;
         declFunc->body = Scope::make(body);
         return declFunc;
     }

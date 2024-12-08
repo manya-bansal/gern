@@ -3,6 +3,7 @@
 
 namespace gern {
 namespace codegen {
+
 struct Literal;
 struct Type;
 struct VarDecl;

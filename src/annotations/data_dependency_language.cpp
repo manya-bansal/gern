@@ -68,8 +68,16 @@ Variable::Variable(const std::string &name)
     : Expr(new const VariableNode(name)) {
 }
 
+Variable Variable::get_from_grid() const {
+    return Variable(new const VariableNode(getName(), true));
+}
+
 std::string Variable::getName() const {
     return getNode(*this)->name;
+}
+
+bool Variable::is_from_grid() const {
+    return getNode(*this)->grid;
 }
 
 std::ostream &operator<<(std::ostream &os, const Expr &e) {

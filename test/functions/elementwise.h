@@ -23,7 +23,7 @@ public:
         Variable step("step");
         Variable end("end");
 
-        return For(x, 0, end, step,
+        return For(x.get_from_grid(), 0, end, step,
                    Computes(
                        Produces(
                            Subset(output, {x})),

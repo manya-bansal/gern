@@ -8,6 +8,9 @@
 namespace gern {
 namespace test {
 
+// This is perhaps a contrived example, but it exists to
+// exercise the ability to add for loops inside
+// the compute annotation.
 class reduction : public AbstractFunction {
 public:
     reduction()
@@ -15,7 +18,7 @@ public:
           output(std::make_shared<dummy::TestDS>("output")) {
     }
     std::string getName() {
-        return "add";
+        return "reduction";
     }
 
     Pattern getAnnotation() {

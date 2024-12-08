@@ -29,14 +29,14 @@ struct LiteralNode : public ExprNode {
 std::ostream &operator<<(std::ostream &os, const LiteralNode &);
 
 struct VariableNode : public ExprNode {
-    VariableNode(const std::string &name, bool argument = false)
-        : ExprNode(Datatype::Kind::Int64), name(name), argument(argument) {
+    VariableNode(const std::string &name, bool grid = false)
+        : ExprNode(Datatype::Kind::Int64), name(name), grid(grid) {
     }
     void accept(ExprVisitorStrict *v) const override {
         v->visit(this);
     }
     std::string name;
-    bool argument;
+    bool grid;
 };
 
 #define DEFINE_BINARY_NODE(NAME, NODE)                       \

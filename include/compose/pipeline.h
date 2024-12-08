@@ -41,6 +41,8 @@ public:
     }
 
     void lower();
+    void generate_code() const;
+
     using CompositionVisitor::visit;
     void visit(const FunctionCall *c);
     void visit(const ComposeVec *c);

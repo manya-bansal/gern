@@ -1,4 +1,5 @@
 #include "codegen/codegen_ir.h"
+#include "codegen/codegen_printer.h"
 #include "codegen/codegen_visitor.h"
 #include "utils/error.h"
 
@@ -114,20 +115,18 @@ Literal::~Literal() {
 
 // printing methods
 std::ostream &operator<<(std::ostream &os, const CGStmt &stmt) {
-    // if (!stmt.defined())
-    //     return os << "CGStmt()" << std::endl;
-    // CGPrinter printer(os);
-    // stmt.accept(&printer);
-    throw error::InternalError("Internal Error");
+    if (!stmt.defined())
+        return os << "CGStmt()" << std::endl;
+    CGPrinter printer(os);
+    stmt.accept(&printer);
     return os;
 }
 
 std::ostream &operator<<(std::ostream &os, const CGExpr &expr) {
-    // if (!expr.defined())
-    //     return os << "CGExpr()";
-    // CGPrinter printer(os);
-    // expr.accept(&printer);
-    throw error::InternalError("Internal Error");
+    if (!expr.defined())
+        return os << "CGExpr()";
+    CGPrinter printer(os);
+    expr.accept(&printer);
     return os;
 }
 

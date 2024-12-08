@@ -72,6 +72,8 @@ public:
     Variable() = default;
     Variable(const std::string &name);
     Variable(const VariableNode *);
+    Variable get_from_grid() const;
+    bool is_from_grid() const;
     std::string getName() const;
     typedef VariableNode Node;
 };
