@@ -17,7 +17,8 @@ class CompositionVisitor;
  *         redundant.
  *
  */
-class CompositionObject : public util::Manageable<CompositionObject> {
+class CompositionObject : public util::Manageable<CompositionObject>,
+                          public util::Uncopyable {
 public:
     CompositionObject() = default;
     virtual ~CompositionObject() = default;
@@ -39,12 +40,18 @@ public:
     }
     Compose(std::vector<Compose> compose);
     void concretize();
+    Compose at_global();
+    Compose at_host();
+    bool is_at_global() const;
+
     bool concretized() const;
+    void lower() const;
+    int numFuncs() const;
 
     void accept(CompositionVisitor *v) const;
-    void lower() const;
 
 private:
+    bool global = false;
     bool concrete = false;
 };
 
@@ -80,7 +87,7 @@ public:
      *
      * @return std::set<AbstractDataTypePtr>
      */
-    std::set<AbstractDataTypePtr> getInput() const;
+    std::set<AbstractDataTypePtr> getInputs() const;
     void accept(CompositionVisitor *v) const;
 
 private:
@@ -99,6 +106,17 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &os, const FunctionCall &f);
+
+template<typename E>
+inline bool isa(const CompositionObject *e) {
+    return e != nullptr && dynamic_cast<const E *>(e) != nullptr;
+};
+
+template<typename E>
+inline const E *to(const CompositionObject *e) {
+    assert(isa<E>(e));
+    return static_cast<const E *>(e);
+}
 
 }  // namespace gern
 

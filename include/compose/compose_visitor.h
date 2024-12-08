@@ -30,6 +30,24 @@ private:
     int ident = 0;
 };
 
+// Utility class to count how many distinct function calls
+// a compose object contains.
+class ComposeCounter : public CompositionVisitor {
+public:
+    ComposeCounter() = default;
+    int numFuncs(Compose c);
+    using CompositionVisitor::visit;
+    virtual void visit(const FunctionCall *) override;
+    virtual void visit(const ComposeVec *) override;
+
+private:
+    int num = 0;
+};
+
+class ComposeLower : public CompositionVisitor {
+public:
+};
+
 }  // namespace gern
 
 #endif

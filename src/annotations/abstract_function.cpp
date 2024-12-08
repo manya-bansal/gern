@@ -12,7 +12,7 @@ AbstractDataTypePtr FunctionCall::getOutput() const {
     return ds;
 }
 
-std::set<AbstractDataTypePtr> FunctionCall::getInput() const {
+std::set<AbstractDataTypePtr> FunctionCall::getInputs() const {
     std::set<AbstractDataTypePtr> inputs;
     match(getAnnotation(), std::function<void(const SubsetsNode *)>(
                                [&](const SubsetsNode *op) {

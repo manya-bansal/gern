@@ -153,9 +153,6 @@ public:
         : util::IntrusivePtr<const StmtNode>(n) {
     }
 
-    Stmt getObject() const {
-        return *this;
-    }
     /**
      * @brief Add a constraint to a statement
      *

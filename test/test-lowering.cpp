@@ -1,5 +1,6 @@
 #include "annotations/visitor.h"
 #include "compose/compose.h"
+#include "compose/pipeline.h"
 #include "functions/elementwise.h"
 #include "test-utils.h"
 #include <algorithm>
@@ -12,9 +13,24 @@ TEST(Lowering, SingleFunction) {
     auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
     test::add add_f;
 
-    Compose compose{{add_f(inputDS, outputDS),
-                     Compose(add_f(inputDS, outputDS))}};
+    std::vector<Compose> c = {add_f(inputDS, outputDS)};
+    Pipeline p(c);
+    p.lower();
 
-    compose.lower();
-    std::cout << compose << std::endl;
+    // std::cout << compose << std::endl;
+}
+
+TEST(Lowering, MultiFunction) {
+    auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
+    test::add add_f;
+
+    Compose compose{{add_f(inputDS, outputDS),
+                     Compose(add_f(outputDS, outputDS))}};
+    Pipeline p({compose});
+
+    // Currently, only pipelines with one function call
+    // can be lowered. This will (obviously) be removed
+    // as I make progress!
+    ASSERT_THROW(p.lower(), error::InternalError);
 }

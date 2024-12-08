@@ -31,11 +31,11 @@ TEST(Functions, SingleFunction) {
     AbstractDataTypePtr output_2 = concreteCall2->getOutput();
     ASSERT_TRUE(output_2 == output_2_DS);
 
-    std::set<AbstractDataTypePtr> all_inputs = concreteCall1->getInput();
+    std::set<AbstractDataTypePtr> all_inputs = concreteCall1->getInputs();
     ASSERT_TRUE(all_inputs.size() == 1);
     ASSERT_TRUE(*(all_inputs.begin()) == inputDS);
 
-    std::set<AbstractDataTypePtr> all_inputs_2 = concreteCall2->getInput();
+    std::set<AbstractDataTypePtr> all_inputs_2 = concreteCall2->getInputs();
     ASSERT_TRUE(all_inputs_2.size() == 1);
     ASSERT_TRUE(*(all_inputs_2.begin()) == outputDS);
 }

@@ -13,6 +13,18 @@ Compose::Compose(std::vector<Compose> compose)
 void Compose::concretize() {
     concrete = true;
 }
+Compose Compose::at_global() {
+    global = true;
+    return *this;
+}
+Compose Compose::at_host() {
+    global = true;
+    return *this;
+}
+
+bool Compose::is_at_global() const {
+    return global;
+}
 
 bool Compose::concretized() const {
     return concrete;
@@ -26,6 +38,11 @@ void Compose::accept(CompositionVisitor *v) const {
 }
 
 void Compose::lower() const {
+}
+
+int Compose::numFuncs() const {
+    ComposeCounter cc;
+    return cc.numFuncs(*this);
 }
 
 void FunctionCall::accept(CompositionVisitor *v) const {
