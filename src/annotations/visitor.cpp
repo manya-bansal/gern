@@ -1,5 +1,6 @@
 #include "annotations/visitor.h"
 #include "annotations/lang_nodes.h"
+#include "utils/printer.h"
 
 namespace gern {
 
@@ -24,24 +25,18 @@ void StmtVisitorStrict::visit(Stmt s) {
     s.accept(this);
 }
 
-static void printIdent(std::ostream &os, int ident) {
-    for (int i = 0; i < ident; i++) {
-        os << "  ";
-    }
-}
-
 void Printer::visit(Consumes p) {
     if (!p.defined()) {
         return;
     }
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << " when consumes {"
        << "\n";
     ident++;
     p.accept(this);
     os << "\n";
     ident--;
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
@@ -79,18 +74,18 @@ DEFINE_PRINTER_METHOD(AndNode, &&)
 DEFINE_PRINTER_METHOD(OrNode, ||)
 
 void Printer::visit(const SubsetNode *op) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << *(op->data) << " {"
        << "\n";
     ident++;
     int size_mf = op->mdFields.size();
     for (int i = 0; i < size_mf; i++) {
-        printIdent(os, ident);
+        util::printIdent(os, ident);
         os << op->mdFields[i];
         os << ((i != size_mf - 1) ? "," : "") << "\n";
     }
     ident--;
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
@@ -104,7 +99,7 @@ void Printer::visit(const SubsetsNode *op) {
 }
 
 void Printer::visit(const ProducesNode *op) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "produces {"
        << "\n";
     ident++;
@@ -112,7 +107,7 @@ void Printer::visit(const ProducesNode *op) {
     p.visit(op->output);
     os << "\n";
     ident--;
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
@@ -122,7 +117,7 @@ void Printer::visit(const ConsumesNode *op) {
 
 void Printer::visit(Allocates a) {
     if (!a.defined()) {
-        printIdent(os, ident);
+        util::printIdent(os, ident);
         os << "allocates()";
         return;
     }
@@ -130,12 +125,12 @@ void Printer::visit(Allocates a) {
 }
 
 void Printer::visit(const AllocatesNode *op) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "allocates { register : " << op->reg << " , smem : " << op->smem << "}";
 }
 
 void Printer::visit(const ConsumesForNode *op) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
        << op->step << " ] {"
        << "\n";
@@ -144,12 +139,12 @@ void Printer::visit(const ConsumesForNode *op) {
     p.visit(op->body);
     ident--;
     os << "\n";
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
 void Printer::visit(const ComputesForNode *op) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
        << op->step << " ] {"
        << "\n";
@@ -158,12 +153,12 @@ void Printer::visit(const ComputesForNode *op) {
     p.visit(op->body);
     ident--;
     os << "\n";
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
 void Printer::visit(const ComputesNode *op) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "computes {"
        << "\n";
     ident++;
@@ -175,7 +170,7 @@ void Printer::visit(const ComputesNode *op) {
     p.visit(op->a);
     os << "\n";
     ident--;
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 

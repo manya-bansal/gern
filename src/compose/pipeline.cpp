@@ -2,9 +2,23 @@
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
 #include "compose/compose.h"
+#include "compose/pipeline_visitor.h"
 #include "utils/error.h"
 
 namespace gern {
+
+void LowerIR::accept(PipelineVisitor *v) const {
+    if (!defined()) {
+        return;
+    }
+    ptr->accept(v);
+}
+
+std::ostream &operator<<(std::ostream &os, const LowerIR &n) {
+    PipelinePrinter print(os, 0);
+    print.visit(n);
+    return os;
+}
 
 void Pipeline::lower() {
 
@@ -19,8 +33,18 @@ void Pipeline::lower() {
     visit(compose_vec);
 }
 
-std::vector<LowerIR> Pipeline::getIRNodes() {
+std::vector<LowerIR> Pipeline::getIRNodes() const {
     return lowered;
+}
+
+void Pipeline::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
+std::ostream &operator<<(std::ostream &os, const Pipeline &p) {
+    PipelinePrinter print(os, 0);
+    print.visit(p);
+    return os;
 }
 
 void Pipeline::visit(const FunctionCall *c) {
@@ -32,7 +56,7 @@ void Pipeline::visit(const FunctionCall *c) {
     for (const auto &in : inputs) {
         if (!isIntermediate(in)) {
             // Generate the query node.
-            AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("___query_" + in->getName());
+            AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + in->getName());
             new_ds[in] = queried;
             temp.push_back(new QueryNode(in,
                                          queried,
@@ -46,7 +70,7 @@ void Pipeline::visit(const FunctionCall *c) {
     // Now generate the outout query.
     AbstractDataTypePtr output = c->getOutput();
     if (!isIntermediate(output)) {
-        AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("___query_" + output->getName());
+        AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + output->getName());
         new_ds[output] = queried;
         lowered.push_back(new QueryNode(output,
                                         queried,
@@ -119,6 +143,34 @@ std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::ve
                                       current = {new IntervalNode(op->v, op->start, op->end, op->step, current)};
                                   }));
     return current;
+}
+
+void AllocateNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
+void FreeNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
+void InsertNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
+void QueryNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
+void ComputeNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
+void IntervalNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
+void BlankNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
 }
 
 }  // namespace gern

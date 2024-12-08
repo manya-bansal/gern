@@ -43,7 +43,7 @@ public:
     virtual void accept(StmtVisitorStrict *) const = 0;
 };
 
-class AbstractDataType : private util::Uncopyable {
+class AbstractDataType {
 public:
     AbstractDataType()
         : name(gern::getUniqueName()) {

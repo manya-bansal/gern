@@ -1,4 +1,5 @@
 #include "compose/compose_visitor.h"
+#include "utils/printer.h"
 
 namespace gern {
 
@@ -7,12 +8,6 @@ void CompositionVisitor::visit(Compose c) {
         return;
     }
     c.accept(this);
-}
-
-static void printIdent(std::ostream &os, int ident) {
-    for (int i = 0; i < ident; i++) {
-        os << "  ";
-    }
 }
 
 void ComposePrinter::visit(Compose compose) {
@@ -30,7 +25,7 @@ void ComposePrinter::visit(Compose compose) {
 }
 
 void ComposePrinter::visit(const FunctionCall *f) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << *f;
 }
 void ComposePrinter::visit(const ComposeVec *c) {
