@@ -68,6 +68,7 @@ DEFINE_BINARY_NODE(GreaterNode, Constraint);
 
 // Assignment Node
 DEFINE_BINARY_NODE(AssignNode, Stmt);
+DEFINE_BINARY_NODE(AssignAddNode, Stmt);
 
 struct SubsetNode : public StmtNode {
     SubsetNode(AbstractDataTypePtr data,

@@ -25,6 +25,7 @@ struct GreaterNode;
 struct AndNode;
 struct OrNode;
 struct AssignNode;
+struct AssignAddNode;
 
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
@@ -118,7 +119,9 @@ public:
     Variable get_from_grid() const;
     bool is_from_grid() const;
     std::string getName() const;
+
     Stmt operator=(const Expr &);
+    Stmt operator+=(const Expr &);
 
     typedef VariableNode Node;
 };
@@ -198,6 +201,7 @@ inline const E to(const T &e) {
 };
 
 DEFINE_BINARY_CLASS(Assign, Stmt);
+DEFINE_BINARY_CLASS(AssignAdd, Stmt);
 
 class Subset : public Stmt {
 public:

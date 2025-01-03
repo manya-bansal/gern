@@ -24,6 +24,7 @@ struct AndNode;
 struct OrNode;
 
 struct AssignNode;
+struct AssignAddNode;
 struct SubsetNode;
 struct SubsetsNode;
 struct ProducesNode;
@@ -72,6 +73,7 @@ public:
 
     virtual void visit(Stmt);
     virtual void visit(const AssignNode *) = 0;
+    virtual void visit(const AssignAddNode *) = 0;
     virtual void visit(const SubsetNode *) = 0;
     virtual void visit(const SubsetsNode *) = 0;
     virtual void visit(const ProducesNode *) = 0;
@@ -120,6 +122,7 @@ public:
     void visit(const AndNode *);
 
     void visit(const AssignNode *);
+    void visit(const AssignAddNode *);
     void visit(const SubsetNode *);
     void visit(const SubsetsNode *);
     void visit(const ProducesNode *);
@@ -159,6 +162,7 @@ public:
     void visit(const AndNode *);
 
     void visit(const AssignNode *);
+    void visit(const AssignAddNode *);
     void visit(const SubsetNode *);
     void visit(const SubsetsNode *);
     void visit(const ProducesNode *);
@@ -232,6 +236,7 @@ private:
     RULE(VariableNode);
     RULE(LiteralNode);
     RULE(AssignNode);
+    RULE(AssignAddNode);
     RULE(SubsetNode);
     RULE(SubsetsNode);
     RULE(ProducesNode);
@@ -312,6 +317,7 @@ protected:
     void visit(const AndNode *);
 
     void visit(const AssignNode *);
+    void visit(const AssignAddNode *);
     void visit(const SubsetNode *);
     void visit(const SubsetsNode *);
     void visit(const ProducesNode *);

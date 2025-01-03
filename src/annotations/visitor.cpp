@@ -76,6 +76,7 @@ DEFINE_PRINTER_METHOD(GreaterNode, >)
 DEFINE_PRINTER_METHOD(AndNode, &&)
 DEFINE_PRINTER_METHOD(OrNode, ||)
 DEFINE_PRINTER_METHOD(AssignNode, =)
+DEFINE_PRINTER_METHOD(AssignAddNode, =)
 
 void Printer::visit(const SubsetNode *op) {
     util::printIdent(os, ident);
@@ -207,6 +208,7 @@ DEFINE_BINARY_VISITOR_METHOD(LessNode);
 DEFINE_BINARY_VISITOR_METHOD(GreaterNode);
 
 DEFINE_BINARY_VISITOR_METHOD(AssignNode);
+DEFINE_BINARY_VISITOR_METHOD(AssignAddNode);
 
 void AnnotVisitor::visit(const VariableNode *) {
 }
@@ -387,5 +389,6 @@ DEFINE_BINARY_REWRITER_METHOD(LessNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(GreaterNode, Constraint, where);
 
 DEFINE_BINARY_REWRITER_METHOD(AssignNode, Stmt, stmt);
+DEFINE_BINARY_REWRITER_METHOD(AssignAddNode, Stmt, stmt);
 
 }  // namespace gern

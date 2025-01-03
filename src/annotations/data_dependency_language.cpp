@@ -84,6 +84,10 @@ Stmt Variable::operator=(const Expr &e) {
     return Assign(*this, e);
 }
 
+Stmt Variable::operator+=(const Expr &e) {
+    return AssignAdd(*this, e);
+}
+
 std::ostream &operator<<(std::ostream &os, const Expr &e) {
     Printer p{os};
     p.visit(e);
@@ -217,6 +221,7 @@ DEFINE_BINARY_CONSTRUCTOR(Less, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
 
 DEFINE_BINARY_CONSTRUCTOR(Assign, Stmt);
+DEFINE_BINARY_CONSTRUCTOR(AssignAdd, Stmt);
 
 Subset::Subset(const SubsetNode *n)
     : Stmt(n) {
