@@ -6,10 +6,15 @@ namespace gern {
 namespace codegen {
 
 CGStmt CodeGenerator::generate_code(const Pipeline &p) {
+    this->visit(p);
+    std::cout << p << std::endl;
+    std::cout << code << std::endl;
+    return CGStmt{};
 }
 
 void CodeGenerator::visit(const Pipeline &p) {
     for (const auto &node : p.getIRNodes()) {
+        std::cout << "Here!" << std::endl;
         this->visit(node);
     }
 }
@@ -40,6 +45,18 @@ void CodeGenerator::visit(const ComputeNode *op) {
 }
 
 void CodeGenerator::visit(const IntervalNode *op) {
+
+    // First, lower the body of the interval node.
+    std::vector<CGStmt> body;
+    for (const auto &node : op->body) {
+        this->visit(node);
+        body.push_back(code);
+    }
+
+    CGStmt start = VarAssign::make(genCodeExpr(op->start), 0);
+    // CGStmt cond =
+    // Finally wrap the lowered body in an interval node.
+    // code = For::make(genCodeExpr(op->start), genCodeExpr(op->cond), genCodeExpr(op->step))
 }
 
 void CodeGenerator::visit(const BlankNode *op) {

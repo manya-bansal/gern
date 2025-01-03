@@ -605,17 +605,6 @@ struct VoidCall : public CGStmtNode<VoidCall> {
     static const CGNodeType _type_info = CGNodeType::VoidCall;
 };
 
-// struct CilkFor : public CGStmtNode<CilkFor> {
-//     CGStmt stmt;
-
-//     static CGStmt make(CGStmt stmt) {
-//         CilkFor* cFor = new CilkFor;
-//         cFor->stmt = stmt;
-//         return cFor;
-//     }
-//     static const CGNodeType _type_info = CGNodeType::CilkFor;
-// };
-
 template<typename E>
 inline bool isa(CGExpr e) {
     return e.defined() && dynamic_cast<const E *>(e.ptr) != nullptr;

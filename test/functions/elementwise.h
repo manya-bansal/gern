@@ -20,7 +20,7 @@ public:
 
     Pattern getAnnotation() {
         Variable x("x");
-        Variable step("step");
+        Expr step(1);
         Variable end("end");
 
         return For(x.get_from_grid(), 0, end, step,
@@ -28,7 +28,7 @@ public:
                        Produces(
                            Subset(output, {x})),
                        Consumes(
-                           Subset(input, {x}))));
+                           Subset(input, {x + 4}))));
     }
 
     std::vector<Argument> getArguments() {

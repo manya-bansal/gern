@@ -17,7 +17,6 @@ TEST(Lowering, SingleElemFunction) {
     std::vector<Compose> c = {add_f(inputDS, outputDS)};
     Pipeline p(c);
     p.lower();
-    std::cout << p << std::endl;
     p.generateCode();
 
     // std::cout << compose << std::endl;

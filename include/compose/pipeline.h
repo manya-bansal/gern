@@ -128,9 +128,9 @@ public:
     }
     void accept(PipelineVisitor *) const;
     Variable v;
-    Expr start;
-    Expr end;
-    Expr step;
+    Stmt start;
+    Constraint cond;
+    Stmt step;
     std::vector<LowerIR> body;
 };
 
