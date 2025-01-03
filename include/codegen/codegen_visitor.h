@@ -24,6 +24,8 @@ struct Eq;
 struct Neq;
 struct Lte;
 struct Gte;
+struct And;
+struct Or;
 struct Add;
 struct Mod;
 struct Div;
@@ -56,6 +58,8 @@ public:
     virtual void visit(const Neq *) = 0;
     virtual void visit(const Gte *) = 0;
     virtual void visit(const Lte *) = 0;
+    virtual void visit(const And *) = 0;
+    virtual void visit(const Or *) = 0;
     virtual void visit(const Add *) = 0;
     virtual void visit(const Mul *) = 0;
     virtual void visit(const Div *) = 0;
@@ -91,6 +95,8 @@ public:
     virtual void visit(const Neq *);
     virtual void visit(const Gte *);
     virtual void visit(const Lte *);
+    virtual void visit(const And *);
+    virtual void visit(const Or *);
     virtual void visit(const Add *);
     virtual void visit(const Mul *);
     virtual void visit(const Div *);

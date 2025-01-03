@@ -123,13 +123,13 @@ struct ComputeNode : public LowerIRNode {
 // for the pipeline.
 struct IntervalNode : public LowerIRNode {
 public:
-    IntervalNode(Stmt start, Constraint end, Stmt step, std::vector<LowerIR> body)
+    IntervalNode(Assign start, Constraint end, Assign step, std::vector<LowerIR> body)
         : start(start), end(end), step(step), body(body) {
     }
     void accept(PipelineVisitor *) const;
-    Stmt start;
+    Assign start;
     Constraint end;
-    Stmt step;
+    Assign step;
     std::vector<LowerIR> body;
 };
 

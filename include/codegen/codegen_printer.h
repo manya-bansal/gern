@@ -37,6 +37,8 @@ public:
     virtual void visit(const Neq *);
     virtual void visit(const Gte *);
     virtual void visit(const Lte *);
+    virtual void visit(const And *);
+    virtual void visit(const Or *);
     virtual void visit(const Add *);
     virtual void visit(const Mul *);
     virtual void visit(const Div *);

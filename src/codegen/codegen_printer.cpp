@@ -176,7 +176,7 @@ void CGPrinter::visit(const For *op) {
         os << "=";
         break;
     default:
-        throw error::InternalError("Uncreachable");
+        throw error::InternalError("Unreachable");
         break;
     }
 
@@ -207,6 +207,12 @@ void CGPrinter::visit(const Gte *op) {
 }
 void CGPrinter::visit(const Lte *op) {
     os << op->a << " <= " << op->b;
+}
+void CGPrinter::visit(const And *op) {
+    os << op->a << " && " << op->b;
+}
+void CGPrinter::visit(const Or *op) {
+    os << op->a << " || " << op->b;
 }
 void CGPrinter::visit(const Add *op) {
     os << op->a << " + " << op->b;

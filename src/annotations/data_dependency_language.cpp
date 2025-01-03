@@ -80,12 +80,12 @@ bool Variable::is_from_grid() const {
     return getNode(*this)->grid;
 }
 
-Stmt Variable::operator=(const Expr &e) {
+Assign Variable::operator=(const Expr &e) {
     return Assign(*this, e);
 }
 
-Stmt Variable::operator+=(const Expr &e) {
-    return AssignAdd(*this, e);
+Assign Variable::operator+=(const Expr &e) {
+    return Assign(*this, *this + e);
 }
 
 std::ostream &operator<<(std::ostream &os, const Expr &e) {
@@ -221,7 +221,6 @@ DEFINE_BINARY_CONSTRUCTOR(Less, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
 
 DEFINE_BINARY_CONSTRUCTOR(Assign, Stmt);
-DEFINE_BINARY_CONSTRUCTOR(AssignAdd, Stmt);
 
 Subset::Subset(const SubsetNode *n)
     : Stmt(n) {
@@ -264,7 +263,7 @@ Consumes::Consumes(Subset s)
     : Consumes(new const SubsetsNode({s})) {
 }
 
-ConsumeMany For(Stmt start, Constraint end, Stmt step, ConsumeMany body,
+ConsumeMany For(Assign start, Constraint end, Assign step, ConsumeMany body,
                 bool parallel) {
     return ConsumeMany(
         new const ConsumesForNode(start, end, step, body, parallel));
@@ -290,7 +289,7 @@ Pattern::Pattern(const PatternNode *p)
     : Stmt(p) {
 }
 
-Pattern For(Stmt start, Constraint end, Stmt step, Pattern body,
+Pattern For(Assign start, Constraint end, Assign step, Pattern body,
             bool parallel) {
     return Pattern(
         new const ComputesForNode(start, end, step, body, parallel));

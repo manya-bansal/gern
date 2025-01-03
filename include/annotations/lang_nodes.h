@@ -68,7 +68,6 @@ DEFINE_BINARY_NODE(GreaterNode, Constraint);
 
 // Assignment Node
 DEFINE_BINARY_NODE(AssignNode, Stmt);
-DEFINE_BINARY_NODE(AssignAddNode, Stmt);
 
 struct SubsetNode : public StmtNode {
     SubsetNode(AbstractDataTypePtr data,
@@ -100,7 +99,7 @@ struct ConsumesNode : public StmtNode {
 };
 
 struct ConsumesForNode : public ConsumesNode {
-    ConsumesForNode(Stmt start, Constraint end, Stmt step, ConsumeMany body,
+    ConsumesForNode(Assign start, Constraint end, Assign step, ConsumeMany body,
                     bool parallel = false)
         : start(start), end(end), step(step), body(body),
           parallel(parallel) {
@@ -108,9 +107,9 @@ struct ConsumesForNode : public ConsumesNode {
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    Stmt start;
+    Assign start;
     Constraint end;
-    Stmt step;
+    Assign step;
     ConsumeMany body;
     bool parallel;
 };
@@ -133,7 +132,7 @@ struct PatternNode : public StmtNode {
 };
 
 struct ComputesForNode : public PatternNode {
-    ComputesForNode(Stmt start, Constraint end, Stmt step, Pattern body,
+    ComputesForNode(Assign start, Constraint end, Assign step, Pattern body,
                     bool parallel = false)
         : start(start), end(end), step(step), body(body),
           parallel(parallel) {
@@ -141,9 +140,9 @@ struct ComputesForNode : public PatternNode {
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    Stmt start;
+    Assign start;
     Constraint end;
-    Stmt step;
+    Assign step;
     Pattern body;
     bool parallel;
 };

@@ -76,7 +76,6 @@ DEFINE_PRINTER_METHOD(GreaterNode, >)
 DEFINE_PRINTER_METHOD(AndNode, &&)
 DEFINE_PRINTER_METHOD(OrNode, ||)
 DEFINE_PRINTER_METHOD(AssignNode, =)
-DEFINE_PRINTER_METHOD(AssignAddNode, =)
 
 void Printer::visit(const SubsetNode *op) {
     util::printIdent(os, ident);
@@ -208,7 +207,6 @@ DEFINE_BINARY_VISITOR_METHOD(LessNode);
 DEFINE_BINARY_VISITOR_METHOD(GreaterNode);
 
 DEFINE_BINARY_VISITOR_METHOD(AssignNode);
-DEFINE_BINARY_VISITOR_METHOD(AssignAddNode);
 
 void AnnotVisitor::visit(const VariableNode *) {
 }
@@ -336,9 +334,9 @@ void Rewriter::visit(const AllocatesNode *op) {
 }
 
 void Rewriter::visit(const ConsumesForNode *op) {
-    Stmt rw_start = this->rewrite(op->start);
+    Assign rw_start = to<Assign>(this->rewrite(op->start));
     Constraint rw_end = this->rewrite(op->end);
-    Stmt rw_step = this->rewrite(op->step);
+    Assign rw_step = to<Assign>(this->rewrite(op->step));
     ConsumeMany rw_body = to<ConsumeMany>(this->rewrite(op->body));
     stmt = Consumes(new const ConsumesForNode(rw_start,
                                               rw_end, rw_step,
@@ -346,9 +344,9 @@ void Rewriter::visit(const ConsumesForNode *op) {
 }
 
 void Rewriter::visit(const ComputesForNode *op) {
-    Stmt rw_start = this->rewrite(op->start);
+    Assign rw_start = to<Assign>(this->rewrite(op->start));
     Constraint rw_end = this->rewrite(op->end);
-    Stmt rw_step = this->rewrite(op->step);
+    Assign rw_step = to<Assign>(this->rewrite(op->step));
     Pattern rw_body = to<Pattern>(this->rewrite(op->body));
     stmt = Pattern(new const ComputesForNode(rw_start,
                                              rw_end, rw_step,
@@ -389,6 +387,5 @@ DEFINE_BINARY_REWRITER_METHOD(LessNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(GreaterNode, Constraint, where);
 
 DEFINE_BINARY_REWRITER_METHOD(AssignNode, Stmt, stmt);
-DEFINE_BINARY_REWRITER_METHOD(AssignAddNode, Stmt, stmt);
 
 }  // namespace gern

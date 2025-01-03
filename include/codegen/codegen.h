@@ -23,8 +23,11 @@ public:
     void visit(const IntervalNode *);
     void visit(const BlankNode *);
 
+    static CGExpr genCodeExpr(Expr);
+    static CGExpr genCodeExpr(Constraint);
+    static CGStmt genCodeExpr(Assign);
+
 private:
-    CGExpr genCodeExpr(Expr);
     CGStmt code;
 };
 

@@ -399,6 +399,34 @@ struct Gte : CGExprNode<Gte> {
     static const CGNodeType _type_info = CGNodeType::Gte;
 };
 
+struct And : CGExprNode<And> {
+    CGExpr a;
+    CGExpr b;
+
+    static CGExpr make(CGExpr a, CGExpr b) {
+        Gte *node = new Gte;
+        node->a = a;
+        node->b = b;
+        return node;
+    }
+
+    static const CGNodeType _type_info = CGNodeType::Add;
+};
+
+struct Or : CGExprNode<Or> {
+    CGExpr a;
+    CGExpr b;
+
+    static CGExpr make(CGExpr a, CGExpr b) {
+        Gte *node = new Gte;
+        node->a = a;
+        node->b = b;
+        return node;
+    }
+
+    static const CGNodeType _type_info = CGNodeType::Or;
+};
+
 struct Add : CGExprNode<Add> {
     CGExpr a;
     CGExpr b;

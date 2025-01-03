@@ -25,7 +25,6 @@ struct GreaterNode;
 struct AndNode;
 struct OrNode;
 struct AssignNode;
-struct AssignAddNode;
 
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
@@ -109,7 +108,7 @@ Greater operator>(const Expr &, const Expr &);
 And operator&&(const Expr &, const Expr &);
 Or operator||(const Expr &, const Expr &);
 
-class Stmt;
+class Assign;
 
 class Variable : public Expr {
 public:
@@ -120,8 +119,8 @@ public:
     bool is_from_grid() const;
     std::string getName() const;
 
-    Stmt operator=(const Expr &);
-    Stmt operator+=(const Expr &);
+    Assign operator=(const Expr &);
+    Assign operator+=(const Expr &);
 
     typedef VariableNode Node;
 };
@@ -201,7 +200,6 @@ inline const E to(const T &e) {
 };
 
 DEFINE_BINARY_CLASS(Assign, Stmt);
-DEFINE_BINARY_CLASS(AssignAdd, Stmt);
 
 class Subset : public Stmt {
 public:
@@ -254,7 +252,7 @@ public:
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
-ConsumeMany For(Stmt start, Constraint end, Stmt step, ConsumeMany body,
+ConsumeMany For(Assign start, Constraint end, Assign step, ConsumeMany body,
                 bool parallel = false);
 
 class Allocates : public Stmt {
@@ -287,7 +285,7 @@ public:
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.
-Pattern For(Stmt start, Constraint end, Stmt step, Pattern body,
+Pattern For(Assign start, Constraint end, Assign step, Pattern body,
             bool parallel = false);
 
 }  // namespace gern
