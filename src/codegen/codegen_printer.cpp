@@ -7,6 +7,9 @@ namespace codegen {
 static int codegen_indent = 0;
 
 void CGPrinter::print(CGStmt s) {
+    if (!s.defined()) {
+        return;
+    }
     s.accept(this);
 }
 

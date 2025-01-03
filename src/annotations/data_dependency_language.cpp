@@ -76,6 +76,10 @@ std::string Variable::getName() const {
     return getNode(*this)->name;
 }
 
+Datatype Variable::getType() const {
+    return getNode(*this)->type;
+}
+
 bool Variable::is_from_grid() const {
     return getNode(*this)->grid;
 }

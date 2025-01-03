@@ -135,8 +135,8 @@ void Printer::visit(const AllocatesNode *op) {
 
 void Printer::visit(const ConsumesForNode *op) {
     util::printIdent(os, ident);
-    os << "for [ " << op->start << " : " << op->end << " : "
-       << op->step << " ] {"
+    os << "for ( " << op->start << " ; " << op->end << " ; "
+       << op->step << " ) {"
        << "\n";
     ident++;
     Printer p{os, ident};

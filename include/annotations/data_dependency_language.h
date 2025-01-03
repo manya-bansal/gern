@@ -110,14 +110,17 @@ Or operator||(const Expr &, const Expr &);
 
 class Assign;
 
+// All variables are current ints.
 class Variable : public Expr {
 public:
     Variable() = default;
     Variable(const std::string &name);
     Variable(const VariableNode *);
+
     Variable get_from_grid() const;
     bool is_from_grid() const;
     std::string getName() const;
+    Datatype getType() const;
 
     Assign operator=(const Expr &);
     Assign operator+=(const Expr &);

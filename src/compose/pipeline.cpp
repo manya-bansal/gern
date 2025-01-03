@@ -77,7 +77,7 @@ void Pipeline::visit(const FunctionCall *c) {
         }
     }
 
-    // Now generate the outout query.
+    // Now generate the output query.
     AbstractDataTypePtr output = c->getOutput();
     if (!isIntermediate(output)) {
         AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + output->getName());
@@ -95,7 +95,6 @@ void Pipeline::visit(const FunctionCall *c) {
 }
 
 void Pipeline::visit(const ComposeVec *c) {
-    (void)c;
     Pipeline inner_compose(c->compose);
     for (const auto &f : c->compose) {
         inner_compose.visit(f);

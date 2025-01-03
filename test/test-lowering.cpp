@@ -16,10 +16,9 @@ TEST(Lowering, SingleElemFunction) {
 
     std::vector<Compose> c = {add_f(inputDS, outputDS)};
     Pipeline p(c);
+
     p.lower();
     p.generateCode();
-
-    // std::cout << compose << std::endl;
 }
 
 TEST(Lowering, SingleReduceFunction) {
@@ -30,9 +29,7 @@ TEST(Lowering, SingleReduceFunction) {
     std::vector<Compose> c = {reduce_f(inputDS, outputDS)};
     Pipeline p(c);
     p.lower();
-    std::cout << p << std::endl;
-
-    // std::cout << compose << std::endl;
+    p.generateCode();
 }
 
 TEST(Lowering, MultiFunction) {

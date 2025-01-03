@@ -4,13 +4,17 @@
 #include "codegen/codegen_ir.h"
 #include "compose/pipeline.h"
 #include "compose/pipeline_visitor.h"
+#include "utils/name_generator.h"
 
 namespace gern {
 namespace codegen {
 
 class CodeGenerator : public PipelineVisitor {
 public:
-    CodeGenerator() = default;
+    CodeGenerator(std::string name = getUniqueName("function"))
+        : name(name) {
+    }
+
     CGStmt generate_code(const Pipeline &);
 
     using PipelineVisitor::visit;
@@ -23,11 +27,21 @@ public:
     void visit(const IntervalNode *);
     void visit(const BlankNode *);
 
-    static CGExpr genCodeExpr(Expr);
-    static CGExpr genCodeExpr(Constraint);
-    static CGStmt genCodeExpr(Assign);
+    CGExpr genCodeExpr(Expr);
+    CGExpr genCodeExpr(Constraint);
+    // Assign in used to track all the variables
+    // that have been declared during lowering.
+    CGStmt genCodeExpr(Assign);
+
+    // To insert used variables.
+    void insertInUsed(Variable);
 
 private:
+    std::string name;
+    std::set<Variable> declared;
+    std::set<Variable> used;
+    std::set<AbstractDataTypePtr> declared_adt;
+    std::set<AbstractDataTypePtr> used_adt;
     CGStmt code;
 };
 
