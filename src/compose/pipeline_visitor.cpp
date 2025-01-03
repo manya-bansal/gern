@@ -83,7 +83,7 @@ void PipelinePrinter::visit(const IntervalNode *op) {
     int len_nodes = nodes.size();
 
     util::printIdent(os, ident);
-    os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
+    os << "for [ " << op->start << " : " << op->end << " : "
        << op->step << " ] {"
        << "\n";
     ident++;

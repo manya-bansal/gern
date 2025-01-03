@@ -24,6 +24,7 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
+struct AssignNode;
 
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
@@ -67,17 +68,6 @@ public:
 
 std::ostream &operator<<(std::ostream &os, const Constraint &);
 
-class Variable : public Expr {
-public:
-    Variable() = default;
-    Variable(const std::string &name);
-    Variable(const VariableNode *);
-    Variable get_from_grid() const;
-    bool is_from_grid() const;
-    std::string getName() const;
-    typedef VariableNode Node;
-};
-
 #define DEFINE_BINARY_CLASS(NAME, NODE)    \
     class NAME : public NODE {             \
     public:                                \
@@ -117,6 +107,21 @@ Less operator<(const Expr &, const Expr &);
 Greater operator>(const Expr &, const Expr &);
 And operator&&(const Expr &, const Expr &);
 Or operator||(const Expr &, const Expr &);
+
+class Stmt;
+
+class Variable : public Expr {
+public:
+    Variable() = default;
+    Variable(const std::string &name);
+    Variable(const VariableNode *);
+    Variable get_from_grid() const;
+    bool is_from_grid() const;
+    std::string getName() const;
+    Stmt operator=(const Expr &);
+
+    typedef VariableNode Node;
+};
 
 }  // namespace gern
 
@@ -192,6 +197,8 @@ inline const E to(const T &e) {
     return E(static_cast<const typename E::Node *>(e.ptr));
 };
 
+DEFINE_BINARY_CLASS(Assign, Stmt);
+
 class Subset : public Stmt {
 public:
     Subset() = default;
@@ -243,7 +250,7 @@ public:
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
-ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+ConsumeMany For(Stmt start, Constraint end, Stmt step, ConsumeMany body,
                 bool parallel = false);
 
 class Allocates : public Stmt {
@@ -276,7 +283,7 @@ public:
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.
-Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
+Pattern For(Stmt start, Constraint end, Stmt step, Pattern body,
             bool parallel = false);
 
 }  // namespace gern

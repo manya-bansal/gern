@@ -53,7 +53,7 @@ void CodeGenerator::visit(const IntervalNode *op) {
         body.push_back(code);
     }
 
-    CGStmt start = VarAssign::make(genCodeExpr(op->start), 0);
+    // CGStmt start = VarAssign::make(genCodeExpr(op->start), 0);
     // CGStmt cond =
     // Finally wrap the lowered body in an interval node.
     // code = For::make(genCodeExpr(op->start), genCodeExpr(op->cond), genCodeExpr(op->step))

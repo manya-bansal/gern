@@ -66,6 +66,9 @@ DEFINE_BINARY_NODE(GeqNode, Constraint);
 DEFINE_BINARY_NODE(LessNode, Constraint);
 DEFINE_BINARY_NODE(GreaterNode, Constraint);
 
+// Assignment Node
+DEFINE_BINARY_NODE(AssignNode, Stmt);
+
 struct SubsetNode : public StmtNode {
     SubsetNode(AbstractDataTypePtr data,
                std::vector<Expr> mdFields)
@@ -96,18 +99,17 @@ struct ConsumesNode : public StmtNode {
 };
 
 struct ConsumesForNode : public ConsumesNode {
-    ConsumesForNode(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+    ConsumesForNode(Stmt start, Constraint end, Stmt step, ConsumeMany body,
                     bool parallel = false)
-        : v(v), start(start), end(end), step(step), body(body),
+        : start(start), end(end), step(step), body(body),
           parallel(parallel) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    Variable v;
-    Expr start;
-    Expr end;
-    Expr step;
+    Stmt start;
+    Constraint end;
+    Stmt step;
     ConsumeMany body;
     bool parallel;
 };
@@ -130,18 +132,17 @@ struct PatternNode : public StmtNode {
 };
 
 struct ComputesForNode : public PatternNode {
-    ComputesForNode(Variable v, Expr start, Expr end, Expr step, Pattern body,
+    ComputesForNode(Stmt start, Constraint end, Stmt step, Pattern body,
                     bool parallel = false)
-        : v(v), start(start), end(end), step(step), body(body),
+        : start(start), end(end), step(step), body(body),
           parallel(parallel) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    Variable v;
-    Expr start;
-    Expr end;
-    Expr step;
+    Stmt start;
+    Constraint end;
+    Stmt step;
     Pattern body;
     bool parallel;
 };

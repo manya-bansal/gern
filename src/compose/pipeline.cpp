@@ -139,7 +139,7 @@ std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std:
     std::vector<LowerIR> current = body;
     match(f->getAnnotation(), std::function<void(const ConsumesForNode *)>(
                                   [&](const ConsumesForNode *op) {
-                                      current = {new IntervalNode(op->v, op->start, op->end, op->step, current)};
+                                      current = {new IntervalNode(op->start, op->end, op->step, current)};
                                   }));
     return current;
 }
@@ -149,7 +149,7 @@ std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::ve
     std::vector<LowerIR> current = body;
     match(f->getAnnotation(), std::function<void(const ComputesForNode *)>(
                                   [&](const ComputesForNode *op) {
-                                      current = {new IntervalNode(op->v, op->start, op->end, op->step, current)};
+                                      current = {new IntervalNode(op->start, op->end, op->step, current)};
                                   }));
     return current;
 }

@@ -75,6 +75,7 @@ DEFINE_PRINTER_METHOD(LessNode, <)
 DEFINE_PRINTER_METHOD(GreaterNode, >)
 DEFINE_PRINTER_METHOD(AndNode, &&)
 DEFINE_PRINTER_METHOD(OrNode, ||)
+DEFINE_PRINTER_METHOD(AssignNode, =)
 
 void Printer::visit(const SubsetNode *op) {
     util::printIdent(os, ident);
@@ -134,7 +135,7 @@ void Printer::visit(const AllocatesNode *op) {
 
 void Printer::visit(const ConsumesForNode *op) {
     util::printIdent(os, ident);
-    os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
+    os << "for [ " << op->start << " : " << op->end << " : "
        << op->step << " ] {"
        << "\n";
     ident++;
@@ -148,7 +149,7 @@ void Printer::visit(const ConsumesForNode *op) {
 
 void Printer::visit(const ComputesForNode *op) {
     util::printIdent(os, ident);
-    os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
+    os << "for [ " << op->start << " : " << op->end << " : "
        << op->step << " ] {"
        << "\n";
     ident++;
@@ -205,6 +206,8 @@ DEFINE_BINARY_VISITOR_METHOD(GeqNode);
 DEFINE_BINARY_VISITOR_METHOD(LessNode);
 DEFINE_BINARY_VISITOR_METHOD(GreaterNode);
 
+DEFINE_BINARY_VISITOR_METHOD(AssignNode);
+
 void AnnotVisitor::visit(const VariableNode *) {
 }
 
@@ -238,7 +241,6 @@ void AnnotVisitor::visit(const AllocatesNode *op) {
 }
 
 void AnnotVisitor::visit(const ConsumesForNode *op) {
-    this->visit(op->v);
     this->visit(op->start);
     this->visit(op->end);
     this->visit(op->step);
@@ -246,7 +248,6 @@ void AnnotVisitor::visit(const ConsumesForNode *op) {
 }
 
 void AnnotVisitor::visit(const ComputesForNode *op) {
-    this->visit(op->v);
     this->visit(op->start);
     this->visit(op->end);
     this->visit(op->step);
@@ -333,23 +334,21 @@ void Rewriter::visit(const AllocatesNode *op) {
 }
 
 void Rewriter::visit(const ConsumesForNode *op) {
-    Variable rw_v = to<Variable>(this->rewrite(op->v));
-    Expr rw_start = this->rewrite(op->start);
-    Expr rw_end = this->rewrite(op->end);
-    Expr rw_step = this->rewrite(op->step);
+    Stmt rw_start = this->rewrite(op->start);
+    Constraint rw_end = this->rewrite(op->end);
+    Stmt rw_step = this->rewrite(op->step);
     ConsumeMany rw_body = to<ConsumeMany>(this->rewrite(op->body));
-    stmt = Consumes(new const ConsumesForNode(rw_v, rw_start,
+    stmt = Consumes(new const ConsumesForNode(rw_start,
                                               rw_end, rw_step,
                                               rw_body, op->parallel));
 }
 
 void Rewriter::visit(const ComputesForNode *op) {
-    Variable rw_v = to<Variable>(this->rewrite(op->v));
-    Expr rw_start = this->rewrite(op->start);
-    Expr rw_end = this->rewrite(op->end);
-    Expr rw_step = this->rewrite(op->step);
+    Stmt rw_start = this->rewrite(op->start);
+    Constraint rw_end = this->rewrite(op->end);
+    Stmt rw_step = this->rewrite(op->step);
     Pattern rw_body = to<Pattern>(this->rewrite(op->body));
-    stmt = Pattern(new const ComputesForNode(rw_v, rw_start,
+    stmt = Pattern(new const ComputesForNode(rw_start,
                                              rw_end, rw_step,
                                              rw_body, op->parallel));
 }
@@ -380,12 +379,13 @@ DEFINE_BINARY_REWRITER_METHOD(ModNode, Expr, expr);
 
 DEFINE_BINARY_REWRITER_METHOD(AndNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(OrNode, Constraint, where);
-
 DEFINE_BINARY_REWRITER_METHOD(EqNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(NeqNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(LeqNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(GeqNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(LessNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(GreaterNode, Constraint, where);
+
+DEFINE_BINARY_REWRITER_METHOD(AssignNode, Stmt, stmt);
 
 }  // namespace gern

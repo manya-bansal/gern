@@ -80,6 +80,10 @@ bool Variable::is_from_grid() const {
     return getNode(*this)->grid;
 }
 
+Stmt Variable::operator=(const Expr &e) {
+    return Assign(*this, e);
+}
+
 std::ostream &operator<<(std::ostream &os, const Expr &e) {
     Printer p{os};
     p.visit(e);
@@ -212,6 +216,8 @@ DEFINE_BINARY_CONSTRUCTOR(Geq, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Less, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
 
+DEFINE_BINARY_CONSTRUCTOR(Assign, Stmt);
+
 Subset::Subset(const SubsetNode *n)
     : Stmt(n) {
 }
@@ -253,10 +259,10 @@ Consumes::Consumes(Subset s)
     : Consumes(new const SubsetsNode({s})) {
 }
 
-ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+ConsumeMany For(Stmt start, Constraint end, Stmt step, ConsumeMany body,
                 bool parallel) {
     return ConsumeMany(
-        new const ConsumesForNode(v, start, end, step, body, parallel));
+        new const ConsumesForNode(start, end, step, body, parallel));
 }
 
 Allocates::Allocates(const AllocatesNode *n)
@@ -279,10 +285,10 @@ Pattern::Pattern(const PatternNode *p)
     : Stmt(p) {
 }
 
-Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
+Pattern For(Stmt start, Constraint end, Stmt step, Pattern body,
             bool parallel) {
     return Pattern(
-        new const ComputesForNode(v, start, end, step, body, parallel));
+        new const ComputesForNode(start, end, step, body, parallel));
 }
 
 }  // namespace gern

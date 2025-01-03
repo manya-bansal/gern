@@ -23,6 +23,7 @@ struct GreaterNode;
 struct AndNode;
 struct OrNode;
 
+struct AssignNode;
 struct SubsetNode;
 struct SubsetsNode;
 struct ProducesNode;
@@ -70,6 +71,7 @@ public:
     virtual ~StmtVisitorStrict() = default;
 
     virtual void visit(Stmt);
+    virtual void visit(const AssignNode *) = 0;
     virtual void visit(const SubsetNode *) = 0;
     virtual void visit(const SubsetsNode *) = 0;
     virtual void visit(const ProducesNode *) = 0;
@@ -117,6 +119,7 @@ public:
     void visit(const OrNode *);
     void visit(const AndNode *);
 
+    void visit(const AssignNode *);
     void visit(const SubsetNode *);
     void visit(const SubsetsNode *);
     void visit(const ProducesNode *);
@@ -155,6 +158,7 @@ public:
     void visit(const OrNode *);
     void visit(const AndNode *);
 
+    void visit(const AssignNode *);
     void visit(const SubsetNode *);
     void visit(const SubsetsNode *);
     void visit(const ProducesNode *);
@@ -227,6 +231,7 @@ private:
     RULE(GreaterNode);
     RULE(VariableNode);
     RULE(LiteralNode);
+    RULE(AssignNode);
     RULE(SubsetNode);
     RULE(SubsetsNode);
     RULE(ProducesNode);
@@ -306,6 +311,7 @@ protected:
     void visit(const OrNode *);
     void visit(const AndNode *);
 
+    void visit(const AssignNode *);
     void visit(const SubsetNode *);
     void visit(const SubsetsNode *);
     void visit(const ProducesNode *);
