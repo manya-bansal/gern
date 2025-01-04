@@ -6,6 +6,10 @@
 #include "compose/pipeline_visitor.h"
 #include "utils/error.h"
 
+#include <cstdlib>
+#include <dlfcn.h>
+#include <fstream>
+
 namespace gern {
 
 void LowerIR::accept(PipelineVisitor *v) const {
@@ -34,9 +38,37 @@ void Pipeline::lower() {
     visit(compose_vec);
 }
 
-void Pipeline::generateCode() const {
+void *Pipeline::evaluate(std::string compile_flags) {
+
     codegen::CodeGenerator cg;
-    cg.generate_code(*this);
+    codegen::CGStmt code = cg.generate_code(*this);
+
+    std::string prefix = "/tmp/";
+    std::string file = prefix + "test.cpp";
+    // Write the code to a file.
+    std::ofstream outFile(file);
+    outFile << code;
+    outFile.close();
+
+    std::string shared_obj = prefix + "libGern.so";
+    std::string cmd = "g++ " + compile_flags + " -shared -o " + shared_obj + " " + file + " 2>&1";
+
+    // Compile the code.
+    int runStatus = std::system(cmd.data());
+    if (runStatus != 0) {
+        throw error::UserError("Compilation Failed");
+    }
+
+    void *handle = dlopen(shared_obj.data(), RTLD_LAZY);
+    if (!handle) {
+        throw error::UserError("Error loading library: " + std::string(dlerror()));
+    }
+
+    void *func = dlsym(handle, cg.getName().data());
+    if (!func) {
+        throw error::UserError("Error loading function: " + std::string(dlerror()));
+    }
+    return func;
 }
 
 std::map<Variable, Expr> Pipeline::getVariableDefinitions() const {
@@ -66,7 +98,8 @@ void Pipeline::visit(const FunctionCall *c) {
     for (const auto &in : inputs) {
         if (!isIntermediate(in)) {
             // Generate the query node.
-            AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + in->getName());
+            AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + in->getName(),
+                                                                                   in->getType());
             new_ds[in] = queried;
             temp.push_back(new QueryNode(in,
                                          queried,
@@ -80,7 +113,8 @@ void Pipeline::visit(const FunctionCall *c) {
     // Now generate the output query.
     AbstractDataTypePtr output = c->getOutput();
     if (!isIntermediate(output)) {
-        AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + output->getName());
+        AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + output->getName(),
+                                                                               output->getType());
         new_ds[output] = queried;
         lowered.push_back(new QueryNode(output,
                                         queried,

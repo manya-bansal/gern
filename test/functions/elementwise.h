@@ -2,6 +2,7 @@
 #define GERN_ELEMENTWISE_FUNCTION_H
 
 #include "annotations/abstract_function.h"
+#include "config.h"
 #include "test-utils.h"
 #include <iostream>
 
@@ -23,16 +24,28 @@ public:
         Expr step(1);
         Variable end("end");
 
-        return For(x = Expr(0), x <= end, x = (x + step),
+        return For(x = Expr(0), x < end, x = (x + step),
                    Computes(
                        Produces(
-                           Subset(output, {x})),
+                           Subset(output, {x, step})),
                        Consumes(
-                           Subset(input, {x + 4}))));
+                           Subset(input, {x, step}))));
     }
 
     std::vector<Argument> getArguments() {
         return {Argument(input), Argument(output)};
+    }
+
+    std::vector<std::string> getHeader() {
+        return {
+            "array_lib.h",
+        };
+    }
+
+    std::vector<std::string> getIncludeFlags() {
+        return {
+            std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        };
     }
 
 private:

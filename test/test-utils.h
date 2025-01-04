@@ -19,7 +19,7 @@ public:
     }
 
     std::string getType() const override {
-        return "Test";
+        return "TestArray";
     }
 
 private:

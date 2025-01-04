@@ -62,9 +62,10 @@ public:
     FunctionCall() = delete;
     FunctionCall(const std::string &name,
                  Pattern annotation,
-                 std::vector<Argument> arguments)
+                 std::vector<Argument> arguments,
+                 std::vector<std::string> header)
         : name(name), annotation(annotation),
-          arguments(arguments) {
+          arguments(arguments), header(header) {
     }
     const std::string &getName() const {
         return name;
@@ -88,12 +89,23 @@ public:
      * @return std::set<AbstractDataTypePtr>
      */
     std::set<AbstractDataTypePtr> getInputs() const;
+
+    /**
+     * @brief Returns the name of the header file where the function is
+     *        declared.
+     *
+     */
+    std::vector<std::string> getHeader() const {
+        return header;
+    }
+
     void accept(CompositionVisitor *v) const;
 
 private:
     std::string name;
     Pattern annotation;
     std::vector<Argument> arguments;
+    std::vector<std::string> header;
 };
 
 class ComposeVec : public CompositionObject {

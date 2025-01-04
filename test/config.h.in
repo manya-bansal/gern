@@ -1,0 +1,2 @@
+#pragma once
+#define GERN_ROOT_DIR "@PROJECT_SOURCE_DIR@"

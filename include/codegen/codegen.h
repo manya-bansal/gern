@@ -36,6 +36,8 @@ public:
     // To insert used variables.
     void insertInUsed(Variable);
 
+    std::string getName() const;
+
 private:
     std::string name;
     std::set<Variable> declared;
@@ -43,6 +45,10 @@ private:
     std::set<AbstractDataTypePtr> declared_adt;
     std::set<AbstractDataTypePtr> used_adt;
     CGStmt code;
+
+    std::set<std::string> headers;
+    std::set<std::string> includes;
+    std::set<std::string> libs;
 };
 
 }  // namespace codegen

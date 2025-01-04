@@ -28,6 +28,13 @@ public:
     virtual std::string getName() = 0;
     virtual Pattern getAnnotation() = 0;
     virtual std::vector<Argument> getArguments() = 0;
+    virtual std::vector<std::string> getHeader() = 0;
+    virtual std::vector<std::string> getIncludeFlags() {
+        return {};
+    }
+    virtual std::vector<std::string> getLinkFlags() {
+        return {};
+    }
 
     template<typename T>
     const FunctionCall *operator()(T argument) {
@@ -35,7 +42,7 @@ public:
         addArguments(arguments, argument);
         return new const FunctionCall(getName(),
                                       rewriteAnnotWithConcreteArgs(arguments),
-                                      arguments);
+                                      arguments, getHeader());
     }
 
     template<typename FirstT, typename... Next>
@@ -44,7 +51,7 @@ public:
         addArguments(arguments, first, remaining...);
         return new const FunctionCall(getName(),
                                       rewriteAnnotWithConcreteArgs(arguments),
-                                      arguments);
+                                      arguments, getHeader());
     }
 
     const FunctionCall *operator()() {
@@ -53,7 +60,7 @@ public:
         }
         return new const FunctionCall(getName(),
                                       rewriteAnnotWithConcreteArgs({}),
-                                      std::vector<Argument>());
+                                      std::vector<Argument>(), getHeader());
     }
 
 private:

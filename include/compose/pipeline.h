@@ -41,7 +41,7 @@ public:
     }
 
     void lower();
-    void generateCode() const;
+    void *evaluate(std::string compile_flags = "");
 
     using CompositionVisitor::visit;
     void visit(const FunctionCall *c);

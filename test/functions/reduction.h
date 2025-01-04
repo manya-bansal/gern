@@ -2,6 +2,7 @@
 #define GERN_REDUCTION_FUNCTION_H
 
 #include "annotations/abstract_function.h"
+#include "config.h"
 #include "test-utils.h"
 #include <iostream>
 
@@ -39,6 +40,18 @@ public:
 
     std::vector<Argument> getArguments() {
         return {Argument(input), Argument(output)};
+    }
+
+    std::vector<std::string> getHeader() {
+        return {
+            "array_lib.h",
+        };
+    }
+
+    std::vector<std::string> getIncludeFlags() {
+        return {
+            std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        };
     }
 
 private:

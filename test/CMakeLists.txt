@@ -2,6 +2,12 @@ find_package(GTest REQUIRED)
 include(GoogleTest)
 
 add_executable(gern_test)
+
+configure_file(
+    "config.h.in"
+    "config.h"
+)
+
 target_sources(
     gern_test
     PRIVATE
@@ -15,7 +21,10 @@ target_sources(
         test-utils.h
         functions/elementwise.h
         functions/reduction.h
+        library/array/array_lib.h
 )
+
+include_directories(${PROJECT_BINARY_DIR}/test)
 target_link_libraries(gern_test PRIVATE Gern::Gern GTest::gtest_main)
 
 gtest_discover_tests(gern_test)

@@ -45,11 +45,10 @@ public:
 
 class AbstractDataType {
 public:
-    AbstractDataType()
-        : name(gern::getUniqueName()) {
-    }
-    AbstractDataType(const std::string &name)
-        : name(name) {
+    AbstractDataType() = default;
+
+    AbstractDataType(const std::string &name, const std::string &type)
+        : name(name), type(type) {
     }
     virtual ~AbstractDataType() = default;
 
@@ -58,11 +57,12 @@ public:
     }
 
     virtual std::string getType() const {
-        return "float";
-    };
+        return type;
+    }
 
 private:
     std::string name;
+    std::string type;
 };
 
 typedef std::shared_ptr<const AbstractDataType> AbstractDataTypePtr;

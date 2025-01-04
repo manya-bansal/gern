@@ -37,11 +37,23 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     for (const auto &v : to_declare_vars) {
         args.push_back(VarDecl::make(Type::make(v.getType().getString()), v.getName()));
     }
-    // The return type is always void, we return
-    // by modifying the function.
+
+    // The return type is always void, the output
+    // is modified by reference.
     code = DeclFunc::make(name, Type::make("void"), args, code);
-    std::cout << code << std::endl;
-    return code;
+
+    std::vector<CGStmt> full_code;
+    // Now, add the headers.
+    for (const auto &h : headers) {
+        full_code.push_back(EscapeCGStmt::make("#include \"" + h + "\""));
+    }
+
+    full_code.push_back(BlankLine::make());
+    full_code.push_back(BlankLine::make());
+    full_code.push_back(EscapeCGStmt::make("extern \"C\""));
+    full_code.push_back(Scope::make(code));
+
+    return Block::make(full_code);
 }
 
 void CodeGenerator::visit(const Pipeline &p) {
@@ -70,7 +82,7 @@ void CodeGenerator::visit(const FreeNode *op) {
             throw error::InternalError("Freeing a data-structure that hasn't been allocated??");
         })
 
-    std::string method_call = op->data->getName() + ".free";
+    std::string method_call = op->data->getName() + ".destroy";
     code = VoidCall::make(Call::make(method_call, {}));
 }
 
@@ -129,6 +141,10 @@ void CodeGenerator::visit(const ComputeNode *op) {
     }
 
     code = VoidCall::make(Call::make(func_call, args));
+
+    // Add the header.
+    std::vector<std::string> func_header = op->f->getHeader();
+    headers.insert(func_header.begin(), func_header.end());
 }
 
 void CodeGenerator::visit(const IntervalNode *op) {
@@ -243,6 +259,10 @@ CGStmt CodeGenerator::genCodeExpr(Assign a) {
 
 void CodeGenerator::insertInUsed(Variable v) {
     used.insert(v);
+}
+
+std::string CodeGenerator::getName() const {
+    return name;
 }
 
 }  // namespace codegen
