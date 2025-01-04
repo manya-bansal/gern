@@ -4,6 +4,7 @@
 #include "codegen/codegen.h"
 #include "compose/compose.h"
 #include "compose/pipeline_visitor.h"
+#include "utils/debug.h"
 #include "utils/error.h"
 
 #include <cstdlib>
@@ -50,7 +51,7 @@ void Pipeline::compile(std::string compile_flags) {
     outFile << code;
     outFile.close();
 
-    std::string shared_obj = prefix + "libGern.so";
+    std::string shared_obj = prefix + getUniqueName("libGern") + ".so";
     std::string cmd = "g++ " + compile_flags + " -shared -o " + shared_obj + " " + file + " 2>&1";
 
     // Compile the code.

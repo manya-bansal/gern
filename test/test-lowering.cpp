@@ -33,11 +33,11 @@ TEST(Lowering, SingleElemFunction) {
     b.vvals(3.0f);
     int64_t var = 10;
 
-    p.evaluate({
+    ASSERT_NO_THROW(p.evaluate({
         {inputDS->getName(), &a},
         {outputDS->getName(), &b},
         {v.getName(), &var},
-    });
+    }));
 
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
@@ -61,18 +61,70 @@ TEST(Lowering, SingleElemFunction) {
                      {v.getName(), &var},
                  }),
                  error::UserError);
+
+    a.destroy();
+    b.destroy();
 }
 
 TEST(Lowering, SingleReduceFunction) {
     auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
     auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
+
+    Variable v1("v1");
+    Variable v2("v2");
+
     test::reduction reduce_f;
 
-    std::vector<Compose> c = {reduce_f(inputDS, outputDS)};
+    std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
+
     Pipeline p(c);
 
     p.lower();
-    // p.evaluate();
+    p.compile("-std=c++11 -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/");
+
+    lib::TestArray a(10);
+    a.vvals(2.0f);
+    lib::TestArray b(10);
+    b.vvals(0.0f);
+    int64_t var1 = 10;
+    int64_t var2 = 1;
+
+    ASSERT_NO_THROW(p.evaluate({
+        {inputDS->getName(), &a},
+        {outputDS->getName(), &b},
+        {v2.getName(), &var2},
+        {v1.getName(), &var1},
+    }));
+
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(b.data[i] == 2.0f * 10);
+    }
+
+    b.vvals(0.0f);
+    // Run again, we should be able to
+    // repeatedly used the compiled pipeline.
+    ASSERT_NO_THROW(p.evaluate({
+        {inputDS->getName(), &a},
+        {outputDS->getName(), &b},
+        {v2.getName(), &var2},
+        {v1.getName(), &var1},
+    }));
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(b.data[i] == 2.0f * 10);
+    }
+
+    // Try running with insufficient number
+    // of arguments.
+    ASSERT_THROW(p.evaluate({
+                     {inputDS->getName(), &a},
+                     {outputDS->getName(), &b},
+                 }),
+                 error::UserError);
+
+    a.destroy();
+    b.destroy();
 }
 
 TEST(Lowering, MultiFunction) {

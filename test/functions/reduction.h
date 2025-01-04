@@ -19,7 +19,7 @@ public:
           output(std::make_shared<dummy::TestDS>("output")) {
     }
     std::string getName() {
-        return "reduction";
+        return "gern::lib::add";
     }
 
     Pattern getAnnotation() {
@@ -28,14 +28,14 @@ public:
         Variable step("step");
         Variable end("end");
 
-        return For(x = Expr(0), x < end, x = step + 0,
+        return For(x = Expr(0), x < end, x = x + step,
                    Computes(
                        Produces(
-                           Subset(output, {x})),
+                           Subset(output, {x, 1})),
                        Consumes(
-                           For(r = Expr(0), r < 8, r = Expr(1),
+                           For(r = Expr(0), r < end, r = r + 1,
                                Subsets{
-                                   Subset(input, {x * 8 + r})}))));
+                                   Subset(input, {r, 1})}))));
     }
 
     std::vector<Argument> getArguments() {
