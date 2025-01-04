@@ -18,7 +18,6 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     // Add all the data-structures that haven't been declared
     // or allocated to the function arguments. These are the
     // true inputs, or the true outputs.
-
     std::vector<AbstractDataTypePtr> to_declare_adts;
     std::set_difference(used_adt.begin(), used_adt.end(),
                         declared_adt.begin(), declared_adt.end(),
@@ -31,16 +30,32 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
                         std::less<Variable>());
 
     std::vector<CGExpr> args;
+    std::vector<CGExpr> hook_args;
+    int num_args = 0;
     for (const auto &ds : to_declare_adts) {
         args.push_back(VarDecl::make(Type::make(ds->getType()), ds->getName()));
+        hook_args.push_back(Deref::make(
+            Cast::make(Type::make(ds->getType() + "*"),
+                       Var::make("args[" + std::to_string(num_args) + "]"))));
+        num_args++;
     }
     for (const auto &v : to_declare_vars) {
         args.push_back(VarDecl::make(Type::make(v.getType().getString()), v.getName()));
+        hook_args.push_back(Deref::make(
+            Cast::make(Type::make(v.getType().getString() + "*"),
+                       Var::make("args[" + std::to_string(num_args) + "]"))));
+        num_args++;
     }
 
     // The return type is always void, the output
     // is modified by reference.
     code = DeclFunc::make(name, Type::make("void"), args, code);
+
+    // Also make the function that is used as the entry point for
+    // user code.
+    CGStmt hook = DeclFunc::make(hook_name, Type::make("void"),
+                                 {VarDecl::make(Type::make("void**"), "args")},
+                                 VoidCall::make(Call::make(name, hook_args)));
 
     std::vector<CGStmt> full_code;
     // Now, add the headers.
@@ -51,7 +66,7 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     full_code.push_back(BlankLine::make());
     full_code.push_back(BlankLine::make());
     full_code.push_back(EscapeCGStmt::make("extern \"C\""));
-    full_code.push_back(Scope::make(code));
+    full_code.push_back(Scope::make(Block::make({code, hook})));
 
     return Block::make(full_code);
 }
@@ -118,26 +133,7 @@ void CodeGenerator::visit(const ComputeNode *op) {
     std::string func_call = op->f->getName();
     std::vector<CGExpr> args;
     for (auto a : op->f->getArguments()) {
-        switch (a.getType()) {
-
-        case DATA_STRUCTURE: {
-            const DSArg *ds = to<DSArg>(a.get());
-            // Track the fact that we are using this ADT
-            used_adt.insert(ds->getADTPtr());
-            // If the actual data-structure has been queried, then we need to make
-            // sure that the queried name is used, not the original name.
-            if (op->new_ds.count(ds->getADTPtr()) > 0) {
-                args.push_back(Var::make(op->new_ds.at(ds->getADTPtr())->getName()));
-            } else {
-                args.push_back(Var::make(ds->getADTPtr()->getName()));
-            }
-            break;
-        }
-
-        default:
-            throw error::InternalError("Unreachable");
-            break;
-        }
+        args.push_back(genCodeExpr(a, op->new_ds));
     }
 
     code = VoidCall::make(Call::make(func_call, args));
@@ -257,12 +253,45 @@ CGStmt CodeGenerator::genCodeExpr(Assign a) {
         genCodeExpr(a.getB()));
 }
 
+CGExpr CodeGenerator::genCodeExpr(Argument a, const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements) {
+    switch (a.getType()) {
+
+    case DATA_STRUCTURE: {
+        const DSArg *ds = to<DSArg>(a.get());
+        // Track the fact that we are using this ADT
+        used_adt.insert(ds->getADTPtr());
+        // If the actual data-structure has been queried, then we need to make
+        // sure that the queried name is used, not the original name.
+        if (replacements.count(ds->getADTPtr()) > 0) {
+            return Var::make(replacements.at(ds->getADTPtr())->getName());
+        } else {
+            return Var::make(ds->getADTPtr()->getName());
+        }
+        break;
+    }
+
+    case GERN_VARIABLE: {
+        const VarArg *v = to<VarArg>(a.get());
+        used.insert(v->getVar());
+        return Var::make(v->getVar().getName());
+    }
+
+    default:
+        throw error::InternalError("Unreachable");
+        break;
+    }
+}
+
 void CodeGenerator::insertInUsed(Variable v) {
     used.insert(v);
 }
 
 std::string CodeGenerator::getName() const {
     return name;
+}
+
+std::string CodeGenerator::getHookName() const {
+    return hook_name;
 }
 
 }  // namespace codegen

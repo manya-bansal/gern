@@ -39,6 +39,7 @@ enum class CGNodeType {
     BinOp,
     Cast,
     CustomCast,
+    Deref,
     Call,
     IfThenElse,
     Case,
@@ -76,7 +77,6 @@ enum class CGNodeType {
     EscapeCGExpr,
     EscapeCGStmt,
     MetaData,
-    CilkFor,
 };
 
 /** Base class for backend CG */
@@ -590,6 +590,32 @@ struct Call : public CGExprNode<Call> {
     }
 
     static const CGNodeType _type_info = CGNodeType::Call;
+};
+
+struct Cast : public CGExprNode<Cast> {
+    CGExpr to_cast;
+    CGExpr cast_type;
+
+    static CGExpr make(CGExpr cast_type, CGExpr to_cast) {
+        Cast *cast = new Cast;
+        cast->to_cast = to_cast;
+        cast->cast_type = cast_type;
+        return cast;
+    }
+
+    static const CGNodeType _type_info = CGNodeType::Cast;
+};
+
+struct Deref : public CGExprNode<Deref> {
+    CGExpr expr;
+
+    static CGExpr make(CGExpr expr) {
+        Deref *deref = new Deref;
+        deref->expr = expr;
+        return deref;
+    }
+
+    static const CGNodeType _type_info = CGNodeType::Deref;
 };
 
 struct For : public CGStmtNode<For> {

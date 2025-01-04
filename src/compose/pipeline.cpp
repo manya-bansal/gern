@@ -64,7 +64,7 @@ void *Pipeline::evaluate(std::string compile_flags) {
         throw error::UserError("Error loading library: " + std::string(dlerror()));
     }
 
-    void *func = dlsym(handle, cg.getName().data());
+    void *func = dlsym(handle, cg.getHookName().data());
     if (!func) {
         throw error::UserError("Error loading function: " + std::string(dlerror()));
     }

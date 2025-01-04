@@ -11,10 +11,12 @@ TEST(Functions, SingleFunction) {
     auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
     auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
     auto output_2_DS = std::make_shared<const dummy::TestDS>("output_con_2");
+    Variable v1("v1");
+    Variable v2("v2");
 
     test::add add_f;
-    const FunctionCall *concreteCall1 = add_f(inputDS, outputDS);
-    const FunctionCall *concreteCall2 = add_f(outputDS, output_2_DS);
+    const FunctionCall *concreteCall1 = add_f(inputDS, outputDS, v1);
+    const FunctionCall *concreteCall2 = add_f(outputDS, output_2_DS, v2);
 
     // Test that all variables were replaced
     std::set<Variable> abstract_vars = getVariables(add_f.getAnnotation());

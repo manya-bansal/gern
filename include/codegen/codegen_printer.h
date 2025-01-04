@@ -45,6 +45,8 @@ public:
     virtual void visit(const Mod *);
     virtual void visit(const Sub *);
     virtual void visit(const MetaData *);
+    virtual void visit(const Cast *);
+    virtual void visit(const Deref *);
 
 private:
     std::ostream &os;

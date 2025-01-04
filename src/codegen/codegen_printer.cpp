@@ -146,6 +146,14 @@ void CGPrinter::visit(const Call *op) {
     }
 }
 
+void CGPrinter::visit(const Cast *op) {
+    os << "(" << op->cast_type << ")" << op->to_cast;
+}
+
+void CGPrinter::visit(const Deref *op) {
+    os << "*(" << op->expr << ")";
+}
+
 void CGPrinter::visit(const VoidCall *op) {
     doIdent();
     os << op->func << ";";

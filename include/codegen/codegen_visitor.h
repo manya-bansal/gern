@@ -32,6 +32,8 @@ struct Div;
 struct Mul;
 struct Sub;
 struct MetaData;
+struct Cast;
+struct Deref;
 
 /// Extend this class to visit every node in the IR.
 class CGVisitorStrict {
@@ -66,7 +68,8 @@ public:
     virtual void visit(const Mod *) = 0;
     virtual void visit(const Sub *) = 0;
     virtual void visit(const MetaData *) = 0;
-    // virtual void visit(const CilkFor*) = 0;
+    virtual void visit(const Cast *) = 0;
+    virtual void visit(const Deref *) = 0;
 };
 
 /// Extend this class to visit some nodes in the IR.
@@ -103,7 +106,8 @@ public:
     virtual void visit(const Mod *);
     virtual void visit(const Sub *);
     virtual void visit(const MetaData *);
-    // virtual void visit(const CilkFor*);
+    virtual void visit(const Cast *);
+    virtual void visit(const Deref *);
 };
 
 }  // namespace codegen

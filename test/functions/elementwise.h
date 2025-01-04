@@ -22,7 +22,6 @@ public:
     Pattern getAnnotation() {
         Variable x("x");
         Expr step(1);
-        Variable end("end");
 
         return For(x = Expr(0), x < end, x = (x + step),
                    Computes(
@@ -33,7 +32,11 @@ public:
     }
 
     std::vector<Argument> getArguments() {
-        return {Argument(input), Argument(output)};
+        return {
+            Argument(input),
+            Argument(output),
+            end,
+        };
     }
 
     std::vector<std::string> getHeader() {
@@ -51,6 +54,7 @@ public:
 private:
     std::shared_ptr<dummy::TestDS> input;
     std::shared_ptr<dummy::TestDS> output;
+    Variable end{"end"};
 };
 
 }  // namespace test

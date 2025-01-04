@@ -217,6 +217,16 @@ void CGExprNode<MetaData>::accept(CGVisitorStrict *v) const {
 }
 
 template<>
+void CGExprNode<Cast>::accept(CGVisitorStrict *v) const {
+    v->visit((const Cast *)this);
+}
+
+template<>
+void CGExprNode<Deref>::accept(CGVisitorStrict *v) const {
+    v->visit((const Deref *)this);
+}
+
+template<>
 void CGStmtNode<VarAssign>::accept(CGVisitorStrict *v) const {
     v->visit((const VarAssign *)this);
 }
