@@ -35,12 +35,20 @@ std::ostream &operator<<(std::ostream &os, const LowerIR &n);
 
 // The pipeline actually holds the lowered
 // nodes, and helps us nest pipelines.
-class Pipeline : public LowerIRNode,
+class Pipeline : public CompositionObject,
                  public CompositionVisitor {
 public:
     Pipeline(std::vector<Compose> compose)
         : compose(compose) {
     }
+
+    std::vector<Compose> getFuncs() const {
+        return compose;
+    }
+
+    Pipeline &at_device();
+    Pipeline &at_host();
+    bool is_at_device() const;
 
     void lower();
     void compile(std::string compile_flags = "");
@@ -51,11 +59,15 @@ public:
     void evaluate(std::map<std::string, void *> args);
 
     using CompositionVisitor::visit;
+
     void visit(const FunctionCall *c);
     void visit(const ComposeVec *c);
+    void visit(const Pipeline *c);
+
     std::vector<LowerIR> getIRNodes() const;
     std::map<Variable, Expr> getVariableDefinitions() const;
-    void accept(PipelineVisitor *) const;
+
+    void accept(CompositionVisitor *) const;
 
 private:
     bool isIntermediate(AbstractDataTypePtr d) const;
@@ -68,6 +80,7 @@ private:
     bool compiled = false;
     GernGenFuncPtr fp;
     std::vector<std::string> argument_order;
+    bool device = false;
 };
 
 std::ostream &operator<<(std::ostream &os, const Pipeline &p);
@@ -141,6 +154,16 @@ public:
     Constraint end;
     Assign step;
     std::vector<LowerIR> body;
+};
+
+// Filler Node to manipulate objects (like vectors, etc)
+// while iterating over them.
+struct PipelineNode : public LowerIRNode {
+    PipelineNode(Pipeline p)
+        : p(p) {
+    }
+    void accept(PipelineVisitor *) const;
+    Pipeline &p;
 };
 
 // Filler Node to manipulate objects (like vectors, etc)

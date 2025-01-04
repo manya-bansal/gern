@@ -15,8 +15,8 @@ namespace test {
 class reduction : public AbstractFunction {
 public:
     reduction()
-        : input(std::make_shared<dummy::TestDS>("input")),
-          output(std::make_shared<dummy::TestDS>("output")) {
+        : input(std::make_shared<dummy::TestDSCPU>("input")),
+          output(std::make_shared<dummy::TestDSCPU>("output")) {
     }
     std::string getName() {
         return "gern::lib::add";
@@ -44,7 +44,7 @@ public:
 
     std::vector<std::string> getHeader() {
         return {
-            "array_lib.h",
+            "cpu-array-lib.h",
         };
     }
 
@@ -55,8 +55,8 @@ public:
     }
 
 private:
-    std::shared_ptr<dummy::TestDS> input;
-    std::shared_ptr<dummy::TestDS> output;
+    std::shared_ptr<dummy::TestDSCPU> input;
+    std::shared_ptr<dummy::TestDSCPU> output;
 };
 
 }  // namespace test

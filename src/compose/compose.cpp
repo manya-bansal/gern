@@ -28,18 +28,6 @@ Compose::Compose(std::vector<Compose> compose)
 void Compose::concretize() {
     concrete = true;
 }
-Compose Compose::at_global() {
-    global = true;
-    return *this;
-}
-Compose Compose::at_host() {
-    global = true;
-    return *this;
-}
-
-bool Compose::is_at_global() const {
-    return global;
-}
 
 bool Compose::concretized() const {
     return concrete;

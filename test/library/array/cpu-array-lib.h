@@ -44,7 +44,7 @@ public:
     int size;
 };
 
-void add(TestArray a, TestArray b) {
+inline void add(TestArray a, TestArray b) {
     for (int64_t i = 0; i < a.size; i++) {
         b.data[i] += a.data[i];
     }

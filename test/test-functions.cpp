@@ -8,9 +8,9 @@
 using namespace gern;
 
 TEST(Functions, SingleFunction) {
-    auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
-    auto output_2_DS = std::make_shared<const dummy::TestDS>("output_con_2");
+    auto inputDS = std::make_shared<const dummy::TestDSCPU>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDSCPU>("output_con");
+    auto output_2_DS = std::make_shared<const dummy::TestDSCPU>("output_con_2");
 
     test::add add_f;
     const FunctionCall *concreteCall1 = add_f(inputDS, outputDS);

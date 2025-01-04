@@ -40,9 +40,6 @@ public:
     }
     Compose(std::vector<Compose> compose);
     void concretize();
-    Compose at_global();
-    Compose at_host();
-    bool is_at_global() const;
 
     bool concretized() const;
     void lower() const;
@@ -51,7 +48,7 @@ public:
     void accept(CompositionVisitor *v) const;
 
 private:
-    bool global = false;
+    bool device = false;
     bool concrete = false;
 };
 

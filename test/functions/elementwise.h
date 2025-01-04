@@ -12,8 +12,8 @@ namespace test {
 class add : public AbstractFunction {
 public:
     add()
-        : input(std::make_shared<dummy::TestDS>("input")),
-          output(std::make_shared<dummy::TestDS>("output")) {
+        : input(std::make_shared<dummy::TestDSCPU>("input")),
+          output(std::make_shared<dummy::TestDSCPU>("output")) {
     }
     std::string getName() {
         return "gern::lib::add";
@@ -40,7 +40,7 @@ public:
 
     std::vector<std::string> getHeader() {
         return {
-            "array_lib.h",
+            "cpu-array-lib.h",
         };
     }
 
@@ -51,8 +51,57 @@ public:
     }
 
 private:
-    std::shared_ptr<dummy::TestDS> input;
-    std::shared_ptr<dummy::TestDS> output;
+    std::shared_ptr<dummy::TestDSCPU> input;
+    std::shared_ptr<dummy::TestDSCPU> output;
+    Variable end{"end"};
+};
+
+
+// This *must* be a device function.
+class addGPU : public AbstractFunction {
+public:
+    addGPU()
+        : input(std::make_shared<dummy::TestDSCPU>("input")),
+          output(std::make_shared<dummy::TestDSCPU>("output")) {
+    }
+    std::string getName() {
+        return "add";
+    }
+
+    Pattern getAnnotation() {
+        Variable x("x");
+        Expr step(1);
+
+        return For(x = Expr(0), x < end, x = (x + step),
+                   Computes(
+                       Produces(
+                           Subset(output, {x, step})),
+                       Consumes(
+                           Subset(input, {x, step}))));
+    }
+
+    std::vector<Argument> getArguments() {
+        return {
+            Argument(input),
+            Argument(output),
+        };
+    }
+
+    std::vector<std::string> getHeader() {
+        return {
+            "gpu-array-lib.h",
+        };
+    }
+
+    std::vector<std::string> getIncludeFlags() {
+        return {
+            std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        };
+    }
+
+private:
+    std::shared_ptr<dummy::TestDSCPU> input;
+    std::shared_ptr<dummy::TestDSCPU> output;
     Variable end{"end"};
 };
 

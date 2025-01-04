@@ -7,13 +7,13 @@
 namespace gern {
 namespace dummy {
 
-class TestDS : public AbstractDataType {
+class TestDSCPU : public AbstractDataType {
 public:
-    TestDS(const std::string &name)
+    TestDSCPU(const std::string &name)
         : name(name) {
     }
-    TestDS()
-        : TestDS("test") {
+    TestDSCPU()
+        : TestDSCPU("test") {
     }
     std::string getName() const override {
         return name;
@@ -21,6 +21,26 @@ public:
 
     std::string getType() const override {
         return "gern::lib::TestArray";
+    }
+
+private:
+    std::string name;
+};
+
+class TestDSGPU : public AbstractDataType {
+public:
+    TestDSGPU(const std::string &name)
+        : name(name) {
+    }
+    TestDSGPU()
+        : TestDSGPU("test") {
+    }
+    std::string getName() const override {
+        return name;
+    }
+
+    std::string getType() const override {
+        return "gern::lib::TestArrayGPU";
     }
 
 private:

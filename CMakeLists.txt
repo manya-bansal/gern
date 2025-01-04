@@ -51,6 +51,7 @@ target_sources(
         include/annotations/arguments.h
         include/annotations/data_dependency_language.h
         include/annotations/datatypes.h
+        include/annotations/grid.h
         include/annotations/lang_nodes.h
         include/annotations/visitor.h
         include/resolve_constraints/resolve_constraints.h
@@ -68,6 +69,7 @@ target_sources(
         include/utils/printer.h
         include/utils/uncopyable.h
 )
+include_directories(${CUDAToolkit_INCLUDE_DIRS})
 target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
 target_compile_features(Gern_Gern PUBLIC cxx_std_17)
 target_link_libraries(Gern_Gern PRIVATE ginac::ginac CUDA::cudart)

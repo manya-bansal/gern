@@ -39,8 +39,8 @@ TEST(StmtNode, Constraint) {
     Constraint test(e == e);
     ASSERT_TRUE(getStrippedString(test) == "((1-v_)==(1-v_))");
 
-    auto testDS = std::make_shared<const dummy::TestDS>();
-    Subset subset{testDS, {1 - v, v * 2}};
+    auto TestDSCPU = std::make_shared<const dummy::TestDSCPU>();
+    Subset subset{TestDSCPU, {1 - v, v * 2}};
 
     ASSERT_TRUE(getStrippedString(subset) == "test{(1-v_),(v_*2)}");
 }
@@ -48,8 +48,8 @@ TEST(StmtNode, Constraint) {
 TEST(Annotations, ConstrainPatterns) {
     Variable v("v");
     Variable v1("v1");
-    auto testDS = std::make_shared<const dummy::TestDS>();
-    Subset s{testDS, {1 - v, v * 2}};
+    auto TestDSCPU = std::make_shared<const dummy::TestDSCPU>();
+    Subset s{TestDSCPU, {1 - v, v * 2}};
 
     ASSERT_NO_THROW(For(v = Expr(0), v < 0, v += Expr(0),
                         Computes(Produces(s), Consumes(Subsets(s))))

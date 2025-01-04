@@ -14,14 +14,16 @@ target_sources(
         test-nodes.cpp
         test-resolve-constraints.cpp
         test-functions.cpp
-        test-lowering.cpp
+        test-lowering-cpu.cpp
+        test-lowering-gpu.cpp
     PRIVATE
     FILE_SET HEADERS
     FILES
         test-utils.h
         functions/elementwise.h
         functions/reduction.h
-        library/array/array_lib.h
+        library/array/cpu-array-lib.h
+        library/array/gpu-array-lib.h
 )
 
 include_directories(${PROJECT_BINARY_DIR}/test)

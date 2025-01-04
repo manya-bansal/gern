@@ -26,6 +26,20 @@ std::ostream &operator<<(std::ostream &os, const LowerIR &n) {
     return os;
 }
 
+Pipeline &Pipeline::at_device() {
+    device = true;
+    return *this;
+}
+
+Pipeline &Pipeline::at_host() {
+    device = false;
+    return *this;
+}
+
+bool Pipeline::is_at_device() const {
+    return device;
+}
+
 void Pipeline::lower() {
 
     // Convert it into a ComposeVec
@@ -112,10 +126,6 @@ std::vector<LowerIR> Pipeline::getIRNodes() const {
     return lowered;
 }
 
-void Pipeline::accept(PipelineVisitor *v) const {
-    v->visit(this);
-}
-
 std::ostream &operator<<(std::ostream &os, const Pipeline &p) {
     PipelinePrinter print(os, 0);
     print.visit(p);
@@ -175,6 +185,9 @@ void Pipeline::visit(const ComposeVec *c) {
     lowered.insert(lowered.end(), intervals.begin(), intervals.end());
 }
 
+void Pipeline::visit(const Pipeline *) {
+}
+
 bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
     (void)d;
     // This WILL change as I go beyond 1 function.
@@ -218,6 +231,10 @@ std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::ve
                                       current = {new IntervalNode(op->start, op->end, op->step, current)};
                                   }));
     return current;
+}
+
+void Pipeline::accept(CompositionVisitor *v) const {
+    v->visit(this);
 }
 
 void AllocateNode::accept(PipelineVisitor *v) const {

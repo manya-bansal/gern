@@ -3,7 +3,7 @@
 #include "compose/pipeline.h"
 #include "functions/elementwise.h"
 #include "functions/reduction.h"
-#include "library/array/array_lib.h"
+#include "library/array/cpu-array-lib.h"
 
 #include "config.h"
 #include "test-utils.h"
@@ -13,9 +13,9 @@
 
 using namespace gern;
 
-TEST(Lowering, SingleElemFunction) {
-    auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
+TEST(LoweringCPU, SingleElemFunction) {
+    auto inputDS = std::make_shared<const dummy::TestDSCPU>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDSCPU>("output_con");
 
     test::add add_f;
     Variable v("v");
@@ -52,7 +52,7 @@ TEST(Lowering, SingleElemFunction) {
                  }),
                  error::UserError);
 
-    auto dummyDS = std::make_shared<const dummy::TestDS>("dummy_ds");
+    auto dummyDS = std::make_shared<const dummy::TestDSCPU>("dummy_ds");
     // Try running the correct number of arguments,
     // but with the wrong reference data-structure.
     ASSERT_THROW(p.evaluate({
@@ -66,9 +66,9 @@ TEST(Lowering, SingleElemFunction) {
     b.destroy();
 }
 
-TEST(Lowering, SingleReduceFunction) {
-    auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
+TEST(LoweringCPU, SingleReduceFunction) {
+    auto inputDS = std::make_shared<const dummy::TestDSCPU>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDSCPU>("output_con");
 
     Variable v1("v1");
     Variable v2("v2");
@@ -127,9 +127,9 @@ TEST(Lowering, SingleReduceFunction) {
     b.destroy();
 }
 
-TEST(Lowering, MultiFunction) {
-    auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
+TEST(LoweringCPU, MultiFunction) {
+    auto inputDS = std::make_shared<const dummy::TestDSCPU>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDSCPU>("output_con");
     test::add add_f;
 
     Compose compose{{add_f(inputDS, outputDS),
