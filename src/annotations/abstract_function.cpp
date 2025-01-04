@@ -81,8 +81,12 @@ Pattern AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> con
     // Convert all variables to fresh names for each
     // individual callsite.
     for (const auto &v : old_vars) {
-        // If we already have a name (from an argument for example), skip.
+        // If we already have a name (from an argument for example), skip
         if (fresh_names.count(v) > 0) {
+            continue;
+        }
+        if (bindings.count(v.getName())) {
+            fresh_names[v] = bindings.at(v.getName());
             continue;
         }
         fresh_names[v] = getUniqueName("_gern_" + v.getName());

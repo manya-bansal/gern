@@ -1,7 +1,22 @@
 #include "compose/compose.h"
+#include "annotations/data_dependency_language.h"
+#include "annotations/lang_nodes.h"
+#include "annotations/visitor.h"
 #include "compose/compose_visitor.h"
 
 namespace gern {
+
+const FunctionCall *FunctionCall::withSymbolic(const std::map<std::string, Variable> &binding) {
+    std::map<Variable, Variable> var_bindings;
+    match(annotation, std::function<void(const VariableNode *)>(
+                          [&](const VariableNode *op) {
+                              if (binding.count(op->name) > 0) {
+                                  var_bindings[op] = binding.at(op->name);
+                              }
+                          }));
+    annotation = to<Pattern>(annotation.replaceVariables(var_bindings));
+    return this;
+}
 
 Compose::Compose(std::vector<Compose> compose)
     : Compose(new const ComposeVec(compose)) {

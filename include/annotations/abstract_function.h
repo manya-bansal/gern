@@ -36,6 +36,11 @@ public:
         return {};
     }
 
+    AbstractFunction &operator[](std::map<std::string, Variable> replacements) {
+        bindings.insert(replacements.begin(), replacements.end());
+        return *this;
+    }
+
     template<typename T>
     const FunctionCall *operator()(T argument) {
         std::vector<Argument> arguments;
@@ -65,6 +70,7 @@ public:
 
 private:
     Pattern rewriteAnnotWithConcreteArgs(std::vector<Argument> concrete_arguments);
+    std::map<std::string, Variable> bindings;
 };
 
 }  // namespace gern

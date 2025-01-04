@@ -42,7 +42,7 @@ public:
     int size;
 };
 
-void add(TestArray a, TestArray b, int64_t v) {
+void add(TestArray a, TestArray b) {
     for (int64_t i = 0; i < a.size; i++) {
         b.data[i] += a.data[i];
     }

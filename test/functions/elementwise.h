@@ -35,7 +35,6 @@ public:
         return {
             Argument(input),
             Argument(output),
-            end,
         };
     }
 

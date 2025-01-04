@@ -99,6 +99,19 @@ public:
         return header;
     }
 
+    /**
+     * @brief This function is used to bind a symbolic variable in the
+     *        annotation with a user-provided variable. This is useful for
+     *        passing in arguments for the function pointer, otherwise,
+     *        users do not have a hook for passing arguments properly,
+     *        since the argument order is not pre-determined.
+     *
+     * @param binding  Map that contains the name of the variable in the annotation
+     *                 and a gern variable that will be bound to the variable.
+     * @return FunctionCall
+     */
+    const FunctionCall *withSymbolic(const std::map<std::string, Variable> &binding);
+
     void accept(CompositionVisitor *v) const;
 
 private:

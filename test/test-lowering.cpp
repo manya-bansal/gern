@@ -20,7 +20,7 @@ TEST(Lowering, SingleElemFunction) {
     test::add add_f;
     Variable v("v");
 
-    std::vector<Compose> c = {add_f(inputDS, outputDS, v)};
+    std::vector<Compose> c = {add_f[{{"end", v}}](inputDS, outputDS)};
     Pipeline p(c);
 
     p.lower();
@@ -60,10 +60,9 @@ TEST(Lowering, MultiFunction) {
     auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
     auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
     test::add add_f;
-    Variable v("v");
 
-    Compose compose{{add_f(inputDS, outputDS, v),
-                     Compose(add_f(outputDS, outputDS, v))}};
+    Compose compose{{add_f(inputDS, outputDS),
+                     Compose(add_f(outputDS, outputDS))}};
     Pipeline p({compose});
 
     // Currently, only pipelines with one function call
