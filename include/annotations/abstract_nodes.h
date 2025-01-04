@@ -4,6 +4,7 @@
 #include "annotations/datatypes.h"
 #include "utils/name_generator.h"
 #include "utils/uncopyable.h"
+#include <concepts>
 
 namespace gern {
 
@@ -63,6 +64,12 @@ public:
 private:
     std::string name;
     std::string type;
+};
+
+template<typename T>
+concept InterfaceTest = requires(T t) {
+    { t.getName() } -> std::same_as<std::string>;
+    { t.getType() } -> std::same_as<std::string>;
 };
 
 typedef std::shared_ptr<const AbstractDataType> AbstractDataTypePtr;

@@ -68,7 +68,7 @@ target_sources(
         include/utils/uncopyable.h
 )
 target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
-target_compile_features(Gern_Gern PUBLIC cxx_std_17)
+target_compile_features(Gern_Gern PUBLIC cxx_std_20)
 target_link_libraries(Gern_Gern PRIVATE ginac::ginac)
 
 ##
