@@ -9,6 +9,7 @@ endif ()
 # Find dependencies
 
 find_package(ginac 1.8.7 REQUIRED)
+find_package(CUDAToolkit REQUIRED)
 
 ##
 # Main library target
@@ -69,7 +70,7 @@ target_sources(
 )
 target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
 target_compile_features(Gern_Gern PUBLIC cxx_std_17)
-target_link_libraries(Gern_Gern PRIVATE ginac::ginac)
+target_link_libraries(Gern_Gern PRIVATE ginac::ginac CUDA::cudart)
 
 ##
 # Testing
