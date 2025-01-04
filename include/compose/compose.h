@@ -135,7 +135,7 @@ std::ostream &operator<<(std::ostream &os, const FunctionCall &f);
 template<typename E>
 inline bool isa(const CompositionObject *e) {
     return e != nullptr && dynamic_cast<const E *>(e) != nullptr;
-};
+}
 
 template<typename E>
 inline const E *to(const CompositionObject *e) {

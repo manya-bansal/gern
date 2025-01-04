@@ -78,21 +78,21 @@ std::ostream &operator<<(std::ostream &os, const Constraint &);
         typedef NAME##Node Node;           \
     };
 
-DEFINE_BINARY_CLASS(Add, Expr);
-DEFINE_BINARY_CLASS(Sub, Expr);
-DEFINE_BINARY_CLASS(Div, Expr);
-DEFINE_BINARY_CLASS(Mul, Expr);
-DEFINE_BINARY_CLASS(Mod, Expr);
+DEFINE_BINARY_CLASS(Add, Expr)
+DEFINE_BINARY_CLASS(Sub, Expr)
+DEFINE_BINARY_CLASS(Div, Expr)
+DEFINE_BINARY_CLASS(Mul, Expr)
+DEFINE_BINARY_CLASS(Mod, Expr)
 
-DEFINE_BINARY_CLASS(And, Constraint);
-DEFINE_BINARY_CLASS(Or, Constraint);
+DEFINE_BINARY_CLASS(And, Constraint)
+DEFINE_BINARY_CLASS(Or, Constraint)
 
-DEFINE_BINARY_CLASS(Eq, Constraint);
-DEFINE_BINARY_CLASS(Neq, Constraint);
-DEFINE_BINARY_CLASS(Leq, Constraint);
-DEFINE_BINARY_CLASS(Geq, Constraint);
-DEFINE_BINARY_CLASS(Less, Constraint);
-DEFINE_BINARY_CLASS(Greater, Constraint);
+DEFINE_BINARY_CLASS(Eq, Constraint)
+DEFINE_BINARY_CLASS(Neq, Constraint)
+DEFINE_BINARY_CLASS(Leq, Constraint)
+DEFINE_BINARY_CLASS(Geq, Constraint)
+DEFINE_BINARY_CLASS(Less, Constraint)
+DEFINE_BINARY_CLASS(Greater, Constraint)
 
 Add operator+(const Expr &, const Expr &);
 Sub operator-(const Expr &, const Expr &);
@@ -194,15 +194,15 @@ std::ostream &operator<<(std::ostream &os, const Stmt &);
 template<typename E, typename T>
 inline bool isa(const T &e) {
     return e.ptr != nullptr && dynamic_cast<const typename E::Node *>(e.ptr) != nullptr;
-};
+}
 
 template<typename E, typename T>
 inline const E to(const T &e) {
     assert(isa<E>(e));
     return E(static_cast<const typename E::Node *>(e.ptr));
-};
+}
 
-DEFINE_BINARY_CLASS(Assign, Stmt);
+DEFINE_BINARY_CLASS(Assign, Stmt)
 
 class Subset : public Stmt {
 public:

@@ -2,6 +2,7 @@
 #define GERN_TEST_UTILS_H
 
 #include "annotations/data_dependency_language.h"
+#include <algorithm>
 
 namespace gern {
 namespace dummy {

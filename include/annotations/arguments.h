@@ -118,7 +118,7 @@ void addArguments(std::vector<Argument> &arguments, T first,
 template<typename E>
 inline bool isa(const ArgumentNode *e) {
     return e != nullptr && dynamic_cast<const E *>(e) != nullptr;
-};
+}
 
 template<typename E>
 inline const E *to(const ArgumentNode *e) {

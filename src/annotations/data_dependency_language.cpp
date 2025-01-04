@@ -146,14 +146,14 @@ Stmt Stmt::whereStmt(Constraint constraint) const {
         return to<Type>(this->whereStmt(c)); \
     }
 
-DEFINE_WHERE_METHOD(Consumes);
-DEFINE_WHERE_METHOD(Subset);
-DEFINE_WHERE_METHOD(Produces);
-DEFINE_WHERE_METHOD(ConsumeMany);
-DEFINE_WHERE_METHOD(Subsets);
-DEFINE_WHERE_METHOD(Allocates);
-DEFINE_WHERE_METHOD(Pattern);
-DEFINE_WHERE_METHOD(Computes);
+DEFINE_WHERE_METHOD(Consumes)
+DEFINE_WHERE_METHOD(Subset)
+DEFINE_WHERE_METHOD(Produces)
+DEFINE_WHERE_METHOD(ConsumeMany)
+DEFINE_WHERE_METHOD(Subsets)
+DEFINE_WHERE_METHOD(Allocates)
+DEFINE_WHERE_METHOD(Pattern)
+DEFINE_WHERE_METHOD(Computes)
 
 Stmt Stmt::replaceVariables(std::map<Variable, Variable> rw_vars) const {
     struct rewriteVar : public Rewriter {
@@ -214,17 +214,17 @@ DEFINE_BINARY_CONSTRUCTOR(Div, Expr)
 DEFINE_BINARY_CONSTRUCTOR(Mod, Expr)
 DEFINE_BINARY_CONSTRUCTOR(Mul, Expr)
 
-DEFINE_BINARY_CONSTRUCTOR(And, Constraint);
-DEFINE_BINARY_CONSTRUCTOR(Or, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(And, Constraint)
+DEFINE_BINARY_CONSTRUCTOR(Or, Constraint)
 
-DEFINE_BINARY_CONSTRUCTOR(Eq, Constraint);
-DEFINE_BINARY_CONSTRUCTOR(Neq, Constraint);
-DEFINE_BINARY_CONSTRUCTOR(Leq, Constraint);
-DEFINE_BINARY_CONSTRUCTOR(Geq, Constraint);
-DEFINE_BINARY_CONSTRUCTOR(Less, Constraint);
-DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
+DEFINE_BINARY_CONSTRUCTOR(Eq, Constraint)
+DEFINE_BINARY_CONSTRUCTOR(Neq, Constraint)
+DEFINE_BINARY_CONSTRUCTOR(Leq, Constraint)
+DEFINE_BINARY_CONSTRUCTOR(Geq, Constraint)
+DEFINE_BINARY_CONSTRUCTOR(Less, Constraint)
+DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint)
 
-DEFINE_BINARY_CONSTRUCTOR(Assign, Stmt);
+DEFINE_BINARY_CONSTRUCTOR(Assign, Stmt)
 
 Subset::Subset(const SubsetNode *n)
     : Stmt(n) {
