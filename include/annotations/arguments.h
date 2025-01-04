@@ -2,6 +2,7 @@
 #define GERN_ARGUMENTS_H
 
 #include "annotations/abstract_nodes.h"
+#include "annotations/data_dependency_language.h"
 #include "utils/uncopyable.h"
 #include <cassert>
 #include <iostream>
@@ -10,7 +11,8 @@ namespace gern {
 
 enum ArgumentType {
     UNDEFINED,
-    DATA_STRUCTURE
+    DATA_STRUCTURE,
+    GERN_VARIABLE,  // Gern variable currently implies int64_t type;
 };
 
 class ArgumentNode : public util::Manageable<ArgumentNode>,
@@ -47,6 +49,22 @@ private:
     AbstractDataTypePtr dataStruct;
 };
 
+class VarArg : public ArgumentNode {
+public:
+    VarArg(Variable v)
+        : ArgumentNode(GERN_VARIABLE), v(v) {
+    }
+    void print(std::ostream &os) const override {
+        os << v;
+    }
+    Variable getVar() const {
+        return v;
+    }
+
+private:
+    Variable v;
+};
+
 class Argument : public util::IntrusivePtr<const ArgumentNode> {
 public:
     Argument()
@@ -57,6 +75,9 @@ public:
     }
     Argument(AbstractDataTypePtr dataStuct)
         : Argument(new const DSArg(dataStuct)) {
+    }
+    Argument(Variable v)
+        : Argument(new const VarArg(v)) {
     }
     void print(std::ostream &os) const {
         ptr->print(os);
@@ -72,10 +93,14 @@ overload of () for the AbstractFunction class,
 an addArgument must be defined for that type of
 argument.
 */
-
 [[maybe_unused]] static void addArgument(std::vector<Argument> &vector,
                                          AbstractDataTypePtr dataStruct) {
     vector.push_back(new const DSArg(dataStruct));
+}
+
+[[maybe_unused]] static void addArgument(std::vector<Argument> &vector,
+                                         Variable v) {
+    vector.push_back(new const VarArg(v));
 }
 
 [[maybe_unused]] static void addArguments(std::vector<Argument> &arg) {

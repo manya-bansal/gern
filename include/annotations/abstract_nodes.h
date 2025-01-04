@@ -4,6 +4,7 @@
 #include "annotations/datatypes.h"
 #include "utils/name_generator.h"
 #include "utils/uncopyable.h"
+#include <concepts>
 
 namespace gern {
 
@@ -43,13 +44,12 @@ public:
     virtual void accept(StmtVisitorStrict *) const = 0;
 };
 
-class AbstractDataType : private util::Uncopyable {
+class AbstractDataType {
 public:
-    AbstractDataType()
-        : name(gern::getUniqueName()) {
-    }
-    AbstractDataType(const std::string &name)
-        : name(name) {
+    AbstractDataType() = default;
+
+    AbstractDataType(const std::string &name, const std::string &type)
+        : name(name), type(type) {
     }
     virtual ~AbstractDataType() = default;
 
@@ -57,8 +57,13 @@ public:
         return name;
     }
 
+    virtual std::string getType() const {
+        return type;
+    }
+
 private:
     std::string name;
+    std::string type;
 };
 
 typedef std::shared_ptr<const AbstractDataType> AbstractDataTypePtr;

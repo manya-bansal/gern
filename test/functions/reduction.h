@@ -1,5 +1,5 @@
-#ifndef GERN_ELEMENTWISE_FUNCTION_H
-#define GERN_ELEMENTWISE_FUNCTION_H
+#ifndef GERN_REDUCTION_FUNCTION_H
+#define GERN_REDUCTION_FUNCTION_H
 
 #include "annotations/abstract_function.h"
 #include "config.h"
@@ -9,9 +9,12 @@
 namespace gern {
 namespace test {
 
-class add : public AbstractFunction {
+// This is perhaps a contrived example, but it exists to
+// exercise the ability to add for loops inside
+// the compute annotation.
+class reduction : public AbstractFunction {
 public:
-    add()
+    reduction()
         : input(std::make_shared<dummy::TestDS>("input")),
           output(std::make_shared<dummy::TestDS>("output")) {
     }
@@ -21,21 +24,22 @@ public:
 
     Pattern getAnnotation() {
         Variable x("x");
-        Expr step(1);
+        Variable r("r");
+        Variable step("step");
+        Variable end("end");
 
-        return For(x = Expr(0), x < end, x = (x + step),
+        return For(x = Expr(0), x < end, x = x + step,
                    Computes(
                        Produces(
-                           Subset(output, {x, step})),
+                           Subset(output, {x, 1})),
                        Consumes(
-                           Subset(input, {x, step}))));
+                           For(r = Expr(0), r < end, r = r + 1,
+                               Subsets{
+                                   Subset(input, {r, 1})}))));
     }
 
     std::vector<Argument> getArguments() {
-        return {
-            Argument(input),
-            Argument(output),
-        };
+        return {Argument(input), Argument(output)};
     }
 
     std::vector<std::string> getHeader() {
@@ -53,7 +57,6 @@ public:
 private:
     std::shared_ptr<dummy::TestDS> input;
     std::shared_ptr<dummy::TestDS> output;
-    Variable end{"end"};
 };
 
 }  // namespace test

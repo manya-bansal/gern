@@ -32,6 +32,13 @@ target_sources(
         src/annotations/lang_nodes.cpp
         src/annotations/visitor.cpp
         src/compose/compose.cpp
+        src/compose/compose_visitor.cpp
+        src/compose/pipeline.cpp
+        src/compose/pipeline_visitor.cpp
+        src/codegen/codegen.cpp
+        src/codegen/codegen_ir.cpp
+        src/codegen/codegen_printer.cpp
+        src/codegen/codegen_visitor.cpp
         src/resolve_constraints/resolve_constraints.cpp
         src/utils/name_generator.cpp
     PUBLIC
@@ -47,13 +54,21 @@ target_sources(
         include/annotations/visitor.h
         include/resolve_constraints/resolve_constraints.h
         include/compose/compose.h
+        include/compose/compose_visitor.h
+        include/compose/pipeline.h
+        include/compose/pipeline_visitor.h
+        include/codegen/codegen.h
+        include/codegen/codegen_ir.h
+        include/codegen/codegen_visitor.h
+        include/codegen/codegen_printer.h
         include/utils/debug.h
         include/utils/error.h
         include/utils/name_generator.h
+        include/utils/printer.h
         include/utils/uncopyable.h
 )
 target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
-target_compile_features(Gern_Gern PUBLIC cxx_std_17)
+target_compile_features(Gern_Gern PUBLIC cxx_std_20)
 target_link_libraries(Gern_Gern PRIVATE ginac::ginac)
 
 ##

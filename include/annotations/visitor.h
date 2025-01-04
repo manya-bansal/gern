@@ -23,6 +23,7 @@ struct GreaterNode;
 struct AndNode;
 struct OrNode;
 
+struct AssignNode;
 struct SubsetNode;
 struct SubsetsNode;
 struct ProducesNode;
@@ -49,10 +50,9 @@ public:
     virtual void visit(const VariableNode *) = 0;
 };
 
-class ConstraintVisitorStrict : public ExprVisitorStrict {
+class ConstraintVisitorStrict {
 public:
     virtual ~ConstraintVisitorStrict() = default;
-    using ExprVisitorStrict::visit;
 
     virtual void visit(Constraint);
     virtual void visit(const EqNode *) = 0;
@@ -70,6 +70,7 @@ public:
     virtual ~StmtVisitorStrict() = default;
 
     virtual void visit(Stmt);
+    virtual void visit(const AssignNode *) = 0;
     virtual void visit(const SubsetNode *) = 0;
     virtual void visit(const SubsetsNode *) = 0;
     virtual void visit(const ProducesNode *) = 0;
@@ -81,10 +82,12 @@ public:
     virtual void visit(const PatternNode *) = 0;
 };
 
-class AnnotVisitorStrict : public ConstraintVisitorStrict,
+class AnnotVisitorStrict : public ExprVisitorStrict,
+                           public ConstraintVisitorStrict,
                            public StmtVisitorStrict {
 public:
     using ConstraintVisitorStrict::visit;
+    using ExprVisitorStrict::visit;
     using StmtVisitorStrict::visit;
 };
 
@@ -117,6 +120,7 @@ public:
     void visit(const OrNode *);
     void visit(const AndNode *);
 
+    void visit(const AssignNode *);
     void visit(const SubsetNode *);
     void visit(const SubsetsNode *);
     void visit(const ProducesNode *);
@@ -155,6 +159,7 @@ public:
     void visit(const OrNode *);
     void visit(const AndNode *);
 
+    void visit(const AssignNode *);
     void visit(const SubsetNode *);
     void visit(const SubsetsNode *);
     void visit(const ProducesNode *);
@@ -227,6 +232,7 @@ private:
     RULE(GreaterNode);
     RULE(VariableNode);
     RULE(LiteralNode);
+    RULE(AssignNode);
     RULE(SubsetNode);
     RULE(SubsetsNode);
     RULE(ProducesNode);
@@ -306,6 +312,7 @@ protected:
     void visit(const OrNode *);
     void visit(const AndNode *);
 
+    void visit(const AssignNode *);
     void visit(const SubsetNode *);
     void visit(const SubsetsNode *);
     void visit(const ProducesNode *);

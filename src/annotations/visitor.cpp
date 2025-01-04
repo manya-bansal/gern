@@ -1,5 +1,6 @@
 #include "annotations/visitor.h"
 #include "annotations/lang_nodes.h"
+#include "utils/printer.h"
 
 namespace gern {
 
@@ -24,24 +25,18 @@ void StmtVisitorStrict::visit(Stmt s) {
     s.accept(this);
 }
 
-static void printIdent(std::ostream &os, int ident) {
-    for (int i = 0; i < ident; i++) {
-        os << "  ";
-    }
-}
-
 void Printer::visit(Consumes p) {
     if (!p.defined()) {
         return;
     }
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << " when consumes {"
        << "\n";
     ident++;
     p.accept(this);
     os << "\n";
     ident--;
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
@@ -57,6 +52,9 @@ void Printer::visit(const LiteralNode *op) {
 }
 void Printer::visit(const VariableNode *op) {
     os << op->name;
+    if (op->grid) {
+        os << " @ GRID ";
+    }
 }
 
 #define DEFINE_PRINTER_METHOD(CLASS_NAME, OPERATOR)      \
@@ -77,20 +75,21 @@ DEFINE_PRINTER_METHOD(LessNode, <)
 DEFINE_PRINTER_METHOD(GreaterNode, >)
 DEFINE_PRINTER_METHOD(AndNode, &&)
 DEFINE_PRINTER_METHOD(OrNode, ||)
+DEFINE_PRINTER_METHOD(AssignNode, =)
 
 void Printer::visit(const SubsetNode *op) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << *(op->data) << " {"
        << "\n";
     ident++;
     int size_mf = op->mdFields.size();
     for (int i = 0; i < size_mf; i++) {
-        printIdent(os, ident);
+        util::printIdent(os, ident);
         os << op->mdFields[i];
         os << ((i != size_mf - 1) ? "," : "") << "\n";
     }
     ident--;
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
@@ -104,7 +103,7 @@ void Printer::visit(const SubsetsNode *op) {
 }
 
 void Printer::visit(const ProducesNode *op) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "produces {"
        << "\n";
     ident++;
@@ -112,7 +111,7 @@ void Printer::visit(const ProducesNode *op) {
     p.visit(op->output);
     os << "\n";
     ident--;
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
@@ -122,7 +121,7 @@ void Printer::visit(const ConsumesNode *op) {
 
 void Printer::visit(Allocates a) {
     if (!a.defined()) {
-        printIdent(os, ident);
+        util::printIdent(os, ident);
         os << "allocates()";
         return;
     }
@@ -130,27 +129,27 @@ void Printer::visit(Allocates a) {
 }
 
 void Printer::visit(const AllocatesNode *op) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "allocates { register : " << op->reg << " , smem : " << op->smem << "}";
 }
 
 void Printer::visit(const ConsumesForNode *op) {
-    printIdent(os, ident);
-    os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
-       << op->step << " ] {"
+    util::printIdent(os, ident);
+    os << "for ( " << op->start << " ; " << op->end << " ; "
+       << op->step << " ) {"
        << "\n";
     ident++;
     Printer p{os, ident};
     p.visit(op->body);
     ident--;
     os << "\n";
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
 void Printer::visit(const ComputesForNode *op) {
-    printIdent(os, ident);
-    os << "for " << op->v << " in [ " << op->start << " : " << op->end << " : "
+    util::printIdent(os, ident);
+    os << "for [ " << op->start << " : " << op->end << " : "
        << op->step << " ] {"
        << "\n";
     ident++;
@@ -158,12 +157,12 @@ void Printer::visit(const ComputesForNode *op) {
     p.visit(op->body);
     ident--;
     os << "\n";
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
 void Printer::visit(const ComputesNode *op) {
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "computes {"
        << "\n";
     ident++;
@@ -175,7 +174,7 @@ void Printer::visit(const ComputesNode *op) {
     p.visit(op->a);
     os << "\n";
     ident--;
-    printIdent(os, ident);
+    util::printIdent(os, ident);
     os << "}";
 }
 
@@ -206,6 +205,8 @@ DEFINE_BINARY_VISITOR_METHOD(LeqNode);
 DEFINE_BINARY_VISITOR_METHOD(GeqNode);
 DEFINE_BINARY_VISITOR_METHOD(LessNode);
 DEFINE_BINARY_VISITOR_METHOD(GreaterNode);
+
+DEFINE_BINARY_VISITOR_METHOD(AssignNode);
 
 void AnnotVisitor::visit(const VariableNode *) {
 }
@@ -240,7 +241,6 @@ void AnnotVisitor::visit(const AllocatesNode *op) {
 }
 
 void AnnotVisitor::visit(const ConsumesForNode *op) {
-    this->visit(op->v);
     this->visit(op->start);
     this->visit(op->end);
     this->visit(op->step);
@@ -248,7 +248,6 @@ void AnnotVisitor::visit(const ConsumesForNode *op) {
 }
 
 void AnnotVisitor::visit(const ComputesForNode *op) {
-    this->visit(op->v);
     this->visit(op->start);
     this->visit(op->end);
     this->visit(op->step);
@@ -335,23 +334,21 @@ void Rewriter::visit(const AllocatesNode *op) {
 }
 
 void Rewriter::visit(const ConsumesForNode *op) {
-    Variable rw_v = to<Variable>(this->rewrite(op->v));
-    Expr rw_start = this->rewrite(op->start);
-    Expr rw_end = this->rewrite(op->end);
-    Expr rw_step = this->rewrite(op->step);
+    Assign rw_start = to<Assign>(this->rewrite(op->start));
+    Constraint rw_end = this->rewrite(op->end);
+    Assign rw_step = to<Assign>(this->rewrite(op->step));
     ConsumeMany rw_body = to<ConsumeMany>(this->rewrite(op->body));
-    stmt = Consumes(new const ConsumesForNode(rw_v, rw_start,
+    stmt = Consumes(new const ConsumesForNode(rw_start,
                                               rw_end, rw_step,
                                               rw_body, op->parallel));
 }
 
 void Rewriter::visit(const ComputesForNode *op) {
-    Variable rw_v = to<Variable>(this->rewrite(op->v));
-    Expr rw_start = this->rewrite(op->start);
-    Expr rw_end = this->rewrite(op->end);
-    Expr rw_step = this->rewrite(op->step);
+    Assign rw_start = to<Assign>(this->rewrite(op->start));
+    Constraint rw_end = this->rewrite(op->end);
+    Assign rw_step = to<Assign>(this->rewrite(op->step));
     Pattern rw_body = to<Pattern>(this->rewrite(op->body));
-    stmt = Pattern(new const ComputesForNode(rw_v, rw_start,
+    stmt = Pattern(new const ComputesForNode(rw_start,
                                              rw_end, rw_step,
                                              rw_body, op->parallel));
 }
@@ -382,12 +379,13 @@ DEFINE_BINARY_REWRITER_METHOD(ModNode, Expr, expr);
 
 DEFINE_BINARY_REWRITER_METHOD(AndNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(OrNode, Constraint, where);
-
 DEFINE_BINARY_REWRITER_METHOD(EqNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(NeqNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(LeqNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(GeqNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(LessNode, Constraint, where);
 DEFINE_BINARY_REWRITER_METHOD(GreaterNode, Constraint, where);
+
+DEFINE_BINARY_REWRITER_METHOD(AssignNode, Stmt, stmt);
 
 }  // namespace gern

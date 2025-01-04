@@ -18,6 +18,10 @@ public:
         return name;
     }
 
+    std::string getType() const override {
+        return "gern::lib::TestArray";
+    }
+
 private:
     std::string name;
 };

@@ -68,8 +68,28 @@ Variable::Variable(const std::string &name)
     : Expr(new const VariableNode(name)) {
 }
 
+Variable Variable::get_from_grid() const {
+    return Variable(new const VariableNode(getName(), true));
+}
+
 std::string Variable::getName() const {
     return getNode(*this)->name;
+}
+
+Datatype Variable::getType() const {
+    return getNode(*this)->type;
+}
+
+bool Variable::is_from_grid() const {
+    return getNode(*this)->grid;
+}
+
+Assign Variable::operator=(const Expr &e) {
+    return Assign(*this, e);
+}
+
+Assign Variable::operator+=(const Expr &e) {
+    return Assign(*this, *this + e);
 }
 
 std::ostream &operator<<(std::ostream &os, const Expr &e) {
@@ -204,6 +224,8 @@ DEFINE_BINARY_CONSTRUCTOR(Geq, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Less, Constraint);
 DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint);
 
+DEFINE_BINARY_CONSTRUCTOR(Assign, Stmt);
+
 Subset::Subset(const SubsetNode *n)
     : Stmt(n) {
 }
@@ -211,6 +233,10 @@ Subset::Subset(const SubsetNode *n)
 Subset::Subset(AbstractDataTypePtr data,
                std::vector<Expr> mdFields)
     : Stmt(new const SubsetNode(data, mdFields)) {
+}
+
+AbstractDataTypePtr Subset::getDS() const {
+    return getNode(*this)->data;
 }
 
 Subsets::Subsets(const std::vector<Subset> &inputs)
@@ -241,10 +267,10 @@ Consumes::Consumes(Subset s)
     : Consumes(new const SubsetsNode({s})) {
 }
 
-ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+ConsumeMany For(Assign start, Constraint end, Assign step, ConsumeMany body,
                 bool parallel) {
     return ConsumeMany(
-        new const ConsumesForNode(v, start, end, step, body, parallel));
+        new const ConsumesForNode(start, end, step, body, parallel));
 }
 
 Allocates::Allocates(const AllocatesNode *n)
@@ -267,10 +293,10 @@ Pattern::Pattern(const PatternNode *p)
     : Stmt(p) {
 }
 
-Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
+Pattern For(Assign start, Constraint end, Assign step, Pattern body,
             bool parallel) {
     return Pattern(
-        new const ComputesForNode(v, start, end, step, body, parallel));
+        new const ComputesForNode(start, end, step, body, parallel));
 }
 
 }  // namespace gern

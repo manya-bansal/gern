@@ -24,6 +24,7 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
+struct AssignNode;
 
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
@@ -67,15 +68,6 @@ public:
 
 std::ostream &operator<<(std::ostream &os, const Constraint &);
 
-class Variable : public Expr {
-public:
-    Variable() = default;
-    Variable(const std::string &name);
-    Variable(const VariableNode *);
-    std::string getName() const;
-    typedef VariableNode Node;
-};
-
 #define DEFINE_BINARY_CLASS(NAME, NODE)    \
     class NAME : public NODE {             \
     public:                                \
@@ -116,6 +108,26 @@ Greater operator>(const Expr &, const Expr &);
 And operator&&(const Expr &, const Expr &);
 Or operator||(const Expr &, const Expr &);
 
+class Assign;
+
+// All variables are current ints.
+class Variable : public Expr {
+public:
+    Variable() = default;
+    Variable(const std::string &name);
+    Variable(const VariableNode *);
+
+    Variable get_from_grid() const;
+    bool is_from_grid() const;
+    std::string getName() const;
+    Datatype getType() const;
+
+    Assign operator=(const Expr &);
+    Assign operator+=(const Expr &);
+
+    typedef VariableNode Node;
+};
+
 }  // namespace gern
 
 // Defining an std::less overload so that
@@ -153,9 +165,6 @@ public:
         : util::IntrusivePtr<const StmtNode>(n) {
     }
 
-    Stmt getObject() const {
-        return *this;
-    }
     /**
      * @brief Add a constraint to a statement
      *
@@ -193,6 +202,8 @@ inline const E to(const T &e) {
     return E(static_cast<const typename E::Node *>(e.ptr));
 };
 
+DEFINE_BINARY_CLASS(Assign, Stmt);
+
 class Subset : public Stmt {
 public:
     Subset() = default;
@@ -200,6 +211,7 @@ public:
     Subset(AbstractDataTypePtr data,
            std::vector<Expr> mdFields);
     Subset where(Constraint);
+    AbstractDataTypePtr getDS() const;
     typedef SubsetNode Node;
 };
 
@@ -231,7 +243,7 @@ public:
 
 class Subsets : public ConsumeMany {
 public:
-    explicit Subsets(const SubsetsNode *);
+    Subsets(const SubsetsNode *);
     Subsets(const std::vector<Subset> &subsets);
     Subsets(Subset s)
         : Subsets(std::vector<Subset>{s}) {
@@ -243,7 +255,7 @@ public:
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
-ConsumeMany For(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+ConsumeMany For(Assign start, Constraint end, Assign step, ConsumeMany body,
                 bool parallel = false);
 
 class Allocates : public Stmt {
@@ -276,7 +288,7 @@ public:
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.
-Pattern For(Variable v, Expr start, Expr end, Expr step, Pattern body,
+Pattern For(Assign start, Constraint end, Assign step, Pattern body,
             bool parallel = false);
 
 }  // namespace gern

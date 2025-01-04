@@ -29,14 +29,15 @@ struct LiteralNode : public ExprNode {
 std::ostream &operator<<(std::ostream &os, const LiteralNode &);
 
 struct VariableNode : public ExprNode {
-    VariableNode(const std::string &name, bool argument = false)
-        : ExprNode(Datatype::Kind::Int64), name(name), argument(argument) {
+    VariableNode(const std::string &name, bool grid = false, Datatype type = Datatype::Int64)
+        : ExprNode(Datatype::Kind::Int64), name(name), grid(grid), type(type) {
     }
     void accept(ExprVisitorStrict *v) const override {
         v->visit(this);
     }
     std::string name;
-    bool argument;
+    bool grid;
+    Datatype type;
 };
 
 #define DEFINE_BINARY_NODE(NAME, NODE)                       \
@@ -65,6 +66,9 @@ DEFINE_BINARY_NODE(LeqNode, Constraint);
 DEFINE_BINARY_NODE(GeqNode, Constraint);
 DEFINE_BINARY_NODE(LessNode, Constraint);
 DEFINE_BINARY_NODE(GreaterNode, Constraint);
+
+// Assignment Node
+DEFINE_BINARY_NODE(AssignNode, Stmt);
 
 struct SubsetNode : public StmtNode {
     SubsetNode(AbstractDataTypePtr data,
@@ -96,18 +100,17 @@ struct ConsumesNode : public StmtNode {
 };
 
 struct ConsumesForNode : public ConsumesNode {
-    ConsumesForNode(Variable v, Expr start, Expr end, Expr step, ConsumeMany body,
+    ConsumesForNode(Assign start, Constraint end, Assign step, ConsumeMany body,
                     bool parallel = false)
-        : v(v), start(start), end(end), step(step), body(body),
+        : start(start), end(end), step(step), body(body),
           parallel(parallel) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    Variable v;
-    Expr start;
-    Expr end;
-    Expr step;
+    Assign start;
+    Constraint end;
+    Assign step;
     ConsumeMany body;
     bool parallel;
 };
@@ -130,18 +133,17 @@ struct PatternNode : public StmtNode {
 };
 
 struct ComputesForNode : public PatternNode {
-    ComputesForNode(Variable v, Expr start, Expr end, Expr step, Pattern body,
+    ComputesForNode(Assign start, Constraint end, Assign step, Pattern body,
                     bool parallel = false)
-        : v(v), start(start), end(end), step(step), body(body),
+        : start(start), end(end), step(step), body(body),
           parallel(parallel) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    Variable v;
-    Expr start;
-    Expr end;
-    Expr step;
+    Assign start;
+    Constraint end;
+    Assign step;
     Pattern body;
     bool parallel;
 };
