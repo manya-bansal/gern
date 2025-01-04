@@ -66,12 +66,6 @@ private:
     std::string type;
 };
 
-template<typename T>
-concept InterfaceTest = requires(T t) {
-    { t.getName() } -> std::same_as<std::string>;
-    { t.getType() } -> std::same_as<std::string>;
-};
-
 typedef std::shared_ptr<const AbstractDataType> AbstractDataTypePtr;
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataType &ads);

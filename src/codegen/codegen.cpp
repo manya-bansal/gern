@@ -37,6 +37,7 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
         hook_args.push_back(Deref::make(
             Cast::make(Type::make(ds->getType() + "*"),
                        Var::make("args[" + std::to_string(num_args) + "]"))));
+        argument_order.push_back(ds->getName());
         num_args++;
     }
     for (const auto &v : to_declare_vars) {
@@ -44,6 +45,7 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
         hook_args.push_back(Deref::make(
             Cast::make(Type::make(v.getType().getString() + "*"),
                        Var::make("args[" + std::to_string(num_args) + "]"))));
+        argument_order.push_back(v.getName());
         num_args++;
     }
 
@@ -292,6 +294,10 @@ std::string CodeGenerator::getName() const {
 
 std::string CodeGenerator::getHookName() const {
     return hook_name;
+}
+
+std::vector<std::string> CodeGenerator::getArgumentOrder() const {
+    return argument_order;
 }
 
 }  // namespace codegen

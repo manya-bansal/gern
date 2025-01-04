@@ -54,6 +54,7 @@ public:
 
     std::string getName() const;
     std::string getHookName() const;
+    std::vector<std::string> getArgumentOrder() const;
 
 private:
     std::string name;
@@ -67,6 +68,7 @@ private:
     std::set<std::string> headers;
     std::set<std::string> includes;
     std::set<std::string> libs;
+    std::vector<std::string> argument_order;
 };
 
 }  // namespace codegen

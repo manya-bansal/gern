@@ -24,24 +24,43 @@ TEST(Lowering, SingleElemFunction) {
     Pipeline p(c);
 
     p.lower();
-    void *fp = p.evaluate("-std=c++11 -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/");
+    p.compile("-std=c++11 -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/");
 
-    void (*f)(void **) = (void (*)(void **))fp;
-
-    // Actually use the array
-    TestArray a(10);
+    // Now, actually run the function.
+    lib::TestArray a(10);
     a.vvals(2.0f);
-    TestArray b(10);
+    lib::TestArray b(10);
     b.vvals(3.0f);
     int64_t var = 10;
 
-    void *args[] = {&a, &b, &var};
-    f(args);
+    p.evaluate({
+        {inputDS->getName(), &a},
+        {outputDS->getName(), &b},
+        {v.getName(), &var},
+    });
 
+    // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
-        std::cout << b.data[i] << std::endl;
-        std::cout << a.data[i] << std::endl;
+        ASSERT_TRUE(b.data[i] == 5.0f);
     }
+
+    // Try running with insufficient number
+    // of arguments.
+    ASSERT_THROW(p.evaluate({
+                     {inputDS->getName(), &a},
+                     {outputDS->getName(), &b},
+                 }),
+                 error::UserError);
+
+    auto dummyDS = std::make_shared<const dummy::TestDS>("dummy_ds");
+    // Try running the correct number of arguments,
+    // but with the wrong reference data-structure.
+    ASSERT_THROW(p.evaluate({
+                     {inputDS->getName(), &a},
+                     {dummyDS->getName(), &b},
+                     {v.getName(), &var},
+                 }),
+                 error::UserError);
 }
 
 TEST(Lowering, SingleReduceFunction) {

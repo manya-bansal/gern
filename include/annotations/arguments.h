@@ -93,7 +93,6 @@ overload of () for the AbstractFunction class,
 an addArgument must be defined for that type of
 argument.
 */
-
 [[maybe_unused]] static void addArgument(std::vector<Argument> &vector,
                                          AbstractDataTypePtr dataStruct) {
     vector.push_back(new const DSArg(dataStruct));

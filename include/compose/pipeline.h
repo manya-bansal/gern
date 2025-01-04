@@ -11,6 +11,8 @@ namespace gern {
 typedef const FunctionCall *FunctionCallPtr;
 class PipelineVisitor;
 
+using GernGenFuncPtr = void (*)(void **);
+
 struct LowerIRNode : public util::Manageable<LowerIRNode>,
                      public util::Uncopyable {
     LowerIRNode() = default;
@@ -41,7 +43,12 @@ public:
     }
 
     void lower();
-    void *evaluate(std::string compile_flags = "");
+    void compile(std::string compile_flags = "");
+    // This function actually runs the function pointer, and compiles
+    // the function pointer, if it hasn't already been compiled. Currently
+    // it takes adts and variables separately, I may need to extend this handle
+    // other types as well.
+    void evaluate(std::map<std::string, void *> args);
 
     using CompositionVisitor::visit;
     void visit(const FunctionCall *c);
@@ -58,6 +65,9 @@ private:
     std::vector<Compose> compose;
     std::vector<LowerIR> lowered;
     std::map<Variable, Expr> variable_definitions;
+    bool compiled = false;
+    GernGenFuncPtr fp;
+    std::vector<std::string> argument_order;
 };
 
 std::ostream &operator<<(std::ostream &os, const Pipeline &p);

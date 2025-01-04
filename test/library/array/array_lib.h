@@ -1,7 +1,9 @@
 #pragma once
-
 #include <cstring>
 #include <stdlib.h>
+
+namespace gern {
+namespace lib {
 
 /**
  * @brief An array class to test out Gern's
@@ -47,3 +49,6 @@ void add(TestArray a, TestArray b) {
         b.data[i] += a.data[i];
     }
 }
+
+}  // namespace lib
+}  // namespace gern

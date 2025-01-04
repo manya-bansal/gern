@@ -38,7 +38,7 @@ void Pipeline::lower() {
     visit(compose_vec);
 }
 
-void *Pipeline::evaluate(std::string compile_flags) {
+void Pipeline::compile(std::string compile_flags) {
 
     codegen::CodeGenerator cg;
     codegen::CGStmt code = cg.generate_code(*this);
@@ -68,7 +68,39 @@ void *Pipeline::evaluate(std::string compile_flags) {
     if (!func) {
         throw error::UserError("Error loading function: " + std::string(dlerror()));
     }
-    return func;
+
+    fp = (GernGenFuncPtr)func;
+    argument_order = cg.getArgumentOrder();
+    compiled = true;
+}
+
+void Pipeline::evaluate(std::map<std::string, void *> args) {
+    if (!compiled) {
+        this->compile();
+    }
+
+    size_t num_args = argument_order.size();
+    if (args.size() != num_args) {
+        throw error::UserError("All the arguments have not been passed! Expecting " + std::to_string(num_args) + " args");
+    }
+    // Now, fp has the function pointer,
+    // and argument order contains the order
+    // in which the arguments need to be set into
+    // a void **.
+    void **args_in_order = (void **)malloc(sizeof(void *) * num_args);
+    int arg_num = 0;
+    for (const auto &a : argument_order) {
+        if (args.count(a) <= 0) {
+            throw error::UserError("Argument " + a + "was not passed in");
+        }
+        args_in_order[arg_num] = args.at(a);
+        arg_num++;
+    }
+
+    // Now, actually run the function.
+    fp(args_in_order);
+    // Free storage.
+    free(args_in_order);
 }
 
 std::map<Variable, Expr> Pipeline::getVariableDefinitions() const {

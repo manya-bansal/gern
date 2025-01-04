@@ -16,7 +16,7 @@ public:
           output(std::make_shared<dummy::TestDS>("output")) {
     }
     std::string getName() {
-        return "add";
+        return "gern::lib::add";
     }
 
     Pattern getAnnotation() {
