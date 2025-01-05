@@ -30,6 +30,7 @@ target_sources(
         src/annotations/abstract_function.cpp
         src/annotations/data_dependency_language.cpp
         src/annotations/datatypes.cpp
+        src/annotations/grid.cpp
         src/annotations/lang_nodes.cpp
         src/annotations/visitor.cpp
         src/compose/compose.cpp

@@ -52,8 +52,8 @@ void Printer::visit(const LiteralNode *op) {
 }
 void Printer::visit(const VariableNode *op) {
     os << op->name;
-    if (op->grid) {
-        os << " @ GRID ";
+    if (isGridPropertySet(op->p)) {
+        os << op->p;
     }
 }
 

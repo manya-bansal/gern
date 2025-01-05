@@ -97,4 +97,46 @@ Pattern AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> con
                            .replaceVariables(fresh_names));
 }
 
+void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {
+
+    std::set<Variable> defined_vars = getAnnotation().getDefinedVariables();
+    std::set<Variable> interval_vars = getAnnotation().getIntervalVariables();
+
+    std::set<std::string> names_defined_vars;
+    std::set<std::string> names_interval_vars;
+
+    for (const auto &v : defined_vars) {
+        names_defined_vars.insert(v.getName());
+    }
+    for (const auto &v : interval_vars) {
+        names_interval_vars.insert(v.getName());
+    }
+
+    for (const auto &binding : replacements) {
+        bool is_interval_var = names_interval_vars.count(binding.first) > 0;
+        // If the variable is already bound *in the annotation*,
+        // complain, and you are not binding to a grid property,
+        // complain.
+        if (names_defined_vars.count(binding.first) > 0 && !is_interval_var) {
+            throw error::UserError(binding.first + " is already bound in the annotation");
+        }
+
+        if (binding.second.isBoundToGrid()) {
+            Grid::Property gp = binding.second.getBoundProperty();
+            // The the property is not stable over the
+            // course of the grid launch, and we have not bound it
+            // to an interval var, then we cannot proceed.
+            if (!isPropertyStable(gp) && !is_interval_var) {
+                throw error::UserError(binding.first + " cannot be bound to an unstable property");
+            }
+
+            if (isPropertyStable(gp) && is_interval_var) {
+                throw error::UserError(binding.first + " cannot be bound to an stable property, it is an interval var");
+            }
+        }
+    }
+
+    bindings.insert(replacements.begin(), replacements.end());
+}
+
 }  // namespace gern

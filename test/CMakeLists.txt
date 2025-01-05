@@ -14,6 +14,7 @@ target_sources(
         test-nodes.cpp
         test-resolve-constraints.cpp
         test-functions.cpp
+        test-grid-property.cpp
         test-lowering-cpu.cpp
         test-lowering-gpu.cpp
     PRIVATE
