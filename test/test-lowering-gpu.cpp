@@ -1,4 +1,5 @@
 #include "annotations/visitor.h"
+#include "codegen/runner.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
 #include "functions/elementwise.h"
@@ -23,48 +24,57 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     std::vector<Compose> c = {add_f[{{"end", v}}](inputDS, outputDS)};
     Pipeline p(c);
 
-    p.at_device().lower();
-    p.compile("-arch sm_89-std=c++11 -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/" +
-              " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/");
+    p.at_device();
+    Runner run(p);
+
+    run.compile(Runner::Options{
+        "nvcc",
+        "test.cu",
+        "/tmp",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        "",
+    });
 
     // // Now, actually run the function.
-    // lib::TestArray a(10);
-    // a.vvals(2.0f);
-    // lib::TestArray b(10);
-    // b.vvals(3.0f);
-    // int64_t var = 10;
+    lib::TestArrayGPU a(10);
+    a.vvals(2.0f);
+    lib::TestArrayGPU b(10);
+    b.vvals(3.0f);
+    int64_t var = 10;
 
-    // ASSERT_NO_THROW(p.evaluate({
-    //     {inputDS->getName(), &a},
-    //     {outputDS->getName(), &b},
-    //     {v.getName(), &var},
-    // }));
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS->getName(), &a},
+        {outputDS->getName(), &b},
+        {v.getName(), &var},
+    }));
 
-    // // Make sure we got the correct answer.
-    // for (int i = 0; i < 10; i++) {
-    //     ASSERT_TRUE(b.data[i] == 5.0f);
-    // }
+    lib::TestArray result = b.get();
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(result.data[i] == 5.0f);
+    }
+    result.destroy();
 
-    // // Try running with insufficient number
-    // // of arguments.
-    // ASSERT_THROW(p.evaluate({
-    //                  {inputDS->getName(), &a},
-    //                  {outputDS->getName(), &b},
-    //              }),
-    //              error::UserError);
+    // Try running with insufficient number
+    // of arguments.
+    ASSERT_THROW(run.evaluate({
+                     {inputDS->getName(), &a},
+                     {outputDS->getName(), &b},
+                 }),
+                 error::UserError);
 
-    // auto dummyDS = std::make_shared<const dummy::TestDSCPU>("dummy_ds");
-    // // Try running the correct number of arguments,
-    // // but with the wrong reference data-structure.
-    // ASSERT_THROW(p.evaluate({
-    //                  {inputDS->getName(), &a},
-    //                  {dummyDS->getName(), &b},
-    //                  {v.getName(), &var},
-    //              }),
-    //              error::UserError);
+    auto dummyDS = std::make_shared<const dummy::TestDSCPU>("dummy_ds");
+    // Try running the correct number of arguments,
+    // but with the wrong reference data-structure.
+    ASSERT_THROW(run.evaluate({
+                     {inputDS->getName(), &a},
+                     {dummyDS->getName(), &b},
+                     {v.getName(), &var},
+                 }),
+                 error::UserError);
 
-    // a.destroy();
-    // b.destroy();
+    a.destroy();
+    b.destroy();
 }
 
 TEST(LoweringGPU, SingleElemFunctionBind) {
@@ -81,8 +91,15 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     }](inputDS, outputDS)};
 
     Pipeline p(c);
+    p.at_device();
 
-    p.at_device().lower();
-    p.compile();
-    // p.lower();
+    Runner run(p);
+
+    run.compile(Runner::Options{
+        "nvcc",
+        "test.cu",
+        "/tmp",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        "",
+    });
 }

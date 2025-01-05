@@ -41,6 +41,7 @@ target_sources(
         src/codegen/codegen_ir.cpp
         src/codegen/codegen_printer.cpp
         src/codegen/codegen_visitor.cpp
+        src/codegen/runner.cpp
         src/resolve_constraints/resolve_constraints.cpp
         src/utils/name_generator.cpp
     PUBLIC
@@ -64,6 +65,7 @@ target_sources(
         include/codegen/codegen_ir.h
         include/codegen/codegen_visitor.h
         include/codegen/codegen_printer.h
+        include/codegen/runner.h
         include/utils/debug.h
         include/utils/error.h
         include/utils/name_generator.h

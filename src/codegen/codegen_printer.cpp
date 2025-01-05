@@ -172,7 +172,7 @@ void CGPrinter::visit(const KernelLaunch *op) {
         for (size_t i = 0; i < op->args.size() - 1; i++) {
             os << op->args[i] << ", ";
         }
-        os << op->args[op->args.size() - 1] << ")";
+        os << op->args[op->args.size() - 1] << ");";
     }
 }
 
