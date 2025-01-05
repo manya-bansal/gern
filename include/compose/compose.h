@@ -7,6 +7,9 @@
 #include <vector>
 
 namespace gern {
+
+class Pipeline;
+
 class CompositionVisitor;
 /**
  * @brief This class tracks the objects that Gern
@@ -38,11 +41,12 @@ public:
     Compose(const CompositionObject *n)
         : util::IntrusivePtr<const CompositionObject>(n) {
     }
+
+    Compose(Pipeline p);
     Compose(std::vector<Compose> compose);
+
     void concretize();
 
-    bool concretized() const;
-    void lower() const;
     int numFuncs() const;
 
     void accept(CompositionVisitor *v) const;
@@ -116,15 +120,6 @@ private:
     Pattern annotation;
     std::vector<Argument> arguments;
     std::vector<std::string> header;
-};
-
-class ComposeVec : public CompositionObject {
-public:
-    ComposeVec(std::vector<Compose> compose)
-        : compose(compose) {
-    }
-    void accept(CompositionVisitor *v) const;
-    std::vector<Compose> compose;
 };
 
 std::ostream &operator<<(std::ostream &os, const FunctionCall &f);

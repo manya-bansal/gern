@@ -20,10 +20,6 @@ public:
         BLOCK_DIM_Y,
         BLOCK_DIM_Z,
 
-        THREAD_DIM_X,
-        THREAD_DIM_Y,
-        THREAD_DIM_Z,
-
         UNDEFINED,  // For variables that are not bound to the grid.
     };
 };

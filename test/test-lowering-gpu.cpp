@@ -13,7 +13,7 @@
 
 using namespace gern;
 
-TEST(LoweringGPU, SingleElemFunction) {
+TEST(LoweringGPU, SingleElemFunctionNoBind) {
     auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
     auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
 
@@ -24,8 +24,7 @@ TEST(LoweringGPU, SingleElemFunction) {
     Pipeline p(c);
 
     p.at_device().lower();
-    // p.lower();
-    // p.compile("-std=c++11 -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/");
+    p.compile();
 
     // // Now, actually run the function.
     // lib::TestArray a(10);
@@ -65,4 +64,24 @@ TEST(LoweringGPU, SingleElemFunction) {
 
     // a.destroy();
     // b.destroy();
+}
+
+TEST(LoweringGPU, SingleElemFunctionBind) {
+    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+
+    test::addGPU add_f;
+    Variable v("v");
+    Variable blk("blk");
+
+    std::vector<Compose> c = {add_f[{
+        {"end", v},
+        {"x", blk.bindToGrid(Grid::Property::BLOCK_ID_X)},
+    }](inputDS, outputDS)};
+
+    Pipeline p(c);
+
+    p.at_device().lower();
+    p.compile();
+    // p.lower();
 }

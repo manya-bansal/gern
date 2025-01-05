@@ -56,3 +56,23 @@ TEST(SetGridProperty, BindNestedIntervalVar) {
         (reduce_f[{{"r", v.bindToGrid(Grid::Property::BLOCK_DIM_X)}}]),
         error::UserError);
 }
+
+TEST(SetGridProperty, DoubleBind) {
+
+    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+
+    test::reduction reduce_f;
+    Variable v("v");
+
+    ASSERT_NO_THROW((reduce_f[{
+        {"r", v.bindToGrid(Grid::Property::BLOCK_ID_X)},
+        {"x", v.bindToGrid(Grid::Property::BLOCK_ID_Y)},
+    }]));
+    ASSERT_THROW(
+        (reduce_f[{
+            {"r", v.bindToGrid(Grid::Property::BLOCK_ID_X)},
+            {"x", v.bindToGrid(Grid::Property::BLOCK_DIM_Y)},
+        }]),
+        error::UserError);
+}

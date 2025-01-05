@@ -35,16 +35,6 @@ std::ostream &operator<<(std::ostream &os, const Grid::Property &p) {
         os << "BLOCK_DIM_Z";
         return os;
 
-    case Grid::Property::THREAD_DIM_X:
-        os << "THREAD_DIM_X";
-        return os;
-    case Grid::Property::THREAD_DIM_Y:
-        os << "THREAD_DIM_Y";
-        return os;
-    case Grid::Property::THREAD_DIM_Z:
-        os << "THREAD_DIM_Z";
-        return os;
-
     default:
         os << "UNDEFINED";
         return os;
@@ -58,10 +48,7 @@ bool isGridPropertySet(const Grid::Property &p) {
 bool isPropertyStable(const Grid::Property &p) {
     if (p == Grid::Property::BLOCK_DIM_X ||
         p == Grid::Property::BLOCK_DIM_Y ||
-        p == Grid::Property::BLOCK_DIM_Z ||
-        p == Grid::Property::THREAD_DIM_X ||
-        p == Grid::Property::THREAD_DIM_Y ||
-        p == Grid::Property::THREAD_DIM_Z) {
+        p == Grid::Property::BLOCK_DIM_Z) {
 
         return true;
     }

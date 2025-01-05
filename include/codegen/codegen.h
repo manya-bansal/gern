@@ -19,7 +19,7 @@ public:
     CGStmt generate_code(const Pipeline &);
 
     using PipelineVisitor::visit;
-    void visit(const Pipeline &);
+
     void visit(const AllocateNode *);
     void visit(const FreeNode *);
     void visit(const InsertNode *);
@@ -47,7 +47,8 @@ public:
      * @return CGExpr
      */
     CGExpr genCodeExpr(Argument a,
-                       const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements = {});
+                       const std::map<AbstractDataTypePtr,
+                                      AbstractDataTypePtr> &replacements = {});
 
     // To insert used variables.
     void insertInUsed(Variable);

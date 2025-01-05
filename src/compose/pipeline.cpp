@@ -40,17 +40,26 @@ bool Pipeline::is_at_device() const {
     return device;
 }
 
+int Pipeline::numFuncs() {
+    ComposeCounter cc;
+    return cc.numFuncs(Compose(*this));
+}
+
 void Pipeline::lower() {
-
-    // Convert it into a ComposeVec
-    auto compose_vec = Compose(new const ComposeVec(compose));
-
-    if (compose_vec.numFuncs() != 1) {
+    if (numFuncs() != 1) {
         throw error::InternalError("Lowering is only "
                                    "implemented for one function!");
     }
 
-    visit(compose_vec);
+    for (const auto &f : compose) {
+        visit(f);
+    }
+
+    // If its a vec of vec...then, need to do something else.
+    // right now, gern will complain if you try.
+    // Now generate the outer loops.
+    lowered = generateOuterIntervals(
+        to<FunctionCall>(compose[compose.size() - 1].ptr), lowered);
 }
 
 void Pipeline::compile(std::string compile_flags) {
@@ -127,7 +136,7 @@ std::vector<LowerIR> Pipeline::getIRNodes() const {
 }
 
 std::ostream &operator<<(std::ostream &os, const Pipeline &p) {
-    PipelinePrinter print(os, 0);
+    ComposePrinter print(os, 0);
     print.visit(p);
     return os;
 }
@@ -171,21 +180,8 @@ void Pipeline::visit(const FunctionCall *c) {
     lowered.insert(lowered.end(), intervals.begin(), intervals.end());
 }
 
-void Pipeline::visit(const ComposeVec *c) {
-    Pipeline inner_compose(c->compose);
-    for (const auto &f : c->compose) {
-        inner_compose.visit(f);
-    }
-
-    // If its a vec of vec...then, need to do something else.
-    // right now, gern will complain if you try.
-    // Now generate the outer loops.
-    std::vector<LowerIR> intervals = generateOuterIntervals(
-        to<FunctionCall>(c->compose[c->compose.size() - 1].ptr), inner_compose.getIRNodes());
-    lowered.insert(lowered.end(), intervals.begin(), intervals.end());
-}
-
-void Pipeline::visit(const Pipeline *) {
+void Pipeline::visit(const PipelineNode *) {
+    throw error::InternalError("Unimplemented!");
 }
 
 bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
@@ -233,10 +229,6 @@ std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::ve
     return current;
 }
 
-void Pipeline::accept(CompositionVisitor *v) const {
-    v->visit(this);
-}
-
 void AllocateNode::accept(PipelineVisitor *v) const {
     v->visit(this);
 }
@@ -261,7 +253,20 @@ void IntervalNode::accept(PipelineVisitor *v) const {
     v->visit(this);
 }
 
+bool IntervalNode::isMappedToGrid() const {
+    return getIntervalVariable().isBoundToGrid();
+}
+
+Variable IntervalNode::getIntervalVariable() const {
+    std::set<Variable> v = getVariables(start.getA());
+    return *(v.begin());
+}
+
 void BlankNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
+void PipelineNode::accept(CompositionVisitor *v) const {
     v->visit(this);
 }
 

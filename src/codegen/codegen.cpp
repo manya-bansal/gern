@@ -1,7 +1,6 @@
-#include "annotations/data_dependency_language.h"
-
 #include "codegen/codegen.h"
-
+#include "annotations/data_dependency_language.h"
+#include "annotations/grid.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
 #include "utils/debug.h"
@@ -11,9 +10,13 @@ namespace gern {
 namespace codegen {
 
 CGStmt CodeGenerator::generate_code(const Pipeline &p) {
-    this->visit(p);
-    // Once we have visited the pipeline, we need to define
-    // the function.
+    // Lower each IR node one by one.
+    for (const auto &node : p.getIRNodes()) {
+        this->visit(node);
+    }
+
+    // Once we have visited the pipeline, we need to
+    // wrap the body in a function interface.
 
     // Add all the data-structures that haven't been declared
     // or allocated to the function arguments. These are the
@@ -71,12 +74,6 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     full_code.push_back(Scope::make(Block::make({code, hook})));
 
     return Block::make(full_code);
-}
-
-void CodeGenerator::visit(const Pipeline &p) {
-    for (const auto &node : p.getIRNodes()) {
-        this->visit(node);
-    }
 }
 
 void CodeGenerator::visit(const AllocateNode *op) {
@@ -145,20 +142,65 @@ void CodeGenerator::visit(const ComputeNode *op) {
     headers.insert(func_header.begin(), func_header.end());
 }
 
+static CGExpr generatePropertyExpr(const Grid::Property &p) {
+    switch (p) {
+
+    case Grid::Property::BLOCK_ID_X:
+        return EscapeCGExpr::make("blockIdx.x");
+    case Grid::Property::BLOCK_ID_Y:
+        return EscapeCGExpr::make("blockIdx.y");
+    case Grid::Property::BLOCK_ID_Z:
+        return EscapeCGExpr::make("blockIdx.z");
+    case Grid::Property::THREAD_ID_X:
+        return EscapeCGExpr::make("threadIdx.x");
+    case Grid::Property::THREAD_ID_Y:
+        return EscapeCGExpr::make("threadIdx.y");
+    case Grid::Property::THREAD_ID_Z:
+        return EscapeCGExpr::make("threadIdx.z");
+
+    case Grid::Property::BLOCK_DIM_X:
+        return EscapeCGExpr::make("blockDim.x");
+    case Grid::Property::BLOCK_DIM_Y:
+        return EscapeCGExpr::make("blockDim.y");
+    case Grid::Property::BLOCK_DIM_Z:
+        return EscapeCGExpr::make("blockDim.z");
+
+    default:
+        throw error::InternalError("Undefined Grid Property Passed!");
+    }
+}
+
 void CodeGenerator::visit(const IntervalNode *op) {
 
     // First, lower the body of the interval node.
     std::vector<CGStmt> body;
+
+    // If the interval is mapped to the grid, insert the
+    // definition of the variable into the top of the body.
+    Variable interval_var = op->getIntervalVariable();
+    if (op->isMappedToGrid()) {
+        body.push_back(VarAssign::make(genCodeExpr(op->start.getA()),
+                                       // Add any shift factor specified in the interval.
+                                       Add::make(generatePropertyExpr(interval_var.getBoundProperty()),
+                                                 genCodeExpr(op->start.getB()))));
+    }
+
+    // Continue lowering the body now.
     for (const auto &node : op->body) {
         this->visit(node);
         body.push_back(code);
     }
 
-    // Finally wrap the lowered body in a for loop.
-    CGStmt start = genCodeExpr(op->start);
-    CGExpr cond = genCodeExpr(op->end);
-    CGStmt step = genCodeExpr(op->step);
-    code = For::make(start, cond, step, Block::make(body));
+    code = Block::make(body);
+
+    // If the variable is not mapped to the grid, we need to actually
+    // wrap it in a for loop.
+    if (!op->isMappedToGrid()) {
+        CGStmt start = genCodeExpr(op->start);
+        CGExpr cond = genCodeExpr(op->end);
+        CGStmt step = genCodeExpr(op->step);
+        code = For::make(start, cond, step, code);
+    }
 }
 
 void CodeGenerator::visit(const BlankNode *) {
