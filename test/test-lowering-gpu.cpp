@@ -24,7 +24,8 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     Pipeline p(c);
 
     p.at_device().lower();
-    p.compile();
+    p.compile("-arch sm_89-std=c++11 -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/" +
+              " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/");
 
     // // Now, actually run the function.
     // lib::TestArray a(10);

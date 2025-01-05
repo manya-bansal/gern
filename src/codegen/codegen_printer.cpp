@@ -98,6 +98,9 @@ void CGPrinter::visit(const VarDecl *op) {
 
 void CGPrinter::visit(const DeclFunc *op) {
     doIdent();
+    if (op->device) {
+        os << "__global__ ";
+    }
     os << op->return_type << " " << op->name << "(";
     if (op->args.size() != 0) {
         for (size_t i = 0; i < op->args.size() - 1; i++) {
@@ -159,6 +162,20 @@ void CGPrinter::visit(const VoidCall *op) {
     os << op->func << ";";
 }
 
+void CGPrinter::visit(const KernelLaunch *op) {
+    os << op->name;
+    os << "<<<" << op->grid << ", " << op->block << ">>>";
+    if (op->args.size() == 0) {
+        os << "()";
+    } else {
+        os << "(";
+        for (size_t i = 0; i < op->args.size() - 1; i++) {
+            os << op->args[i] << ", ";
+        }
+        os << op->args[op->args.size() - 1] << ")";
+    }
+}
+
 void CGPrinter::visit(const BlankLine *) {
     os << std::endl;
 }
@@ -202,43 +219,43 @@ void CGPrinter::visit(const For *op) {
 }
 
 void CGPrinter::visit(const Lt *op) {
-    os << op->a << " < " << op->b;
+    os << "(" << op->a << " < " << op->b << ")";
 }
 void CGPrinter::visit(const Gt *op) {
-    os << op->a << " > " << op->b;
+    os << "(" << op->a << " > " << op->b << ")";
 }
 void CGPrinter::visit(const Eq *op) {
-    os << op->a << " == " << op->b;
+    os << "(" << op->a << " == " << op->b << ")";
 }
 void CGPrinter::visit(const Neq *op) {
-    os << op->a << " != " << op->b;
+    os << "(" << op->a << " != " << op->b << ")";
 }
 void CGPrinter::visit(const Gte *op) {
-    os << op->a << " >= " << op->b;
+    os << "(" << op->a << " >= " << op->b << ")";
 }
 void CGPrinter::visit(const Lte *op) {
-    os << op->a << " <= " << op->b;
+    os << "(" << op->a << " <= " << op->b << ")";
 }
 void CGPrinter::visit(const And *op) {
-    os << op->a << " && " << op->b;
+    os << "(" << op->a << " && " << op->b << ")";
 }
 void CGPrinter::visit(const Or *op) {
-    os << op->a << " || " << op->b;
+    os << "(" << op->a << " || " << op->b << ")";
 }
 void CGPrinter::visit(const Add *op) {
-    os << op->a << " + " << op->b;
+    os << "(" << op->a << " + " << op->b << ")";
 }
 void CGPrinter::visit(const Mul *op) {
-    os << op->a << " * " << op->b;
+    os << "(" << op->a << " * " << op->b << ")";
 }
 void CGPrinter::visit(const Div *op) {
-    os << op->a << " / " << op->b;
+    os << "(" << op->a << " / " << op->b << ")";
 }
 void CGPrinter::visit(const Mod *op) {
-    os << op->a << " % " << op->b;
+    os << "(" << op->a << " % " << op->b << ")";
 }
 void CGPrinter::visit(const Sub *op) {
-    os << op->a << " - " << op->b;
+    os << "(" << op->a << " - " << op->b << ")";
 }
 
 void CGPrinter::visit(const MetaData *op) {

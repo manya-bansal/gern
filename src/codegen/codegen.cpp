@@ -11,9 +11,12 @@ namespace codegen {
 
 CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     // Lower each IR node one by one.
+    std::vector<CGStmt> lowered_nodes;
     for (const auto &node : p.getIRNodes()) {
         this->visit(node);
+        lowered_nodes.push_back(code);
     }
+    code = Block::make(lowered_nodes);
 
     // Once we have visited the pipeline, we need to
     // wrap the body in a function interface.
@@ -54,15 +57,27 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 
     // The return type is always void, the output
     // is modified by reference.
-    code = DeclFunc::make(name, Type::make("void"), args, code);
+    code = DeclFunc::make(name, Type::make("void"), args, code, p.is_at_device());
 
     // Also make the function that is used as the entry point for
     // user code.
+    std::vector<CGStmt> full_code;
+    std::vector<CGStmt> hook_body;
+    CGStmt hook_call = VoidCall::make(Call::make(name, hook_args));
+    if (p.is_at_device()) {
+        // Declare the grid and block dimensions.
+        hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
+        hook_body.push_back(EscapeCGStmt::make("dim3 __block_dim__(" + block_dim.str() + ");"));
+        hook_call = KernelLaunch::make(name, hook_args, Var::make("__grid_dim__"), Var::make("__block_dim__"));
+        full_code.push_back(EscapeCGStmt::make("#include <cuda_runtime.h>"));
+    }
+
+    hook_body.push_back(hook_call);
+
     CGStmt hook = DeclFunc::make(hook_name, Type::make("void"),
                                  {VarDecl::make(Type::make("void**"), "args")},
-                                 VoidCall::make(Call::make(name, hook_args)));
+                                 Block::make(hook_body));
 
-    std::vector<CGStmt> full_code;
     // Now, add the headers.
     for (const auto &h : headers) {
         full_code.push_back(EscapeCGStmt::make("#include \"" + h + "\""));
@@ -80,7 +95,7 @@ void CodeGenerator::visit(const AllocateNode *op) {
     std::string method_call = op->data->getType() + "::allocate";
     std::vector<CGExpr> args;
     for (const auto &a : op->fields) {
-        args.push_back(genCodeExpr(a));
+        args.push_back(gen(a));
     }
     CGExpr lhs = VarDecl::make(Type::make(op->data->getType()),
                                op->data->getName());
@@ -104,7 +119,7 @@ void CodeGenerator::visit(const InsertNode *op) {
     std::string method_call = op->parent->getName() + ".insert";
     std::vector<CGExpr> args;
     for (const auto &a : op->fields) {
-        args.push_back(genCodeExpr(a));
+        args.push_back(gen(a));
     }
     CGExpr lhs = VarDecl::make(Type::make(op->child->getType()),
                                op->child->getName());
@@ -118,7 +133,7 @@ void CodeGenerator::visit(const QueryNode *op) {
     std::string method_call = op->parent->getName() + ".query";
     std::vector<CGExpr> args;
     for (const auto &a : op->fields) {
-        args.push_back(genCodeExpr(a));
+        args.push_back(gen(a));
     }
     CGExpr lhs = VarDecl::make(Type::make(op->child->getType()),
                                op->child->getName());
@@ -132,7 +147,7 @@ void CodeGenerator::visit(const ComputeNode *op) {
     std::string func_call = op->f->getName();
     std::vector<CGExpr> args;
     for (auto a : op->f->getArguments()) {
-        args.push_back(genCodeExpr(a, op->new_ds));
+        args.push_back(gen(a, op->new_ds));
     }
 
     code = VoidCall::make(Call::make(func_call, args));
@@ -142,63 +157,26 @@ void CodeGenerator::visit(const ComputeNode *op) {
     headers.insert(func_header.begin(), func_header.end());
 }
 
-static CGExpr generatePropertyExpr(const Grid::Property &p) {
-    switch (p) {
-
-    case Grid::Property::BLOCK_ID_X:
-        return EscapeCGExpr::make("blockIdx.x");
-    case Grid::Property::BLOCK_ID_Y:
-        return EscapeCGExpr::make("blockIdx.y");
-    case Grid::Property::BLOCK_ID_Z:
-        return EscapeCGExpr::make("blockIdx.z");
-    case Grid::Property::THREAD_ID_X:
-        return EscapeCGExpr::make("threadIdx.x");
-    case Grid::Property::THREAD_ID_Y:
-        return EscapeCGExpr::make("threadIdx.y");
-    case Grid::Property::THREAD_ID_Z:
-        return EscapeCGExpr::make("threadIdx.z");
-
-    case Grid::Property::BLOCK_DIM_X:
-        return EscapeCGExpr::make("blockDim.x");
-    case Grid::Property::BLOCK_DIM_Y:
-        return EscapeCGExpr::make("blockDim.y");
-    case Grid::Property::BLOCK_DIM_Z:
-        return EscapeCGExpr::make("blockDim.z");
-
-    default:
-        throw error::InternalError("Undefined Grid Property Passed!");
-    }
-}
-
 void CodeGenerator::visit(const IntervalNode *op) {
 
     // First, lower the body of the interval node.
     std::vector<CGStmt> body;
-
-    // If the interval is mapped to the grid, insert the
-    // definition of the variable into the top of the body.
-    Variable interval_var = op->getIntervalVariable();
-    if (op->isMappedToGrid()) {
-        body.push_back(VarAssign::make(genCodeExpr(op->start.getA()),
-                                       // Add any shift factor specified in the interval.
-                                       Add::make(generatePropertyExpr(interval_var.getBoundProperty()),
-                                                 genCodeExpr(op->start.getB()))));
-    }
-
+    // In the case that the interval is mapped to a grid
+    // variable, set it up.
+    body.push_back(setGrid(op));
     // Continue lowering the body now.
     for (const auto &node : op->body) {
         this->visit(node);
         body.push_back(code);
     }
-
     code = Block::make(body);
 
     // If the variable is not mapped to the grid, we need to actually
     // wrap it in a for loop.
     if (!op->isMappedToGrid()) {
-        CGStmt start = genCodeExpr(op->start);
-        CGExpr cond = genCodeExpr(op->end);
-        CGStmt step = genCodeExpr(op->step);
+        CGStmt start = gen(op->start);
+        CGExpr cond = gen(op->end);
+        CGStmt step = gen(op->step);
         code = For::make(start, cond, step, code);
     }
 }
@@ -215,7 +193,7 @@ void CodeGenerator::visit(const BlankNode *) {
         cg_e = op::make(a, cg_e);      \
     }
 
-CGExpr CodeGenerator::genCodeExpr(Expr e) {
+CGExpr CodeGenerator::gen(Expr e) {
 
     struct ConvertToCode : public ExprVisitorStrict {
         ConvertToCode(CodeGenerator *cg)
@@ -247,12 +225,12 @@ CGExpr CodeGenerator::genCodeExpr(Expr e) {
 
 #define VISIT_AND_DECLARE_CONSTRAINT(op, name) \
     void visit(const op##Node *node) {         \
-        auto a = cg->genCodeExpr(node->a);     \
-        auto b = cg->genCodeExpr(node->b);     \
+        auto a = cg->gen(node->a);             \
+        auto b = cg->gen(node->b);             \
         cg_e = codegen::name::make(a, b);      \
     }
 
-CGExpr CodeGenerator::genCodeExpr(Constraint c) {
+CGExpr CodeGenerator::gen(Constraint c) {
 
     struct ConvertToCode : public ConstraintVisitorStrict {
         ConvertToCode(CodeGenerator *cg)
@@ -278,7 +256,7 @@ CGExpr CodeGenerator::genCodeExpr(Constraint c) {
     return cg.cg_e;
 }
 
-CGStmt CodeGenerator::genCodeExpr(Assign a) {
+CGStmt CodeGenerator::gen(Assign a) {
     if (!isa<Variable>(a.getA())) {
         throw error::UserError("Assignments can only be made to Variables");
     }
@@ -287,17 +265,16 @@ CGStmt CodeGenerator::genCodeExpr(Assign a) {
     // The variable has already been declared, we are just updating.
     if (declared.count(to_declare) > 0) {
         return VarAssign::make(
-            genCodeExpr(a.getA()),
-            genCodeExpr(a.getB()));
+            gen(a.getA()),
+            gen(a.getB()));
     }
 
-    declared.insert(to<Variable>(a.getA()));
     return VarAssign::make(
-        VarDecl::make(Type::make(to_declare.getType().getString()), to_declare.getName()),
-        genCodeExpr(a.getB()));
+        declVar(to_declare),
+        gen(a.getB()));
 }
 
-CGExpr CodeGenerator::genCodeExpr(Argument a, const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements) {
+CGExpr CodeGenerator::gen(Argument a, const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements) {
     switch (a.getType()) {
 
     case DATA_STRUCTURE: {
@@ -340,6 +317,78 @@ std::string CodeGenerator::getHookName() const {
 
 std::vector<std::string> CodeGenerator::getArgumentOrder() const {
     return argument_order;
+}
+
+CGExpr CodeGenerator::declVar(Variable v) {
+    declared.insert(v);
+    return VarDecl::make(Type::make(v.getType().getString()), v.getName());
+}
+
+static CGExpr genProp(const Grid::Property &p) {
+    switch (p) {
+
+    case Grid::Property::BLOCK_ID_X:
+        return EscapeCGExpr::make("blockIdx.x");
+    case Grid::Property::BLOCK_ID_Y:
+        return EscapeCGExpr::make("blockIdx.y");
+    case Grid::Property::BLOCK_ID_Z:
+        return EscapeCGExpr::make("blockIdx.z");
+
+    case Grid::Property::THREAD_ID_X:
+        return EscapeCGExpr::make("threadIdx.x");
+    case Grid::Property::THREAD_ID_Y:
+        return EscapeCGExpr::make("threadIdx.y");
+    case Grid::Property::THREAD_ID_Z:
+        return EscapeCGExpr::make("threadIdx.z");
+
+    case Grid::Property::BLOCK_DIM_X:
+        return EscapeCGExpr::make("blockDim.x");
+    case Grid::Property::BLOCK_DIM_Y:
+        return EscapeCGExpr::make("blockDim.y");
+    case Grid::Property::BLOCK_DIM_Z:
+        return EscapeCGExpr::make("blockDim.z");
+
+    default:
+        throw error::InternalError("Undefined Grid Property Passed!");
+    }
+}
+
+CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
+    // If not a grid mapping, do nothing.
+    if (!op->isMappedToGrid()) {
+        return BlankLine::make();
+    }
+
+    Variable interval_var = op->getIntervalVariable();
+    Grid::Property property = interval_var.getBoundProperty();
+
+    // This only works for ceiling.
+    CGExpr divisor = gen(op->step.getB());
+    CGExpr dividend = gen(op->end.getB()) - gen(op->start.getB());
+    auto ceil = (divisor + dividend - 1) / divisor;
+
+    // Store the grid dimension that correspond with this mapping.
+    if (property == Grid::Property::BLOCK_ID_X) {
+        grid_dim.x = ceil;
+    } else if (property == Grid::Property::BLOCK_ID_Y) {
+        grid_dim.y = ceil;
+    } else if (property == Grid::Property::BLOCK_ID_Z) {
+        grid_dim.z = ceil;
+    } else if (property == Grid::Property::THREAD_ID_X) {
+        block_dim.x = ceil;
+    } else if (property == Grid::Property::THREAD_ID_Y) {
+        block_dim.y = ceil;
+    } else if (property == Grid::Property::THREAD_ID_Z) {
+        block_dim.z = ceil;
+    } else {
+        throw error::InternalError("Unreachable");
+    }
+
+    // Actually declare the variable to use the grid.
+    return VarAssign::make(
+        declVar(interval_var),
+        // Add any shift factor specified in the interval.
+        (genProp(interval_var.getBoundProperty()) * gen(op->step.getB())) + gen(op->start.getB()));
 }
 
 }  // namespace codegen
