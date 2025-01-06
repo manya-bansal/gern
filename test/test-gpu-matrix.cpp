@@ -1,7 +1,7 @@
 #include "annotations/visitor.h"
-#include "codegen/runner.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
+#include "compose/runner.h"
 
 #include "library/matrix/annot/gpu-matrix.h"
 #include "library/matrix/impl/gpu-matrix.h"
@@ -36,11 +36,9 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
     Runner run(p);
 
     run.compile(Runner::Options{
-        "nvcc",
-        "test_matrix.cu",
-        "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
-        "",
+        .filename = "test",
+        .prefix = "/tmp",
+        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
     });
 
     int64_t row_val = 10;
@@ -115,11 +113,9 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
     Runner run(p);
 
     run.compile(Runner::Options{
-        "nvcc",
-        "test_matrix.cu",
-        "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
-        "",
+        .filename = "test",
+        .prefix = "/tmp",
+        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
     });
 
     int64_t row_val = 10;
@@ -180,11 +176,9 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     Runner run(p);
 
     run.compile(Runner::Options{
-        "nvcc",
-        "test_matrix.cu",
-        "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
-        "",
+        .filename = "test",
+        .prefix = "/tmp",
+        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
     });
 
     int64_t row_val = 10;

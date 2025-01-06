@@ -1,4 +1,4 @@
-#include "codegen/runner.h"
+#include "compose/runner.h"
 #include "codegen/codegen.h"
 #include "utils/error.h"
 
@@ -16,18 +16,19 @@ void Runner::compile(Options config) {
     codegen::CGStmt code = cg.generate_code(p);
 
     config.prefix += "/";
-    std::string file = config.prefix + config.filename;
+    std::string suffix = p.is_at_device() ? ".cu" : ".cpp";
+    std::string file = config.prefix + config.filename + suffix;
     std::ofstream outFile(file);
     outFile << code;
     outFile.close();
 
     std::string shared_obj = config.prefix + getUniqueName("libGern") + ".so";
-    std::string cmd = config.compiler +
+    std::string cmd = config.path_to_nvcc + "nvcc" +
                       " -std=c++11 --compiler-options -fPIC " +
-                      config.includes +
+                      config.include +
                       " --shared -o " + shared_obj + " " +
                       file + " " + config.ldflags + " 2>&1";
-    std::cout << cmd << std::endl;
+
     int runStatus = std::system(cmd.data());
     if (runStatus != 0) {
         throw error::UserError("Compilation Failed");

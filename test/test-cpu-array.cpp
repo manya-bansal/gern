@@ -1,7 +1,7 @@
 #include "annotations/visitor.h"
-#include "codegen/runner.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
+#include "compose/runner.h"
 
 #include "library/array/annot/cpu-array.h"
 #include "library/array/impl/cpu-array.h"
@@ -26,11 +26,9 @@ TEST(LoweringCPU, SingleElemFunction) {
     Runner run(p);
 
     run.compile(Runner::Options{
-        "nvcc",
-        "test.cpp",
-        "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
-        "",
+        .filename = "test",
+        .prefix = "/tmp",
+        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
     });
 
     impl::ArrayCPU a(10);
@@ -87,11 +85,9 @@ TEST(LoweringCPU, SingleReduceFunction) {
     Runner run(p);
 
     run.compile(Runner::Options{
-        "nvcc",
-        "test.cpp",
-        "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
-        "",
+        .filename = "test",
+        .prefix = "/tmp",
+        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
     });
 
     impl::ArrayCPU a(10);

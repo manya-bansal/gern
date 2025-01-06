@@ -1,7 +1,7 @@
 #include "annotations/visitor.h"
-#include "codegen/runner.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
+#include "compose/runner.h"
 #include "config.h"
 #include "library/array/annot/gpu-array.h"
 #include "library/array/impl/gpu-array.h"
@@ -28,11 +28,9 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     Runner run(p);
 
     run.compile(Runner::Options{
-        "nvcc",
-        "test.cu",
-        "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
-        "",
+        .filename = "test",
+        .prefix = "/tmp",
+        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
     });
 
     // Now, actually run the function.
@@ -94,11 +92,9 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     Runner run(p);
 
     run.compile(Runner::Options{
-        "nvcc",
-        "test.cu",
-        "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
-        "",
+        .filename = "test",
+        .prefix = "/tmp",
+        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
     });
 
     // Now, actually run the function.
@@ -141,11 +137,9 @@ TEST(LoweringGPU, SingleReduceNoBind) {
     Runner run(p);
 
     run.compile(Runner::Options{
-        "nvcc",
-        "test.cu",
-        "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
-        "",
+        .filename = "test",
+        .prefix = "/tmp",
+        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
     });
 
     impl::ArrayGPU a(10);
@@ -218,11 +212,9 @@ TEST(LoweringGPU, SingleReduceBind) {
     Runner run(p);
 
     run.compile(Runner::Options{
-        "nvcc",
-        "test.cu",
-        "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
-        "",
+        .filename = "test",
+        .prefix = "/tmp",
+        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
     });
 
     impl::ArrayGPU a(10);

@@ -1,7 +1,7 @@
 #include "annotations/visitor.h"
-#include "codegen/runner.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
+#include "compose/runner.h"
 
 #include "library/matrix/annot/cpu-matrix.h"
 #include "library/matrix/impl/cpu-matrix.h"
@@ -35,11 +35,9 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     Runner run(p);
 
     run.compile(Runner::Options{
-        "nvcc",
-        "test_matrix.cpp",
-        "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
-        "",
+        .filename = "test",
+        .prefix = "/tmp",
+        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
     });
 
     int64_t row_val = 10;

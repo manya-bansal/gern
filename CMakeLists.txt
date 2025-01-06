@@ -61,11 +61,11 @@ target_sources(
         include/compose/compose_visitor.h
         include/compose/pipeline.h
         include/compose/pipeline_visitor.h
+        include/compose/runner.h
         include/codegen/codegen.h
         include/codegen/codegen_ir.h
         include/codegen/codegen_visitor.h
         include/codegen/codegen_printer.h
-        include/codegen/runner.h
         include/utils/debug.h
         include/utils/error.h
         include/utils/name_generator.h
@@ -74,7 +74,7 @@ target_sources(
 )
 include_directories(${CUDAToolkit_INCLUDE_DIRS})
 target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
-target_compile_features(Gern_Gern PUBLIC cxx_std_17)
+target_compile_features(Gern_Gern PUBLIC cxx_std_20)
 target_link_libraries(Gern_Gern PRIVATE ginac::ginac CUDA::cudart)
 
 ##

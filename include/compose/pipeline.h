@@ -12,8 +12,6 @@ typedef const FunctionCall *FunctionCallPtr;
 class PipelineVisitor;
 struct PipelineNode;
 
-using GernGenFuncPtr = void (*)(void **);
-
 struct LowerIRNode : public util::Manageable<LowerIRNode>,
                      public util::Uncopyable {
     LowerIRNode() = default;
