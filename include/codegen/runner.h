@@ -25,7 +25,6 @@ private:
     GernGenFuncPtr fp;
     std::vector<std::string> argument_order;
     bool compiled = false;
-    bool lowered = false;
 };
 
 }  // namespace gern

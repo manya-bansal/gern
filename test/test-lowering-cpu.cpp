@@ -1,4 +1,5 @@
 #include "annotations/visitor.h"
+#include "codegen/runner.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
 #include "functions/elementwise.h"
@@ -22,18 +23,23 @@ TEST(LoweringCPU, SingleElemFunction) {
 
     std::vector<Compose> c = {add_f[{{"end", v}}](inputDS, outputDS)};
     Pipeline p(c);
+    Runner run(p);
 
-    p.lower();
-    p.compile("-std=c++11 -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/");
+    run.compile(Runner::Options{
+        "nvcc",
+        "test.cpp",
+        "/tmp",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        "",
+    });
 
-    // Now, actually run the function.
     lib::TestArray a(10);
     a.vvals(2.0f);
     lib::TestArray b(10);
     b.vvals(3.0f);
     int64_t var = 10;
 
-    ASSERT_NO_THROW(p.evaluate({
+    ASSERT_NO_THROW(run.evaluate({
         {inputDS->getName(), &a},
         {outputDS->getName(), &b},
         {v.getName(), &var},
@@ -46,7 +52,7 @@ TEST(LoweringCPU, SingleElemFunction) {
 
     // Try running with insufficient number
     // of arguments.
-    ASSERT_THROW(p.evaluate({
+    ASSERT_THROW(run.evaluate({
                      {inputDS->getName(), &a},
                      {outputDS->getName(), &b},
                  }),
@@ -55,7 +61,7 @@ TEST(LoweringCPU, SingleElemFunction) {
     auto dummyDS = std::make_shared<const dummy::TestDSCPU>("dummy_ds");
     // Try running the correct number of arguments,
     // but with the wrong reference data-structure.
-    ASSERT_THROW(p.evaluate({
+    ASSERT_THROW(run.evaluate({
                      {inputDS->getName(), &a},
                      {dummyDS->getName(), &b},
                      {v.getName(), &var},
@@ -78,9 +84,15 @@ TEST(LoweringCPU, SingleReduceFunction) {
     std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
 
     Pipeline p(c);
+    Runner run(p);
 
-    p.lower();
-    p.compile("-std=c++11 -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/");
+    run.compile(Runner::Options{
+        "nvcc",
+        "test.cpp",
+        "/tmp",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        "",
+    });
 
     lib::TestArray a(10);
     a.vvals(2.0f);
@@ -89,7 +101,7 @@ TEST(LoweringCPU, SingleReduceFunction) {
     int64_t var1 = 10;
     int64_t var2 = 1;
 
-    ASSERT_NO_THROW(p.evaluate({
+    ASSERT_NO_THROW(run.evaluate({
         {inputDS->getName(), &a},
         {outputDS->getName(), &b},
         {v2.getName(), &var2},
@@ -104,7 +116,7 @@ TEST(LoweringCPU, SingleReduceFunction) {
     b.vvals(0.0f);
     // Run again, we should be able to
     // repeatedly used the compiled pipeline.
-    ASSERT_NO_THROW(p.evaluate({
+    ASSERT_NO_THROW(run.evaluate({
         {inputDS->getName(), &a},
         {outputDS->getName(), &b},
         {v2.getName(), &var2},
@@ -117,7 +129,7 @@ TEST(LoweringCPU, SingleReduceFunction) {
 
     // Try running with insufficient number
     // of arguments.
-    ASSERT_THROW(p.evaluate({
+    ASSERT_THROW(run.evaluate({
                      {inputDS->getName(), &a},
                      {outputDS->getName(), &b},
                  }),

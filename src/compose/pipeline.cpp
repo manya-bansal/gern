@@ -46,6 +46,11 @@ int Pipeline::numFuncs() {
 }
 
 void Pipeline::lower() {
+
+    if (has_been_lowered) {
+        return;
+    }
+
     if (numFuncs() != 1) {
         throw error::InternalError("Lowering is only "
                                    "implemented for one function!");
@@ -60,71 +65,7 @@ void Pipeline::lower() {
     // Now generate the outer loops.
     lowered = generateOuterIntervals(
         to<FunctionCall>(compose[compose.size() - 1].ptr), lowered);
-}
-
-void Pipeline::compile(std::string compile_flags) {
-
-    codegen::CodeGenerator cg;
-    codegen::CGStmt code = cg.generate_code(*this);
-
-    std::string prefix = "/tmp/";
-    std::string file = prefix + "test.cpp";
-    // Write the code to a file.
-    std::ofstream outFile(file);
-    outFile << code;
-    outFile.close();
-
-    std::string shared_obj = prefix + getUniqueName("libGern") + ".so";
-    std::string cmd = "g++ " + compile_flags + " -shared -o " + shared_obj + " " + file + " 2>&1";
-
-    // Compile the code.
-    int runStatus = std::system(cmd.data());
-    if (runStatus != 0) {
-        throw error::UserError("Compilation Failed");
-    }
-
-    void *handle = dlopen(shared_obj.data(), RTLD_LAZY);
-    if (!handle) {
-        throw error::UserError("Error loading library: " + std::string(dlerror()));
-    }
-
-    void *func = dlsym(handle, cg.getHookName().data());
-    if (!func) {
-        throw error::UserError("Error loading function: " + std::string(dlerror()));
-    }
-
-    fp = (GernGenFuncPtr)func;
-    argument_order = cg.getArgumentOrder();
-    compiled = true;
-}
-
-void Pipeline::evaluate(std::map<std::string, void *> args) {
-    if (!compiled) {
-        this->compile();
-    }
-
-    size_t num_args = argument_order.size();
-    if (args.size() != num_args) {
-        throw error::UserError("All the arguments have not been passed! Expecting " + std::to_string(num_args) + " args");
-    }
-    // Now, fp has the function pointer,
-    // and argument order contains the order
-    // in which the arguments need to be set into
-    // a void **.
-    void **args_in_order = (void **)malloc(sizeof(void *) * num_args);
-    int arg_num = 0;
-    for (const auto &a : argument_order) {
-        if (args.count(a) <= 0) {
-            throw error::UserError("Argument " + a + "was not passed in");
-        }
-        args_in_order[arg_num] = args.at(a);
-        arg_num++;
-    }
-
-    // Now, actually run the function.
-    fp(args_in_order);
-    // Free storage.
-    free(args_in_order);
+    has_been_lowered = true;
 }
 
 std::map<Variable, Expr> Pipeline::getVariableDefinitions() const {

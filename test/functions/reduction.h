@@ -59,6 +59,53 @@ private:
     std::shared_ptr<dummy::TestDSCPU> output;
 };
 
+class reductionGPU : public AbstractFunction {
+public:
+    reductionGPU()
+        : input(std::make_shared<dummy::TestDSGPU>("input")),
+          output(std::make_shared<dummy::TestDSGPU>("output")) {
+    }
+    std::string getName() {
+        return "gern::lib::add";
+    }
+
+    Pattern getAnnotation() {
+        Variable x("x");
+        Variable r("r");
+        Variable step("step");
+        Variable end("end");
+
+        return For(x = Expr(0), end, step,
+                   Computes(
+                       Produces(
+                           Subset(output, {x, 1})),
+                       Consumes(
+                           For(r = Expr(0), end, 1,
+                               Subsets{
+                                   Subset(input, {r, 1})}))));
+    }
+
+    std::vector<Argument> getArguments() {
+        return {Argument(input), Argument(output)};
+    }
+
+    std::vector<std::string> getHeader() {
+        return {
+            "gpu-array-lib.h",
+        };
+    }
+
+    std::vector<std::string> getIncludeFlags() {
+        return {
+            std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        };
+    }
+
+private:
+    std::shared_ptr<dummy::TestDSGPU> input;
+    std::shared_ptr<dummy::TestDSGPU> output;
+};
+
 }  // namespace test
 }  // namespace gern
 

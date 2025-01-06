@@ -59,12 +59,6 @@ public:
     bool is_at_device() const;
 
     void lower();
-    void compile(std::string compile_flags = "");
-    // This function actually runs the function pointer, and compiles
-    // the function pointer, if it hasn't already been compiled. Currently
-    // it takes adts and variables separately, I may need to extend this handle
-    // other types as well.
-    void evaluate(std::map<std::string, void *> args);
 
     using CompositionVisitor::visit;
 
@@ -84,9 +78,8 @@ private:
     std::vector<Compose> compose;
     std::vector<LowerIR> lowered;
     std::map<Variable, Expr> variable_definitions;
-    bool compiled = false;
-    GernGenFuncPtr fp;
-    std::vector<std::string> argument_order;
+
+    bool has_been_lowered = false;
     bool device = false;
 };
 

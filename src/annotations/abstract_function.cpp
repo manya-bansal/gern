@@ -81,7 +81,6 @@ Pattern AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> con
     // Convert all variables to fresh names for each
     // individual callsite.
     for (const auto &v : old_vars) {
-        std::cout << v.getName() << std::endl;
         // If we have a binding, replace it.
         if (bindings.count(v.getName())) {
             fresh_names[v] = bindings.at(v.getName());
