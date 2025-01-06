@@ -153,8 +153,9 @@ std::vector<Expr> Pipeline::generateMetaDataFields(AbstractDataTypePtr d, Functi
 std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
 
     std::vector<LowerIR> current = body;
-    match(f->getAnnotation(), std::function<void(const ConsumesForNode *)>(
-                                  [&](const ConsumesForNode *op) {
+    match(f->getAnnotation(), std::function<void(const ConsumesForNode *, Matcher *)>(
+                                  [&](const ConsumesForNode *op, Matcher *ctx) {
+                                      ctx->match(op->body);
                                       current = {new IntervalNode(op->start, op->end, op->step, current)};
                                   }));
     return current;
@@ -163,8 +164,9 @@ std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std:
 std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
 
     std::vector<LowerIR> current = body;
-    match(f->getAnnotation(), std::function<void(const ComputesForNode *)>(
-                                  [&](const ComputesForNode *op) {
+    match(f->getAnnotation(), std::function<void(const ComputesForNode *, Matcher *)>(
+                                  [&](const ComputesForNode *op, Matcher *ctx) {
+                                      ctx->match(op->body);
                                       current = {new IntervalNode(op->start, op->end, op->step, current)};
                                   }));
     return current;

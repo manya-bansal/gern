@@ -22,9 +22,9 @@ TEST(Functions, SingleFunction) {
     std::set<Variable> concrete_vars_2 = getVariables(concreteCall2->getAnnotation());
 
     // All the variables should now be different.
-    ASSERT_TRUE(areDisjoint(concrete_vars_1, abstract_vars));
-    ASSERT_TRUE(areDisjoint(concrete_vars_2, abstract_vars));
-    ASSERT_TRUE(areDisjoint(concrete_vars_2, concrete_vars_1));
+    ASSERT_TRUE(test::areDisjoint(concrete_vars_1, abstract_vars));
+    ASSERT_TRUE(test::areDisjoint(concrete_vars_2, abstract_vars));
+    ASSERT_TRUE(test::areDisjoint(concrete_vars_2, concrete_vars_1));
 
     AbstractDataTypePtr output_1 = concreteCall1->getOutput();
     ASSERT_TRUE(output_1 == outputDS);

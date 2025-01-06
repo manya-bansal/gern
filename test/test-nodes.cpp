@@ -28,9 +28,9 @@ TEST(Expr, BinaryNodes) {
     Expr e = 4;
     Variable v{"v"};
 
-    ASSERT_TRUE(getStrippedString((v + 4) / (v * 4)) == "((v+4)/(v*4))");
-    ASSERT_TRUE(getStrippedString(v + 4 && v * 4) == "((v+4)&&(v*4))");
-    ASSERT_TRUE(getStrippedString(v % 4 >= v * 4) == "((v%4)>=(v*4))");
+    ASSERT_TRUE(test::getStrippedString((v + 4) / (v * 4)) == "((v+4)/(v*4))");
+    ASSERT_TRUE(test::getStrippedString(v + 4 && v * 4) == "((v+4)&&(v*4))");
+    ASSERT_TRUE(test::getStrippedString(v % 4 >= v * 4) == "((v%4)>=(v*4))");
 }
 
 TEST(StmtNode, Constraint) {
@@ -38,12 +38,12 @@ TEST(StmtNode, Constraint) {
     Expr e = 1 - v;
 
     Constraint test(e == e);
-    ASSERT_TRUE(getStrippedString(test) == "((1-v_)==(1-v_))");
+    ASSERT_TRUE(test::getStrippedString(test) == "((1-v_)==(1-v_))");
 
     auto TestDSCPU = std::make_shared<const annot::ArrayCPU>();
     Subset subset{TestDSCPU, {1 - v, v * 2}};
 
-    ASSERT_TRUE(getStrippedString(subset) == "test{(1-v_),(v_*2)}");
+    ASSERT_TRUE(test::getStrippedString(subset) == "test{(1-v_),(v_*2)}");
 }
 
 TEST(Annotations, ConstrainPatterns) {

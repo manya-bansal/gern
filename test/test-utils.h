@@ -1,10 +1,10 @@
-#ifndef GERN_TEST_UTILS_H
-#define GERN_TEST_UTILS_H
+#pragma once
 
 #include "annotations/data_dependency_language.h"
 #include <algorithm>
 
 namespace gern {
+namespace test {
 
 template<typename T>
 static std::string getStrippedString(T e) {
@@ -25,6 +25,5 @@ static bool areDisjoint(std::set<T> s1, std::set<T> s2) {
     return true;
 }
 
+}  // namespace test
 }  // namespace gern
-
-#endif
