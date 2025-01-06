@@ -2,6 +2,7 @@ find_package(GTest REQUIRED)
 include(GoogleTest)
 
 add_executable(gern_test)
+find_package(CUDAToolkit REQUIRED)
 
 configure_file(
     "config.h.in"
@@ -37,5 +38,6 @@ target_sources(
 
 include_directories(${PROJECT_BINARY_DIR}/test)
 target_link_libraries(gern_test PRIVATE Gern::Gern GTest::gtest_main)
+target_link_libraries(gern_test PRIVATE ginac::ginac CUDA::cudart)
 
 gtest_discover_tests(gern_test)
