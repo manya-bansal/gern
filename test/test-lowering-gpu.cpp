@@ -26,7 +26,6 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     // single thread.
     std::vector<Compose> c = {add_f[{{"end", v}}](inputDS, outputDS)};
     Pipeline p(c);
-
     p.at_device();
     Runner run(p);
 
@@ -56,8 +55,6 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(result.data[i] == 5.0f);
     }
-
-    result.destroy();
 
     // Try running with insufficient number
     // of arguments.
@@ -79,6 +76,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
 
     a.destroy();
     b.destroy();
+    result.destroy();
 }
 
 TEST(LoweringGPU, SingleElemFunctionBind) {
@@ -96,7 +94,6 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
 
     Pipeline p(c);
     p.at_device();
-
     Runner run(p);
 
     run.compile(Runner::Options{
@@ -126,68 +123,140 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
         ASSERT_TRUE(result.data[i] == 5.0f);
     }
 
-    result.destroy();
     a.destroy();
     b.destroy();
+    result.destroy();
 }
 
-// TEST(LoweringGPU, SingleReduceNoBind) {
-//     auto inputDS = std::make_shared<const dummy::TestDSCPU>("input_con");
-//     auto outputDS = std::make_shared<const dummy::TestDSCPU>("output_con");
+TEST(LoweringGPU, SingleReduceNoBind) {
+    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
 
-//     Variable v1("v1");
-//     Variable v2("v2");
+    Variable v1("v1");
+    Variable v2("v2");
 
-//     test::reductionGPU reduce_f;
+    test::reductionGPU reduce_f;
 
-//     std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
+    std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
 
-//     Pipeline p(c);
+    Pipeline p(c);
+    p.at_device();
+    Runner run(p);
 
-//     p.lower();
-//     p.compile("-std=c++11 -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/");
+    run.compile(Runner::Options{
+        "nvcc",
+        "test.cu",
+        "/tmp",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        "",
+    });
 
-//     lib::TestArray a(10);
-//     a.vvals(2.0f);
-//     lib::TestArray b(10);
-//     b.vvals(0.0f);
-//     int64_t var1 = 10;
-//     int64_t var2 = 1;
+    lib::TestArrayGPU a(10);
+    a.vvals(2.0f);
+    lib::TestArrayGPU b(10);
+    b.vvals(0.0f);
+    int64_t var1 = 10;
+    int64_t var2 = 1;
 
-//     ASSERT_NO_THROW(p.evaluate({
-//         {inputDS->getName(), &a},
-//         {outputDS->getName(), &b},
-//         {v2.getName(), &var2},
-//         {v1.getName(), &var1},
-//     }));
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS->getName(), &a},
+        {outputDS->getName(), &b},
+        {v2.getName(), &var2},
+        {v1.getName(), &var1},
+    }));
 
-//     // Make sure we got the correct answer.
-//     for (int i = 0; i < 10; i++) {
-//         ASSERT_TRUE(b.data[i] == 2.0f * 10);
-//     }
+    lib::TestArray result = b.get();
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(result.data[i] == 2.0f * 10);
+    }
 
-//     b.vvals(0.0f);
-//     // Run again, we should be able to
-//     // repeatedly used the compiled pipeline.
-//     ASSERT_NO_THROW(p.evaluate({
-//         {inputDS->getName(), &a},
-//         {outputDS->getName(), &b},
-//         {v2.getName(), &var2},
-//         {v1.getName(), &var1},
-//     }));
-//     // Make sure we got the correct answer.
-//     for (int i = 0; i < 10; i++) {
-//         ASSERT_TRUE(b.data[i] == 2.0f * 10);
-//     }
+    b.vvals(0.0f);
+    // Run again, we should be able to
+    // repeatedly used the compiled pipeline.
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS->getName(), &a},
+        {outputDS->getName(), &b},
+        {v2.getName(), &var2},
+        {v1.getName(), &var1},
+    }));
 
-//     // Try running with insufficient number
-//     // of arguments.
-//     ASSERT_THROW(p.evaluate({
-//                      {inputDS->getName(), &a},
-//                      {outputDS->getName(), &b},
-//                  }),
-//                  error::UserError);
+    result = b.get();
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(result.data[i] == 2.0f * 10);
+    }
 
-//     a.destroy();
-//     b.destroy();
-// }
+    // Try running with insufficient number
+    // of arguments.
+    ASSERT_THROW(run.evaluate({
+                     {inputDS->getName(), &a},
+                     {outputDS->getName(), &b},
+                 }),
+                 error::UserError);
+
+    a.destroy();
+    b.destroy();
+    result.destroy();
+}
+
+TEST(LoweringGPU, SingleReduceBind) {
+    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
+    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+
+    Variable v1("v1");
+    Variable v2("v2");
+    Variable blk("blk");
+
+    test::reductionGPU reduce_f;
+
+    std::vector<Compose> c = {reduce_f[{
+        {"x", blk.bindToGrid(Grid::Property::BLOCK_ID_X)},
+        {"end", v1},
+        {"step", v2},
+    }](inputDS, outputDS)};
+
+    Pipeline p(c);
+    p.at_device();
+    Runner run(p);
+
+    run.compile(Runner::Options{
+        "nvcc",
+        "test.cu",
+        "/tmp",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        "",
+    });
+
+    lib::TestArrayGPU a(10);
+    a.vvals(2.0f);
+    lib::TestArrayGPU b(10);
+    b.vvals(0.0f);
+    int64_t var1 = 10;
+    int64_t var2 = 1;
+
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS->getName(), &a},
+        {outputDS->getName(), &b},
+        {v2.getName(), &var2},
+        {v1.getName(), &var1},
+    }));
+
+    lib::TestArray result = b.get();
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(result.data[i] == 2.0f * 10);
+    }
+
+    // Try running with insufficient number
+    // of arguments.
+    ASSERT_THROW(run.evaluate({
+                     {inputDS->getName(), &a},
+                     {outputDS->getName(), &b},
+                 }),
+                 error::UserError);
+
+    a.destroy();
+    b.destroy();
+    result.destroy();
+}

@@ -10,15 +10,15 @@ namespace lib {
 
 class TestArrayGPU {
 public:
-    TestArrayGPU(int size)
+    TestArrayGPU(int64_t size)
         : size(size) {
         cudaMalloc(&data, size * sizeof(float));
     }
-    __device__ TestArrayGPU(float *data, int size)
+    __device__ TestArrayGPU(float *data, int64_t size)
         : data(data), size(size) {
     }
 
-    __device__ TestArrayGPU query(int start, int len) {
+    __device__ TestArrayGPU query(int64_t start, int64_t len) {
         return TestArrayGPU(data + start, len);
     }
 
@@ -40,10 +40,11 @@ public:
     }
 
     float *data;
-    int size;
+    int64_t size;
 };
 
 __device__ inline void add(TestArrayGPU a, TestArrayGPU b) {
+
     for (int64_t i = 0; i < a.size; i++) {
         b.data[i] += a.data[i];
     }
