@@ -2,11 +2,9 @@
 #include "codegen/runner.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
-#include "functions/elementwise.h"
-#include "functions/reduction.h"
-#include "library/array/gpu-array-lib.h"
-
 #include "config.h"
+#include "library/array/annot/gpu-array.h"
+#include "library/array/impl/gpu-array.h"
 #include "test-utils.h"
 
 #include <algorithm>
@@ -15,10 +13,10 @@
 using namespace gern;
 
 TEST(LoweringGPU, SingleElemFunctionNoBind) {
-    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
 
-    test::addGPU add_f;
+    annot::addGPU add_f;
     Variable v("v");
 
     // No interval variable is being mapped to the grid,
@@ -33,14 +31,14 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
         "nvcc",
         "test.cu",
         "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
         "",
     });
 
     // Now, actually run the function.
-    lib::TestArrayGPU a(10);
+    impl::ArrayGPU a(10);
     a.vvals(2.0f);
-    lib::TestArrayGPU b(10);
+    impl::ArrayGPU b(10);
     b.vvals(3.0f);
     int64_t var = 10;
 
@@ -50,21 +48,20 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
         {v.getName(), &var},
     }));
 
-    lib::TestArray result = b.get();
+    impl::ArrayCPU result = b.get();
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(result.data[i] == 5.0f);
     }
 
     // Try running with insufficient number
-    // of arguments.
     ASSERT_THROW(run.evaluate({
                      {inputDS->getName(), &a},
                      {outputDS->getName(), &b},
                  }),
                  error::UserError);
 
-    auto dummyDS = std::make_shared<const dummy::TestDSCPU>("dummy_ds");
+    auto dummyDS = std::make_shared<const annot::ArrayGPU>("dummy_ds");
     // Try running the correct number of arguments,
     // but with the wrong reference data-structure.
     ASSERT_THROW(run.evaluate({
@@ -80,10 +77,10 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
 }
 
 TEST(LoweringGPU, SingleElemFunctionBind) {
-    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
 
-    test::addGPU add_f;
+    annot::addGPU add_f;
     Variable v("v");
     Variable blk("blk");
 
@@ -100,14 +97,14 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
         "nvcc",
         "test.cu",
         "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
         "",
     });
 
     // Now, actually run the function.
-    lib::TestArrayGPU a(10);
+    impl::ArrayGPU a(10);
     a.vvals(2.0f);
-    lib::TestArrayGPU b(10);
+    impl::ArrayGPU b(10);
     b.vvals(3.0f);
     int64_t var = 10;
 
@@ -117,7 +114,7 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
         {v.getName(), &var},
     }));
 
-    lib::TestArray result = b.get();
+    impl::ArrayCPU result = b.get();
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(result.data[i] == 5.0f);
@@ -129,13 +126,13 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
 }
 
 TEST(LoweringGPU, SingleReduceNoBind) {
-    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
 
     Variable v1("v1");
     Variable v2("v2");
 
-    test::reductionGPU reduce_f;
+    annot::reductionGPU reduce_f;
 
     std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
 
@@ -147,13 +144,13 @@ TEST(LoweringGPU, SingleReduceNoBind) {
         "nvcc",
         "test.cu",
         "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
         "",
     });
 
-    lib::TestArrayGPU a(10);
+    impl::ArrayGPU a(10);
     a.vvals(2.0f);
-    lib::TestArrayGPU b(10);
+    impl::ArrayGPU b(10);
     b.vvals(0.0f);
     int64_t var1 = 10;
     int64_t var2 = 1;
@@ -165,7 +162,7 @@ TEST(LoweringGPU, SingleReduceNoBind) {
         {v1.getName(), &var1},
     }));
 
-    lib::TestArray result = b.get();
+    impl::ArrayCPU result = b.get();
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(result.data[i] == 2.0f * 10);
@@ -201,14 +198,14 @@ TEST(LoweringGPU, SingleReduceNoBind) {
 }
 
 TEST(LoweringGPU, SingleReduceBind) {
-    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
 
     Variable v1("v1");
     Variable v2("v2");
     Variable blk("blk");
 
-    test::reductionGPU reduce_f;
+    annot::reductionGPU reduce_f;
 
     std::vector<Compose> c = {reduce_f[{
         {"x", blk.bindToGrid(Grid::Property::BLOCK_ID_X)},
@@ -224,13 +221,13 @@ TEST(LoweringGPU, SingleReduceBind) {
         "nvcc",
         "test.cu",
         "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
         "",
     });
 
-    lib::TestArrayGPU a(10);
+    impl::ArrayGPU a(10);
     a.vvals(2.0f);
-    lib::TestArrayGPU b(10);
+    impl::ArrayGPU b(10);
     b.vvals(0.0f);
     int64_t var1 = 10;
     int64_t var2 = 1;
@@ -242,7 +239,7 @@ TEST(LoweringGPU, SingleReduceBind) {
         {v1.getName(), &var1},
     }));
 
-    lib::TestArray result = b.get();
+    impl::ArrayCPU result = b.get();
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(result.data[i] == 2.0f * 10);

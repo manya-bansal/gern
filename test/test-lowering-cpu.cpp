@@ -2,9 +2,9 @@
 #include "codegen/runner.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
-#include "functions/elementwise.h"
-#include "functions/reduction.h"
-#include "library/array/cpu-array-lib.h"
+
+#include "library/array/annot/cpu-array.h"
+#include "library/array/impl/cpu-array.h"
 
 #include "config.h"
 #include "test-utils.h"
@@ -15,10 +15,10 @@
 using namespace gern;
 
 TEST(LoweringCPU, SingleElemFunction) {
-    auto inputDS = std::make_shared<const dummy::TestDSCPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSCPU>("output_con");
+    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
 
-    test::add add_f;
+    annot::add add_f;
     Variable v("v");
 
     std::vector<Compose> c = {add_f[{{"end", v}}](inputDS, outputDS)};
@@ -29,13 +29,13 @@ TEST(LoweringCPU, SingleElemFunction) {
         "nvcc",
         "test.cpp",
         "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
         "",
     });
 
-    lib::TestArray a(10);
+    impl::ArrayCPU a(10);
     a.vvals(2.0f);
-    lib::TestArray b(10);
+    impl::ArrayCPU b(10);
     b.vvals(3.0f);
     int64_t var = 10;
 
@@ -58,7 +58,7 @@ TEST(LoweringCPU, SingleElemFunction) {
                  }),
                  error::UserError);
 
-    auto dummyDS = std::make_shared<const dummy::TestDSCPU>("dummy_ds");
+    auto dummyDS = std::make_shared<const annot::ArrayCPU>("dummy_ds");
     // Try running the correct number of arguments,
     // but with the wrong reference data-structure.
     ASSERT_THROW(run.evaluate({
@@ -73,13 +73,13 @@ TEST(LoweringCPU, SingleElemFunction) {
 }
 
 TEST(LoweringCPU, SingleReduceFunction) {
-    auto inputDS = std::make_shared<const dummy::TestDSCPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSCPU>("output_con");
+    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
 
     Variable v1("v1");
     Variable v2("v2");
 
-    test::reduction reduce_f;
+    annot::reduction reduce_f;
 
     std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
 
@@ -90,13 +90,13 @@ TEST(LoweringCPU, SingleReduceFunction) {
         "nvcc",
         "test.cpp",
         "/tmp",
-        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/",
+        " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
         "",
     });
 
-    lib::TestArray a(10);
+    impl::ArrayCPU a(10);
     a.vvals(2.0f);
-    lib::TestArray b(10);
+    impl::ArrayCPU b(10);
     b.vvals(0.0f);
     int64_t var1 = 10;
     int64_t var2 = 1;
@@ -140,9 +140,9 @@ TEST(LoweringCPU, SingleReduceFunction) {
 }
 
 TEST(LoweringCPU, MultiFunction) {
-    auto inputDS = std::make_shared<const dummy::TestDSCPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSCPU>("output_con");
-    test::add add_f;
+    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
+    annot::add add_f;
 
     Compose compose{{add_f(inputDS, outputDS),
                      Compose(add_f(outputDS, outputDS))}};

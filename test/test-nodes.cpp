@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "annotations/data_dependency_language.h"
+#include "library/array/annot/cpu-array.h"
 #include "test-utils.h"
 
 #include "utils/error.h"
@@ -39,7 +40,7 @@ TEST(StmtNode, Constraint) {
     Constraint test(e == e);
     ASSERT_TRUE(getStrippedString(test) == "((1-v_)==(1-v_))");
 
-    auto TestDSCPU = std::make_shared<const dummy::TestDSCPU>();
+    auto TestDSCPU = std::make_shared<const annot::ArrayCPU>();
     Subset subset{TestDSCPU, {1 - v, v * 2}};
 
     ASSERT_TRUE(getStrippedString(subset) == "test{(1-v_),(v_*2)}");
@@ -48,7 +49,7 @@ TEST(StmtNode, Constraint) {
 TEST(Annotations, ConstrainPatterns) {
     Variable v("v");
     Variable v1("v1");
-    auto TestDSCPU = std::make_shared<const dummy::TestDSCPU>();
+    auto TestDSCPU = std::make_shared<const annot::ArrayCPU>();
     Subset s{TestDSCPU, {1 - v, v * 2}};
 
     ASSERT_NO_THROW(For(v = Expr(0), Expr(0), Expr(0),

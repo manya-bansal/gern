@@ -3,30 +3,30 @@
 #include <stdlib.h>
 
 namespace gern {
-namespace lib {
+namespace impl {
 
 /**
- * @brief An array class to test out Gern's
+ * @brief An ArrayCPU class to test out Gern's
  * codegen facilities.
  *
  */
 
-class TestArray {
+class ArrayCPU {
 public:
-    TestArray(float *data, int size)
+    ArrayCPU(float *data, int size)
         : data(data), size(size) {
     }
-    TestArray(int size)
-        : TestArray((float *)malloc(sizeof(float) * size), size) {
+    ArrayCPU(int size)
+        : ArrayCPU((float *)malloc(sizeof(float) * size), size) {
     }
-    static TestArray allocate(int start, int len) {
+    static ArrayCPU allocate(int start, int len) {
         (void)start;
-        return TestArray(len);
+        return ArrayCPU(len);
     }
-    TestArray query(int start, int len) {
-        return TestArray(data + start, len);
+    ArrayCPU query(int start, int len) {
+        return ArrayCPU(data + start, len);
     }
-    void insert(int start, int len, TestArray to_insert) {
+    void insert(int start, int len, ArrayCPU to_insert) {
         std::memcpy(data + start, to_insert.data, len);
     }
 
@@ -44,11 +44,11 @@ public:
     int size;
 };
 
-inline void add(TestArray a, TestArray b) {
+inline void add(ArrayCPU a, ArrayCPU b) {
     for (int64_t i = 0; i < a.size; i++) {
         b.data[i] += a.data[i];
     }
 }
 
-}  // namespace lib
+}  // namespace impl
 }  // namespace gern

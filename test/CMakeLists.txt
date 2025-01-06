@@ -21,10 +21,11 @@ target_sources(
     FILE_SET HEADERS
     FILES
         test-utils.h
-        functions/elementwise.h
-        functions/reduction.h
-        library/array/cpu-array-lib.h
-        library/array/gpu-array-lib.h
+
+        library/array/annot/cpu-array.h
+        library/array/annot/gpu-array.h
+        library/array/impl/cpu-array.h
+        library/array/impl/gpu-array.h
 )
 
 include_directories(${PROJECT_BINARY_DIR}/test)

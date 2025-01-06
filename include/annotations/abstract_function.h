@@ -29,12 +29,6 @@ public:
     virtual Pattern getAnnotation() = 0;
     virtual std::vector<Argument> getArguments() = 0;
     virtual std::vector<std::string> getHeader() = 0;
-    virtual std::vector<std::string> getIncludeFlags() {
-        return {};
-    }
-    virtual std::vector<std::string> getLinkFlags() {
-        return {};
-    }
 
     AbstractFunction &operator[](const std::map<std::string, Variable> &replacements) {
         bindVariables(replacements);

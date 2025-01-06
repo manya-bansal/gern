@@ -1,13 +1,10 @@
 #include "annotations/visitor.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
-#include "functions/elementwise.h"
-#include "functions/reduction.h"
-#include "library/array/gpu-array-lib.h"
-#include "utils/error.h"
-
 #include "config.h"
+#include "library/array/annot/gpu-array.h"
 #include "test-utils.h"
+#include "utils/error.h"
 
 #include <algorithm>
 #include <gtest/gtest.h>
@@ -16,10 +13,10 @@ using namespace gern;
 
 TEST(SetGridProperty, BindStableVar) {
 
-    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
 
-    test::addGPU add_f;
+    annot::addGPU add_f;
     Variable v("v");
 
     ASSERT_THROW(
@@ -31,10 +28,10 @@ TEST(SetGridProperty, BindStableVar) {
 
 TEST(SetGridProperty, BindIntervalVar) {
 
-    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
 
-    test::addGPU add_f;
+    annot::addGPU add_f;
     Variable v("v");
 
     ASSERT_NO_THROW((add_f[{{"x", v.bindToGrid(Grid::Property::BLOCK_ID_X)}}]));
@@ -45,10 +42,10 @@ TEST(SetGridProperty, BindIntervalVar) {
 
 TEST(SetGridProperty, BindNestedIntervalVar) {
 
-    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
 
-    test::reduction reduce_f;
+    annot::reductionGPU reduce_f;
     Variable v("v");
 
     ASSERT_NO_THROW((reduce_f[{{"r", v.bindToGrid(Grid::Property::BLOCK_ID_X)}}]));
@@ -59,10 +56,10 @@ TEST(SetGridProperty, BindNestedIntervalVar) {
 
 TEST(SetGridProperty, DoubleBind) {
 
-    auto inputDS = std::make_shared<const dummy::TestDSGPU>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDSGPU>("output_con");
+    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
 
-    test::reduction reduce_f;
+    annot::reductionGPU reduce_f;
     Variable v("v");
 
     ASSERT_NO_THROW((reduce_f[{

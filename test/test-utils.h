@@ -5,49 +5,6 @@
 #include <algorithm>
 
 namespace gern {
-namespace dummy {
-
-class TestDSCPU : public AbstractDataType {
-public:
-    TestDSCPU(const std::string &name)
-        : name(name) {
-    }
-    TestDSCPU()
-        : TestDSCPU("test") {
-    }
-    std::string getName() const override {
-        return name;
-    }
-
-    std::string getType() const override {
-        return "gern::lib::TestArray";
-    }
-
-private:
-    std::string name;
-};
-
-class TestDSGPU : public AbstractDataType {
-public:
-    TestDSGPU(const std::string &name)
-        : name(name) {
-    }
-    TestDSGPU()
-        : TestDSGPU("test") {
-    }
-    std::string getName() const override {
-        return name;
-    }
-
-    std::string getType() const override {
-        return "gern::lib::TestArrayGPU";
-    }
-
-private:
-    std::string name;
-};
-
-}  // namespace dummy
 
 template<typename T>
 static std::string getStrippedString(T e) {

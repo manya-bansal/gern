@@ -1,36 +1,36 @@
 #pragma once
 
-#include "cpu-array-lib.h"
+#include "cpu-array.h"
 
 #include <cuda_runtime.h>
 #include <stdlib.h>
 
 namespace gern {
-namespace lib {
+namespace impl {
 
-class TestArrayGPU {
+class ArrayGPU {
 public:
-    TestArrayGPU(int64_t size)
+    ArrayGPU(int64_t size)
         : size(size) {
         cudaMalloc(&data, size * sizeof(float));
     }
-    __device__ TestArrayGPU(float *data, int64_t size)
+    __device__ ArrayGPU(float *data, int64_t size)
         : data(data), size(size) {
     }
 
-    __device__ TestArrayGPU query(int64_t start, int64_t len) {
-        return TestArrayGPU(data + start, len);
+    __device__ ArrayGPU query(int64_t start, int64_t len) {
+        return ArrayGPU(data + start, len);
     }
 
     void vvals(float v) {
-        TestArray tmp(size);
+        ArrayCPU tmp(size);
         tmp.vvals(v);
         cudaMemcpy(data, tmp.data, size * sizeof(float), cudaMemcpyHostToDevice);
         tmp.destroy();
     }
 
-    TestArray get() {
-        TestArray tmp(size);
+    ArrayCPU get() {
+        ArrayCPU tmp(size);
         cudaMemcpy(tmp.data, data, size * sizeof(float), cudaMemcpyDeviceToHost);
         return tmp;
     }
@@ -43,12 +43,12 @@ public:
     int64_t size;
 };
 
-__device__ inline void add(TestArrayGPU a, TestArrayGPU b) {
+__device__ inline void add(ArrayGPU a, ArrayGPU b) {
 
     for (int64_t i = 0; i < a.size; i++) {
         b.data[i] += a.data[i];
     }
 }
 
-}  // namespace lib
+}  // namespace impl
 }  // namespace gern
