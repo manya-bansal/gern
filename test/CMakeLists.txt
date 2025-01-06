@@ -15,9 +15,11 @@ target_sources(
         test-resolve-constraints.cpp
         test-functions.cpp
         test-grid-property.cpp
+        # Tests for libraries and lowering.
         test-cpu-array.cpp
         test-cpu-matrix.cpp
         test-gpu-array.cpp
+        test-gpu-matrix.cpp
     PRIVATE
     FILE_SET HEADERS
     FILES
@@ -27,7 +29,6 @@ target_sources(
         library/array/annot/gpu-array.h
         library/array/impl/cpu-array.h
         library/array/impl/gpu-array.h
-
         library/matrix/annot/cpu-matrix.h
         library/matrix/annot/gpu-matrix.h
         library/matrix/impl/cpu-matrix.h

@@ -30,9 +30,9 @@ public:
     }
 
     ArrayCPU get() {
-        ArrayCPU tmp(size);
-        cudaMemcpy(tmp.data, data, size * sizeof(float), cudaMemcpyDeviceToHost);
-        return tmp;
+        ArrayCPU cpu(size);
+        cudaMemcpy(cpu.data, data, size * sizeof(float), cudaMemcpyDeviceToHost);
+        return cpu;
     }
 
     void destroy() {
