@@ -1,3 +1,5 @@
+#ifdef GERN_GPU_RUNNER
+
 #include "annotations/visitor.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
@@ -39,6 +41,7 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
         .filename = "test",
         .prefix = "/tmp",
         .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
+        .arch = std::string(GERN_CUDA_ARCH),
     });
 
     int64_t row_val = 10;
@@ -116,6 +119,7 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
         .filename = "test",
         .prefix = "/tmp",
         .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
+        .arch = std::string(GERN_CUDA_ARCH),
     });
 
     int64_t row_val = 10;
@@ -162,14 +166,15 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     Variable x("x");
     Variable y("y");
 
-    std::vector<Compose> c = {add[{
-        {"x", x.bindToGrid(Grid::Property::BLOCK_ID_X)},
-        {"y", y.bindToGrid(Grid::Property::BLOCK_ID_Y)},
-        {"row", row},
-        {"col", col},
-        {"l_x", l_x},
-        {"l_y", l_y},
-    }](inputDS, outputDS)};
+    std::vector<Compose> c = {
+        add[{
+            {"x", x.bindToGrid(Grid::Property::BLOCK_ID_X)},
+            {"y", y.bindToGrid(Grid::Property::BLOCK_ID_Y)},
+            {"row", row},
+            {"col", col},
+            {"l_x", l_x},
+            {"l_y", l_y},
+        }](inputDS, outputDS)};
 
     Pipeline p(c);
     p.at_device();
@@ -179,6 +184,7 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
         .filename = "test",
         .prefix = "/tmp",
         .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
+        .arch = std::string(GERN_CUDA_ARCH),
     });
 
     int64_t row_val = 10;
@@ -211,3 +217,5 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     b.destroy();
     result.destroy();
 }
+
+#endif

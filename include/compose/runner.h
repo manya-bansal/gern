@@ -17,18 +17,13 @@ public:
         std::string prefix = "/tmp";
         std::string include = "";
         std::string ldflags = "";
+        std::string arch = "";
     };
 
     // Is there a better way to do default
     // init for a struct, while still
     // letting users set members by name?
-    void compile(Options config = Options{
-                     "",
-                     "gern_file",
-                     "/tmp",
-                     "",
-                     "",
-                 });
+    void compile(Options config);
 
     void evaluate(std::map<std::string, void *> args);
 

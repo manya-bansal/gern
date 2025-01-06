@@ -1,3 +1,5 @@
+#ifdef GERN_GPU_RUNNER
+
 #include "annotations/visitor.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
@@ -31,6 +33,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
         .filename = "test",
         .prefix = "/tmp",
         .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
+        .arch = std::string(GERN_CUDA_ARCH),
     });
 
     // Now, actually run the function.
@@ -95,6 +98,7 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
         .filename = "test",
         .prefix = "/tmp",
         .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
+        .arch = std::string(GERN_CUDA_ARCH),
     });
 
     // Now, actually run the function.
@@ -140,6 +144,7 @@ TEST(LoweringGPU, SingleReduceNoBind) {
         .filename = "test",
         .prefix = "/tmp",
         .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
+        .arch = std::string(GERN_CUDA_ARCH),
     });
 
     impl::ArrayGPU a(10);
@@ -215,6 +220,7 @@ TEST(LoweringGPU, SingleReduceBind) {
         .filename = "test",
         .prefix = "/tmp",
         .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
+        .arch = std::string(GERN_CUDA_ARCH),
     });
 
     impl::ArrayGPU a(10);
@@ -249,3 +255,5 @@ TEST(LoweringGPU, SingleReduceBind) {
     b.destroy();
     result.destroy();
 }
+
+#endif

@@ -1,2 +1,3 @@
 #pragma once
 #define GERN_ROOT_DIR "@PROJECT_SOURCE_DIR@"
+#define GERN_CUDA_ARCH "@Gern_CUDA_ARCH@"

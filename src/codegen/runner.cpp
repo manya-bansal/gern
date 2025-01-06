@@ -9,7 +9,6 @@
 namespace gern {
 
 void Runner::compile(Options config) {
-
     p.lower();
 
     codegen::CodeGenerator cg;
@@ -22,13 +21,14 @@ void Runner::compile(Options config) {
     outFile << code;
     outFile.close();
 
+    std::string arch = p.is_at_device() ? "-arch=sm_" + config.arch : "";
     std::string shared_obj = config.prefix + getUniqueName("libGern") + ".so";
     std::string cmd = config.path_to_nvcc + "nvcc" +
                       " -std=c++11 --compiler-options -fPIC " +
-                      config.include +
+                      arch + " " + config.include +
                       " --shared -o " + shared_obj + " " +
                       file + " " + config.ldflags + " 2>&1";
-
+    // std::Cout << cm
     int runStatus = std::system(cmd.data());
     if (runStatus != 0) {
         throw error::UserError("Compilation Failed");
@@ -51,7 +51,7 @@ void Runner::compile(Options config) {
 
 void Runner::evaluate(std::map<std::string, void *> args) {
     if (!compiled) {
-        this->compile();
+        throw error::UserError("Please compile the pipeline first");
     }
 
     size_t num_args = argument_order.size();
