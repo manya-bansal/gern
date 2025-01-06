@@ -36,21 +36,30 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
                         std::less<Variable>());
 
     std::vector<CGExpr> args;
+    std::vector<CGStmt> hook_body;
     std::vector<CGExpr> hook_args;
+
     int num_args = 0;
     for (const auto &ds : to_declare_adts) {
         args.push_back(VarDecl::make(Type::make(ds->getType()), ds->getName()));
-        hook_args.push_back(Deref::make(
-            Cast::make(Type::make(ds->getType() + "*"),
-                       Var::make("args[" + std::to_string(num_args) + "]"))));
+        hook_body.push_back(
+            VarAssign::make(VarDecl::make(Type::make(ds->getType()), ds->getName()),
+                            Deref::make(
+                                Cast::make(Type::make(ds->getType() + "*"),
+                                           Var::make("args[" + std::to_string(num_args) + "]")))));
+        hook_args.push_back(Var::make(ds->getName()));
         argument_order.push_back(ds->getName());
         num_args++;
     }
+
     for (const auto &v : to_declare_vars) {
-        args.push_back(VarDecl::make(Type::make(v.getType().getString()), v.getName()));
-        hook_args.push_back(Deref::make(
-            Cast::make(Type::make(v.getType().getString() + "*"),
-                       Var::make("args[" + std::to_string(num_args) + "]"))));
+        args.push_back(VarDecl::make(Type::make(v.getType().str()), v.getName()));
+        hook_body.push_back(
+            VarAssign::make(VarDecl::make(Type::make(v.getType().str()), v.getName()),
+                            Deref::make(
+                                Cast::make(Type::make(v.getType().str() + "*"),
+                                           Var::make("args[" + std::to_string(num_args) + "]")))));
+        hook_args.push_back(gen(v));
         argument_order.push_back(v.getName());
         num_args++;
     }
@@ -62,7 +71,6 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     // Also make the function that is used as the entry point for
     // user code.
     std::vector<CGStmt> full_code;
-    std::vector<CGStmt> hook_body;
     CGStmt hook_call = VoidCall::make(Call::make(name, hook_args));
     if (p.is_at_device()) {
         // Declare the grid and block dimensions.
@@ -174,9 +182,10 @@ void CodeGenerator::visit(const IntervalNode *op) {
     // If the variable is not mapped to the grid, we need to actually
     // wrap it in a for loop.
     if (!op->isMappedToGrid()) {
+        Variable v = op->getIntervalVariable();
         CGStmt start = gen(op->start);
-        CGExpr cond = gen(op->end);
-        CGStmt step = gen(op->step);
+        CGExpr cond = gen(v < op->end);
+        CGStmt step = gen(v += op->step);
         code = For::make(start, cond, step, code);
     }
 }
@@ -321,7 +330,7 @@ std::vector<std::string> CodeGenerator::getArgumentOrder() const {
 
 CGExpr CodeGenerator::declVar(Variable v) {
     declared.insert(v);
-    return VarDecl::make(Type::make(v.getType().getString()), v.getName());
+    return VarDecl::make(Type::make(v.getType().str()), v.getName());
 }
 
 static CGExpr genProp(const Grid::Property &p) {
@@ -363,8 +372,8 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     Grid::Property property = interval_var.getBoundProperty();
 
     // This only works for ceiling.
-    CGExpr divisor = gen(op->step.getB());
-    CGExpr dividend = gen(op->end.getB()) - gen(op->start.getB());
+    CGExpr divisor = gen(op->step);
+    CGExpr dividend = gen(op->end) - gen(op->start.getB());
     auto ceil = (divisor + dividend - 1) / divisor;
 
     // Store the grid dimension that correspond with this mapping.
@@ -388,7 +397,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     return VarAssign::make(
         declVar(interval_var),
         // Add any shift factor specified in the interval.
-        (genProp(interval_var.getBoundProperty()) * gen(op->step.getB())) + gen(op->start.getB()));
+        (genProp(interval_var.getBoundProperty()) * gen(op->step)) + gen(op->start.getB()));
 }
 
 }  // namespace codegen

@@ -199,6 +199,14 @@ CGExpr operator+(const CGExpr &, const CGExpr &);
 CGExpr operator-(const CGExpr &, const CGExpr &);
 CGExpr operator*(const CGExpr &, const CGExpr &);
 CGExpr operator/(const CGExpr &, const CGExpr &);
+CGExpr operator==(const CGExpr &, const CGExpr &);
+CGExpr operator!=(const CGExpr &, const CGExpr &);
+CGExpr operator<=(const CGExpr &, const CGExpr &);
+CGExpr operator>=(const CGExpr &, const CGExpr &);
+CGExpr operator<(const CGExpr &, const CGExpr &);
+CGExpr operator>(const CGExpr &, const CGExpr &);
+CGExpr operator&&(const CGExpr &, const CGExpr &);
+CGExpr operator||(const CGExpr &, const CGExpr &);
 
 /** This is a custom comparator that allows
  * CGExprs to be used in a map.  Inspired by Halide.

@@ -51,10 +51,10 @@ TEST(Annotations, ConstrainPatterns) {
     auto TestDSCPU = std::make_shared<const dummy::TestDSCPU>();
     Subset s{TestDSCPU, {1 - v, v * 2}};
 
-    ASSERT_NO_THROW(For(v = Expr(0), v < 0, v += Expr(0),
+    ASSERT_NO_THROW(For(v = Expr(0), Expr(0), Expr(0),
                         Computes(Produces(s), Consumes(Subsets(s))))
                         .where(v == 1));
-    ASSERT_THROW(For(v = Expr(0), v < 0, v = Expr(0), Computes(Produces(s), Consumes(Subsets(s))))
+    ASSERT_THROW(For(v = Expr(0), Expr(0), Expr(0), Computes(Produces(s), Consumes(Subsets(s))))
                      .where(v1 == 1),
                  error::UserError);
     ASSERT_NO_THROW(s.where(v == 1));

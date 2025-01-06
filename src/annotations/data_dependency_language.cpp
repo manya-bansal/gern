@@ -298,7 +298,7 @@ Consumes::Consumes(Subset s)
     : Consumes(new const SubsetsNode({s})) {
 }
 
-ConsumeMany For(Assign start, Constraint end, Assign step, ConsumeMany body,
+ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
                 bool parallel) {
     return ConsumeMany(
         new const ConsumesForNode(start, end, step, body, parallel));
@@ -324,7 +324,7 @@ Pattern::Pattern(const PatternNode *p)
     : Stmt(p) {
 }
 
-Pattern For(Assign start, Constraint end, Assign step, Pattern body,
+Pattern For(Assign start, Expr end, Expr step, Pattern body,
             bool parallel) {
     return Pattern(
         new const ComputesForNode(start, end, step, body, parallel));

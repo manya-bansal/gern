@@ -28,12 +28,12 @@ public:
         Variable step("step");
         Variable end("end");
 
-        return For(x = Expr(0), x < end, x = x + step,
+        return For(x = Expr(0), end, step,
                    Computes(
                        Produces(
                            Subset(output, {x, 1})),
                        Consumes(
-                           For(r = Expr(0), r < end, r = r + 1,
+                           For(r = Expr(0), end, 1,
                                Subsets{
                                    Subset(input, {r, 1})}))));
     }

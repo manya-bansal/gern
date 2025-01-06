@@ -49,7 +49,7 @@ public:
     bool isFloat() const;
     bool isComplex() const;
     bool isBool() const;
-    std::string getString() const;
+    std::string str() const;
     /// @}
 
     /// Returns the number of bytes required to store one element of this type.

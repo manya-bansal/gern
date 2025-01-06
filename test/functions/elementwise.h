@@ -23,7 +23,7 @@ public:
         Variable x("x");
         Expr step(1);
 
-        return For(x = Expr(0), x < end, x = (x + step),
+        return For(x = Expr(0), end, step,
                    Computes(
                        Produces(
                            Subset(output, {x, step})),
@@ -56,7 +56,6 @@ private:
     Variable end{"end"};
 };
 
-
 // This *must* be a device function.
 class addGPU : public AbstractFunction {
 public:
@@ -72,7 +71,7 @@ public:
         Variable x("x");
         Expr step(1);
 
-        return For(x = Expr(0), x < end, x = (x + step),
+        return For(x = Expr(0), end, step,
                    Computes(
                        Produces(
                            Subset(output, {x, step})),

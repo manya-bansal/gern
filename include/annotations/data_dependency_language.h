@@ -278,7 +278,7 @@ public:
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
-ConsumeMany For(Assign start, Constraint end, Assign step, ConsumeMany body,
+ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
                 bool parallel = false);
 
 class Allocates : public Stmt {
@@ -311,7 +311,7 @@ public:
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.
-Pattern For(Assign start, Constraint end, Assign step, Pattern body,
+Pattern For(Assign start, Expr end, Expr step, Pattern body,
             bool parallel = false);
 
 }  // namespace gern
