@@ -252,4 +252,10 @@ TEST(LoweringGPU, SingleReduceBind) {
     a.destroy();
     b.destroy();
     result.destroy();
+<<<<<<< HEAD
 }
+=======
+}
+
+#endif
+>>>>>>> fce3122a35256b9638c391fa4aac1760244a643c
