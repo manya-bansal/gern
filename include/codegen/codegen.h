@@ -1,5 +1,4 @@
-#ifndef GERN_CODEGEN_H
-#define GERN_CODEGEN_H
+#pragma once
 
 #include "codegen/codegen_ir.h"
 #include "compose/pipeline.h"
@@ -95,5 +94,3 @@ private:
 
 }  // namespace codegen
 }  // namespace gern
-
-#endif

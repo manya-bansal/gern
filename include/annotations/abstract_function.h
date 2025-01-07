@@ -1,5 +1,4 @@
-#ifndef GERN_ABSTRACT_FUNCTION_H
-#define GERN_ABSTRACT_FUNCTION_H
+#pragma once
 
 #include "annotations/arguments.h"
 #include "annotations/data_dependency_language.h"
@@ -79,4 +78,3 @@ private:
 };
 
 }  // namespace gern
-#endif

@@ -1,5 +1,4 @@
-#ifndef GERN_COMPOSE_H
-#define GERN_COMPOSE_H
+#pragma once
 
 #include "annotations/arguments.h"
 #include "annotations/data_dependency_language.h"
@@ -136,5 +135,3 @@ inline const E *to(const CompositionObject *e) {
 }
 
 }  // namespace gern
-
-#endif

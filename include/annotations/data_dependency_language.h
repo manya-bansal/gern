@@ -1,5 +1,5 @@
-#ifndef GERN_DATA_DEP_LANG_H
-#define GERN_DATA_DEP_LANG_H
+#pragma once
+
 
 #include "annotations/abstract_nodes.h"
 #include "annotations/grid.h"
@@ -315,5 +315,3 @@ Pattern For(Assign start, Expr end, Expr step, Pattern body,
             bool parallel = false);
 
 }  // namespace gern
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef GERN_ARGUMENTS_H
-#define GERN_ARGUMENTS_H
+#pragma once
 
 #include "annotations/abstract_nodes.h"
 #include "annotations/data_dependency_language.h"
@@ -127,5 +126,3 @@ inline const E *to(const ArgumentNode *e) {
 }
 
 }  // namespace gern
-
-#endif

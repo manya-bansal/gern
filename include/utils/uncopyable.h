@@ -1,5 +1,4 @@
-#ifndef GERN_UTIL_INTRUSIVE_PTR_H
-#define GERN_UTIL_INTRUSIVE_PTR_H
+#pragma once
 
 // Written the way it has been written in TACO :)!
 
@@ -8,8 +7,10 @@ namespace util {
 
 /// Forward declare acquire and release methods
 /// @{
-template <typename T> void acquire(const T *);
-template <typename T> void release(const T *);
+template<typename T>
+void acquire(const T *);
+template<typename T>
+void release(const T *);
 /// @}
 
 /// This class provides an intrusive pointer, which is a pointer that stores its
@@ -23,129 +24,142 @@ template <typename T> void release(const T *);
 ///   friend void acquire(const X *x) { ++x->ref; }
 ///   friend void release(const X *x) { if (--x->ref ==0) delete x; }
 /// };
-template <class T> class IntrusivePtr {
+template<class T>
+class IntrusivePtr {
 public:
-  T *ptr;
+    T *ptr;
 
-  /// Allocate an undefined IntrusivePtr
-  IntrusivePtr() : ptr(nullptr) {}
-
-  /// Allocate an IntrusivePtr with an object
-  IntrusivePtr(T *p) : ptr(p) {
-    if (ptr) {
-      acquire(ptr);
+    /// Allocate an undefined IntrusivePtr
+    IntrusivePtr()
+        : ptr(nullptr) {
     }
-  }
 
-  /// Copy constructor
-  IntrusivePtr(const IntrusivePtr &other) : ptr(other.ptr) {
-    if (ptr) {
-      acquire(ptr);
+    /// Allocate an IntrusivePtr with an object
+    IntrusivePtr(T *p)
+        : ptr(p) {
+        if (ptr) {
+            acquire(ptr);
+        }
     }
-  }
 
-  /// Move constructor
-  IntrusivePtr(IntrusivePtr &&other) : ptr(other.ptr) { other.ptr = nullptr; }
-
-  /// Copy assignment operator
-  IntrusivePtr &operator=(const IntrusivePtr &other) {
-    if (ptr) {
-      release(ptr);
+    /// Copy constructor
+    IntrusivePtr(const IntrusivePtr &other)
+        : ptr(other.ptr) {
+        if (ptr) {
+            acquire(ptr);
+        }
     }
-    ptr = other.ptr;
-    if (ptr) {
-      acquire(ptr);
+
+    /// Move constructor
+    IntrusivePtr(IntrusivePtr &&other)
+        : ptr(other.ptr) {
+        other.ptr = nullptr;
     }
-    return *this;
-  }
 
-  // Special function needed in pybind11 for custom smart pointers
-  const T *get() { return ptr; }
-
-  /// Copy assignment operator for managed object
-  IntrusivePtr &operator=(T *p) {
-    if (ptr) {
-      release(ptr);
+    /// Copy assignment operator
+    IntrusivePtr &operator=(const IntrusivePtr &other) {
+        if (ptr) {
+            release(ptr);
+        }
+        ptr = other.ptr;
+        if (ptr) {
+            acquire(ptr);
+        }
+        return *this;
     }
-    this->ptr = p;
-    if (ptr) {
-      acquire(ptr);
+
+    // Special function needed in pybind11 for custom smart pointers
+    const T *get() {
+        return ptr;
     }
-    return *this;
-  }
 
-  /// Move assignment operator
-  IntrusivePtr &operator=(IntrusivePtr &&other) {
-    if (ptr) {
-      release(ptr);
+    /// Copy assignment operator for managed object
+    IntrusivePtr &operator=(T *p) {
+        if (ptr) {
+            release(ptr);
+        }
+        this->ptr = p;
+        if (ptr) {
+            acquire(ptr);
+        }
+        return *this;
     }
-    ptr = other.ptr;
-    other.ptr = nullptr;
-    return *this;
-  }
 
-  /// Destroy the intrusive ptr.
-  virtual ~IntrusivePtr() {
-    if (ptr) {
-      release(ptr);
+    /// Move assignment operator
+    IntrusivePtr &operator=(IntrusivePtr &&other) {
+        if (ptr) {
+            release(ptr);
+        }
+        ptr = other.ptr;
+        other.ptr = nullptr;
+        return *this;
     }
-  }
 
-  /// Check whether the pointer is defined (ptr is not null).
-  bool defined() const { return ptr != nullptr; }
+    /// Destroy the intrusive ptr.
+    virtual ~IntrusivePtr() {
+        if (ptr) {
+            release(ptr);
+        }
+    }
 
-  friend inline bool operator==(const IntrusivePtr<T> &p1,
-                                const IntrusivePtr<T> &p2) {
-    return p1.ptr == p2.ptr;
-  }
+    /// Check whether the pointer is defined (ptr is not null).
+    bool defined() const {
+        return ptr != nullptr;
+    }
 
-  friend inline bool operator!=(const IntrusivePtr<T> &p1,
-                                const IntrusivePtr<T> &p2) {
-    return p1.ptr != p2.ptr;
-  }
+    friend inline bool operator==(const IntrusivePtr<T> &p1,
+                                  const IntrusivePtr<T> &p2) {
+        return p1.ptr == p2.ptr;
+    }
 
-  friend inline bool operator<(const IntrusivePtr<T> &p1,
-                               const IntrusivePtr<T> &p2) {
-    return p1.ptr < p2.ptr;
-  }
+    friend inline bool operator!=(const IntrusivePtr<T> &p1,
+                                  const IntrusivePtr<T> &p2) {
+        return p1.ptr != p2.ptr;
+    }
 
-  friend inline bool operator>(const IntrusivePtr<T> &p1,
-                               const IntrusivePtr<T> &p2) {
-    return p1.ptr > p2.ptr;
-  }
+    friend inline bool operator<(const IntrusivePtr<T> &p1,
+                                 const IntrusivePtr<T> &p2) {
+        return p1.ptr < p2.ptr;
+    }
 
-  friend inline bool operator<=(const IntrusivePtr<T> &p1,
-                                const IntrusivePtr<T> &p2) {
-    return p1.ptr <= p2.ptr;
-  }
+    friend inline bool operator>(const IntrusivePtr<T> &p1,
+                                 const IntrusivePtr<T> &p2) {
+        return p1.ptr > p2.ptr;
+    }
 
-  friend inline bool operator>=(const IntrusivePtr<T> &p1,
-                                const IntrusivePtr<T> &p2) {
-    return p1.ptr >= p2.ptr;
-  }
+    friend inline bool operator<=(const IntrusivePtr<T> &p1,
+                                  const IntrusivePtr<T> &p2) {
+        return p1.ptr <= p2.ptr;
+    }
+
+    friend inline bool operator>=(const IntrusivePtr<T> &p1,
+                                  const IntrusivePtr<T> &p2) {
+        return p1.ptr >= p2.ptr;
+    }
 };
 
-template <class Data> class Manageable {
-  friend void acquire(const Data *data) { ++data->ref; }
-  friend void release(const Data *data) {
-    if (--data->ref == 0)
-      delete data;
-  }
+template<class Data>
+class Manageable {
+    friend void acquire(const Data *data) {
+        ++data->ref;
+    }
+    friend void release(const Data *data) {
+        if (--data->ref == 0)
+            delete data;
+    }
 
-  mutable long ref = 0;
+    mutable long ref = 0;
 };
 
 class Uncopyable {
 protected:
-  Uncopyable() = default;
-  ~Uncopyable() = default;
+    Uncopyable() = default;
+    ~Uncopyable() = default;
 
 private:
-  Uncopyable(const Uncopyable &) = delete;
-  Uncopyable &operator=(const Uncopyable &) = delete;
+    Uncopyable(const Uncopyable &) = delete;
+    Uncopyable &operator=(const Uncopyable &) = delete;
 };
 
-} // namespace util
-} // namespace gern
-
-#endif
+}  // namespace util
+}  // namespace gern

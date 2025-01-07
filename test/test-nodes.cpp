@@ -1,12 +1,11 @@
 
-#include <gtest/gtest.h>
-#include <iostream>
-
 #include "annotations/data_dependency_language.h"
 #include "library/array/annot/cpu-array.h"
 #include "test-utils.h"
-
 #include "utils/error.h"
+
+#include <gtest/gtest.h>
+#include <iostream>
 
 using namespace gern;
 

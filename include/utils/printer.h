@@ -1,5 +1,4 @@
-#ifndef GERN_PRINTER_UTILS_H
-#define GERN_PRINTER_UTILS_H
+#pragma once
 
 #include <iostream>
 
@@ -13,7 +12,4 @@ static void printIdent(std::ostream &os, int ident) {
 }
 
 }  // namespace util
-
 }  // namespace gern
-
-#endif

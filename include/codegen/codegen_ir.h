@@ -1,5 +1,4 @@
-#ifndef CODEGEN_CG_H
-#define CODEGEN_CG_H
+#pragma once
 
 // Impl more or less from TACO impl
 #include "annotations/datatypes.h"
@@ -721,5 +720,3 @@ inline const S *to(CGStmt s) {
 
 }  // namespace codegen
 }  // namespace gern
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef CODEGEN_PRINTER_H
-#define CODEGEN_PRINTER_H
+#pragma once
 
 #include "codegen/codegen_ir.h"
 #include "codegen/codegen_visitor.h"
@@ -56,5 +55,3 @@ private:
 
 }  // namespace codegen
 }  // namespace gern
-
-#endif

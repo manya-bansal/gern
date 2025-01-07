@@ -1,5 +1,4 @@
-#ifndef GERN_PIPELINE_VISITOR_H
-#define GERN_PIPELINE_VISITOR_H
+#pragma once
 
 #include "compose/pipeline.h"
 #include <iostream>
@@ -43,5 +42,3 @@ private:
 };
 
 }  // namespace gern
-
-#endif

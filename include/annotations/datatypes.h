@@ -1,5 +1,4 @@
-#ifndef GERN_DATATYPES_H
-#define GERN_DATATYPES_H
+#pragma once
 
 #include <complex>
 #include <cstdint>
@@ -174,5 +173,3 @@ inline Datatype type<std::complex<double>>() {
 }
 
 }  // namespace gern
-
-#endif

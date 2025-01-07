@@ -1,5 +1,4 @@
-#ifndef GERN_PIPELINE_NODES_H
-#define GERN_PIPELINE_NODES_H
+#pragma once
 
 #include "annotations/data_dependency_language.h"
 #include "compose/compose.h"
@@ -184,5 +183,3 @@ struct BlankNode : public LowerIRNode {
 };
 
 }  // namespace gern
-
-#endif

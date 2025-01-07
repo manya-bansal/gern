@@ -1,5 +1,4 @@
-#ifndef GERN_COMPOSE_VISITOR
-#define GERN_COMPOSE_VISITOR
+#pragma once
 
 #include "compose/compose.h"
 #include <iostream>
@@ -49,5 +48,3 @@ public:
 };
 
 }  // namespace gern
-
-#endif

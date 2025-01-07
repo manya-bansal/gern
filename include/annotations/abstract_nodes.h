@@ -1,5 +1,4 @@
-#ifndef ANNOT_ABSTRACT_NODES
-#define ANNOT_ABSTRACT_NODES
+#pragma once
 
 #include "annotations/datatypes.h"
 #include "utils/name_generator.h"
@@ -71,5 +70,3 @@ typedef std::shared_ptr<const AbstractDataType> AbstractDataTypePtr;
 std::ostream &operator<<(std::ostream &os, const AbstractDataType &ads);
 
 }  // namespace gern
-
-#endif

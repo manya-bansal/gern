@@ -2,6 +2,7 @@
 #include "compose/compose.h"
 #include "library/array/annot/cpu-array.h"
 #include "test-utils.h"
+
 #include <algorithm>
 #include <gtest/gtest.h>
 

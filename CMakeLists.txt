@@ -84,6 +84,10 @@ if (Gern_BUILD_TESTING)
     add_subdirectory(test)
 endif ()
 
+if (Gern_CUDA_ARCH)
+    message("Running GPU testers in this build.")
+endif ()
+
 ##
 # Installation and packaging
 

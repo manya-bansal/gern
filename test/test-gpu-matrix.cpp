@@ -1,14 +1,11 @@
-#ifdef GERN_GPU_RUNNER
-
 #include "annotations/visitor.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
 #include "compose/runner.h"
-
+#include "config.h"
 #include "library/matrix/annot/gpu-matrix.h"
 #include "library/matrix/impl/gpu-matrix.h"
-
-#include "config.h"
+#include "test-gpu-utils.h"
 #include "test-utils.h"
 
 #include <algorithm>
@@ -37,12 +34,7 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
     p.at_device();
     Runner run(p);
 
-    run.compile(Runner::Options{
-        .filename = "test",
-        .prefix = "/tmp",
-        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
-        .arch = std::string(GERN_CUDA_ARCH),
-    });
+    run.compile(test::gpuRunner("matrix"));
 
     int64_t row_val = 10;
     int64_t col_val = 10;
@@ -217,5 +209,3 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     b.destroy();
     result.destroy();
 }
-
-#endif

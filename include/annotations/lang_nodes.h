@@ -1,5 +1,4 @@
-#ifndef GERN_LANG_NODES_H
-#define GERN_LANG_NODES_H
+#pragma once
 
 #include "annotations/abstract_nodes.h"
 #include "annotations/data_dependency_language.h"
@@ -214,5 +213,3 @@ inline const typename I::Node *getNode(const I &stmt) {
 }
 
 }  // namespace gern
-
-#endif
