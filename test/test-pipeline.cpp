@@ -91,11 +91,24 @@ TEST(PipelineTest, ExtraOutput) {
                  }),
                  error::UserError);
 
-    // Catch in nested pipeline too.
+    // Catch in nested pipeline that appears first.
     ASSERT_THROW(Pipeline p({
                      {
                          add_f(inputDS, outputDS_new),
                      },
+                     add_f(inputDS, outputDS),
+                 }),
+                 error::UserError);
+
+    ASSERT_THROW(Pipeline p({
+                     Compose({
+                         Compose({
+                             Compose({
+                                 add_f(inputDS, outputDS_new),
+                             }),
+                         }),
+                     }),
+
                      add_f(inputDS, outputDS),
                  }),
                  error::UserError);
@@ -143,4 +156,19 @@ TEST(PipelineTest, getInputs) {
     ASSERT_TRUE(p_nested.getProducerFunc(outputDS_new) == add_2);
     // We should not be able to find a function.
     ASSERT_TRUE(p_nested.getProducerFunc(inputDS) == nullptr);
+
+    Pipeline p_nested_2({
+        Compose({
+            Compose({
+                Compose({
+                    add_1,
+                }),
+            }),
+        }),
+        add_2,
+    });
+
+    ASSERT_TRUE(p_nested.getProducerFunc(outputDS) == add_1);
+    ASSERT_TRUE(p_nested.getProducerFunc(outputDS_new) == add_2);
+    ASSERT_TRUE(p_nested_2.getProducerFunc(inputDS) == nullptr);
 }
