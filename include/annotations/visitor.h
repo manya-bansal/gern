@@ -1,5 +1,4 @@
-#ifndef GERN_VISITOR_H
-#define GERN_VISITOR_H
+#pragma once
 
 #include "annotations/data_dependency_language.h"
 #include <cassert>
@@ -333,4 +332,3 @@ inline std::set<Variable> getVariables(T annot) {
 }
 
 }  // namespace gern
-#endif

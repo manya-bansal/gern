@@ -11,17 +11,29 @@ set(LIB_HEADERS
     library/matrix/annot/cpu-matrix.h
     library/matrix/annot/gpu-matrix.h
     library/matrix/impl/cpu-matrix.h
-   
 )
 
-if(DEFINED Gern_CUDA_ARCH)
+set(TEST_SOURCES
+    test-nodes.cpp
+    test-resolve-constraints.cpp
+    test-functions.cpp
+    test-grid-property.cpp
+    test-cpu-array.cpp
+    test-cpu-matrix.cpp
+)
+
+
+if (Gern_CUDA_ARCH)
     find_package(CUDAToolkit REQUIRED)
-    target_compile_definitions(gern_test PUBLIC GERN_GPU_RUNNER)
     # Adding all the GPU impl headers.
     list(APPEND LIB_HEADERS
+    test-gpu-utils.h
     library/array/impl/gpu-array.h
-    library/matrix/impl/gpu-matrix.h
-)
+    library/matrix/impl/gpu-matrix.h)
+    # Adding all the GPU test.
+    list(APPEND TEST_SOURCES
+    test-gpu-array.cpp
+    test-gpu-matrix.cpp)
 endif()
 
 
@@ -33,15 +45,7 @@ configure_file(
 target_sources(
     gern_test
     PRIVATE
-        test-nodes.cpp
-        test-resolve-constraints.cpp
-        test-functions.cpp
-        test-grid-property.cpp
-        # Tests for libraries and lowering.
-        test-cpu-array.cpp
-        test-cpu-matrix.cpp
-        test-gpu-array.cpp
-        test-gpu-matrix.cpp
+        ${TEST_SOURCES}
     PRIVATE
     FILE_SET HEADERS
     FILES

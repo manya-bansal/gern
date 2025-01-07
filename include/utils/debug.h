@@ -1,5 +1,4 @@
-#ifndef GERN_DEBUG_H
-#define GERN_DEBUG_H
+#pragma once
 
 #include <iostream>
 
@@ -10,6 +9,4 @@
     do {                             \
         std::cout << x << std::cout; \
     } while (0)
-#endif
-
 #endif

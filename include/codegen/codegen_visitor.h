@@ -1,5 +1,4 @@
-#ifndef CODEGEN_VISITOR_H
-#define CODEGEN_VISITOR_H
+#pragma once
 
 namespace gern {
 namespace codegen {
@@ -115,5 +114,3 @@ public:
 
 }  // namespace codegen
 }  // namespace gern
-
-#endif

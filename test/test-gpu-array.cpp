@@ -1,5 +1,3 @@
-#ifdef GERN_GPU_RUNNER
-
 #include "annotations/visitor.h"
 #include "compose/compose.h"
 #include "compose/pipeline.h"
@@ -255,5 +253,3 @@ TEST(LoweringGPU, SingleReduceBind) {
     b.destroy();
     result.destroy();
 }
-
-#endif

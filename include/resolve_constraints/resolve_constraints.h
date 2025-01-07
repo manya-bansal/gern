@@ -1,5 +1,4 @@
-#ifndef GERN_RESOLVE_CONSTRAINTS_H
-#define GERN_RESOLVE_CONSTRAINTS_H
+#pragma once
 
 #include <map>
 
@@ -25,5 +24,3 @@ Expr solve(Eq eq, Variable v);
 
 }  // namespace resolve
 }  // namespace gern
-
-#endif
