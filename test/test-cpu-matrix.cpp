@@ -32,11 +32,7 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     Pipeline p(c);
     Runner run(p);
 
-    run.compile(Runner::Options{
-        .filename = "test",
-        .prefix = "/tmp",
-        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
-    });
+    run.compile(test::cpuRunner("matrix"));
 
     int64_t row_val = 10;
     int64_t col_val = 10;

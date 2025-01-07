@@ -11,6 +11,9 @@ typedef const FunctionCall *FunctionCallPtr;
 class PipelineVisitor;
 struct PipelineNode;
 
+using Dataflow = std::map<AbstractDataTypePtr, std::set<AbstractDataTypePtr>>;
+using OutputFunction = std::map<AbstractDataTypePtr, FunctionCallPtr>;
+
 struct LowerIRNode : public util::Manageable<LowerIRNode>,
                      public util::Uncopyable {
     LowerIRNode() = default;
@@ -36,9 +39,7 @@ std::ostream &operator<<(std::ostream &os, const LowerIR &n);
 class Pipeline : public CompositionVisitor {
 
 public:
-    Pipeline(std::vector<Compose> compose)
-        : compose(compose) {
-    }
+    Pipeline(std::vector<Compose> compose);
 
     std::vector<Compose> getFuncs() const {
         return compose;
@@ -58,24 +59,34 @@ public:
     void lower();
 
     using CompositionVisitor::visit;
-
     void visit(const FunctionCall *c);
     void visit(const PipelineNode *c);
 
     std::vector<LowerIR> getIRNodes() const;
     std::map<Variable, Expr> getVariableDefinitions() const;
+    // Returns the function call that produces a particular output.
+    FunctionCallPtr getProducerFunc(AbstractDataTypePtr) const;
+    std::set<AbstractDataTypePtr> getInputs() const;
+    AbstractDataTypePtr getOutput() const;
 
     void accept(CompositionVisitor *) const;
 
+    Dataflow getDataflow() const;
+
 private:
+    void init(std::vector<Compose> compose);
     bool isIntermediate(AbstractDataTypePtr d) const;
+
     std::vector<Expr> generateMetaDataFields(AbstractDataTypePtr, FunctionCallPtr) const;
     std::vector<LowerIR> generateConsumesIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<Compose> compose;
     std::vector<LowerIR> lowered;
     std::map<Variable, Expr> variable_definitions;
-
+    Dataflow dataflow;                     // Tracks the output to inputs relationships.
+    OutputFunction output_function;        // Tracks what function produces an output data-structure.
+    AbstractDataTypePtr final_output;      // Tracks the final output that gets produced.
+    std::set<AbstractDataTypePtr> inputs;  // Tracks the data-structures that have been used as inputs.
     bool has_been_lowered = false;
     bool device = false;
 };

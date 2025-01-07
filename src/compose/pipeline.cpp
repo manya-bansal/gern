@@ -26,6 +26,11 @@ std::ostream &operator<<(std::ostream &os, const LowerIR &n) {
     return os;
 }
 
+Pipeline::Pipeline(std::vector<Compose> compose)
+    : compose(compose) {
+    init(compose);
+}
+
 Pipeline &Pipeline::at_device() {
     device = true;
     return *this;
@@ -40,6 +45,43 @@ bool Pipeline::is_at_device() const {
     return device;
 }
 
+AbstractDataTypePtr Pipeline::getOutput() const {
+    return final_output;
+}
+
+FunctionCallPtr Pipeline::getProducerFunc(AbstractDataTypePtr ds) const {
+
+    if (output_function.count(ds) > 0) {
+        return output_function.at(ds);
+    }
+
+    struct FunctionFinder : public CompositionVisitor {
+        FunctionFinder(AbstractDataTypePtr ds)
+            : ds(ds) {
+        }
+        using CompositionVisitor::visit;
+
+        void visit(const FunctionCall *) {
+            // Do nothing, will rely on output_functions set up in init().
+        }
+        void visit(const PipelineNode *node) {
+            f = node->p.getProducerFunc(ds);
+            visit(node->p);
+        }
+        AbstractDataTypePtr ds;
+        FunctionCallPtr f = nullptr;
+    };
+
+    // visit and return the function (null if it doesn't exist).
+    FunctionFinder ff(ds);
+    ff.visit(*this);
+    return ff.f;
+}
+
+Dataflow Pipeline::getDataflow() const {
+    return dataflow;
+}
+
 int Pipeline::numFuncs() {
     ComposeCounter cc;
     return cc.numFuncs(Compose(*this));
@@ -49,11 +91,6 @@ void Pipeline::lower() {
 
     if (has_been_lowered) {
         return;
-    }
-
-    if (numFuncs() != 1) {
-        throw error::InternalError("Lowering is only "
-                                   "implemented for one function!");
     }
 
     for (const auto &f : compose) {
@@ -126,9 +163,9 @@ void Pipeline::visit(const PipelineNode *) {
 }
 
 bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
-    (void)d;
-    // This WILL change as I go beyond 1 function.
-    return false;
+    // We can find a function that produces this output.
+    // and it is not the final output.
+    return getProducerFunc(d) != nullptr && getOutput() != d;
 }
 
 std::vector<Expr> Pipeline::generateMetaDataFields(AbstractDataTypePtr d, FunctionCallPtr c) const {
@@ -170,6 +207,75 @@ std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::ve
                                       current = {new IntervalNode(op->start, op->end, op->step, current)};
                                   }));
     return current;
+}
+
+void Pipeline::init(std::vector<Compose> compose) {
+    // A pipeline is legal if each output
+    // is assigned to only once, an input
+    // is never assigned to later, and each
+    // intermediate is used at least once as an
+    // input.
+    struct DataFlowConstructor : public CompositionVisitor {
+        DataFlowConstructor(std::vector<Compose> compose)
+            : compose(compose) {
+        }
+
+        void construct() {
+            for (const auto &c : compose) {
+                visit(c);
+            }
+
+            for (const auto &out : out_flow) {
+                if (in_flow.count(out.first) <= 0 && out.first != final_output) {
+                    throw error::UserError("Assigning to an output, but never using it");
+                }
+            }
+        }
+
+        using CompositionVisitor::visit;
+        void visit(const FunctionCall *node) {
+
+            AbstractDataTypePtr output = node->getOutput();
+            std::set<AbstractDataTypePtr> inputs = node->getInputs();
+
+            if (out_flow.count(output) > 0) {
+                throw error::UserError("Cannot assign to " + output->getName() + " twice!");
+            }
+            if (in_flow.count(output) > 0) {
+                throw error::UserError("Cannot assign to " + output->getName() + "(which is an input)");
+            }
+            out_flow[output] = inputs;
+            output_function[output] = node;
+            // Now, construct the in flow.
+            for (const auto &in : inputs) {
+                in_flow.insert(in);
+            }
+            final_output = output;
+        }
+
+        void visit(const PipelineNode *node) {
+            Dataflow nested_flow = node->p.getDataflow();
+            for (const auto &output : nested_flow) {
+                if (out_flow.count(output.first) > 0) {
+                    throw error::UserError("Cannot assign to " + output.first->getName() + " twice!");
+                }
+                out_flow[output.first] = output.second;
+            }
+            final_output = node->p.getOutput();
+        }
+
+        AbstractDataTypePtr final_output;
+        Dataflow out_flow;
+        std::set<AbstractDataTypePtr> in_flow;
+        OutputFunction output_function;
+        std::vector<Compose> compose;
+    };
+
+    DataFlowConstructor df(compose);
+    df.construct();
+    dataflow = df.out_flow;
+    final_output = df.final_output;
+    output_function = df.output_function;
 }
 
 void AllocateNode::accept(PipelineVisitor *v) const {

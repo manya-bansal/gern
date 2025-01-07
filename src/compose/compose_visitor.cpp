@@ -12,6 +12,12 @@ void CompositionVisitor::visit(Compose c) {
     c.accept(this);
 }
 
+void CompositionVisitor::visit(Pipeline p) {
+    for (const auto &f : p.getFuncs()) {
+        this->visit(f);
+    }
+}
+
 void ComposePrinter::visit(Compose compose) {
     if (!compose.defined()) {
         os << "Compose()";
@@ -20,17 +26,12 @@ void ComposePrinter::visit(Compose compose) {
     compose.accept(this);
 }
 
-void ComposePrinter::visit(const FunctionCall *f) {
-    util::printIdent(os, ident);
-    os << *f;
-}
-
-void ComposePrinter::visit(const PipelineNode *p) {
+void ComposePrinter::visit(Pipeline p) {
     os << "{" << "\n";
     ident++;
 
     ComposePrinter print(os, ident);
-    auto funcs = p->p.getFuncs();
+    auto funcs = p.getFuncs();
     int size = funcs.size();
     for (int i = 0; i < size; i++) {
         print.visit(funcs[i]);
@@ -39,6 +40,15 @@ void ComposePrinter::visit(const PipelineNode *p) {
 
     ident--;
     os << "}";
+}
+
+void ComposePrinter::visit(const FunctionCall *f) {
+    util::printIdent(os, ident);
+    os << *f;
+}
+
+void ComposePrinter::visit(const PipelineNode *p) {
+    this->visit(p->p);
 }
 
 int ComposeCounter::numFuncs(Compose c) {
@@ -55,10 +65,7 @@ void ComposeCounter::visit(const FunctionCall *f) {
 }
 
 void ComposeCounter::visit(const PipelineNode *v) {
-    v->p.getFuncs();
-    for (const auto &f : v->p.getFuncs()) {
-        this->visit(f);
-    }
+    this->visit(v);
 }
 
 }  // namespace gern

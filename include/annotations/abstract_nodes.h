@@ -65,7 +65,7 @@ private:
     std::string type;
 };
 
-typedef std::shared_ptr<const AbstractDataType> AbstractDataTypePtr;
+using AbstractDataTypePtr = std::shared_ptr<const AbstractDataType>;
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataType &ads);
 

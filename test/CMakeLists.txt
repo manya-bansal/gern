@@ -15,6 +15,7 @@ set(LIB_HEADERS
 
 set(TEST_SOURCES
     test-nodes.cpp
+    test-pipeline.cpp
     test-resolve-constraints.cpp
     test-functions.cpp
     test-grid-property.cpp

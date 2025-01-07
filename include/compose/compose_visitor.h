@@ -11,6 +11,7 @@ struct PipelineNode;
 class CompositionVisitor {
 public:
     virtual void visit(Compose);
+    virtual void visit(Pipeline);
     virtual void visit(const FunctionCall *) = 0;
     virtual void visit(const PipelineNode *) = 0;
 };
@@ -21,6 +22,7 @@ public:
         : os(os), ident(ident) {
     }
     void visit(Compose) override;
+    void visit(Pipeline) override;
     virtual void visit(const FunctionCall *) override;
     virtual void visit(const PipelineNode *) override;
 
