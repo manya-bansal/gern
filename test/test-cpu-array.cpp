@@ -125,17 +125,20 @@ TEST(LoweringCPU, SingleReduceFunction) {
     b.destroy();
 }
 
-TEST(LoweringCPU, NestedFunction) {
-    // auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    // auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
-    // annot::add add_f;
+TEST(LoweringCPU, MultiFunc) {
+    auto inputDS = std::make_shared<const annot::ArrayCPU>("input");
+    auto tempDS = std::make_shared<const annot::ArrayCPU>("temp");
+    auto outputDS = std::make_shared<const annot::ArrayCPU>("output");
 
-    // Compose compose{{add_f(inputDS, outputDS),
-    //                  Compose(add_f(outputDS, outputDS))}};
-    // Pipeline p({compose});
+    annot::add add_f;
 
-    // Currently, only pipelines with one function call
-    // can be lowered. This will (obviously) be removed
-    // as I make progress!
+    Pipeline p({add_f(inputDS, tempDS),
+                add_f(tempDS, outputDS)});
+
+    p.lower();
+
+    for (const auto &n : p.getIRNodes()) {
+        std::cout << n << std::endl;
+    }
     // ASSERT_THROW(p.lower(), error::InternalError);
 }

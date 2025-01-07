@@ -190,6 +190,10 @@ void CodeGenerator::visit(const IntervalNode *op) {
     }
 }
 
+void CodeGenerator::visit(const DefNode *op) {
+    code = gen(op->assign);
+}
+
 void CodeGenerator::visit(const BlankNode *) {
     code = CGStmt();
 }

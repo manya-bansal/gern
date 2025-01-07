@@ -16,6 +16,7 @@ public:
     virtual void visit(const QueryNode *) = 0;
     virtual void visit(const ComputeNode *) = 0;
     virtual void visit(const IntervalNode *) = 0;
+    virtual void visit(const DefNode *) = 0;
     virtual void visit(const BlankNode *) = 0;
 };
 
@@ -34,6 +35,7 @@ public:
     void visit(const QueryNode *);
     void visit(const ComputeNode *);
     void visit(const IntervalNode *);
+    void visit(const DefNode *);
     void visit(const BlankNode *);
 
 private:

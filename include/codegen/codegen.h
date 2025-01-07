@@ -26,6 +26,7 @@ public:
     void visit(const ComputeNode *);
     void visit(const IntervalNode *);
     void visit(const BlankNode *);
+    void visit(const DefNode *);
 
     CGExpr gen(Expr);
     CGExpr gen(Constraint);

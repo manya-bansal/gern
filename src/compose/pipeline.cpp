@@ -61,6 +61,10 @@ FunctionCallPtr Pipeline::getProducerFunc(AbstractDataTypePtr ds) const {
     return nullptr;
 }
 
+std::set<AbstractDataTypePtr> Pipeline::getInputs() const {
+    return all_inputs;
+}
+
 Dataflow Pipeline::getDataflow() const {
     return dataflow;
 }
@@ -75,11 +79,12 @@ void Pipeline::lower() {
     if (has_been_lowered) {
         return;
     }
-
-    for (const auto &f : compose) {
-        visit(f);
+    visit(*this);
+    // Add frees for all the allocated nodes.
+    for (const auto &free : to_free) {
+        lowered.push_back(new FreeNode(
+            free));
     }
-
     // If its a vec of vec...then, need to do something else.
     // right now, gern will complain if you try.
     // Now generate the outer loops.
@@ -105,7 +110,6 @@ std::ostream &operator<<(std::ostream &os, const Pipeline &p) {
 void Pipeline::visit(const FunctionCall *c) {
 
     std::set<AbstractDataTypePtr> inputs = c->getInputs();
-    std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
     std::vector<LowerIR> temp;
 
     for (const auto &in : inputs) {
@@ -118,8 +122,6 @@ void Pipeline::visit(const FunctionCall *c) {
                                          queried,
                                          generateMetaDataFields(in, c)));
         } else {
-            // Generate an allocate node!
-            throw error::InternalError("Unimplemented");
         }
     }
 
@@ -132,6 +134,15 @@ void Pipeline::visit(const FunctionCall *c) {
         lowered.push_back(new QueryNode(output,
                                         queried,
                                         generateMetaDataFields(output, c)));
+    } else {
+        // Generate the allocate node.
+        AbstractDataTypePtr alloc = std::make_shared<const AbstractDataType>("_alloc_" + output->getName(),
+                                                                             output->getType());
+        to_free.insert(alloc);
+        new_ds[output] = alloc;
+        temp.push_back(new AllocateNode(
+            alloc,
+            generateMetaDataFields(output, c)));
     }
 
     temp.push_back(new ComputeNode(c, new_ds));
@@ -151,22 +162,29 @@ bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
     return getProducerFunc(d) != nullptr && getOutput() != d;
 }
 
-std::vector<Expr> Pipeline::generateMetaDataFields(AbstractDataTypePtr d, FunctionCallPtr c) const {
+std::vector<Expr> Pipeline::generateMetaDataFields(AbstractDataTypePtr d, FunctionCallPtr c) {
 
-    std::vector<Expr> metaFields;
-    match(c->getAnnotation(), std::function<void(const SubsetNode *)>(
-                                  [&](const SubsetNode *op) {
-                                      if (op->data == d) {
-                                          metaFields = op->mdFields;
-                                      }
-                                  }));
-    if (!isIntermediate(d) || d == c->getOutput()) {
+    std::vector<Expr> metaFields = c->getMetaDataFields(d);
+
+    if (!isIntermediate(d)) {
         return metaFields;
     } else {
-        // Find the function that produces d
-        // Solve the constraints for that function,
-        // And return the solved constraints.
-        throw error::InternalError("Unimplemented");
+        // From the producer function, get producer fields.
+        FunctionCallPtr producerFunc = getProducerFunc(d);
+        std::cout << *producerFunc << std::endl;
+        std::cout << *c << std::endl;
+        std::vector<Expr> producerFields = producerFunc->getMetaDataFields(d);
+
+        // Insert the definitions.
+        for (size_t i = 0; i < metaFields.size(); i++) {
+            std::cout << producerFields[i] << " = " << metaFields[i] << std::endl;
+            // Make this true by construction!
+            if (isa<Variable>(producerFields[i])) {
+                lowered.push_back(
+                    new DefNode(Assign(to<Variable>(producerFields[i]), metaFields[i])));
+            }
+        }
+        return producerFields;
     }
 }
 
@@ -209,8 +227,11 @@ void Pipeline::init(std::vector<Compose> compose) {
             }
 
             for (const auto &out : out_flow) {
-                if (in_flow.count(out.first) <= 0 && out.first != final_output) {
-                    throw error::UserError("Assigning to an output, but never using it");
+                std::cout << (in_flow.count(out.first) > 0);
+                std::cout << " for " << out.first->getName() << std::endl;
+                if (in_flow.count(out.first) <= 0 &&
+                    out.first != final_output) {
+                    throw error::UserError("Assigning to " + out.first->getName() + " but never using it");
                 }
             }
         }
@@ -231,6 +252,7 @@ void Pipeline::init(std::vector<Compose> compose) {
             output_function[output] = node;
             // Now, construct the in flow.
             for (const auto &in : inputs) {
+                std::cout << "Putting in " << in->getName() << std::endl;
                 in_flow.insert(in);
             }
             final_output = output;
@@ -247,6 +269,8 @@ void Pipeline::init(std::vector<Compose> compose) {
             final_output = node->p.getOutput();
             OutputFunction nested_out_funs = node->p.getOutputFunctions();
             output_function.insert(nested_out_funs.begin(), nested_out_funs.end());
+            std::set<AbstractDataTypePtr> nested_inputs = node->p.getInputs();
+            in_flow.insert(nested_inputs.begin(), nested_inputs.end());
         }
 
         AbstractDataTypePtr final_output;
@@ -261,6 +285,7 @@ void Pipeline::init(std::vector<Compose> compose) {
     dataflow = df.out_flow;
     final_output = df.final_output;
     output_function = df.output_function;
+    all_inputs = df.in_flow;
 }
 
 void AllocateNode::accept(PipelineVisitor *v) const {
@@ -284,6 +309,10 @@ void ComputeNode::accept(PipelineVisitor *v) const {
 }
 
 void IntervalNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
+void DefNode::accept(PipelineVisitor *v) const {
     v->visit(this);
 }
 

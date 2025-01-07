@@ -7,6 +7,17 @@
 
 namespace gern {
 
+std::vector<Expr> FunctionCall::getMetaDataFields(AbstractDataTypePtr d) const {
+    std::vector<Expr> metaFields;
+    match(getAnnotation(), std::function<void(const SubsetNode *)>(
+                               [&](const SubsetNode *op) {
+                                   if (op->data == d) {
+                                       metaFields = op->mdFields;
+                                   }
+                               }));
+    return metaFields;
+}
+
 const FunctionCall *FunctionCall::withSymbolic(const std::map<std::string, Variable> &binding) {
     std::map<Variable, Variable> var_bindings;
     match(annotation, std::function<void(const VariableNode *)>(

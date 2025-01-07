@@ -7,10 +7,10 @@
 
 namespace gern {
 
-typedef const FunctionCall *FunctionCallPtr;
 class PipelineVisitor;
 struct PipelineNode;
 
+using FunctionCallPtr = const FunctionCall *;
 using Dataflow = std::map<AbstractDataTypePtr, std::set<AbstractDataTypePtr>>;
 using OutputFunction = std::map<AbstractDataTypePtr, FunctionCallPtr>;
 
@@ -78,16 +78,18 @@ private:
     void init(std::vector<Compose> compose);
     bool isIntermediate(AbstractDataTypePtr d) const;
 
-    std::vector<Expr> generateMetaDataFields(AbstractDataTypePtr, FunctionCallPtr) const;
+    std::vector<Expr> generateMetaDataFields(AbstractDataTypePtr, FunctionCallPtr);
     std::vector<LowerIR> generateConsumesIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<Compose> compose;
     std::vector<LowerIR> lowered;
     std::map<Variable, Expr> variable_definitions;
-    Dataflow dataflow;                     // Tracks the output to inputs relationships.
-    OutputFunction output_function;        // Tracks what function produces an output data-structure.
-    AbstractDataTypePtr final_output;      // Tracks the final output that gets produced.
-    std::set<AbstractDataTypePtr> inputs;  // Tracks the data-structures that have been used as inputs.
+    Dataflow dataflow;                                          // Tracks the output to inputs relationships.
+    OutputFunction output_function;                             // Tracks what function produces an output data-structure.
+    AbstractDataTypePtr final_output;                           // Tracks the final output that gets produced.
+    std::set<AbstractDataTypePtr> all_inputs;                   // Tracks the data-structures that have been used as inputs.
+    std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;  // New names for the ds.
+    std::set<AbstractDataTypePtr> to_free;                      // New names for the ds.
     bool has_been_lowered = false;
     bool device = false;
 };
@@ -185,6 +187,16 @@ struct PipelineNode : public CompositionObject {
 
     void accept(CompositionVisitor *) const;
     Pipeline p;
+};
+
+// Node to declare definitions of variables.
+struct DefNode : public LowerIRNode {
+    DefNode(Assign assign)
+        : assign(assign) {
+    }
+
+    void accept(PipelineVisitor *) const;
+    Assign assign;
 };
 
 // Filler Node to manipulate objects (like vectors, etc)

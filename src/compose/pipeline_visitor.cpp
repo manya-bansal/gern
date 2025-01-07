@@ -97,6 +97,11 @@ void PipelinePrinter::visit(const IntervalNode *op) {
     os << "}";
 }
 
+void PipelinePrinter::visit(const DefNode *op) {
+    util::printIdent(os, ident);
+    os << op->assign;
+}
+
 void PipelinePrinter::visit(const BlankNode *op) {
     (void)op;
     DEBUG("BLANK!");

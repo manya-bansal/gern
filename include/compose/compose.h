@@ -100,6 +100,15 @@ public:
     }
 
     /**
+     * @brief Get the meta data Fields object corresponding to
+     *        a data-structure used in the annotation.
+     *
+     * @param d The data-structure whose fields will be returned.
+     * @return std::vector<Expr>
+     */
+    std::vector<Expr> getMetaDataFields(AbstractDataTypePtr d) const;
+
+    /**
      * @brief This function is used to bind a symbolic variable in the
      *        annotation with a user-provided variable. This is useful for
      *        passing in arguments for the function pointer, otherwise,
