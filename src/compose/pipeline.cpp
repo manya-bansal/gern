@@ -49,33 +49,16 @@ AbstractDataTypePtr Pipeline::getOutput() const {
     return final_output;
 }
 
+OutputFunction Pipeline::getOutputFunctions() const {
+    return output_function;
+}
+
 FunctionCallPtr Pipeline::getProducerFunc(AbstractDataTypePtr ds) const {
 
     if (output_function.count(ds) > 0) {
         return output_function.at(ds);
     }
-
-    struct FunctionFinder : public CompositionVisitor {
-        FunctionFinder(AbstractDataTypePtr ds)
-            : ds(ds) {
-        }
-        using CompositionVisitor::visit;
-
-        void visit(const FunctionCall *) {
-            // Do nothing, will rely on output_functions set up in init().
-        }
-        void visit(const PipelineNode *node) {
-            f = node->p.getProducerFunc(ds);
-            visit(node->p);
-        }
-        AbstractDataTypePtr ds;
-        FunctionCallPtr f = nullptr;
-    };
-
-    // visit and return the function (null if it doesn't exist).
-    FunctionFinder ff(ds);
-    ff.visit(*this);
-    return ff.f;
+    return nullptr;
 }
 
 Dataflow Pipeline::getDataflow() const {
@@ -262,6 +245,8 @@ void Pipeline::init(std::vector<Compose> compose) {
                 out_flow[output.first] = output.second;
             }
             final_output = node->p.getOutput();
+            OutputFunction nested_out_funs = node->p.getOutputFunctions();
+            output_function.insert(nested_out_funs.begin(), nested_out_funs.end());
         }
 
         AbstractDataTypePtr final_output;

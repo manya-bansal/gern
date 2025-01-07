@@ -68,6 +68,7 @@ public:
     FunctionCallPtr getProducerFunc(AbstractDataTypePtr) const;
     std::set<AbstractDataTypePtr> getInputs() const;
     AbstractDataTypePtr getOutput() const;
+    OutputFunction getOutputFunctions() const;
 
     void accept(CompositionVisitor *) const;
 
