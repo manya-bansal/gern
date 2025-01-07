@@ -7,7 +7,7 @@
 namespace gern {
 
 class FunctionCall;
-class PipelineNode;
+struct PipelineNode;
 
 class CompositionVisitor {
 public:

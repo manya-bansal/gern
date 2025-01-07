@@ -22,9 +22,13 @@ void Runner::compile(Options config) {
     outFile.close();
 
     std::string arch = p.is_at_device() ? "-arch=sm_" + config.arch : "";
+    std::string compiler = p.is_at_device() ? "nvcc" : "g++";
+    std::string compiler_option = p.is_at_device() ? "--compiler-options " : "";
     std::string shared_obj = config.prefix + getUniqueName("libGern") + ".so";
-    std::string cmd = config.path_to_nvcc + "nvcc" +
-                      " -std=c++11 --compiler-options -fPIC " +
+    std::string cmd = compiler +
+                      " -std=c++11 " +
+                      compiler_option +
+                      " -fPIC " +
                       arch + " " + config.include +
                       " --shared -o " + shared_obj + " " +
                       file + " " + config.ldflags + " 2>&1";

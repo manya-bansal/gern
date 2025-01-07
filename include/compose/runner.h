@@ -12,7 +12,6 @@ public:
         : p(p) {
     }
     struct Options {
-        std::string path_to_nvcc = "";
         std::string filename = "gern_file";
         std::string prefix = "/tmp";
         std::string include = "";
