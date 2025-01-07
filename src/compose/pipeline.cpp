@@ -26,82 +26,46 @@ std::ostream &operator<<(std::ostream &os, const LowerIR &n) {
     return os;
 }
 
+Pipeline &Pipeline::at_device() {
+    device = true;
+    return *this;
+}
+
+Pipeline &Pipeline::at_host() {
+    device = false;
+    return *this;
+}
+
+bool Pipeline::is_at_device() const {
+    return device;
+}
+
+int Pipeline::numFuncs() {
+    ComposeCounter cc;
+    return cc.numFuncs(Compose(*this));
+}
+
 void Pipeline::lower() {
 
-    // Convert it into a ComposeVec
-    auto compose_vec = Compose(new const ComposeVec(compose));
+    if (has_been_lowered) {
+        return;
+    }
 
-    if (compose_vec.numFuncs() != 1) {
+    if (numFuncs() != 1) {
         throw error::InternalError("Lowering is only "
                                    "implemented for one function!");
     }
 
-    visit(compose_vec);
-}
-
-void Pipeline::compile(std::string compile_flags) {
-
-    codegen::CodeGenerator cg;
-    codegen::CGStmt code = cg.generate_code(*this);
-
-    std::string prefix = "/tmp/";
-    std::string file = prefix + "test.cpp";
-    // Write the code to a file.
-    std::ofstream outFile(file);
-    outFile << code;
-    outFile.close();
-
-    std::string shared_obj = prefix + getUniqueName("libGern") + ".so";
-    std::string cmd = "g++ " + compile_flags + " -shared -o " + shared_obj + " " + file + " 2>&1";
-
-    // Compile the code.
-    int runStatus = std::system(cmd.data());
-    if (runStatus != 0) {
-        throw error::UserError("Compilation Failed");
+    for (const auto &f : compose) {
+        visit(f);
     }
 
-    void *handle = dlopen(shared_obj.data(), RTLD_LAZY);
-    if (!handle) {
-        throw error::UserError("Error loading library: " + std::string(dlerror()));
-    }
-
-    void *func = dlsym(handle, cg.getHookName().data());
-    if (!func) {
-        throw error::UserError("Error loading function: " + std::string(dlerror()));
-    }
-
-    fp = (GernGenFuncPtr)func;
-    argument_order = cg.getArgumentOrder();
-    compiled = true;
-}
-
-void Pipeline::evaluate(std::map<std::string, void *> args) {
-    if (!compiled) {
-        this->compile();
-    }
-
-    size_t num_args = argument_order.size();
-    if (args.size() != num_args) {
-        throw error::UserError("All the arguments have not been passed! Expecting " + std::to_string(num_args) + " args");
-    }
-    // Now, fp has the function pointer,
-    // and argument order contains the order
-    // in which the arguments need to be set into
-    // a void **.
-    void **args_in_order = (void **)malloc(sizeof(void *) * num_args);
-    int arg_num = 0;
-    for (const auto &a : argument_order) {
-        if (args.count(a) <= 0) {
-            throw error::UserError("Argument " + a + "was not passed in");
-        }
-        args_in_order[arg_num] = args.at(a);
-        arg_num++;
-    }
-
-    // Now, actually run the function.
-    fp(args_in_order);
-    // Free storage.
-    free(args_in_order);
+    // If its a vec of vec...then, need to do something else.
+    // right now, gern will complain if you try.
+    // Now generate the outer loops.
+    lowered = generateOuterIntervals(
+        to<FunctionCall>(compose[compose.size() - 1].ptr), lowered);
+    has_been_lowered = true;
 }
 
 std::map<Variable, Expr> Pipeline::getVariableDefinitions() const {
@@ -112,12 +76,8 @@ std::vector<LowerIR> Pipeline::getIRNodes() const {
     return lowered;
 }
 
-void Pipeline::accept(PipelineVisitor *v) const {
-    v->visit(this);
-}
-
 std::ostream &operator<<(std::ostream &os, const Pipeline &p) {
-    PipelinePrinter print(os, 0);
+    ComposePrinter print(os, 0);
     print.visit(p);
     return os;
 }
@@ -161,18 +121,8 @@ void Pipeline::visit(const FunctionCall *c) {
     lowered.insert(lowered.end(), intervals.begin(), intervals.end());
 }
 
-void Pipeline::visit(const ComposeVec *c) {
-    Pipeline inner_compose(c->compose);
-    for (const auto &f : c->compose) {
-        inner_compose.visit(f);
-    }
-
-    // If its a vec of vec...then, need to do something else.
-    // right now, gern will complain if you try.
-    // Now generate the outer loops.
-    std::vector<LowerIR> intervals = generateOuterIntervals(
-        to<FunctionCall>(c->compose[c->compose.size() - 1].ptr), inner_compose.getIRNodes());
-    lowered.insert(lowered.end(), intervals.begin(), intervals.end());
+void Pipeline::visit(const PipelineNode *) {
+    throw error::InternalError("Unimplemented!");
 }
 
 bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
@@ -203,8 +153,9 @@ std::vector<Expr> Pipeline::generateMetaDataFields(AbstractDataTypePtr d, Functi
 std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
 
     std::vector<LowerIR> current = body;
-    match(f->getAnnotation(), std::function<void(const ConsumesForNode *)>(
-                                  [&](const ConsumesForNode *op) {
+    match(f->getAnnotation(), std::function<void(const ConsumesForNode *, Matcher *)>(
+                                  [&](const ConsumesForNode *op, Matcher *ctx) {
+                                      ctx->match(op->body);
                                       current = {new IntervalNode(op->start, op->end, op->step, current)};
                                   }));
     return current;
@@ -213,8 +164,9 @@ std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std:
 std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
 
     std::vector<LowerIR> current = body;
-    match(f->getAnnotation(), std::function<void(const ComputesForNode *)>(
-                                  [&](const ComputesForNode *op) {
+    match(f->getAnnotation(), std::function<void(const ComputesForNode *, Matcher *)>(
+                                  [&](const ComputesForNode *op, Matcher *ctx) {
+                                      ctx->match(op->body);
                                       current = {new IntervalNode(op->start, op->end, op->step, current)};
                                   }));
     return current;
@@ -244,7 +196,20 @@ void IntervalNode::accept(PipelineVisitor *v) const {
     v->visit(this);
 }
 
+bool IntervalNode::isMappedToGrid() const {
+    return getIntervalVariable().isBoundToGrid();
+}
+
+Variable IntervalNode::getIntervalVariable() const {
+    std::set<Variable> v = getVariables(start.getA());
+    return *(v.begin());
+}
+
 void BlankNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
+void PipelineNode::accept(CompositionVisitor *v) const {
     v->visit(this);
 }
 

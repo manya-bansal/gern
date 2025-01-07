@@ -29,14 +29,17 @@ struct LiteralNode : public ExprNode {
 std::ostream &operator<<(std::ostream &os, const LiteralNode &);
 
 struct VariableNode : public ExprNode {
-    VariableNode(const std::string &name, bool grid = false, Datatype type = Datatype::Int64)
-        : ExprNode(Datatype::Kind::Int64), name(name), grid(grid), type(type) {
+    VariableNode(const std::string &name,
+                 Grid::Property p = Grid::Property::UNDEFINED,
+                 Datatype type = Datatype::Int64)
+        : ExprNode(Datatype::Kind::Int64), name(name), p(p), type(type) {
     }
     void accept(ExprVisitorStrict *v) const override {
         v->visit(this);
     }
+
     std::string name;
-    bool grid;
+    Grid::Property p;
     Datatype type;
 };
 
@@ -100,7 +103,7 @@ struct ConsumesNode : public StmtNode {
 };
 
 struct ConsumesForNode : public ConsumesNode {
-    ConsumesForNode(Assign start, Constraint end, Assign step, ConsumeMany body,
+    ConsumesForNode(Assign start, Expr end, Expr step, ConsumeMany body,
                     bool parallel = false)
         : start(start), end(end), step(step), body(body),
           parallel(parallel) {
@@ -109,8 +112,8 @@ struct ConsumesForNode : public ConsumesNode {
         v->visit(this);
     }
     Assign start;
-    Constraint end;
-    Assign step;
+    Expr end;
+    Expr step;
     ConsumeMany body;
     bool parallel;
 };
@@ -133,7 +136,7 @@ struct PatternNode : public StmtNode {
 };
 
 struct ComputesForNode : public PatternNode {
-    ComputesForNode(Assign start, Constraint end, Assign step, Pattern body,
+    ComputesForNode(Assign start, Expr end, Expr step, Pattern body,
                     bool parallel = false)
         : start(start), end(end), step(step), body(body),
           parallel(parallel) {
@@ -142,8 +145,8 @@ struct ComputesForNode : public PatternNode {
         v->visit(this);
     }
     Assign start;
-    Constraint end;
-    Assign step;
+    Expr end;
+    Expr step;
     Pattern body;
     bool parallel;
 };

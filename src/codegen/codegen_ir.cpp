@@ -126,6 +126,30 @@ std::ostream &operator<<(std::ostream &os, const CGExpr &expr) {
     return os;
 }
 
+std::string CGExpr::str() const {
+    std::ostringstream oss;
+    oss << *this;
+    return oss.str();
+}
+
+#define DEFINE_BINARY_OPERATOR(OPERATOR, NODE)                   \
+    CGExpr operator OPERATOR(const CGExpr &a, const CGExpr &b) { \
+        return NODE::make(a, b);                                 \
+    }
+
+DEFINE_BINARY_OPERATOR(+, Add)
+DEFINE_BINARY_OPERATOR(-, Sub)
+DEFINE_BINARY_OPERATOR(*, Mul)
+DEFINE_BINARY_OPERATOR(/, Div)
+DEFINE_BINARY_OPERATOR(==, Eq)
+DEFINE_BINARY_OPERATOR(!=, Neq)
+DEFINE_BINARY_OPERATOR(<=, Lte)
+DEFINE_BINARY_OPERATOR(>=, Gte)
+DEFINE_BINARY_OPERATOR(<, Lt)
+DEFINE_BINARY_OPERATOR(>, Gt)
+DEFINE_BINARY_OPERATOR(&&, And)
+DEFINE_BINARY_OPERATOR(||, Or)
+
 template<>
 void CGExprNode<Literal>::accept(CGVisitorStrict *v) const {
     v->visit((const Literal *)this);
@@ -244,6 +268,11 @@ void CGStmtNode<BlankLine>::accept(CGVisitorStrict *v) const {
 template<>
 void CGStmtNode<VoidCall>::accept(CGVisitorStrict *v) const {
     v->visit((const VoidCall *)this);
+}
+
+template<>
+void CGStmtNode<KernelLaunch>::accept(CGVisitorStrict *v) const {
+    v->visit((const KernelLaunch *)this);
 }
 
 template<>

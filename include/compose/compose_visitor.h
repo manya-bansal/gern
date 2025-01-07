@@ -7,13 +7,13 @@
 namespace gern {
 
 class FunctionCall;
-class ComposeVec;
+struct PipelineNode;
 
 class CompositionVisitor {
 public:
     virtual void visit(Compose);
     virtual void visit(const FunctionCall *) = 0;
-    virtual void visit(const ComposeVec *) = 0;
+    virtual void visit(const PipelineNode *) = 0;
 };
 
 class ComposePrinter : public CompositionVisitor {
@@ -23,7 +23,7 @@ public:
     }
     void visit(Compose) override;
     virtual void visit(const FunctionCall *) override;
-    virtual void visit(const ComposeVec *) override;
+    virtual void visit(const PipelineNode *) override;
 
 private:
     std::ostream &os;
@@ -38,7 +38,7 @@ public:
     int numFuncs(Compose c);
     using CompositionVisitor::visit;
     virtual void visit(const FunctionCall *) override;
-    virtual void visit(const ComposeVec *) override;
+    virtual void visit(const PipelineNode *) override;
 
 private:
     int num = 0;

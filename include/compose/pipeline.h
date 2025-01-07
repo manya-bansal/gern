@@ -10,8 +10,7 @@ namespace gern {
 
 typedef const FunctionCall *FunctionCallPtr;
 class PipelineVisitor;
-
-using GernGenFuncPtr = void (*)(void **);
+struct PipelineNode;
 
 struct LowerIRNode : public util::Manageable<LowerIRNode>,
                      public util::Uncopyable {
@@ -35,27 +34,39 @@ std::ostream &operator<<(std::ostream &os, const LowerIR &n);
 
 // The pipeline actually holds the lowered
 // nodes, and helps us nest pipelines.
-class Pipeline : public LowerIRNode,
-                 public CompositionVisitor {
+class Pipeline : public CompositionVisitor {
+
 public:
     Pipeline(std::vector<Compose> compose)
         : compose(compose) {
     }
 
+    std::vector<Compose> getFuncs() const {
+        return compose;
+    }
+
+    /**
+     * @brief Returns the total number of functions
+     *        including those in nested pipelines.
+     *
+     * @return int
+     */
+    int numFuncs();
+    Pipeline &at_device();
+    Pipeline &at_host();
+    bool is_at_device() const;
+
     void lower();
-    void compile(std::string compile_flags = "");
-    // This function actually runs the function pointer, and compiles
-    // the function pointer, if it hasn't already been compiled. Currently
-    // it takes adts and variables separately, I may need to extend this handle
-    // other types as well.
-    void evaluate(std::map<std::string, void *> args);
 
     using CompositionVisitor::visit;
+
     void visit(const FunctionCall *c);
-    void visit(const ComposeVec *c);
+    void visit(const PipelineNode *c);
+
     std::vector<LowerIR> getIRNodes() const;
     std::map<Variable, Expr> getVariableDefinitions() const;
-    void accept(PipelineVisitor *) const;
+
+    void accept(CompositionVisitor *) const;
 
 private:
     bool isIntermediate(AbstractDataTypePtr d) const;
@@ -65,9 +76,9 @@ private:
     std::vector<Compose> compose;
     std::vector<LowerIR> lowered;
     std::map<Variable, Expr> variable_definitions;
-    bool compiled = false;
-    GernGenFuncPtr fp;
-    std::vector<std::string> argument_order;
+
+    bool has_been_lowered = false;
+    bool device = false;
 };
 
 std::ostream &operator<<(std::ostream &os, const Pipeline &p);
@@ -133,14 +144,36 @@ struct ComputeNode : public LowerIRNode {
 // for the pipeline.
 struct IntervalNode : public LowerIRNode {
 public:
-    IntervalNode(Assign start, Constraint end, Assign step, std::vector<LowerIR> body)
+    IntervalNode(Assign start, Expr end, Expr step, std::vector<LowerIR> body)
         : start(start), end(end), step(step), body(body) {
     }
     void accept(PipelineVisitor *) const;
+
+    /**
+     * @brief isMappedToGrid returns whether the interval
+     *        is mapped to the grid of the GPU, i.e.
+     *        whether the interval variable is bound
+     *        to a GPU property.
+     *
+     */
+    bool isMappedToGrid() const;
+    Variable getIntervalVariable() const;
+
     Assign start;
-    Constraint end;
-    Assign step;
+    Expr end;
+    Expr step;
     std::vector<LowerIR> body;
+};
+
+// Filler Node to manipulate objects (like vectors, etc)
+// while iterating over them.
+struct PipelineNode : public CompositionObject {
+    PipelineNode(Pipeline p)
+        : p(p) {
+    }
+
+    void accept(CompositionVisitor *) const;
+    Pipeline p;
 };
 
 // Filler Node to manipulate objects (like vectors, etc)

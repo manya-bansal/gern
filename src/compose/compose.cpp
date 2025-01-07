@@ -3,6 +3,7 @@
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
 #include "compose/compose_visitor.h"
+#include "compose/pipeline.h"
 
 namespace gern {
 
@@ -19,30 +20,11 @@ const FunctionCall *FunctionCall::withSymbolic(const std::map<std::string, Varia
 }
 
 Compose::Compose(std::vector<Compose> compose)
-    : Compose(new const ComposeVec(compose)) {
-}
-// I am pulling concretize out since I expect
-// certain scheduling commands to have loops be
-// explicitly instantiated. If this is not the case,
-// I can pull concretize into the constructor :)
-void Compose::concretize() {
-    concrete = true;
-}
-Compose Compose::at_global() {
-    global = true;
-    return *this;
-}
-Compose Compose::at_host() {
-    global = true;
-    return *this;
+    : Compose(Pipeline(compose)) {
 }
 
-bool Compose::is_at_global() const {
-    return global;
-}
-
-bool Compose::concretized() const {
-    return concrete;
+Compose::Compose(Pipeline p)
+    : Compose(new const PipelineNode(p)) {
 }
 
 void Compose::accept(CompositionVisitor *v) const {
@@ -52,19 +34,12 @@ void Compose::accept(CompositionVisitor *v) const {
     ptr->accept(v);
 }
 
-void Compose::lower() const {
-}
-
 int Compose::numFuncs() const {
     ComposeCounter cc;
     return cc.numFuncs(*this);
 }
 
 void FunctionCall::accept(CompositionVisitor *v) const {
-    v->visit(this);
-}
-
-void ComposeVec::accept(CompositionVisitor *v) const {
     v->visit(this);
 }
 

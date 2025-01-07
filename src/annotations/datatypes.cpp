@@ -38,7 +38,7 @@ bool Datatype::isComplex() const {
     return getKind() == Complex64 || getKind() == Complex128;
 }
 
-std::string Datatype::getString() const {
+std::string Datatype::str() const {
     std::stringstream ss;
     ss << *this;
     return ss.str();

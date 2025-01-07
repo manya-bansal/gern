@@ -1,6 +1,6 @@
 #include "annotations/visitor.h"
 #include "compose/compose.h"
-#include "functions/elementwise.h"
+#include "library/array/annot/cpu-array.h"
 #include "test-utils.h"
 #include <algorithm>
 #include <gtest/gtest.h>
@@ -8,11 +8,11 @@
 using namespace gern;
 
 TEST(Functions, SingleFunction) {
-    auto inputDS = std::make_shared<const dummy::TestDS>("input_con");
-    auto outputDS = std::make_shared<const dummy::TestDS>("output_con");
-    auto output_2_DS = std::make_shared<const dummy::TestDS>("output_con_2");
+    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
+    auto output_2_DS = std::make_shared<const annot::ArrayCPU>("output_con_2");
 
-    test::add add_f;
+    annot::add add_f;
     const FunctionCall *concreteCall1 = add_f(inputDS, outputDS);
     const FunctionCall *concreteCall2 = add_f(outputDS, output_2_DS);
 
@@ -22,9 +22,9 @@ TEST(Functions, SingleFunction) {
     std::set<Variable> concrete_vars_2 = getVariables(concreteCall2->getAnnotation());
 
     // All the variables should now be different.
-    ASSERT_TRUE(areDisjoint(concrete_vars_1, abstract_vars));
-    ASSERT_TRUE(areDisjoint(concrete_vars_2, abstract_vars));
-    ASSERT_TRUE(areDisjoint(concrete_vars_2, concrete_vars_1));
+    ASSERT_TRUE(test::areDisjoint(concrete_vars_1, abstract_vars));
+    ASSERT_TRUE(test::areDisjoint(concrete_vars_2, abstract_vars));
+    ASSERT_TRUE(test::areDisjoint(concrete_vars_2, concrete_vars_1));
 
     AbstractDataTypePtr output_1 = concreteCall1->getOutput();
     ASSERT_TRUE(output_1 == outputDS);

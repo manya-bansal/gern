@@ -7,8 +7,8 @@ endif ()
 
 ##
 # Find dependencies
-
 find_package(ginac 1.8.7 REQUIRED)
+
 
 ##
 # Main library target
@@ -29,6 +29,7 @@ target_sources(
         src/annotations/abstract_function.cpp
         src/annotations/data_dependency_language.cpp
         src/annotations/datatypes.cpp
+        src/annotations/grid.cpp
         src/annotations/lang_nodes.cpp
         src/annotations/visitor.cpp
         src/compose/compose.cpp
@@ -39,6 +40,7 @@ target_sources(
         src/codegen/codegen_ir.cpp
         src/codegen/codegen_printer.cpp
         src/codegen/codegen_visitor.cpp
+        src/codegen/runner.cpp
         src/resolve_constraints/resolve_constraints.cpp
         src/utils/name_generator.cpp
     PUBLIC
@@ -50,6 +52,7 @@ target_sources(
         include/annotations/arguments.h
         include/annotations/data_dependency_language.h
         include/annotations/datatypes.h
+        include/annotations/grid.h
         include/annotations/lang_nodes.h
         include/annotations/visitor.h
         include/resolve_constraints/resolve_constraints.h
@@ -57,6 +60,7 @@ target_sources(
         include/compose/compose_visitor.h
         include/compose/pipeline.h
         include/compose/pipeline_visitor.h
+        include/compose/runner.h
         include/codegen/codegen.h
         include/codegen/codegen_ir.h
         include/codegen/codegen_visitor.h
@@ -67,8 +71,9 @@ target_sources(
         include/utils/printer.h
         include/utils/uncopyable.h
 )
+
 target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
-target_compile_features(Gern_Gern PUBLIC cxx_std_17)
+target_compile_features(Gern_Gern PUBLIC cxx_std_20)
 target_link_libraries(Gern_Gern PRIVATE ginac::ginac)
 
 ##

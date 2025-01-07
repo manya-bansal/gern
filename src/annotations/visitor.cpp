@@ -52,8 +52,8 @@ void Printer::visit(const LiteralNode *op) {
 }
 void Printer::visit(const VariableNode *op) {
     os << op->name;
-    if (op->grid) {
-        os << " @ GRID ";
+    if (isGridPropertySet(op->p)) {
+        os << op->p;
     }
 }
 
@@ -190,23 +190,23 @@ void Printer::visit(const PatternNode *op) {
 
 void AnnotVisitor::visit(const LiteralNode *) {
 }
-DEFINE_BINARY_VISITOR_METHOD(AddNode);
-DEFINE_BINARY_VISITOR_METHOD(SubNode);
-DEFINE_BINARY_VISITOR_METHOD(DivNode);
-DEFINE_BINARY_VISITOR_METHOD(MulNode);
-DEFINE_BINARY_VISITOR_METHOD(ModNode);
+DEFINE_BINARY_VISITOR_METHOD(AddNode)
+DEFINE_BINARY_VISITOR_METHOD(SubNode)
+DEFINE_BINARY_VISITOR_METHOD(DivNode)
+DEFINE_BINARY_VISITOR_METHOD(MulNode)
+DEFINE_BINARY_VISITOR_METHOD(ModNode)
 
-DEFINE_BINARY_VISITOR_METHOD(AndNode);
-DEFINE_BINARY_VISITOR_METHOD(OrNode);
+DEFINE_BINARY_VISITOR_METHOD(AndNode)
+DEFINE_BINARY_VISITOR_METHOD(OrNode)
 
-DEFINE_BINARY_VISITOR_METHOD(EqNode);
-DEFINE_BINARY_VISITOR_METHOD(NeqNode);
-DEFINE_BINARY_VISITOR_METHOD(LeqNode);
-DEFINE_BINARY_VISITOR_METHOD(GeqNode);
-DEFINE_BINARY_VISITOR_METHOD(LessNode);
-DEFINE_BINARY_VISITOR_METHOD(GreaterNode);
+DEFINE_BINARY_VISITOR_METHOD(EqNode)
+DEFINE_BINARY_VISITOR_METHOD(NeqNode)
+DEFINE_BINARY_VISITOR_METHOD(LeqNode)
+DEFINE_BINARY_VISITOR_METHOD(GeqNode)
+DEFINE_BINARY_VISITOR_METHOD(LessNode)
+DEFINE_BINARY_VISITOR_METHOD(GreaterNode)
 
-DEFINE_BINARY_VISITOR_METHOD(AssignNode);
+DEFINE_BINARY_VISITOR_METHOD(AssignNode)
 
 void AnnotVisitor::visit(const VariableNode *) {
 }
@@ -335,8 +335,8 @@ void Rewriter::visit(const AllocatesNode *op) {
 
 void Rewriter::visit(const ConsumesForNode *op) {
     Assign rw_start = to<Assign>(this->rewrite(op->start));
-    Constraint rw_end = this->rewrite(op->end);
-    Assign rw_step = to<Assign>(this->rewrite(op->step));
+    Expr rw_end = this->rewrite(op->end);
+    Expr rw_step = this->rewrite(op->step);
     ConsumeMany rw_body = to<ConsumeMany>(this->rewrite(op->body));
     stmt = Consumes(new const ConsumesForNode(rw_start,
                                               rw_end, rw_step,
@@ -345,8 +345,8 @@ void Rewriter::visit(const ConsumesForNode *op) {
 
 void Rewriter::visit(const ComputesForNode *op) {
     Assign rw_start = to<Assign>(this->rewrite(op->start));
-    Constraint rw_end = this->rewrite(op->end);
-    Assign rw_step = to<Assign>(this->rewrite(op->step));
+    Expr rw_end = this->rewrite(op->end);
+    Expr rw_step = this->rewrite(op->step);
     Pattern rw_body = to<Pattern>(this->rewrite(op->body));
     stmt = Pattern(new const ComputesForNode(rw_start,
                                              rw_end, rw_step,
@@ -371,21 +371,21 @@ void Rewriter::visit(const ComputesNode *op) {
         VAR = PARENT(new const CLASS_NAME(rw_a, rw_b));        \
     }
 
-DEFINE_BINARY_REWRITER_METHOD(AddNode, Expr, expr);
-DEFINE_BINARY_REWRITER_METHOD(SubNode, Expr, expr);
-DEFINE_BINARY_REWRITER_METHOD(DivNode, Expr, expr);
-DEFINE_BINARY_REWRITER_METHOD(MulNode, Expr, expr);
-DEFINE_BINARY_REWRITER_METHOD(ModNode, Expr, expr);
+DEFINE_BINARY_REWRITER_METHOD(AddNode, Expr, expr)
+DEFINE_BINARY_REWRITER_METHOD(SubNode, Expr, expr)
+DEFINE_BINARY_REWRITER_METHOD(DivNode, Expr, expr)
+DEFINE_BINARY_REWRITER_METHOD(MulNode, Expr, expr)
+DEFINE_BINARY_REWRITER_METHOD(ModNode, Expr, expr)
 
-DEFINE_BINARY_REWRITER_METHOD(AndNode, Constraint, where);
-DEFINE_BINARY_REWRITER_METHOD(OrNode, Constraint, where);
-DEFINE_BINARY_REWRITER_METHOD(EqNode, Constraint, where);
-DEFINE_BINARY_REWRITER_METHOD(NeqNode, Constraint, where);
-DEFINE_BINARY_REWRITER_METHOD(LeqNode, Constraint, where);
-DEFINE_BINARY_REWRITER_METHOD(GeqNode, Constraint, where);
-DEFINE_BINARY_REWRITER_METHOD(LessNode, Constraint, where);
-DEFINE_BINARY_REWRITER_METHOD(GreaterNode, Constraint, where);
+DEFINE_BINARY_REWRITER_METHOD(AndNode, Constraint, where)
+DEFINE_BINARY_REWRITER_METHOD(OrNode, Constraint, where)
+DEFINE_BINARY_REWRITER_METHOD(EqNode, Constraint, where)
+DEFINE_BINARY_REWRITER_METHOD(NeqNode, Constraint, where)
+DEFINE_BINARY_REWRITER_METHOD(LeqNode, Constraint, where)
+DEFINE_BINARY_REWRITER_METHOD(GeqNode, Constraint, where)
+DEFINE_BINARY_REWRITER_METHOD(LessNode, Constraint, where)
+DEFINE_BINARY_REWRITER_METHOD(GreaterNode, Constraint, where)
 
-DEFINE_BINARY_REWRITER_METHOD(AssignNode, Stmt, stmt);
+DEFINE_BINARY_REWRITER_METHOD(AssignNode, Stmt, stmt)
 
 }  // namespace gern

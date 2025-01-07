@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "annotations/data_dependency_language.h"
+#include "library/array/annot/cpu-array.h"
 #include "test-utils.h"
 
 #include "utils/error.h"
@@ -27,9 +28,9 @@ TEST(Expr, BinaryNodes) {
     Expr e = 4;
     Variable v{"v"};
 
-    ASSERT_TRUE(getStrippedString((v + 4) / (v * 4)) == "((v+4)/(v*4))");
-    ASSERT_TRUE(getStrippedString(v + 4 && v * 4) == "((v+4)&&(v*4))");
-    ASSERT_TRUE(getStrippedString(v % 4 >= v * 4) == "((v%4)>=(v*4))");
+    ASSERT_TRUE(test::getStrippedString((v + 4) / (v * 4)) == "((v+4)/(v*4))");
+    ASSERT_TRUE(test::getStrippedString(v + 4 && v * 4) == "((v+4)&&(v*4))");
+    ASSERT_TRUE(test::getStrippedString(v % 4 >= v * 4) == "((v%4)>=(v*4))");
 }
 
 TEST(StmtNode, Constraint) {
@@ -37,24 +38,24 @@ TEST(StmtNode, Constraint) {
     Expr e = 1 - v;
 
     Constraint test(e == e);
-    ASSERT_TRUE(getStrippedString(test) == "((1-v_)==(1-v_))");
+    ASSERT_TRUE(test::getStrippedString(test) == "((1-v_)==(1-v_))");
 
-    auto testDS = std::make_shared<const dummy::TestDS>();
-    Subset subset{testDS, {1 - v, v * 2}};
+    auto TestDSCPU = std::make_shared<const annot::ArrayCPU>();
+    Subset subset{TestDSCPU, {1 - v, v * 2}};
 
-    ASSERT_TRUE(getStrippedString(subset) == "test{(1-v_),(v_*2)}");
+    ASSERT_TRUE(test::getStrippedString(subset) == "test{(1-v_),(v_*2)}");
 }
 
 TEST(Annotations, ConstrainPatterns) {
     Variable v("v");
     Variable v1("v1");
-    auto testDS = std::make_shared<const dummy::TestDS>();
-    Subset s{testDS, {1 - v, v * 2}};
+    auto TestDSCPU = std::make_shared<const annot::ArrayCPU>();
+    Subset s{TestDSCPU, {1 - v, v * 2}};
 
-    ASSERT_NO_THROW(For(v = Expr(0), v < 0, v += Expr(0),
+    ASSERT_NO_THROW(For(v = Expr(0), Expr(0), Expr(0),
                         Computes(Produces(s), Consumes(Subsets(s))))
                         .where(v == 1));
-    ASSERT_THROW(For(v = Expr(0), v < 0, v = Expr(0), Computes(Produces(s), Consumes(Subsets(s))))
+    ASSERT_THROW(For(v = Expr(0), Expr(0), Expr(0), Computes(Produces(s), Consumes(Subsets(s))))
                      .where(v1 == 1),
                  error::UserError);
     ASSERT_NO_THROW(s.where(v == 1));

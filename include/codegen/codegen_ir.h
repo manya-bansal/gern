@@ -66,6 +66,7 @@ enum class CGNodeType {
     Sort,
     Break,
     VoidCall,
+    KernelLaunch,
     DeclObject,
     CustomObject,
     RawString,
@@ -186,11 +187,26 @@ public:
         : CGHandle(expr) {
     }
 
+    std::string str() const;
+
     /** Get the type of this expression node */
     Datatype type() const {
         return ((const BaseCGExprNode *)ptr)->type;
     }
 };
+
+CGExpr operator+(const CGExpr &, const CGExpr &);
+CGExpr operator-(const CGExpr &, const CGExpr &);
+CGExpr operator*(const CGExpr &, const CGExpr &);
+CGExpr operator/(const CGExpr &, const CGExpr &);
+CGExpr operator==(const CGExpr &, const CGExpr &);
+CGExpr operator!=(const CGExpr &, const CGExpr &);
+CGExpr operator<=(const CGExpr &, const CGExpr &);
+CGExpr operator>=(const CGExpr &, const CGExpr &);
+CGExpr operator<(const CGExpr &, const CGExpr &);
+CGExpr operator>(const CGExpr &, const CGExpr &);
+CGExpr operator&&(const CGExpr &, const CGExpr &);
+CGExpr operator||(const CGExpr &, const CGExpr &);
 
 /** This is a custom comparator that allows
  * CGExprs to be used in a map.  Inspired by Halide.
@@ -526,15 +542,15 @@ struct DeclFunc : public CGStmtNode<DeclFunc> {
     std::vector<CGExpr> args;
     CGStmt body;
     std::string name;
-    bool host;
+    bool device;
 
     static CGStmt make(std::string name, CGExpr return_type, std::vector<CGExpr> args,
-                       CGStmt body, bool host = false) {
+                       CGStmt body, bool device = false) {
         DeclFunc *declFunc = new DeclFunc;
         declFunc->name = name;
         declFunc->return_type = return_type;
         declFunc->args = args;
-        declFunc->host = host;
+        declFunc->device = device;
         declFunc->body = Scope::make(body);
         return declFunc;
     }
@@ -657,6 +673,28 @@ struct VoidCall : public CGStmtNode<VoidCall> {
         return call;
     }
     static const CGNodeType _type_info = CGNodeType::VoidCall;
+};
+
+struct KernelLaunch : public CGStmtNode<KernelLaunch> {
+    // Should be of type call, just wrapping in stmt
+    std::string name;
+    std::vector<CGExpr> args;
+    CGExpr grid;
+    CGExpr block;
+
+    static CGStmt make(std::string name,
+                       std::vector<CGExpr> args,
+                       CGExpr grid,
+                       CGExpr block) {
+
+        KernelLaunch *call = new KernelLaunch;
+        call->name = name;
+        call->args = args;
+        call->grid = grid;
+        call->block = block;
+        return call;
+    }
+    static const CGNodeType _type_info = CGNodeType::KernelLaunch;
 };
 
 template<typename E>

@@ -19,7 +19,7 @@ public:
     CGStmt generate_code(const Pipeline &);
 
     using PipelineVisitor::visit;
-    void visit(const Pipeline &);
+
     void visit(const AllocateNode *);
     void visit(const FreeNode *);
     void visit(const InsertNode *);
@@ -28,11 +28,11 @@ public:
     void visit(const IntervalNode *);
     void visit(const BlankNode *);
 
-    CGExpr genCodeExpr(Expr);
-    CGExpr genCodeExpr(Constraint);
+    CGExpr gen(Expr);
+    CGExpr gen(Constraint);
     // Assign in used to track all the variables
     // that have been declared during lowering.
-    CGStmt genCodeExpr(Assign);
+    CGStmt gen(Assign);
     /**
      * @brief  Generate code expressions for Arguments.
      * This also tracks the input and output
@@ -46,8 +46,9 @@ public:
      * @param replacements Optional map to make replacements.
      * @return CGExpr
      */
-    CGExpr genCodeExpr(Argument a,
-                       const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements = {});
+    CGExpr gen(Argument a,
+               const std::map<AbstractDataTypePtr,
+                              AbstractDataTypePtr> &replacements = {});
 
     // To insert used variables.
     void insertInUsed(Variable);
@@ -57,6 +58,12 @@ public:
     std::vector<std::string> getArgumentOrder() const;
 
 private:
+    // Little helper to make sure that
+    // that once a var is declared, it's been
+    // add to the declared set.
+    CGExpr declVar(Variable v);
+    CGStmt setGrid(const IntervalNode *op);
+
     std::string name;
     std::string hook_name;
     std::set<Variable> declared;
@@ -69,6 +76,21 @@ private:
     std::set<std::string> includes;
     std::set<std::string> libs;
     std::vector<std::string> argument_order;
+
+    // To track kernel launch parameters.
+    struct cg_dim3 {
+        CGExpr x = Literal::make(1);
+        CGExpr y = Literal::make(1);
+        CGExpr z = Literal::make(1);
+        std::string str() {
+            return x.str() + ", " +
+                   y.str() + ", " +
+                   z.str();
+        }
+    };
+
+    cg_dim3 grid_dim;
+    cg_dim3 block_dim;
 };
 
 }  // namespace codegen

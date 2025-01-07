@@ -54,6 +54,15 @@ void CGVisitor::visit(const VoidCall *op) {
     op->func.accept(this);
 }
 
+void CGVisitor::visit(const KernelLaunch *op) {
+    for (auto a : op->args) {
+        a.accept(this);
+    }
+
+    op->grid.accept(this);
+    op->block.accept(this);
+}
+
 void CGVisitor::visit(const For *op) {
     op->start.accept(this);
     op->cond.accept(this);

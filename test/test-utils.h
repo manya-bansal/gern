@@ -1,33 +1,11 @@
-#ifndef GERN_TEST_UTILS_H
-#define GERN_TEST_UTILS_H
+#pragma once
 
 #include "annotations/data_dependency_language.h"
 #include <algorithm>
+#include <gtest/gtest.h>
 
 namespace gern {
-namespace dummy {
-
-class TestDS : public AbstractDataType {
-public:
-    TestDS(const std::string &name)
-        : name(name) {
-    }
-    TestDS()
-        : TestDS("test") {
-    }
-    std::string getName() const override {
-        return name;
-    }
-
-    std::string getType() const override {
-        return "gern::lib::TestArray";
-    }
-
-private:
-    std::string name;
-};
-
-}  // namespace dummy
+namespace test {
 
 template<typename T>
 static std::string getStrippedString(T e) {
@@ -48,6 +26,5 @@ static bool areDisjoint(std::set<T> s1, std::set<T> s2) {
     return true;
 }
 
+}  // namespace test
 }  // namespace gern
-
-#endif

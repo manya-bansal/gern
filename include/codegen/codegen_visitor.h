@@ -16,6 +16,7 @@ struct VarAssign;
 struct Var;
 struct Call;
 struct VoidCall;
+struct KernelLaunch;
 struct For;
 struct BlankLine;
 struct Lt;
@@ -52,6 +53,7 @@ public:
     virtual void visit(const Var *) = 0;
     virtual void visit(const Call *) = 0;
     virtual void visit(const VoidCall *) = 0;
+    virtual void visit(const KernelLaunch *) = 0;
     virtual void visit(const For *) = 0;
     virtual void visit(const BlankLine *) = 0;
     virtual void visit(const Lt *) = 0;
@@ -90,6 +92,7 @@ public:
     virtual void visit(const Var *);
     virtual void visit(const Call *);
     virtual void visit(const VoidCall *);
+    virtual void visit(const KernelLaunch *);
     virtual void visit(const For *);
     virtual void visit(const BlankLine *);
     virtual void visit(const Lt *);

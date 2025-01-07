@@ -4,9 +4,12 @@ To build gern, install [vcpkg] and make sure `VCPKG_ROOT` is set in your
 environment. Then run:
 
 ```shell
-$ cmake --preset dev
+$ cmake -DGern_CUDA_ARCH=<89,90..,etc> --preset dev
 $ cmake --build build/dev
 ```
+
+If  ```-DGern_CUDA_ARCH``` is not set, none
+of the GPU kernels will be run during tests.
 
 To run tests:
 

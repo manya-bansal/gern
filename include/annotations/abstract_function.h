@@ -29,15 +29,9 @@ public:
     virtual Pattern getAnnotation() = 0;
     virtual std::vector<Argument> getArguments() = 0;
     virtual std::vector<std::string> getHeader() = 0;
-    virtual std::vector<std::string> getIncludeFlags() {
-        return {};
-    }
-    virtual std::vector<std::string> getLinkFlags() {
-        return {};
-    }
 
-    AbstractFunction &operator[](std::map<std::string, Variable> replacements) {
-        bindings.insert(replacements.begin(), replacements.end());
+    AbstractFunction &operator[](const std::map<std::string, Variable> &replacements) {
+        bindVariables(replacements);
         return *this;
     }
 
@@ -70,6 +64,17 @@ public:
 
 private:
     Pattern rewriteAnnotWithConcreteArgs(std::vector<Argument> concrete_arguments);
+    /**
+     * @brief This function actually performs the binding, and checks
+     *        the following conditions:
+     *
+     *        1. Interval variables can only be bound to ID property.
+     *        2. Non-interval varaibles cannot be bound to ID property.
+     *        3. If a variable is already completely determined, then it
+     *           cannot be bound.
+     *
+     */
+    void bindVariables(const std::map<std::string, Variable> &);
     std::map<std::string, Variable> bindings;
 };
 

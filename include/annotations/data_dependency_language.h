@@ -2,6 +2,7 @@
 #define GERN_DATA_DEP_LANG_H
 
 #include "annotations/abstract_nodes.h"
+#include "annotations/grid.h"
 #include "utils/uncopyable.h"
 #include <cassert>
 #include <map>
@@ -63,6 +64,14 @@ public:
         : util::IntrusivePtr<const ConstraintNode>(n) {
     }
 
+    virtual Expr getA() const {
+        return Expr();
+    }
+
+    virtual Expr getB() const {
+        return Expr();
+    }
+
     void accept(ConstraintVisitorStrict *v) const;
 };
 
@@ -117,8 +126,19 @@ public:
     Variable(const std::string &name);
     Variable(const VariableNode *);
 
-    Variable get_from_grid() const;
-    bool is_from_grid() const;
+    /**
+     *  @brief This function indicates that the
+     *          value of the variable is derived
+     *          from a grid property. (blockIDx,
+     *          etc)
+     *
+     *  @param p The grid property to bind this variable
+     *           to.
+     */
+    Variable bindToGrid(const Grid::Property &p) const;
+    bool isBoundToGrid() const;
+    Grid::Property getBoundProperty() const;
+
     std::string getName() const;
     Datatype getType() const;
 
@@ -178,6 +198,9 @@ public:
     Constraint getConstraint() const {
         return c;
     }
+
+    std::set<Variable> getDefinedVariables() const;
+    std::set<Variable> getIntervalVariables() const;
     Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
     Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
     void accept(StmtVisitorStrict *v) const;
@@ -255,7 +278,7 @@ public:
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
-ConsumeMany For(Assign start, Constraint end, Assign step, ConsumeMany body,
+ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
                 bool parallel = false);
 
 class Allocates : public Stmt {
@@ -288,7 +311,7 @@ public:
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.
-Pattern For(Assign start, Constraint end, Assign step, Pattern body,
+Pattern For(Assign start, Expr end, Expr step, Pattern body,
             bool parallel = false);
 
 }  // namespace gern

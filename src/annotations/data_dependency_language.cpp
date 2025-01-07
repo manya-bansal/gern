@@ -68,8 +68,16 @@ Variable::Variable(const std::string &name)
     : Expr(new const VariableNode(name)) {
 }
 
-Variable Variable::get_from_grid() const {
-    return Variable(new const VariableNode(getName(), true));
+Variable Variable::bindToGrid(const Grid::Property &p) const {
+    return Variable(new const VariableNode(getName(), p));
+}
+
+bool Variable::isBoundToGrid() const {
+    return isGridPropertySet(getBoundProperty());
+}
+
+Grid::Property Variable::getBoundProperty() const {
+    return getNode(*this)->p;
 }
 
 std::string Variable::getName() const {
@@ -78,10 +86,6 @@ std::string Variable::getName() const {
 
 Datatype Variable::getType() const {
     return getNode(*this)->type;
-}
-
-bool Variable::is_from_grid() const {
-    return getNode(*this)->grid;
 }
 
 Assign Variable::operator=(const Expr &e) {
@@ -139,6 +143,33 @@ Stmt Stmt::whereStmt(Constraint constraint) const {
                                "present in statement's scope");
     }
     return Stmt(ptr, constraint);
+}
+
+std::set<Variable> Stmt::getDefinedVariables() const {
+    std::set<Variable> vars;
+    match(*this, std::function<void(const AssignNode *)>(
+                     [&](const AssignNode *op) { vars.insert(to<Variable>(op->a)); }));
+    return vars;
+}
+
+std::set<Variable> Stmt::getIntervalVariables() const {
+    std::set<Variable> vars;
+    match(*this,
+          std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
+                                                                           Matcher *ctx) {
+              ctx->match(op->start.getA());
+              ctx->match(op->body);
+          }),
+          std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
+                                                                           Matcher *ctx) {
+              ctx->match(op->start.getA());
+              ctx->match(op->body);
+          }),
+          std::function<void(const VariableNode *op, Matcher *ctx)>([&](const VariableNode *op,
+                                                                        Matcher *) {
+              vars.insert(op);
+          }));
+    return vars;
 }
 
 #define DEFINE_WHERE_METHOD(Type)            \
@@ -267,7 +298,7 @@ Consumes::Consumes(Subset s)
     : Consumes(new const SubsetsNode({s})) {
 }
 
-ConsumeMany For(Assign start, Constraint end, Assign step, ConsumeMany body,
+ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
                 bool parallel) {
     return ConsumeMany(
         new const ConsumesForNode(start, end, step, body, parallel));
@@ -293,7 +324,7 @@ Pattern::Pattern(const PatternNode *p)
     : Stmt(p) {
 }
 
-Pattern For(Assign start, Constraint end, Assign step, Pattern body,
+Pattern For(Assign start, Expr end, Expr step, Pattern body,
             bool parallel) {
     return Pattern(
         new const ComputesForNode(start, end, step, body, parallel));

@@ -29,6 +29,7 @@ public:
     virtual void visit(const Var *);
     virtual void visit(const Call *);
     virtual void visit(const VoidCall *);
+    virtual void visit(const KernelLaunch *);
     virtual void visit(const BlankLine *);
     virtual void visit(const For *);
     virtual void visit(const Lt *);
