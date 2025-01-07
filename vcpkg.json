@@ -4,8 +4,7 @@
   "description": "",
   "license": "MIT",
   "dependencies": [
-    "ginac",
-    "cuda"
+    "ginac"
   ],
   "features": {
     "dev": {
