@@ -4,6 +4,7 @@
 #include "utils/debug.h"
 #include "utils/error.h"
 
+#include <algorithm>
 #include <set>
 
 namespace gern {
@@ -178,10 +179,10 @@ std::set<Variable> Stmt::getIntervalVariables() const {
     }
 
 DEFINE_WHERE_METHOD(Consumes)
-DEFINE_WHERE_METHOD(Subset)
+DEFINE_WHERE_METHOD(SubsetObj)
 DEFINE_WHERE_METHOD(Produces)
 DEFINE_WHERE_METHOD(ConsumeMany)
-DEFINE_WHERE_METHOD(Subsets)
+DEFINE_WHERE_METHOD(SubsetObjMany)
 DEFINE_WHERE_METHOD(Allocates)
 DEFINE_WHERE_METHOD(Pattern)
 DEFINE_WHERE_METHOD(Computes)
@@ -215,9 +216,9 @@ Stmt Stmt::replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_d
 
         void visit(const SubsetNode *op) {
             if (rw_ds.find(op->data) != rw_ds.end()) {
-                stmt = Subset(rw_ds[op->data], op->mdFields);
+                stmt = SubsetObj(rw_ds[op->data], op->mdFields);
             } else {
-                stmt = Subset(op->data, op->mdFields);
+                stmt = SubsetObj(op->data, op->mdFields);
             }
         }
         std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds;
@@ -257,36 +258,49 @@ DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint)
 
 DEFINE_BINARY_CONSTRUCTOR(Assign, Stmt)
 
-Subset::Subset(const SubsetNode *n)
+SubsetObj::SubsetObj(const SubsetNode *n)
     : Stmt(n) {
 }
 
-Subset::Subset(AbstractDataTypePtr data,
-               std::vector<Expr> mdFields)
+SubsetObj::SubsetObj(AbstractDataTypePtr data,
+                     std::vector<Expr> mdFields)
     : Stmt(new const SubsetNode(data, mdFields)) {
 }
 
-AbstractDataTypePtr Subset::getDS() const {
+std::vector<Expr> SubsetObj::getFields() {
+    return getNode(*this)->mdFields;
+}
+
+AbstractDataTypePtr SubsetObj::getDS() const {
     return getNode(*this)->data;
 }
 
-Subsets::Subsets(const std::vector<Subset> &inputs)
-    : ConsumeMany(new const SubsetsNode(inputs)) {
+SubsetObjMany::SubsetObjMany(const std::vector<SubsetObj> &inputs)
+    : ConsumeMany(new const SubsetObjManyNode(inputs)) {
 }
 
 Produces::Produces(const ProducesNode *n)
     : Stmt(n) {
 }
 
-Produces::Produces(Subset s)
-    : Stmt(new const ProducesNode(s)) {
+Produces Produces::Subset(AbstractDataTypePtr ds, std::vector<Variable> v) {
+    return Produces(new ProducesNode(ds, v));
 }
 
-Subset Produces::getSubset() {
+std::vector<Variable> Produces::getFieldsAsVars() const {
+    std::vector<Variable> vars;
+    std::vector<Expr> expr_vars = getSubset().getFields();
+    for (const auto &e : expr_vars) {
+        vars.push_back(to<Variable>(e));
+    }
+    return vars;
+}
+
+SubsetObj Produces::getSubset() const {
     return getNode(*this)->output;
 }
 
-Subsets::Subsets(const SubsetsNode *n)
+SubsetObjMany::SubsetObjMany(const SubsetObjManyNode *n)
     : ConsumeMany(n) {
 }
 
@@ -294,14 +308,32 @@ Consumes::Consumes(const ConsumesNode *c)
     : Stmt(c) {
 }
 
-Consumes::Consumes(Subset s)
-    : Consumes(new const SubsetsNode({s})) {
+Consumes::Consumes(SubsetObj s)
+    : Consumes(new const SubsetObjManyNode({s})) {
+}
+
+Consumes Consumes::Subset(AbstractDataTypePtr ds, std::vector<Expr> fields) {
+    return Consumes(SubsetObj(ds, fields));
+}
+
+Consumes Consumes::Subsets(ConsumeMany many) {
+    return Consumes(getNode(many));
 }
 
 ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
                 bool parallel) {
     return ConsumeMany(
         new const ConsumesForNode(start, end, step, body, parallel));
+}
+
+ConsumeMany For(Assign start, Expr end, Expr step, std::vector<SubsetObj> body,
+                bool parallel) {
+    return For(start, end, step, SubsetObjMany(body), parallel);
+}
+
+ConsumeMany For(Assign start, Expr end, Expr step, SubsetObj body,
+                bool parallel) {
+    return For(start, end, step, std::vector<SubsetObj>{body}, parallel);
 }
 
 Allocates::Allocates(const AllocatesNode *n)
@@ -328,6 +360,12 @@ Pattern For(Assign start, Expr end, Expr step, Pattern body,
             bool parallel) {
     return Pattern(
         new const ComputesForNode(start, end, step, body, parallel));
+}
+
+Pattern For(Assign start, Expr end, Expr step,
+            Produces produces, Consumes consumes,
+            bool parallel) {
+    return For(start, end, step, Computes(produces, consumes), parallel);
 }
 
 }  // namespace gern

@@ -85,13 +85,13 @@ struct SubsetNode : public StmtNode {
 };
 
 struct ProducesNode : public StmtNode {
-    ProducesNode(Subset output)
-        : output(output) {
+    ProducesNode(AbstractDataTypePtr ds, std::vector<Variable> v)
+        : output(SubsetObj(ds, std::vector<Expr>(v.begin(), v.end()))) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    Subset output;
+    SubsetObj output;
 };
 
 struct ConsumesNode : public StmtNode {
@@ -117,14 +117,14 @@ struct ConsumesForNode : public ConsumesNode {
     bool parallel;
 };
 
-struct SubsetsNode : public ConsumesNode {
-    SubsetsNode(const std::vector<Subset> &subsets)
+struct SubsetObjManyNode : public ConsumesNode {
+    SubsetObjManyNode(const std::vector<SubsetObj> &subsets)
         : subsets(subsets) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    std::vector<Subset> subsets;
+    std::vector<SubsetObj> subsets;
 };
 
 struct PatternNode : public StmtNode {

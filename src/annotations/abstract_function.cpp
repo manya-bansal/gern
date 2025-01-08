@@ -16,8 +16,8 @@ std::set<AbstractDataTypePtr> FunctionCall::getInputs() const {
     std::set<AbstractDataTypePtr> inputs;
     // Only the consumes part of the annotation has
     // multiple subsets, so, we will only ever get the inputs.
-    match(getAnnotation(), std::function<void(const SubsetsNode *)>(
-                               [&](const SubsetsNode *op) {
+    match(getAnnotation(), std::function<void(const SubsetObjManyNode *)>(
+                               [&](const SubsetObjManyNode *op) {
                                    for (const auto &s : op->subsets) {
                                        inputs.insert(s.getDS());
                                    }
@@ -92,7 +92,6 @@ Pattern AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> con
         }
         fresh_names[v] = getUniqueName("_gern_" + v.getName());
     }
-
     return to<Pattern>(annotation
                            .replaceDSArgs(abstract_to_concrete_adt)
                            .replaceVariables(fresh_names));

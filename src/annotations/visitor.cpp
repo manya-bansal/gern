@@ -93,7 +93,7 @@ void Printer::visit(const SubsetNode *op) {
     os << "}";
 }
 
-void Printer::visit(const SubsetsNode *op) {
+void Printer::visit(const SubsetObjManyNode *op) {
     Printer p{os, ident};
     int size_mf = op->subsets.size();
     for (int i = 0; i < size_mf; i++) {
@@ -217,7 +217,7 @@ void AnnotVisitor::visit(const SubsetNode *op) {
     }
 }
 
-void AnnotVisitor::visit(const SubsetsNode *op) {
+void AnnotVisitor::visit(const SubsetObjManyNode *op) {
     for (const auto &subset : op->subsets) {
         this->visit(subset);
     }
@@ -311,20 +311,25 @@ void Rewriter::visit(const SubsetNode *op) {
     for (size_t i = 0; i < op->mdFields.size(); i++) {
         rw_expr.push_back(this->rewrite(op->mdFields[i]));
     }
-    stmt = Subset(op->data, rw_expr);
+    stmt = SubsetObj(op->data, rw_expr);
 }
 
-void Rewriter::visit(const SubsetsNode *op) {
-    std::vector<Subset> rw_subsets;
+void Rewriter::visit(const SubsetObjManyNode *op) {
+    std::vector<SubsetObj> rw_subsets;
     for (size_t i = 0; i < op->subsets.size(); i++) {
-        rw_subsets.push_back(to<Subset>(this->rewrite(op->subsets[i])));
+        rw_subsets.push_back(to<SubsetObj>(this->rewrite(op->subsets[i])));
     }
-    stmt = Subsets(rw_subsets);
+    stmt = SubsetObjMany(rw_subsets);
 }
 
 void Rewriter::visit(const ProducesNode *op) {
-    Subset rw_subset = to<Subset>(this->rewrite(op->output));
-    stmt = Produces(rw_subset);
+    SubsetObj rw_subset = to<SubsetObj>(this->rewrite(op->output));
+    std::vector<Variable> vars;
+    std::vector<Expr> expr_vars = rw_subset.getFields();
+    for (const auto &e : expr_vars) {
+        vars.push_back(to<Variable>(e));
+    }
+    stmt = Produces::Subset(rw_subset.getDS(), vars);
 }
 
 void Rewriter::visit(const AllocatesNode *op) {

@@ -20,8 +20,12 @@ TEST(LoweringCPU, SingleElemFunction) {
 
     annot::add add_f;
     Variable v("v");
+    Variable step("step");
 
-    std::vector<Compose> c = {add_f[{{"end", v}}](inputDS, outputDS)};
+    std::vector<Compose> c = {add_f[{
+        {"end", v},
+        {"step", step},
+    }](inputDS, outputDS)};
     Pipeline p(c);
     Runner run(p);
 
@@ -36,11 +40,13 @@ TEST(LoweringCPU, SingleElemFunction) {
     impl::ArrayCPU b(10);
     b.vvals(3.0f);
     int64_t var = 10;
+    int64_t step_val = 1;
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS->getName(), &a},
         {outputDS->getName(), &b},
         {v.getName(), &var},
+        {step.getName(), &step_val},
     }));
 
     // Make sure we got the correct answer.
@@ -53,6 +59,7 @@ TEST(LoweringCPU, SingleElemFunction) {
     ASSERT_THROW(run.evaluate({
                      {inputDS->getName(), &a},
                      {outputDS->getName(), &b},
+                     {v.getName(), &var},
                  }),
                  error::UserError);
 
@@ -63,6 +70,7 @@ TEST(LoweringCPU, SingleElemFunction) {
                      {inputDS->getName(), &a},
                      {dummyDS->getName(), &b},
                      {v.getName(), &var},
+                     {step.getName(), &step_val},
                  }),
                  error::UserError);
 
