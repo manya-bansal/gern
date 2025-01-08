@@ -144,17 +144,20 @@ TEST(PipelineTest, getConsumerFuncs) {
         add_1,
         add_2,
     });
-    // ASSERT_TRUE(p.getProducerFunc(outputDS) == add_1);
-    // ASSERT_TRUE(p.getProducerFunc(outputDS_new) == add_2);
+
+    auto funcs = p.getConsumerFunctions(outputDS);
+    ASSERT_TRUE(funcs.size() == 1);
+    ASSERT_TRUE(funcs.contains(add_2));
 
     Pipeline p_nested({add_1,
                        {
                            {add_2},
                        }});
-    // ASSERT_TRUE(p_nested.getProducerFunc(outputDS) == add_1);
-    // ASSERT_TRUE(p_nested.getProducerFunc(outputDS_new) == add_2);
-    // // We should not be able to find a function.
-    // ASSERT_TRUE(p_nested.getProducerFunc(inputDS) == nullptr);
+    funcs = p_nested.getConsumerFunctions(outputDS);
+    ASSERT_TRUE(funcs.size() == 1);
+    ASSERT_TRUE(funcs.contains(add_2));
+    funcs = p_nested.getConsumerFunctions(outputDS_new);
+    ASSERT_TRUE(funcs.size() == 0);
 
     Pipeline p_nested_2({
         Compose({
@@ -167,7 +170,9 @@ TEST(PipelineTest, getConsumerFuncs) {
         add_2,
     });
 
-    // ASSERT_TRUE(p_nested.getProducerFunc(outputDS) == add_1);
-    // ASSERT_TRUE(p_nested.getProducerFunc(outputDS_new) == add_2);
-    // ASSERT_TRUE(p_nested_2.getProducerFunc(inputDS) == nullptr);
+    funcs = p_nested_2.getConsumerFunctions(outputDS);
+    ASSERT_TRUE(funcs.size() == 1);
+    ASSERT_TRUE(funcs.contains(add_2));
+    funcs = p_nested_2.getConsumerFunctions(outputDS_new);
+    ASSERT_TRUE(funcs.size() == 0);
 }
