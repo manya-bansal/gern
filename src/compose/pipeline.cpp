@@ -62,6 +62,19 @@ std::set<FunctionCallPtr> Pipeline::getConsumerFunctions(AbstractDataTypePtr ds)
     return funcs;
 }
 
+FunctionCallPtr Pipeline::getProducerFunction(AbstractDataTypePtr ds) const {
+    FunctionCallPtr func;
+    // Only the consumes part of the annotation has
+    // multiple subsets, so, we will only ever get the inputs.
+    compose_match(Compose(*this), std::function<void(const FunctionCall *)>(
+                                      [&](const FunctionCall *op) {
+                                          if (op->getOutput() == ds) {
+                                              func = op;
+                                          }
+                                      }));
+    return func;
+}
+
 int Pipeline::numFuncs() {
     ComposeCounter cc;
     return cc.numFuncs(Compose(*this));
@@ -129,16 +142,7 @@ void Pipeline::visit(const FunctionCall *c) {
         lowered.push_back(new QueryNode(output,
                                         queried,
                                         generateMetaDataFields(output, c)));
-    } else {
-        // Generate the allocate node.
-        AbstractDataTypePtr alloc = std::make_shared<const AbstractDataType>("_alloc_" + output->getName(),
-                                                                             output->getType());
-        new_ds[output] = alloc;
-        temp.push_back(new AllocateNode(
-            alloc,
-            generateMetaDataFields(output, c)));
     }
-
     temp.push_back(new ComputeNode(c, new_ds));
 
     // Now generate all the intervals if any!
@@ -207,6 +211,14 @@ std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::ve
 
 void Pipeline::generateAllAllocs() {
     // Generate an allocation for all the intermediates.
+    for (const auto &temp : intermediates) {
+        AbstractDataTypePtr alloc = std::make_shared<const AbstractDataType>("_alloc_" + temp->getName(),
+                                                                             temp->getType());
+        new_ds[temp] = alloc;
+        lowered.push_back((new AllocateNode(
+            alloc,
+            getProducerFunction(temp)->getMetaDataFields(temp))));
+    }
 }
 
 void Pipeline::init(std::vector<Compose> compose) {

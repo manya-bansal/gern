@@ -66,6 +66,7 @@ public:
     std::set<AbstractDataTypePtr> getInputs() const;
     AbstractDataTypePtr getOutput() const;
     std::set<FunctionCallPtr> getConsumerFunctions(AbstractDataTypePtr) const;
+    FunctionCallPtr getProducerFunction(AbstractDataTypePtr ds) const;
 
     void accept(CompositionVisitorStrict *) const;
 
