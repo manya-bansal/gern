@@ -5,17 +5,24 @@
 
 namespace gern {
 
-void CompositionVisitor::visit(Compose c) {
+void CompositionVisitorStrict::visit(Compose c) {
     if (!c.defined()) {
         return;
     }
     c.accept(this);
 }
 
-void CompositionVisitor::visit(Pipeline p) {
+void CompositionVisitorStrict::visit(Pipeline p) {
     for (const auto &f : p.getFuncs()) {
         this->visit(f);
     }
+}
+
+void CompositionVisitor::visit(const FunctionCall *) {
+}
+
+void CompositionVisitor::visit(const PipelineNode *op) {
+    this->visit(op->p);
 }
 
 void ComposePrinter::visit(Compose compose) {

@@ -37,11 +37,10 @@ TEST(PipelineTest, ReuseOutput) {
     // A pipeline can only assign to fresh outputs
     // each time. Should complain even if nested.
     ASSERT_THROW(Pipeline p({
-                     add_f(inputDS, outputDS),
                      Compose({
-                         add_f(outputDS, outputDS2),
-                         add_f(outputDS, outputDS2),
+                         add_f(outputDS, outputDS),
                      }),
+                     add_f(inputDS, outputDS),
                  }),
                  error::UserError);
 }
@@ -128,7 +127,7 @@ TEST(PipelineTest, AssignInput) {
                  error::UserError);
 }
 
-TEST(PipelineTest, getInputs) {
+TEST(PipelineTest, getConsumerFuncs) {
 
     auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
     auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");

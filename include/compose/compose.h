@@ -9,7 +9,7 @@ namespace gern {
 
 class Pipeline;
 
-class CompositionVisitor;
+class CompositionVisitorStrict;
 /**
  * @brief This class tracks the objects that Gern
  *        can compose together in a pipeline. Currently,
@@ -24,7 +24,7 @@ class CompositionObject : public util::Manageable<CompositionObject>,
 public:
     CompositionObject() = default;
     virtual ~CompositionObject() = default;
-    virtual void accept(CompositionVisitor *) const = 0;
+    virtual void accept(CompositionVisitorStrict *) const = 0;
 };
 
 /**
@@ -48,7 +48,7 @@ public:
 
     int numFuncs() const;
 
-    void accept(CompositionVisitor *v) const;
+    void accept(CompositionVisitorStrict *v) const;
 
 private:
     bool device = false;
@@ -121,7 +121,7 @@ public:
      */
     const FunctionCall *withSymbolic(const std::map<std::string, Variable> &binding);
 
-    void accept(CompositionVisitor *v) const;
+    void accept(CompositionVisitorStrict *v) const;
 
 private:
     std::string name;

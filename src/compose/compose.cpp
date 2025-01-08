@@ -38,7 +38,7 @@ Compose::Compose(Pipeline p)
     : Compose(new const PipelineNode(p)) {
 }
 
-void Compose::accept(CompositionVisitor *v) const {
+void Compose::accept(CompositionVisitorStrict *v) const {
     if (!defined()) {
         return;
     }
@@ -50,7 +50,7 @@ int Compose::numFuncs() const {
     return cc.numFuncs(*this);
 }
 
-void FunctionCall::accept(CompositionVisitor *v) const {
+void FunctionCall::accept(CompositionVisitorStrict *v) const {
     v->visit(this);
 }
 

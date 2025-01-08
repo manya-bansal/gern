@@ -49,8 +49,17 @@ AbstractDataTypePtr Pipeline::getOutput() const {
     return true_output;
 }
 
-OutputFunction Pipeline::getOutputFunctions() const {
-    return output_function;
+std::set<FunctionCallPtr> Pipeline::getConsumerFunctions(AbstractDataTypePtr ds) const {
+    std::set<FunctionCallPtr> funcs;
+    // Only the consumes part of the annotation has
+    // multiple subsets, so, we will only ever get the inputs.
+    compose_match(Compose(*this), std::function<void(const FunctionCall *)>(
+                                      [&](const FunctionCall *op) {
+                                          if (op->getInputs().contains(ds)) {
+                                              funcs.insert(op);
+                                          }
+                                      }));
+    return funcs;
 }
 
 int Pipeline::numFuncs() {
@@ -70,11 +79,7 @@ void Pipeline::lower() {
     // temps as well.
     generateAllAllocs();
     visit(*this);
-    // Add frees for all the allocated nodes.
-    for (const auto &free : to_free) {
-        lowered.push_back(new FreeNode(
-            free));
-    }
+
     // If its a vec of vec...then, need to do something else.
     // right now, gern will complain if you try.
     // Now generate the outer loops.
@@ -128,7 +133,6 @@ void Pipeline::visit(const FunctionCall *c) {
         // Generate the allocate node.
         AbstractDataTypePtr alloc = std::make_shared<const AbstractDataType>("_alloc_" + output->getName(),
                                                                              output->getType());
-        to_free.insert(alloc);
         new_ds[output] = alloc;
         temp.push_back(new AllocateNode(
             alloc,
@@ -211,7 +215,7 @@ void Pipeline::init(std::vector<Compose> compose) {
     // is never assigned to later, and each
     // intermediate is used at least once as an
     // input.
-    struct DataFlowConstructor : public CompositionVisitor {
+    struct DataFlowConstructor : public CompositionVisitorStrict {
         DataFlowConstructor(std::vector<Compose> compose)
             : compose(compose) {
         }
@@ -220,7 +224,7 @@ void Pipeline::init(std::vector<Compose> compose) {
             for (const auto &c : compose) {
                 this->visit(c);
             }
-            // Remove true_output from intermediates.
+            // Remove true_output (the last output produced) from intermediates.
             intermediates.erase(true_output);
             // For all intermediates, ensure that it gets read at least once.
             for (const auto &temp : intermediates) {
@@ -230,19 +234,23 @@ void Pipeline::init(std::vector<Compose> compose) {
             }
         }
 
-        using CompositionVisitor::visit;
+        using CompositionVisitorStrict::visit;
         void visit(const FunctionCall *node) {
             // Add output to intermediates.
             AbstractDataTypePtr output = node->getOutput();
             std::set<AbstractDataTypePtr> func_inputs = node->getInputs();
             all_inputs.insert(func_inputs.begin(), func_inputs.end());
 
-            if (intermediates.count(output) > 0) {
+            // Check whether the output has already been assigned to.
+            if (intermediates.count(output) > 0 ||
+                all_nested_temps.count(output) > 0) {
                 throw error::UserError("Cannot assign to" + output->getName() + "twice");
             }
+            // Check if this output was ever used as an input.
             if (all_inputs.count(output) > 0) {
                 throw error::UserError("Assigning to a " + output->getName() + "that has already been read");
             }
+            // Check if we are trying to use an intermediate from a nested pipeline.
             for (const auto &in : func_inputs) {
                 if (all_nested_temps.count(in)) {
                     throw error::UserError("Trying to read intermediate" + in->getName() + " from nested pipeline");
@@ -255,15 +263,19 @@ void Pipeline::init(std::vector<Compose> compose) {
         void visit(const PipelineNode *node) {
             // Add output to intermediates.
             AbstractDataTypePtr output = node->p.getOutput();
-            if (intermediates.count(output) > 0) {
-                throw error::UserError("Cannot assign to" + output->getName() + "twice");
-            }
-            if (all_inputs.count(output) > 0) {
+            if (all_inputs.contains(output)) {
                 throw error::UserError("Assigning to a " + output->getName() + "that has already been read");
             }
 
             std::set<AbstractDataTypePtr> nested_writes = node->p.getAllWriteDataStruct();
             std::set<AbstractDataTypePtr> nested_reads = node->p.getAllReadDataStruct();
+
+            // Check pipeline is writing to one of our outputs.
+            for (const auto &in : nested_writes) {
+                if (intermediates.contains(in) || all_nested_temps.contains(in)) {
+                    throw error::UserError("Trying to write to intermediate" + in->getName() + " from nested pipeline");
+                }
+            }
 
             all_nested_temps.insert(nested_writes.begin(), nested_writes.end());
             all_nested_temps.erase(output);  // Remove the final output. We can see this.
@@ -287,64 +299,22 @@ void Pipeline::init(std::vector<Compose> compose) {
 }
 
 std::set<AbstractDataTypePtr> Pipeline::getAllWriteDataStruct() const {
-    struct WriteDSGetter : public CompositionVisitor {
-        WriteDSGetter(std::vector<Compose> compose)
-            : compose(compose) {
-        }
-
-        std::set<AbstractDataTypePtr> gather() {
-            for (const auto &c : compose) {
-                this->visit(c);
-            }
-            return all_write_ds;
-        }
-
-        using CompositionVisitor::visit;
-        void visit(const FunctionCall *node) {
-            all_write_ds.insert(node->getOutput());
-        }
-
-        void visit(const PipelineNode *node) {
-            this->visit(node->p);
-        }
-
-        std::set<AbstractDataTypePtr> all_write_ds;
-        std::vector<Compose> compose;
-    };
-
-    WriteDSGetter getter(compose);
-    return getter.gather();
+    std::set<AbstractDataTypePtr> writes;
+    compose_match(Compose(*this), std::function<void(const FunctionCall *)>(
+                                      [&](const FunctionCall *op) {
+                                          writes.insert(op->getOutput());
+                                      }));
+    return writes;
 }
 
 std::set<AbstractDataTypePtr> Pipeline::getAllReadDataStruct() const {
-    struct ReadDSGetter : public CompositionVisitor {
-        ReadDSGetter(std::vector<Compose> compose)
-            : compose(compose) {
-        }
-
-        std::set<AbstractDataTypePtr> gather() {
-            for (const auto &c : compose) {
-                this->visit(c);
-            }
-            return all_read_ds;
-        }
-
-        using CompositionVisitor::visit;
-        void visit(const FunctionCall *node) {
-            std::set<AbstractDataTypePtr> all_inputs = node->getInputs();
-            all_read_ds.insert(all_inputs.begin(), all_inputs.end());
-        }
-
-        void visit(const PipelineNode *node) {
-            this->visit(node->p);
-        }
-
-        std::set<AbstractDataTypePtr> all_read_ds;
-        std::vector<Compose> compose;
-    };
-
-    ReadDSGetter getter(compose);
-    return getter.gather();
+    std::set<AbstractDataTypePtr> reads;
+    compose_match(Compose(*this), std::function<void(const FunctionCall *)>(
+                                      [&](const FunctionCall *op) {
+                                          auto func_inputs = op->getInputs();
+                                          reads.insert(func_inputs.begin(), func_inputs.end());
+                                      }));
+    return reads;
 }
 
 void AllocateNode::accept(PipelineVisitor *v) const {
@@ -388,7 +358,7 @@ void BlankNode::accept(PipelineVisitor *v) const {
     v->visit(this);
 }
 
-void PipelineNode::accept(CompositionVisitor *v) const {
+void PipelineNode::accept(CompositionVisitorStrict *v) const {
     v->visit(this);
 }
 
