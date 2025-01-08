@@ -46,27 +46,11 @@ bool Pipeline::is_at_device() const {
 }
 
 AbstractDataTypePtr Pipeline::getOutput() const {
-    return final_output;
+    return true_output;
 }
 
 OutputFunction Pipeline::getOutputFunctions() const {
     return output_function;
-}
-
-FunctionCallPtr Pipeline::getProducerFunc(AbstractDataTypePtr ds) const {
-
-    if (output_function.count(ds) > 0) {
-        return output_function.at(ds);
-    }
-    return nullptr;
-}
-
-std::set<AbstractDataTypePtr> Pipeline::getInputs() const {
-    return all_inputs;
-}
-
-Dataflow Pipeline::getDataflow() const {
-    return dataflow;
 }
 
 int Pipeline::numFuncs() {
@@ -79,6 +63,12 @@ void Pipeline::lower() {
     if (has_been_lowered) {
         return;
     }
+
+    // Generate all the allocations.
+    // For nested pipelines, this should
+    // generated nested allocations for
+    // temps as well.
+    generateAllAllocs();
     visit(*this);
     // Add frees for all the allocated nodes.
     for (const auto &free : to_free) {
@@ -109,10 +99,10 @@ std::ostream &operator<<(std::ostream &os, const Pipeline &p) {
 
 void Pipeline::visit(const FunctionCall *c) {
 
-    std::set<AbstractDataTypePtr> inputs = c->getInputs();
+    std::set<AbstractDataTypePtr> func_inputs = c->getInputs();
     std::vector<LowerIR> temp;
 
-    for (const auto &in : inputs) {
+    for (const auto &in : func_inputs) {
         if (!isIntermediate(in)) {
             // Generate the query node.
             AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + in->getName(),
@@ -159,7 +149,7 @@ void Pipeline::visit(const PipelineNode *) {
 bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
     // We can find a function that produces this output.
     // and it is not the final output.
-    return getProducerFunc(d) != nullptr && getOutput() != d;
+    return (intermediates.count(d) > 0);
 }
 
 std::vector<Expr> Pipeline::generateMetaDataFields(AbstractDataTypePtr d, FunctionCallPtr c) {
@@ -170,21 +160,22 @@ std::vector<Expr> Pipeline::generateMetaDataFields(AbstractDataTypePtr d, Functi
         return metaFields;
     } else {
         // From the producer function, get producer fields.
-        FunctionCallPtr producerFunc = getProducerFunc(d);
-        std::cout << *producerFunc << std::endl;
-        std::cout << *c << std::endl;
-        std::vector<Expr> producerFields = producerFunc->getMetaDataFields(d);
+        // FunctionCallPtr producerFunc = getProducerFunc(d);
+        // std::cout << *producerFunc << std::endl;
+        // std::cout << *c << std::endl;
+        // std::vector<Expr> producerFields = producerFunc->getMetaDataFields(d);
 
-        // Insert the definitions.
-        for (size_t i = 0; i < metaFields.size(); i++) {
-            std::cout << producerFields[i] << " = " << metaFields[i] << std::endl;
-            // Make this true by construction!
-            if (isa<Variable>(producerFields[i])) {
-                lowered.push_back(
-                    new DefNode(Assign(to<Variable>(producerFields[i]), metaFields[i])));
-            }
-        }
-        return producerFields;
+        // // Insert the definitions.
+        // for (size_t i = 0; i < metaFields.size(); i++) {
+        //     std::cout << producerFields[i] << " = " << metaFields[i] << std::endl;
+        //     // Make this true by construction!
+        //     if (isa<Variable>(producerFields[i])) {
+        //         lowered.push_back(
+        //             new DefNode(Assign(to<Variable>(producerFields[i]), metaFields[i])));
+        //     }
+        // }
+        // return producerFields;
+        throw error::InternalError("Unimpl");
     }
 }
 
@@ -210,6 +201,10 @@ std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::ve
     return current;
 }
 
+void Pipeline::generateAllAllocs() {
+    // Generate an allocation for all the intermediates.
+}
+
 void Pipeline::init(std::vector<Compose> compose) {
     // A pipeline is legal if each output
     // is assigned to only once, an input
@@ -223,69 +218,133 @@ void Pipeline::init(std::vector<Compose> compose) {
 
         void construct() {
             for (const auto &c : compose) {
-                visit(c);
+                this->visit(c);
             }
-
-            for (const auto &out : out_flow) {
-                std::cout << (in_flow.count(out.first) > 0);
-                std::cout << " for " << out.first->getName() << std::endl;
-                if (in_flow.count(out.first) <= 0 &&
-                    out.first != final_output) {
-                    throw error::UserError("Assigning to " + out.first->getName() + " but never using it");
+            // Remove true_output from intermediates.
+            intermediates.erase(true_output);
+            // For all intermediates, ensure that it gets read at least once.
+            for (const auto &temp : intermediates) {
+                if (all_inputs.count(temp) <= 0) {
+                    throw error::UserError(temp->getName() + " is never being read");
                 }
             }
         }
 
         using CompositionVisitor::visit;
         void visit(const FunctionCall *node) {
-
+            // Add output to intermediates.
             AbstractDataTypePtr output = node->getOutput();
-            std::set<AbstractDataTypePtr> inputs = node->getInputs();
+            std::set<AbstractDataTypePtr> func_inputs = node->getInputs();
+            all_inputs.insert(func_inputs.begin(), func_inputs.end());
 
-            if (out_flow.count(output) > 0) {
-                throw error::UserError("Cannot assign to " + output->getName() + " twice!");
+            if (intermediates.count(output) > 0) {
+                throw error::UserError("Cannot assign to" + output->getName() + "twice");
             }
-            if (in_flow.count(output) > 0) {
-                throw error::UserError("Cannot assign to " + output->getName() + "(which is an input)");
+            if (all_inputs.count(output) > 0) {
+                throw error::UserError("Assigning to a " + output->getName() + "that has already been read");
             }
-            out_flow[output] = inputs;
-            output_function[output] = node;
-            // Now, construct the in flow.
-            for (const auto &in : inputs) {
-                std::cout << "Putting in " << in->getName() << std::endl;
-                in_flow.insert(in);
+            for (const auto &in : func_inputs) {
+                if (all_nested_temps.count(in)) {
+                    throw error::UserError("Trying to read intermediate" + in->getName() + " from nested pipeline");
+                }
             }
-            final_output = output;
+            intermediates.insert(output);
+            true_output = output;  // Update final output.
         }
 
         void visit(const PipelineNode *node) {
-            Dataflow nested_flow = node->p.getDataflow();
-            for (const auto &output : nested_flow) {
-                if (out_flow.count(output.first) > 0) {
-                    throw error::UserError("Cannot assign to " + output.first->getName() + " twice!");
-                }
-                out_flow[output.first] = output.second;
+            // Add output to intermediates.
+            AbstractDataTypePtr output = node->p.getOutput();
+            if (intermediates.count(output) > 0) {
+                throw error::UserError("Cannot assign to" + output->getName() + "twice");
             }
-            final_output = node->p.getOutput();
-            OutputFunction nested_out_funs = node->p.getOutputFunctions();
-            output_function.insert(nested_out_funs.begin(), nested_out_funs.end());
-            std::set<AbstractDataTypePtr> nested_inputs = node->p.getInputs();
-            in_flow.insert(nested_inputs.begin(), nested_inputs.end());
+            if (all_inputs.count(output) > 0) {
+                throw error::UserError("Assigning to a " + output->getName() + "that has already been read");
+            }
+
+            std::set<AbstractDataTypePtr> nested_writes = node->p.getAllWriteDataStruct();
+            std::set<AbstractDataTypePtr> nested_reads = node->p.getAllReadDataStruct();
+
+            all_nested_temps.insert(nested_writes.begin(), nested_writes.end());
+            all_nested_temps.erase(output);  // Remove the final output. We can see this.
+            all_inputs.insert(nested_reads.begin(), nested_reads.end());
+
+            intermediates.insert(output);
+            true_output = output;  // Update final output.
         }
 
-        AbstractDataTypePtr final_output;
-        Dataflow out_flow;
-        std::set<AbstractDataTypePtr> in_flow;
-        OutputFunction output_function;
         std::vector<Compose> compose;
+        std::set<AbstractDataTypePtr> intermediates;
+        std::set<AbstractDataTypePtr> all_inputs;
+        std::set<AbstractDataTypePtr> all_nested_temps;
+        AbstractDataTypePtr true_output;
     };
 
     DataFlowConstructor df(compose);
     df.construct();
-    dataflow = df.out_flow;
-    final_output = df.final_output;
-    output_function = df.output_function;
-    all_inputs = df.in_flow;
+    intermediates = df.intermediates;
+    true_output = df.true_output;
+}
+
+std::set<AbstractDataTypePtr> Pipeline::getAllWriteDataStruct() const {
+    struct WriteDSGetter : public CompositionVisitor {
+        WriteDSGetter(std::vector<Compose> compose)
+            : compose(compose) {
+        }
+
+        std::set<AbstractDataTypePtr> gather() {
+            for (const auto &c : compose) {
+                this->visit(c);
+            }
+            return all_write_ds;
+        }
+
+        using CompositionVisitor::visit;
+        void visit(const FunctionCall *node) {
+            all_write_ds.insert(node->getOutput());
+        }
+
+        void visit(const PipelineNode *node) {
+            this->visit(node->p);
+        }
+
+        std::set<AbstractDataTypePtr> all_write_ds;
+        std::vector<Compose> compose;
+    };
+
+    WriteDSGetter getter(compose);
+    return getter.gather();
+}
+
+std::set<AbstractDataTypePtr> Pipeline::getAllReadDataStruct() const {
+    struct ReadDSGetter : public CompositionVisitor {
+        ReadDSGetter(std::vector<Compose> compose)
+            : compose(compose) {
+        }
+
+        std::set<AbstractDataTypePtr> gather() {
+            for (const auto &c : compose) {
+                this->visit(c);
+            }
+            return all_read_ds;
+        }
+
+        using CompositionVisitor::visit;
+        void visit(const FunctionCall *node) {
+            std::set<AbstractDataTypePtr> all_inputs = node->getInputs();
+            all_read_ds.insert(all_inputs.begin(), all_inputs.end());
+        }
+
+        void visit(const PipelineNode *node) {
+            this->visit(node->p);
+        }
+
+        std::set<AbstractDataTypePtr> all_read_ds;
+        std::vector<Compose> compose;
+    };
+
+    ReadDSGetter getter(compose);
+    return getter.gather();
 }
 
 void AllocateNode::accept(PipelineVisitor *v) const {

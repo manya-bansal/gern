@@ -11,7 +11,7 @@ class PipelineVisitor;
 struct PipelineNode;
 
 using FunctionCallPtr = const FunctionCall *;
-using Dataflow = std::map<AbstractDataTypePtr, std::set<AbstractDataTypePtr>>;
+using ConsumerFunctions = std::map<AbstractDataTypePtr, std::set<FunctionCallPtr>>;
 using OutputFunction = std::map<AbstractDataTypePtr, FunctionCallPtr>;
 
 struct LowerIRNode : public util::Manageable<LowerIRNode>,
@@ -65,31 +65,34 @@ public:
     std::vector<LowerIR> getIRNodes() const;
     std::map<Variable, Expr> getVariableDefinitions() const;
     // Returns the function call that produces a particular output.
-    FunctionCallPtr getProducerFunc(AbstractDataTypePtr) const;
     std::set<AbstractDataTypePtr> getInputs() const;
     AbstractDataTypePtr getOutput() const;
     OutputFunction getOutputFunctions() const;
 
     void accept(CompositionVisitor *) const;
 
-    Dataflow getDataflow() const;
-
+    std::set<AbstractDataTypePtr> getAllWriteDataStruct() const;  // This gathers all the data-structures written to in the pipeline.
+    std::set<AbstractDataTypePtr> getAllReadDataStruct() const;   // This gathers all the data-structures written to in the pipeline.
 private:
     void init(std::vector<Compose> compose);
     bool isIntermediate(AbstractDataTypePtr d) const;
 
+    void generateAllAllocs();
     std::vector<Expr> generateMetaDataFields(AbstractDataTypePtr, FunctionCallPtr);
     std::vector<LowerIR> generateConsumesIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<Compose> compose;
     std::vector<LowerIR> lowered;
     std::map<Variable, Expr> variable_definitions;
-    Dataflow dataflow;                                          // Tracks the output to inputs relationships.
     OutputFunction output_function;                             // Tracks what function produces an output data-structure.
     AbstractDataTypePtr final_output;                           // Tracks the final output that gets produced.
     std::set<AbstractDataTypePtr> all_inputs;                   // Tracks the data-structures that have been used as inputs.
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;  // New names for the ds.
     std::set<AbstractDataTypePtr> to_free;                      // New names for the ds.
+
+    std::set<AbstractDataTypePtr> intermediates;  // All the intermediates visible to this pipeline.
+    AbstractDataTypePtr true_output;              // The output that this pipeline generates.
+
     bool has_been_lowered = false;
     bool device = false;
 };
