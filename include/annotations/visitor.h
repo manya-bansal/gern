@@ -24,7 +24,7 @@ struct OrNode;
 
 struct AssignNode;
 struct SubsetNode;
-struct SubsetsNode;
+struct SubsetObjManyNode;
 struct ProducesNode;
 struct ConsumesNode;
 struct ConsumesForNode;
@@ -71,7 +71,7 @@ public:
     virtual void visit(Stmt);
     virtual void visit(const AssignNode *) = 0;
     virtual void visit(const SubsetNode *) = 0;
-    virtual void visit(const SubsetsNode *) = 0;
+    virtual void visit(const SubsetObjManyNode *) = 0;
     virtual void visit(const ProducesNode *) = 0;
     virtual void visit(const ConsumesNode *) = 0;
     virtual void visit(const ConsumesForNode *) = 0;
@@ -121,7 +121,7 @@ public:
 
     void visit(const AssignNode *);
     void visit(const SubsetNode *);
-    void visit(const SubsetsNode *);
+    void visit(const SubsetObjManyNode *);
     void visit(const ProducesNode *);
     void visit(const ConsumesNode *);
     void visit(const AllocatesNode *);
@@ -160,7 +160,7 @@ public:
 
     void visit(const AssignNode *);
     void visit(const SubsetNode *);
-    void visit(const SubsetsNode *);
+    void visit(const SubsetObjManyNode *);
     void visit(const ProducesNode *);
     void visit(const ConsumesNode *);
     void visit(const AllocatesNode *);
@@ -233,7 +233,7 @@ private:
     RULE(LiteralNode);
     RULE(AssignNode);
     RULE(SubsetNode);
-    RULE(SubsetsNode);
+    RULE(SubsetObjManyNode);
     RULE(ProducesNode);
     RULE(ConsumesNode);
     RULE(AllocatesNode);
@@ -313,7 +313,7 @@ protected:
 
     void visit(const AssignNode *);
     void visit(const SubsetNode *);
-    void visit(const SubsetsNode *);
+    void visit(const SubsetObjManyNode *);
     void visit(const ProducesNode *);
     void visit(const ConsumesNode *);
     void visit(const AllocatesNode *);

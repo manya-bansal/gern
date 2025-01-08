@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "annotations/abstract_nodes.h"
 #include "annotations/grid.h"
 #include "utils/uncopyable.h"
@@ -167,7 +166,7 @@ struct less<gern::Variable> {
 namespace gern {
 
 struct SubsetNode;
-struct SubsetsNode;
+struct SubsetObjManyNode;
 struct ProducesNode;
 struct ConsumesNode;
 struct ConsumesForNode;
@@ -227,13 +226,14 @@ inline const E to(const T &e) {
 
 DEFINE_BINARY_CLASS(Assign, Stmt)
 
-class Subset : public Stmt {
+class SubsetObj : public Stmt {
 public:
-    Subset() = default;
-    explicit Subset(const SubsetNode *);
-    Subset(AbstractDataTypePtr data,
-           std::vector<Expr> mdFields);
-    Subset where(Constraint);
+    SubsetObj() = default;
+    explicit SubsetObj(const SubsetNode *);
+    SubsetObj(AbstractDataTypePtr data,
+              std::vector<Expr> mdFields);
+    std::vector<Expr> getFields();
+    SubsetObj where(Constraint);
     AbstractDataTypePtr getDS() const;
     typedef SubsetNode Node;
 };
@@ -241,18 +241,24 @@ public:
 class Produces : public Stmt {
 public:
     explicit Produces(const ProducesNode *);
-    Produces(Subset s);
-    Subset getSubset();
+    // Factory method to produce make a produces node.
+    static Produces Subset(AbstractDataTypePtr, std::vector<Variable>);
+    SubsetObj getSubset() const;
     Produces where(Constraint);
+    std::vector<Variable> getFieldsAsVars() const;
     typedef ProducesNode Node;
 };
 
 struct ConsumesNode;
+class ConsumeMany;
 
 class Consumes : public Stmt {
 public:
-    Consumes(const ConsumesNode *);
-    Consumes(Subset s);
+    explicit Consumes(const ConsumesNode *);
+    // Factory method to produce make a consumes node.
+    static Consumes Subset(AbstractDataTypePtr, std::vector<Expr>);
+    static Consumes Subsets(ConsumeMany);
+    Consumes(SubsetObj s);
     Consumes where(Constraint);
     typedef ConsumesNode Node;
 };
@@ -264,21 +270,25 @@ public:
     ConsumeMany where(Constraint);
 };
 
-class Subsets : public ConsumeMany {
+class SubsetObjMany : public ConsumeMany {
 public:
-    Subsets(const SubsetsNode *);
-    Subsets(const std::vector<Subset> &subsets);
-    Subsets(Subset s)
-        : Subsets(std::vector<Subset>{s}) {
+    SubsetObjMany(const SubsetObjManyNode *);
+    SubsetObjMany(const std::vector<SubsetObj> &subsets);
+    SubsetObjMany(SubsetObj s)
+        : SubsetObjMany(std::vector<SubsetObj>{s}) {
     }
-    Subsets where(Constraint);
-    typedef SubsetsNode Node;
+    SubsetObjMany where(Constraint);
+    typedef SubsetObjManyNode Node;
 };
 
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
 ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
+                bool parallel = false);
+ConsumeMany For(Assign start, Expr end, Expr step, std::vector<SubsetObj> body,
+                bool parallel = false);
+ConsumeMany For(Assign start, Expr end, Expr step, SubsetObj body,
                 bool parallel = false);
 
 class Allocates : public Stmt {
@@ -312,6 +322,10 @@ public:
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.
 Pattern For(Assign start, Expr end, Expr step, Pattern body,
+            bool parallel = false);
+// Function so that users do need an explicit compute initialization.
+Pattern For(Assign start, Expr end, Expr step,
+            Produces produces, Consumes consumes,
             bool parallel = false);
 
 }  // namespace gern

@@ -40,14 +40,11 @@ public:
 
     Pattern getAnnotation() {
         Variable x("x");
-        Expr step(1);
+        Variable step("step");
 
         return For(x = Expr(0), end, step,
-                   Computes(
-                       Produces(
-                           Subset(output, {x, step})),
-                       Consumes(
-                           Subset(input, {x, step}))));
+                   Produces::Subset(output, {x, step}),
+                   Consumes::Subset(input, {x, step}));
     }
 
     std::vector<Argument> getArguments() {
@@ -90,12 +87,11 @@ public:
 
         return For(x = Expr(0), end, step,
                    Computes(
-                       Produces(
-                           Subset(output, {x, 1})),
-                       Consumes(
+                       Produces::Subset(output, {x, step}),
+                       Consumes::Subsets(
                            For(r = Expr(0), end, 1,
-                               Subsets{
-                                   Subset(input, {r, 1})}))));
+                               SubsetObjMany{
+                                   SubsetObj(input, {r, 1})}))));
     }
 
     std::vector<Argument> getArguments() {
