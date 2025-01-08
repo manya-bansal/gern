@@ -238,23 +238,14 @@ public:
     typedef SubsetNode Node;
 };
 
-// Class to constrain the types of
-// subsets allowed in produces node.
-class ProducesSubset : public SubsetObj {
-public:
-    ProducesSubset() = default;
-    ProducesSubset(AbstractDataTypePtr data,
-                   std::vector<Variable> mdFields);
-    std::vector<Variable> getFieldsAsVars();
-};
-
 class Produces : public Stmt {
 public:
     explicit Produces(const ProducesNode *);
     // Factory method to produce make a produces node.
     static Produces Subset(AbstractDataTypePtr, std::vector<Variable>);
-    SubsetObj getSubset();
+    SubsetObj getSubset() const;
     Produces where(Constraint);
+    std::vector<Variable> getFieldsAsVars() const;
     typedef ProducesNode Node;
 };
 

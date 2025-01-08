@@ -275,19 +275,6 @@ AbstractDataTypePtr SubsetObj::getDS() const {
     return getNode(*this)->data;
 }
 
-ProducesSubset::ProducesSubset(AbstractDataTypePtr data,
-                               std::vector<Variable> mdFields)
-    : SubsetObj(data, std::vector<Expr>(mdFields.begin(), mdFields.end())) {
-}
-
-std::vector<Variable> ProducesSubset::getFieldsAsVars() {
-    std::vector<Variable> vars;
-    std::vector<Expr> expr_vars = getFields();
-    for (const auto &e : expr_vars) {
-        vars.push_back(to<Variable>(e));
-    }
-    return vars;
-}
 SubsetObjMany::SubsetObjMany(const std::vector<SubsetObj> &inputs)
     : ConsumeMany(new const SubsetObjManyNode(inputs)) {
 }
@@ -297,10 +284,19 @@ Produces::Produces(const ProducesNode *n)
 }
 
 Produces Produces::Subset(AbstractDataTypePtr ds, std::vector<Variable> v) {
-    return Produces(new ProducesNode(ProducesSubset(ds, v)));
+    return Produces(new ProducesNode(ds, v));
 }
 
-SubsetObj Produces::getSubset() {
+std::vector<Variable> Produces::getFieldsAsVars() const {
+    std::vector<Variable> vars;
+    std::vector<Expr> expr_vars = getSubset().getFields();
+    for (const auto &e : expr_vars) {
+        vars.push_back(to<Variable>(e));
+    }
+    return vars;
+}
+
+SubsetObj Produces::getSubset() const {
     return getNode(*this)->output;
 }
 

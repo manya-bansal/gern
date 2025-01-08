@@ -85,8 +85,8 @@ struct SubsetNode : public StmtNode {
 };
 
 struct ProducesNode : public StmtNode {
-    ProducesNode(SubsetObj output)
-        : output(output) {
+    ProducesNode(AbstractDataTypePtr ds, std::vector<Variable> v)
+        : output(SubsetObj(ds, std::vector<Expr>(v.begin(), v.end()))) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
