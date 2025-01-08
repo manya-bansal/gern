@@ -42,10 +42,9 @@ public:
 
         return For(x = Expr(0), end, step,
                    Computes(
-                       Produces(
-                           ProducesSubset(output, {x, step})),
+                       Produces::Subset(output, {x, step}),
                        Consumes(
-                           Subset(input, {x, step}))));
+                           SubsetObj(input, {x, step}))));
     }
 
     std::vector<Argument> getArguments() {
@@ -85,12 +84,11 @@ public:
 
         return For(x = Expr(0), end, step,
                    Computes(
-                       Produces(
-                           ProducesSubset(output, {x, step})),
+                       Produces::Subset(output, {x, step}),
                        Consumes(
                            For(r = Expr(0), end, 1,
                                Subsets{
-                                   Subset(input, {r, 1})}))));
+                                   SubsetObj(input, {r, 1})}))));
     }
 
     std::vector<Argument> getArguments() {

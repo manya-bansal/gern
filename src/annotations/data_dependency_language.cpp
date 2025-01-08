@@ -179,7 +179,7 @@ std::set<Variable> Stmt::getIntervalVariables() const {
     }
 
 DEFINE_WHERE_METHOD(Consumes)
-DEFINE_WHERE_METHOD(Subset)
+DEFINE_WHERE_METHOD(SubsetObj)
 DEFINE_WHERE_METHOD(Produces)
 DEFINE_WHERE_METHOD(ConsumeMany)
 DEFINE_WHERE_METHOD(Subsets)
@@ -216,9 +216,9 @@ Stmt Stmt::replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_d
 
         void visit(const SubsetNode *op) {
             if (rw_ds.find(op->data) != rw_ds.end()) {
-                stmt = Subset(rw_ds[op->data], op->mdFields);
+                stmt = SubsetObj(rw_ds[op->data], op->mdFields);
             } else {
-                stmt = Subset(op->data, op->mdFields);
+                stmt = SubsetObj(op->data, op->mdFields);
             }
         }
         std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds;
@@ -258,26 +258,26 @@ DEFINE_BINARY_CONSTRUCTOR(Greater, Constraint)
 
 DEFINE_BINARY_CONSTRUCTOR(Assign, Stmt)
 
-Subset::Subset(const SubsetNode *n)
+SubsetObj::SubsetObj(const SubsetNode *n)
     : Stmt(n) {
 }
 
-Subset::Subset(AbstractDataTypePtr data,
-               std::vector<Expr> mdFields)
+SubsetObj::SubsetObj(AbstractDataTypePtr data,
+                     std::vector<Expr> mdFields)
     : Stmt(new const SubsetNode(data, mdFields)) {
 }
 
-std::vector<Expr> Subset::getFields() {
+std::vector<Expr> SubsetObj::getFields() {
     return getNode(*this)->mdFields;
 }
 
-AbstractDataTypePtr Subset::getDS() const {
+AbstractDataTypePtr SubsetObj::getDS() const {
     return getNode(*this)->data;
 }
 
 ProducesSubset::ProducesSubset(AbstractDataTypePtr data,
                                std::vector<Variable> mdFields)
-    : Subset(data, std::vector<Expr>(mdFields.begin(), mdFields.end())) {
+    : SubsetObj(data, std::vector<Expr>(mdFields.begin(), mdFields.end())) {
 }
 
 std::vector<Variable> ProducesSubset::getFieldsAsVars() {
@@ -288,7 +288,7 @@ std::vector<Variable> ProducesSubset::getFieldsAsVars() {
     }
     return vars;
 }
-Subsets::Subsets(const std::vector<Subset> &inputs)
+Subsets::Subsets(const std::vector<SubsetObj> &inputs)
     : ConsumeMany(new const SubsetsNode(inputs)) {
 }
 
@@ -296,11 +296,11 @@ Produces::Produces(const ProducesNode *n)
     : Stmt(n) {
 }
 
-Produces::Produces(ProducesSubset s)
-    : Stmt(new ProducesNode(s)) {
+Produces Produces::Subset(AbstractDataTypePtr ds, std::vector<Variable> v) {
+    return Produces(new ProducesNode(ProducesSubset(ds, v)));
 }
 
-Subset Produces::getSubset() {
+SubsetObj Produces::getSubset() {
     return getNode(*this)->output;
 }
 
@@ -312,7 +312,7 @@ Consumes::Consumes(const ConsumesNode *c)
     : Stmt(c) {
 }
 
-Consumes::Consumes(Subset s)
+Consumes::Consumes(SubsetObj s)
     : Consumes(new const SubsetsNode({s})) {
 }
 

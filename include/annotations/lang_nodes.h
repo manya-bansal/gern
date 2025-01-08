@@ -85,13 +85,13 @@ struct SubsetNode : public StmtNode {
 };
 
 struct ProducesNode : public StmtNode {
-    ProducesNode(Subset output)
+    ProducesNode(SubsetObj output)
         : output(output) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    Subset output;
+    SubsetObj output;
 };
 
 struct ConsumesNode : public StmtNode {
@@ -118,13 +118,13 @@ struct ConsumesForNode : public ConsumesNode {
 };
 
 struct SubsetsNode : public ConsumesNode {
-    SubsetsNode(const std::vector<Subset> &subsets)
+    SubsetsNode(const std::vector<SubsetObj> &subsets)
         : subsets(subsets) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
-    std::vector<Subset> subsets;
+    std::vector<SubsetObj> subsets;
 };
 
 struct PatternNode : public StmtNode {

@@ -311,25 +311,25 @@ void Rewriter::visit(const SubsetNode *op) {
     for (size_t i = 0; i < op->mdFields.size(); i++) {
         rw_expr.push_back(this->rewrite(op->mdFields[i]));
     }
-    stmt = Subset(op->data, rw_expr);
+    stmt = SubsetObj(op->data, rw_expr);
 }
 
 void Rewriter::visit(const SubsetsNode *op) {
-    std::vector<Subset> rw_subsets;
+    std::vector<SubsetObj> rw_subsets;
     for (size_t i = 0; i < op->subsets.size(); i++) {
-        rw_subsets.push_back(to<Subset>(this->rewrite(op->subsets[i])));
+        rw_subsets.push_back(to<SubsetObj>(this->rewrite(op->subsets[i])));
     }
     stmt = Subsets(rw_subsets);
 }
 
 void Rewriter::visit(const ProducesNode *op) {
-    Subset rw_subset = to<Subset>(this->rewrite(op->output));
+    SubsetObj rw_subset = to<SubsetObj>(this->rewrite(op->output));
     std::vector<Variable> vars;
     std::vector<Expr> expr_vars = rw_subset.getFields();
     for (const auto &e : expr_vars) {
         vars.push_back(to<Variable>(e));
     }
-    stmt = Produces(ProducesSubset(rw_subset.getDS(), vars));
+    stmt = Produces::Subset(rw_subset.getDS(), vars);
 }
 
 void Rewriter::visit(const AllocatesNode *op) {

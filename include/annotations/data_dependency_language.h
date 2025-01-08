@@ -226,21 +226,21 @@ inline const E to(const T &e) {
 
 DEFINE_BINARY_CLASS(Assign, Stmt)
 
-class Subset : public Stmt {
+class SubsetObj : public Stmt {
 public:
-    Subset() = default;
-    explicit Subset(const SubsetNode *);
-    Subset(AbstractDataTypePtr data,
-           std::vector<Expr> mdFields);
+    SubsetObj() = default;
+    explicit SubsetObj(const SubsetNode *);
+    SubsetObj(AbstractDataTypePtr data,
+              std::vector<Expr> mdFields);
     std::vector<Expr> getFields();
-    Subset where(Constraint);
+    SubsetObj where(Constraint);
     AbstractDataTypePtr getDS() const;
     typedef SubsetNode Node;
 };
 
 // Class to constrain the types of
 // subsets allowed in produces node.
-class ProducesSubset : public Subset {
+class ProducesSubset : public SubsetObj {
 public:
     ProducesSubset() = default;
     ProducesSubset(AbstractDataTypePtr data,
@@ -251,8 +251,9 @@ public:
 class Produces : public Stmt {
 public:
     explicit Produces(const ProducesNode *);
-    Produces(ProducesSubset s);
-    Subset getSubset();
+    // Factory method to produce Produces node.
+    static Produces Subset(AbstractDataTypePtr, std::vector<Variable>);
+    SubsetObj getSubset();
     Produces where(Constraint);
     typedef ProducesNode Node;
 };
@@ -262,7 +263,7 @@ struct ConsumesNode;
 class Consumes : public Stmt {
 public:
     Consumes(const ConsumesNode *);
-    Consumes(Subset s);
+    Consumes(SubsetObj s);
     Consumes where(Constraint);
     typedef ConsumesNode Node;
 };
@@ -277,9 +278,9 @@ public:
 class Subsets : public ConsumeMany {
 public:
     Subsets(const SubsetsNode *);
-    Subsets(const std::vector<Subset> &subsets);
-    Subsets(Subset s)
-        : Subsets(std::vector<Subset>{s}) {
+    Subsets(const std::vector<SubsetObj> &subsets);
+    Subsets(SubsetObj s)
+        : Subsets(std::vector<SubsetObj>{s}) {
     }
     Subsets where(Constraint);
     typedef SubsetsNode Node;

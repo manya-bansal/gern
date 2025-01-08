@@ -40,7 +40,7 @@ TEST(StmtNode, Constraint) {
     ASSERT_TRUE(test::getStrippedString(test) == "((1-v_)==(1-v_))");
 
     auto TestDSCPU = std::make_shared<const annot::ArrayCPU>();
-    Subset subset{TestDSCPU, {1 - v, v * 2}};
+    SubsetObj subset{TestDSCPU, {1 - v, v * 2}};
 
     ASSERT_TRUE(test::getStrippedString(subset) == "test{(1-v_),(v_*2)}");
 }
@@ -49,13 +49,16 @@ TEST(Annotations, ConstrainPatterns) {
     Variable v("v");
     Variable v1("v1");
     auto TestDSCPU = std::make_shared<const annot::ArrayCPU>();
-    Subset s{TestDSCPU, {1 - v, v * 2}};
-    ProducesSubset p_s{TestDSCPU, {v, v}};
+    SubsetObj s{TestDSCPU, {1 - v, v * 2}};
 
     ASSERT_NO_THROW(For(v = Expr(0), Expr(0), Expr(0),
-                        Computes(Produces(p_s), Consumes(Subsets(s))))
+                        Computes(Produces::Subset(TestDSCPU, {v, v}),
+                                 Consumes(Subsets(s))))
                         .where(v == 1));
-    ASSERT_THROW(For(v = Expr(0), Expr(0), Expr(0), Computes(Produces(p_s), Consumes(Subsets(s))))
+    ASSERT_THROW(For(v = Expr(0), Expr(0), Expr(0),
+                     Computes(
+                         Produces::Subset(TestDSCPU, {v, v}),
+                         Consumes(Subsets(s))))
                      .where(v1 == 1),
                  error::UserError);
     ASSERT_NO_THROW(s.where(v == 1));
