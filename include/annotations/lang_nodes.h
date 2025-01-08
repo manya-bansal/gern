@@ -117,8 +117,8 @@ struct ConsumesForNode : public ConsumesNode {
     bool parallel;
 };
 
-struct SubsetsNode : public ConsumesNode {
-    SubsetsNode(const std::vector<SubsetObj> &subsets)
+struct SubsetObjManyNode : public ConsumesNode {
+    SubsetObjManyNode(const std::vector<SubsetObj> &subsets)
         : subsets(subsets) {
     }
     void accept(StmtVisitorStrict *v) const override {

@@ -166,7 +166,7 @@ struct less<gern::Variable> {
 namespace gern {
 
 struct SubsetNode;
-struct SubsetsNode;
+struct SubsetObjManyNode;
 struct ProducesNode;
 struct ConsumesNode;
 struct ConsumesForNode;
@@ -251,7 +251,7 @@ public:
 class Produces : public Stmt {
 public:
     explicit Produces(const ProducesNode *);
-    // Factory method to produce Produces node.
+    // Factory method to produce make a produces node.
     static Produces Subset(AbstractDataTypePtr, std::vector<Variable>);
     SubsetObj getSubset();
     Produces where(Constraint);
@@ -259,10 +259,14 @@ public:
 };
 
 struct ConsumesNode;
+class ConsumeMany;
 
 class Consumes : public Stmt {
 public:
-    Consumes(const ConsumesNode *);
+    explicit Consumes(const ConsumesNode *);
+    // Factory method to produce make a consumes node.
+    static Consumes Subset(AbstractDataTypePtr, std::vector<Expr>);
+    static Consumes Subsets(ConsumeMany);
     Consumes(SubsetObj s);
     Consumes where(Constraint);
     typedef ConsumesNode Node;
@@ -275,21 +279,25 @@ public:
     ConsumeMany where(Constraint);
 };
 
-class Subsets : public ConsumeMany {
+class SubsetObjMany : public ConsumeMany {
 public:
-    Subsets(const SubsetsNode *);
-    Subsets(const std::vector<SubsetObj> &subsets);
-    Subsets(SubsetObj s)
-        : Subsets(std::vector<SubsetObj>{s}) {
+    SubsetObjMany(const SubsetObjManyNode *);
+    SubsetObjMany(const std::vector<SubsetObj> &subsets);
+    SubsetObjMany(SubsetObj s)
+        : SubsetObjMany(std::vector<SubsetObj>{s}) {
     }
-    Subsets where(Constraint);
-    typedef SubsetsNode Node;
+    SubsetObjMany where(Constraint);
+    typedef SubsetObjManyNode Node;
 };
 
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
 ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
+                bool parallel = false);
+ConsumeMany For(Assign start, Expr end, Expr step, std::vector<SubsetObj> body,
+                bool parallel = false);
+ConsumeMany For(Assign start, Expr end, Expr step, SubsetObj body,
                 bool parallel = false);
 
 class Allocates : public Stmt {
@@ -323,6 +331,10 @@ public:
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.
 Pattern For(Assign start, Expr end, Expr step, Pattern body,
+            bool parallel = false);
+// Function so that users do need an explicit compute initialization.
+Pattern For(Assign start, Expr end, Expr step,
+            Produces produces, Consumes consumes,
             bool parallel = false);
 
 }  // namespace gern

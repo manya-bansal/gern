@@ -16,8 +16,8 @@ std::set<AbstractDataTypePtr> FunctionCall::getInputs() const {
     std::set<AbstractDataTypePtr> inputs;
     // Only the consumes part of the annotation has
     // multiple subsets, so, we will only ever get the inputs.
-    match(getAnnotation(), std::function<void(const SubsetsNode *)>(
-                               [&](const SubsetsNode *op) {
+    match(getAnnotation(), std::function<void(const SubsetObjManyNode *)>(
+                               [&](const SubsetObjManyNode *op) {
                                    for (const auto &s : op->subsets) {
                                        inputs.insert(s.getDS());
                                    }

@@ -50,10 +50,8 @@ public:
 
         return For(x = Expr(0), row, l_x,
                    For(y = Expr(0), col, l_y,
-                       Computes(
-                           Produces::Subset(input, {x, y, l_x, l_y}),
-                           Consumes(
-                               SubsetObj(output, {x, y, l_x, l_y})))));
+                       Produces::Subset(input, {x, y, l_x, l_y}),
+                       Consumes::Subset(output, {x, y, l_x, l_y})));
     }
 
     std::vector<Argument> getArguments() {
