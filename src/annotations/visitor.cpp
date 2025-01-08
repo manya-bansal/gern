@@ -324,7 +324,12 @@ void Rewriter::visit(const SubsetsNode *op) {
 
 void Rewriter::visit(const ProducesNode *op) {
     Subset rw_subset = to<Subset>(this->rewrite(op->output));
-    stmt = Produces(rw_subset);
+    std::vector<Variable> vars;
+    std::vector<Expr> expr_vars = rw_subset.getFields();
+    for (const auto &e : expr_vars) {
+        vars.push_back(to<Variable>(e));
+    }
+    stmt = Produces(ProducesSubset(rw_subset.getDS(), vars));
 }
 
 void Rewriter::visit(const AllocatesNode *op) {

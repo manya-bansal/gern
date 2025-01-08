@@ -52,7 +52,7 @@ public:
                    For(y = Expr(0), col, l_y,
                        Computes(
                            Produces(
-                               Subset(input, {x, y, l_x, l_y})),
+                               ProducesSubset(input, {x, y, l_x, l_y})),
                            Consumes(
                                Subset(output, {x, y, l_x, l_y})))));
     }

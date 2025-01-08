@@ -38,12 +38,12 @@ public:
 
     Pattern getAnnotation() {
         Variable x("x");
-        Expr step(1);
+        Variable step("step");
 
         return For(x = Expr(0), end, step,
                    Computes(
                        Produces(
-                           Subset(output, {x, step})),
+                           ProducesSubset(output, {x, step})),
                        Consumes(
                            Subset(input, {x, step}))));
     }
@@ -86,7 +86,7 @@ public:
         return For(x = Expr(0), end, step,
                    Computes(
                        Produces(
-                           Subset(output, {x, 1})),
+                           ProducesSubset(output, {x, step})),
                        Consumes(
                            For(r = Expr(0), end, 1,
                                Subsets{

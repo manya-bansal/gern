@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "annotations/abstract_nodes.h"
 #include "annotations/grid.h"
 #include "utils/uncopyable.h"
@@ -233,15 +232,26 @@ public:
     explicit Subset(const SubsetNode *);
     Subset(AbstractDataTypePtr data,
            std::vector<Expr> mdFields);
+    std::vector<Expr> getFields();
     Subset where(Constraint);
     AbstractDataTypePtr getDS() const;
     typedef SubsetNode Node;
 };
 
+// Class to constrain the types of
+// subsets allowed in produces node.
+class ProducesSubset : public Subset {
+public:
+    ProducesSubset() = default;
+    ProducesSubset(AbstractDataTypePtr data,
+                   std::vector<Variable> mdFields);
+    std::vector<Variable> getFieldsAsVars();
+};
+
 class Produces : public Stmt {
 public:
     explicit Produces(const ProducesNode *);
-    Produces(Subset s);
+    Produces(ProducesSubset s);
     Subset getSubset();
     Produces where(Constraint);
     typedef ProducesNode Node;

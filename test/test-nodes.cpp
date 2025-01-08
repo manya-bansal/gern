@@ -50,11 +50,12 @@ TEST(Annotations, ConstrainPatterns) {
     Variable v1("v1");
     auto TestDSCPU = std::make_shared<const annot::ArrayCPU>();
     Subset s{TestDSCPU, {1 - v, v * 2}};
+    ProducesSubset p_s{TestDSCPU, {v, v}};
 
     ASSERT_NO_THROW(For(v = Expr(0), Expr(0), Expr(0),
-                        Computes(Produces(s), Consumes(Subsets(s))))
+                        Computes(Produces(p_s), Consumes(Subsets(s))))
                         .where(v == 1));
-    ASSERT_THROW(For(v = Expr(0), Expr(0), Expr(0), Computes(Produces(s), Consumes(Subsets(s))))
+    ASSERT_THROW(For(v = Expr(0), Expr(0), Expr(0), Computes(Produces(p_s), Consumes(Subsets(s))))
                      .where(v1 == 1),
                  error::UserError);
     ASSERT_NO_THROW(s.where(v == 1));

@@ -4,6 +4,7 @@
 #include "utils/debug.h"
 #include "utils/error.h"
 
+#include <algorithm>
 #include <set>
 
 namespace gern {
@@ -266,10 +267,27 @@ Subset::Subset(AbstractDataTypePtr data,
     : Stmt(new const SubsetNode(data, mdFields)) {
 }
 
+std::vector<Expr> Subset::getFields() {
+    return getNode(*this)->mdFields;
+}
+
 AbstractDataTypePtr Subset::getDS() const {
     return getNode(*this)->data;
 }
 
+ProducesSubset::ProducesSubset(AbstractDataTypePtr data,
+                               std::vector<Variable> mdFields)
+    : Subset(data, std::vector<Expr>(mdFields.begin(), mdFields.end())) {
+}
+
+std::vector<Variable> ProducesSubset::getFieldsAsVars() {
+    std::vector<Variable> vars;
+    std::vector<Expr> expr_vars = getFields();
+    for (const auto &e : expr_vars) {
+        vars.push_back(to<Variable>(e));
+    }
+    return vars;
+}
 Subsets::Subsets(const std::vector<Subset> &inputs)
     : ConsumeMany(new const SubsetsNode(inputs)) {
 }
@@ -278,8 +296,8 @@ Produces::Produces(const ProducesNode *n)
     : Stmt(n) {
 }
 
-Produces::Produces(Subset s)
-    : Stmt(new const ProducesNode(s)) {
+Produces::Produces(ProducesSubset s)
+    : Stmt(new ProducesNode(s)) {
 }
 
 Subset Produces::getSubset() {
