@@ -33,7 +33,7 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     std::vector<CGExpr> template_arg_vars;
     std::vector<CGExpr> call_template_vars;
     std::vector<CGStmt> hook_body;
-
+    // Declare all the variables that have been used, but have not been defined.
     for (const auto &v : used) {
         if (declared.contains(v)) {
             continue;
