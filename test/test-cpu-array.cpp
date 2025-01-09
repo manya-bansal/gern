@@ -236,3 +236,40 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
     a.destroy();
     b.destroy();
 }
+
+TEST(LoweringCPU, MultiFunctionTemplated) {
+    auto inputDS = std::make_shared<const annot::ArrayCPU>("input");
+    auto tempDS = std::make_shared<const annot::ArrayCPU>("temp");
+    auto outputDS = std::make_shared<const annot::ArrayCPU>("output");
+
+    annot::addTemplate add_f;
+    Variable v("v");
+    Variable step("step");
+
+    Pipeline p({add_f(inputDS, tempDS),
+                add_f[{
+                    {"end", v},
+                    {"step", step.bindToInt64(10)},
+                }](tempDS, outputDS)});
+
+    Runner run(p);
+    ASSERT_NO_THROW(run.compile(test::cpuRunner("array")));
+
+    impl::ArrayCPU a(10);
+    a.vvals(2.0f);
+    impl::ArrayCPU c(10);
+    c.vvals(4.0f);
+    int64_t var2 = 1;
+
+    // Temp should not be included.
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS->getName(), &a},
+        {outputDS->getName(), &c},
+        {v.getName(), &var2},
+    }));
+
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(c.data[i] == 6.0f);
+    }
+}
