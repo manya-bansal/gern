@@ -86,6 +86,10 @@ bool Variable::isBoundToInt64() const {
     return getNode(*this)->bound;
 }
 
+bool Variable::isBound() const {
+    return (isBoundToGrid() || isBoundToInt64());
+}
+
 int64_t Variable::getInt64Val() const {
     return getNode(*this)->val;
 }

@@ -273,3 +273,29 @@ TEST(LoweringCPU, MultiFunctionTemplated) {
         ASSERT_TRUE(c.data[i] == 6.0f);
     }
 }
+
+TEST(LoweringCPU, OverspecifiedGrid) {
+    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
+    auto tempDS = std::make_shared<const annot::ArrayCPU>("temp");
+    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
+
+    annot::addTemplate add_f;
+    Variable v("v");
+    Variable step("step");
+
+    // Try binding step twice.
+    // This is an overspecified pipeline.
+    std::vector<Compose> c = {
+        add_f[{
+            {"step", step.bindToInt64(10)},
+        }](inputDS, tempDS),
+        add_f[{
+            {"step", step.bindToInt64(10)},
+        }](tempDS, outputDS),
+    };
+
+    Pipeline p(c);
+    Runner run(p);
+
+    ASSERT_THROW(run.compile(test::cpuRunner("array")), error::UserError);
+}

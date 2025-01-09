@@ -138,6 +138,16 @@ public:
     Variable bindToInt64(int64_t) const;
     bool isBoundToGrid() const;
     bool isBoundToInt64() const;
+
+    /**
+     * @brief Returns whether the variable has been set up the user.
+     *        This means that either the variable was bound to the grid or
+     *        to an int64_t val.
+     *
+     * @return true
+     * @return false
+     */
+    bool isBound() const;
     int64_t getInt64Val() const;
     Grid::Property getBoundProperty() const;
 

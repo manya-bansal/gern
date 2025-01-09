@@ -302,6 +302,11 @@ void Pipeline::generateAllDefs() {
                                            " do not have the same size for " + temp->getName());
             }
             for (size_t i = 0; i < consumer_fields.size(); i++) {
+                if (var_fields[i].isBound()) {
+                    throw error::UserError(var_fields[i].getName() +
+                                           " while producing " + temp->getName() +
+                                           " is completely bound, but is being set.");
+                }
                 lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i],
                                               producer_func->isTemplateArg(var_fields[i])));
             }
