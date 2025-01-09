@@ -92,6 +92,9 @@ Pattern AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> con
         }
         fresh_names[v] = getUniqueName("_gern_" + v.getName());
     }
+
+    // The binding is only valid for one use, erase it now.
+    bindings = {};
     return to<Pattern>(annotation
                            .replaceDSArgs(abstract_to_concrete_adt)
                            .replaceVariables(fresh_names));

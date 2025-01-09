@@ -81,7 +81,10 @@ TEST(LoweringCPU, SingleReduceFunction) {
 
     annot::reduction reduce_f;
 
-    std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
+    std::vector<Compose> c = {reduce_f[{
+        {"end", v1},
+        {"step", v2},
+    }](inputDS, outputDS)};
 
     Pipeline p(c);
     Runner run(p);
@@ -139,14 +142,35 @@ TEST(LoweringCPU, MultiFunc) {
     auto outputDS = std::make_shared<const annot::ArrayCPU>("output");
 
     annot::add add_f;
+    Variable v("v");
+    Variable step("step");
 
     Pipeline p({add_f(inputDS, tempDS),
-                add_f(tempDS, outputDS)});
+                add_f[{
+                    {"end", v},
+                    {"step", step},
+                }](tempDS, outputDS)});
 
-    p.lower();
+    Runner run(p);
+    ASSERT_NO_THROW(run.compile(test::cpuRunner("array")));
 
-    for (const auto &n : p.getIRNodes()) {
-        std::cout << n << std::endl;
+    impl::ArrayCPU a(10);
+    a.vvals(2.0f);
+    impl::ArrayCPU c(10);
+    c.vvals(4.0f);
+    int64_t var1 = 10;
+    int64_t var2 = 1;
+
+    // Temp should not be included.
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS->getName(), &a},
+        {outputDS->getName(), &c},
+        {v.getName(), &var2},
+        {step.getName(), &var1},
+    }));
+
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(c.data[i] == 6.0f);
     }
-    // ASSERT_THROW(p.lower(), error::InternalError);
 }

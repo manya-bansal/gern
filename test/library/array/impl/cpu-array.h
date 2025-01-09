@@ -18,7 +18,7 @@ public:
         : data(data), size(size) {
     }
     ArrayCPU(int size)
-        : ArrayCPU((float *)malloc(sizeof(float) * size), size) {
+        : ArrayCPU((float *)calloc(size, sizeof(float)), size) {
     }
     static ArrayCPU allocate(int start, int len) {
         (void)start;

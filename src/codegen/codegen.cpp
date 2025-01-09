@@ -292,13 +292,13 @@ CGExpr CodeGenerator::gen(Argument a, const std::map<AbstractDataTypePtr, Abstra
 
     case DATA_STRUCTURE: {
         const DSArg *ds = to<DSArg>(a.get());
-        // Track the fact that we are using this ADT
-        used_adt.insert(ds->getADTPtr());
         // If the actual data-structure has been queried, then we need to make
         // sure that the queried name is used, not the original name.
         if (replacements.count(ds->getADTPtr()) > 0) {
+            used_adt.insert(replacements.at(ds->getADTPtr()));
             return Var::make(replacements.at(ds->getADTPtr())->getName());
         } else {
+            used_adt.insert(ds->getADTPtr());
             return Var::make(ds->getADTPtr()->getName());
         }
         break;
