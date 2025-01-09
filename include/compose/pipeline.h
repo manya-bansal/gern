@@ -75,8 +75,9 @@ private:
     void init(std::vector<Compose> compose);
     bool isIntermediate(AbstractDataTypePtr d) const;
 
-    void generateAllAllocs();
-    void generateAllFrees();
+    void generateAllDefs();    // Helper method to define all the variable definitions.
+    void generateAllAllocs();  // Helper method to declare all the allocate node.
+    void generateAllFrees();   // Helper method to declare all the frees.
     std::vector<LowerIR> generateConsumesIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<Compose> compose;

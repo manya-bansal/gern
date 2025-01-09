@@ -86,6 +86,9 @@ void Pipeline::lower() {
         return;
     }
 
+    // Generate all the variable definitions
+    // that the functions can then directly refer to.
+    generateAllDefs();
     // Generate all the allocations.
     // For nested pipelines, this should
     // generated nested allocations for
@@ -128,8 +131,8 @@ void Pipeline::visit(const FunctionCall *c) {
             temp.push_back(new QueryNode(in,
                                          queried,
                                          c->getMetaDataFields(in)));
-        } else {
         }
+        // We should have already generated an alloc node for the intermediate.
     }
 
     // Now generate the output query.
@@ -181,17 +184,16 @@ std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::ve
     return current;
 }
 
-void Pipeline::generateAllAllocs() {
+void Pipeline::generateAllDefs() {
     if (outputs_in_order.size() <= 1) {
         // Do nothing.
         return;
     }
-    // Generate an allocation for all the intermediates.
-    // and, push the definition for each variable onto a vector.
+
     auto it = outputs_in_order.rbegin();
     it++;  // Skip the last output.
+    // Go in reverse order, and define all the variables.
     for (; it < outputs_in_order.rend(); ++it) {
-
         // Define the variables assosciated with the producer func.
         // For all functions that consume this data-structure, figure out the relationships for
         // this input.
@@ -202,7 +204,6 @@ void Pipeline::generateAllAllocs() {
         if (consumer_funcs.size() != 1) {
             throw error::InternalError("Unimplemented");
         }
-
         // Writing as a for loop, will eventually change!
         // Only one allowed for right now...
         std::vector<Variable> var_fields = producer_func->getProducesFields();
@@ -216,7 +217,13 @@ void Pipeline::generateAllAllocs() {
                 lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i]));
             }
         }
+    }
+}
 
+void Pipeline::generateAllAllocs() {
+    // We need to define an allocation for all the
+    // intermediates.
+    for (const auto &temp : intermediates) {
         // Finally make the allocation.
         AbstractDataTypePtr alloc = std::make_shared<const AbstractDataType>("_alloc_" + temp->getName(),
                                                                              temp->getType());
@@ -225,7 +232,7 @@ void Pipeline::generateAllAllocs() {
 
         lowered.push_back((new AllocateNode(
             alloc,
-            producer_func->getMetaDataFields(temp))));
+            getProducerFunction(temp)->getMetaDataFields(temp))));
         // Got to free an allocated node later on!
         to_free.insert(alloc);
     }
