@@ -187,11 +187,23 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
         {"end", v},
         {"step", step},
     }](inputDS, outputDS)};
+
     Pipeline p(c);
     Runner run(p);
 
-    run.compile(test::cpuRunner("array"));
-    
+    // Complain since the user has not bound the step parameter to a concrete value.
+    ASSERT_THROW(run.compile(test::cpuRunner("array")), error::UserError);
+
+    c = {add_f[{
+        {"end", v},
+        {"step", step.bindToInt64(2)},
+    }](inputDS, outputDS)};
+
+    Pipeline p2(c);
+    Runner run2(p2);
+
+    // We bound the template parameter to a an integer value, all should be O.K..
+    ASSERT_NO_THROW(run2.compile(test::cpuRunner("array")));
 
     impl::ArrayCPU a(10);
     a.vvals(2.0f);
@@ -200,11 +212,20 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
     int64_t var = 10;
     int64_t step_val = 1;
 
-    ASSERT_NO_THROW(run.evaluate({
+    // Complain because the user is trying to set step.
+    ASSERT_THROW(run2.evaluate({
+                     {inputDS->getName(), &a},
+                     {outputDS->getName(), &b},
+                     {v.getName(), &var},
+                     {step.getName(), &step_val},
+                 }),
+                 error::UserError);
+
+    // No problem now.
+    ASSERT_NO_THROW(run2.evaluate({
         {inputDS->getName(), &a},
         {outputDS->getName(), &b},
         {v.getName(), &var},
-        {step.getName(), &step_val},
     }));
 
     // Make sure we got the correct answer.

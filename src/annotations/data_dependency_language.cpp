@@ -73,8 +73,21 @@ Variable Variable::bindToGrid(const Grid::Property &p) const {
     return Variable(new const VariableNode(getName(), p));
 }
 
+Variable Variable::bindToInt64(int64_t val) const {
+    return Variable(new const VariableNode(getName(), getBoundProperty(),
+                                           Datatype::Int64, true, val));
+}
+
 bool Variable::isBoundToGrid() const {
     return isGridPropertySet(getBoundProperty());
+}
+
+bool Variable::isBoundToInt64() const {
+    return getNode(*this)->bound;
+}
+
+int64_t Variable::getInt64Val() const {
+    return getNode(*this)->val;
 }
 
 Grid::Property Variable::getBoundProperty() const {
@@ -89,11 +102,11 @@ Datatype Variable::getType() const {
     return getNode(*this)->type;
 }
 
-Assign Variable::operator=(const Expr &e) {
+Assign Variable::operator=(const Expr &e) const {
     return Assign(*this, e);
 }
 
-Assign Variable::operator+=(const Expr &e) {
+Assign Variable::operator+=(const Expr &e) const {
     return Assign(*this, *this + e);
 }
 

@@ -32,6 +32,8 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     std::vector<Variable> to_declare_vars;
     std::vector<CGExpr> template_arg_vars;
     std::vector<CGExpr> call_template_vars;
+    std::vector<CGStmt> hook_body;
+
     for (const auto &v : used) {
         if (declared.contains(v)) {
             continue;
@@ -39,13 +41,16 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
         if (const_expr_vars.contains(v)) {
             template_arg_vars.push_back(VarDecl::make(Type::make(v.getType().str()), v.getName()));
             call_template_vars.push_back(Var::make(v.getName()));
+            if (!v.isBoundToInt64()) {
+                throw error::UserError(v.getName() + " must be bound to an int64_t, it is a template parameter");
+            }
+            hook_body.push_back(gen(v = Expr(v.getInt64Val()), true));
             continue;
         }
         to_declare_vars.push_back(v);
     }
 
     std::vector<CGExpr> args;
-    std::vector<CGStmt> hook_body;
     std::vector<CGExpr> hook_args;
 
     int num_args = 0;

@@ -135,14 +135,16 @@ public:
      *           to.
      */
     Variable bindToGrid(const Grid::Property &p) const;
+    Variable bindToInt64(int64_t) const;
     bool isBoundToGrid() const;
+    bool isBoundToInt64() const;
+    int64_t getInt64Val() const;
     Grid::Property getBoundProperty() const;
 
     std::string getName() const;
     Datatype getType() const;
-
-    Assign operator=(const Expr &);
-    Assign operator+=(const Expr &);
+    Assign operator+=(const Expr &) const;
+    Assign operator=(const Expr &) const;
 
     typedef VariableNode Node;
 };
