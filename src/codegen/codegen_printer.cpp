@@ -97,6 +97,18 @@ void CGPrinter::visit(const VarDecl *op) {
 }
 
 void CGPrinter::visit(const DeclFunc *op) {
+
+    doIdent();
+    int num_template_args = op->template_args.size();
+    if (num_template_args > 0) {
+        os << "template<";
+        for (int i = 0; i < num_template_args; i++) {
+            os << op->template_args[i];
+            os << ((i != num_template_args - 1) ? ", " : "");
+        }
+        os << ">" << "\n";
+    }
+
     doIdent();
     if (op->device) {
         os << "__global__ ";
@@ -137,6 +149,16 @@ void CGPrinter::visit(const Var *op) {
 
 void CGPrinter::visit(const Call *op) {
     os << op->name;
+
+    int num_template_args = op->template_args.size();
+    if (num_template_args > 0) {
+        os << "<";
+        for (int i = 0; i < num_template_args; i++) {
+            os << op->template_args[i];
+            os << ((i != num_template_args - 1) ? ", " : "");
+        }
+        os << ">";
+    }
 
     if (op->arg.size() == 0) {
         os << "()";

@@ -40,7 +40,6 @@ public:
 
     Pattern getAnnotation() {
         Variable x("x");
-        Variable step("step");
 
         return For(x = Expr(0), end, step,
                    Produces::Subset(output, {x, step}),
@@ -64,6 +63,7 @@ protected:
     std::shared_ptr<ArrayCPU> input;
     std::shared_ptr<ArrayCPU> output;
     Variable end{"end"};
+    Variable step{"step"};
 };
 
 class addTemplate : public add {
@@ -71,8 +71,12 @@ public:
     addTemplate()
         : add() {
     }
-    std::vector<Variable> getTemplatedArguments() override {
-        return {end};
+    std::string getName() {
+        return "gern::impl::addTemplate";
+    }
+
+    std::vector<Variable> getTemplateArguments() override {
+        return {step};
     }
 };
 

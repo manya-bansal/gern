@@ -39,6 +39,15 @@ const FunctionCall *FunctionCall::withSymbolic(const std::map<std::string, Varia
     return this;
 }
 
+bool FunctionCall::isTemplateArg(Variable v) const {
+    for (const auto &arg : getTemplateArguments()) {
+        if (arg.ptr == v.ptr) {
+            return true;
+        }
+    }
+    return false;
+}
+
 Compose::Compose(std::vector<Compose> compose)
     : Compose(Pipeline(compose)) {
 }

@@ -28,11 +28,13 @@ public:
     void visit(const BlankNode *);
     void visit(const DefNode *);
 
-    CGExpr gen(Expr);
+    CGExpr gen(Expr, bool const_expr = false);  // Is this part of the LHS of a const_expr?
     CGExpr gen(Constraint);
     // Assign in used to track all the variables
-    // that have been declared during lowering.
-    CGStmt gen(Assign);
+    // that have been declared during lowering. The
+    // const_expr tracks whether the assignment is
+    // to a const_expr variable.
+    CGStmt gen(Assign, bool const_expr);
     /**
      * @brief  Generate code expressions for Arguments.
      * This also tracks the input and output
@@ -52,6 +54,7 @@ public:
 
     // To insert used variables.
     void insertInUsed(Variable);
+    void insertInConstExpr(Variable);
 
     std::string getName() const;
     std::string getHookName() const;
@@ -61,13 +64,14 @@ private:
     // Little helper to make sure that
     // that once a var is declared, it's been
     // add to the declared set.
-    CGExpr declVar(Variable v);
+    CGExpr declVar(Variable v, bool const_expr);
     CGStmt setGrid(const IntervalNode *op);
 
     std::string name;
     std::string hook_name;
     std::set<Variable> declared;
     std::set<Variable> used;
+    std::set<Variable> const_expr_vars;
     std::set<AbstractDataTypePtr> declared_adt;
     std::set<AbstractDataTypePtr> used_adt;
     CGStmt code;

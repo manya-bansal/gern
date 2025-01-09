@@ -29,7 +29,7 @@ public:
     virtual std::vector<Argument> getArguments() = 0;
     virtual std::vector<std::string> getHeader() = 0;
     // Only allowing int64_t template args rn...
-    virtual std::vector<Variable> getTemplatedArguments() {
+    virtual std::vector<Variable> getTemplateArguments() {
         return {};
     }
 

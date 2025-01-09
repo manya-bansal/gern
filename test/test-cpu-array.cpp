@@ -191,6 +191,7 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
     Runner run(p);
 
     run.compile(test::cpuRunner("array"));
+    
 
     impl::ArrayCPU a(10);
     a.vvals(2.0f);

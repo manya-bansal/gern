@@ -30,10 +30,19 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
                         std::back_inserter(to_declare_adts));
 
     std::vector<Variable> to_declare_vars;
-    std::set_difference(used.begin(), used.end(),
-                        declared.begin(), declared.end(),
-                        std::back_inserter(to_declare_vars),
-                        std::less<Variable>());
+    std::vector<CGExpr> template_arg_vars;
+    std::vector<CGExpr> call_template_vars;
+    for (const auto &v : used) {
+        if (declared.contains(v)) {
+            continue;
+        }
+        if (const_expr_vars.contains(v)) {
+            template_arg_vars.push_back(VarDecl::make(Type::make(v.getType().str()), v.getName()));
+            call_template_vars.push_back(Var::make(v.getName()));
+            continue;
+        }
+        to_declare_vars.push_back(v);
+    }
 
     std::vector<CGExpr> args;
     std::vector<CGStmt> hook_body;
@@ -66,12 +75,12 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 
     // The return type is always void, the output
     // is modified by reference.
-    code = DeclFunc::make(name, Type::make("void"), args, code, p.is_at_device());
+    code = DeclFunc::make(name, Type::make("void"), args, code, p.is_at_device(), template_arg_vars);
 
     // Also make the function that is used as the entry point for
     // user code.
     std::vector<CGStmt> full_code;
-    CGStmt hook_call = VoidCall::make(Call::make(name, hook_args));
+    CGStmt hook_call = VoidCall::make(Call::make(name, hook_args, call_template_vars));
     if (p.is_at_device()) {
         // Declare the grid and block dimensions.
         hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
@@ -93,8 +102,9 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 
     full_code.push_back(BlankLine::make());
     full_code.push_back(BlankLine::make());
+    full_code.push_back(code);
     full_code.push_back(EscapeCGStmt::make("extern \"C\""));
-    full_code.push_back(Scope::make(Block::make({code, hook})));
+    full_code.push_back(Scope::make(hook));
 
     return Block::make(full_code);
 }
@@ -157,8 +167,12 @@ void CodeGenerator::visit(const ComputeNode *op) {
     for (auto a : op->f->getArguments()) {
         args.push_back(gen(a, op->new_ds));
     }
+    std::vector<CGExpr> template_args;
+    for (auto a : op->f->getTemplateArguments()) {
+        template_args.push_back(gen(a, true));  // All of these are const_expr;
+    }
 
-    code = VoidCall::make(Call::make(func_call, args));
+    code = VoidCall::make(Call::make(func_call, args, template_args));
 
     // Add the header.
     std::vector<std::string> func_header = op->f->getHeader();
@@ -183,15 +197,15 @@ void CodeGenerator::visit(const IntervalNode *op) {
     // wrap it in a for loop.
     if (!op->isMappedToGrid()) {
         Variable v = op->getIntervalVariable();
-        CGStmt start = gen(op->start);
+        CGStmt start = gen(op->start, false);  // Definitely not a constexpr.
         CGExpr cond = gen(v < op->end);
-        CGStmt step = gen(v += op->step);
+        CGStmt step = gen(v += op->step, false);  // Definitely not a constexpr.
         code = For::make(start, cond, step, code);
     }
 }
 
 void CodeGenerator::visit(const DefNode *op) {
-    code = gen(op->assign);
+    code = gen(op->assign, op->const_expr);
 }
 
 void CodeGenerator::visit(const BlankNode *) {
@@ -206,11 +220,11 @@ void CodeGenerator::visit(const BlankNode *) {
         cg_e = op::make(a, cg_e);      \
     }
 
-CGExpr CodeGenerator::gen(Expr e) {
+CGExpr CodeGenerator::gen(Expr e, bool const_expr) {
 
     struct ConvertToCode : public ExprVisitorStrict {
-        ConvertToCode(CodeGenerator *cg)
-            : cg(cg) {
+        ConvertToCode(CodeGenerator *cg, bool const_expr)
+            : cg(cg), const_expr(const_expr) {
         }
         using ExprVisitorStrict::visit;
         void visit(const LiteralNode *op) {
@@ -219,6 +233,9 @@ CGExpr CodeGenerator::gen(Expr e) {
         void visit(const VariableNode *op) {
             cg_e = Var::make(op->name);
             cg->insertInUsed(op);
+            if (const_expr) {
+                cg->insertInConstExpr(op);
+            }
         }
 
         VISIT_AND_DECLARE(Add);
@@ -228,10 +245,11 @@ CGExpr CodeGenerator::gen(Expr e) {
         VISIT_AND_DECLARE(Mod);
 
         CodeGenerator *cg;
+        bool const_expr;
         CGExpr cg_e;
     };
 
-    ConvertToCode cg(this);
+    ConvertToCode cg(this, const_expr);
     cg.visit(e);
     return cg.cg_e;
 }
@@ -269,7 +287,7 @@ CGExpr CodeGenerator::gen(Constraint c) {
     return cg.cg_e;
 }
 
-CGStmt CodeGenerator::gen(Assign a) {
+CGStmt CodeGenerator::gen(Assign a, bool const_expr) {
     if (!isa<Variable>(a.getA())) {
         throw error::UserError("Assignments can only be made to Variables");
     }
@@ -283,7 +301,7 @@ CGStmt CodeGenerator::gen(Assign a) {
     }
 
     return VarAssign::make(
-        declVar(to_declare),
+        declVar(to_declare, const_expr),
         gen(a.getB()));
 }
 
@@ -320,6 +338,10 @@ void CodeGenerator::insertInUsed(Variable v) {
     used.insert(v);
 }
 
+void CodeGenerator::insertInConstExpr(Variable v) {
+    const_expr_vars.insert(v);
+}
+
 std::string CodeGenerator::getName() const {
     return name;
 }
@@ -332,9 +354,11 @@ std::vector<std::string> CodeGenerator::getArgumentOrder() const {
     return argument_order;
 }
 
-CGExpr CodeGenerator::declVar(Variable v) {
+CGExpr CodeGenerator::declVar(Variable v, bool const_expr) {
     declared.insert(v);
-    return VarDecl::make(Type::make(v.getType().str()), v.getName());
+    return VarDecl::make(Type::make((const_expr ? "constexpr " : "") +
+                                    v.getType().str()),
+                         v.getName());
 }
 
 static CGExpr genProp(const Grid::Property &p) {
@@ -399,7 +423,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
 
     // Actually declare the variable to use the grid.
     return VarAssign::make(
-        declVar(interval_var),
+        declVar(interval_var, false),
         // Add any shift factor specified in the interval.
         (genProp(interval_var.getBoundProperty()) * gen(op->step)) + gen(op->start.getB()));
 }

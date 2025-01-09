@@ -204,12 +204,13 @@ struct PipelineNode : public CompositionObject {
 
 // Node to declare definitions of variables.
 struct DefNode : public LowerIRNode {
-    DefNode(Assign assign)
-        : assign(assign) {
+    DefNode(Assign assign, bool const_expr)
+        : assign(assign), const_expr(const_expr) {
     }
 
     void accept(PipelineVisitor *) const;
     Assign assign;
+    bool const_expr;  // Track whether this is a actually a constexpr definition.
 };
 
 // Filler Node to manipulate objects (like vectors, etc)

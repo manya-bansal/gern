@@ -302,7 +302,8 @@ void Pipeline::generateAllDefs() {
                                            " do not have the same size for " + temp->getName());
             }
             for (size_t i = 0; i < consumer_fields.size(); i++) {
-                lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i]));
+                lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i],
+                                              producer_func->isTemplateArg(var_fields[i])));
             }
         }
     }

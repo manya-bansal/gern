@@ -78,7 +78,7 @@ public:
     const std::vector<Argument> &getArguments() const {
         return arguments;
     }
-    const std::vector<Variable> &getTemplatedArguments() const {
+    const std::vector<Variable> &getTemplateArguments() const {
         return template_args;
     }
     /**
@@ -132,6 +132,16 @@ public:
      * @return FunctionCall
      */
     const FunctionCall *withSymbolic(const std::map<std::string, Variable> &binding);
+
+    /**
+     * @brief This function checks whether a passed in variable is a template arg
+     *        for a given function.
+     *
+     * @param v Var to check.
+     * @return true
+     * @return false
+     */
+    bool isTemplateArg(Variable v) const;
 
     void accept(CompositionVisitorStrict *v) const;
 

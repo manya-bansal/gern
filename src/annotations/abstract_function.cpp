@@ -97,7 +97,7 @@ const FunctionCall *AbstractFunction::generateFunctionCall(std::vector<Argument>
     bindings = {};
 
     std::vector<Variable> templated_args;
-    for (const auto &v : getTemplatedArguments()) {
+    for (const auto &v : getTemplateArguments()) {
         if (fresh_names.contains(v)) {
             templated_args.push_back(fresh_names.at(v));
         } else {
