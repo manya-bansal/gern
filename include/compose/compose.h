@@ -63,9 +63,11 @@ public:
     FunctionCall(const std::string &name,
                  Pattern annotation,
                  std::vector<Argument> arguments,
-                 std::vector<std::string> header)
+                 std::vector<std::string> header,
+                 std::vector<Variable> template_args)
         : name(name), annotation(annotation),
-          arguments(arguments), header(header) {
+          arguments(arguments), header(header),
+          template_args(template_args) {
     }
     const std::string &getName() const {
         return name;
@@ -75,6 +77,9 @@ public:
     }
     const std::vector<Argument> &getArguments() const {
         return arguments;
+    }
+    const std::vector<Variable> &getTemplatedArguments() const {
+        return template_args;
     }
     /**
      * @brief Returns the data structure that the function computes as output.
@@ -135,6 +140,7 @@ private:
     Pattern annotation;
     std::vector<Argument> arguments;
     std::vector<std::string> header;
+    std::vector<Variable> template_args;
 };
 
 std::ostream &operator<<(std::ostream &os, const FunctionCall &f);

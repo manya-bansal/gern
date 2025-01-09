@@ -41,7 +41,7 @@ std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
     return os;
 }
 
-Pattern AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> concrete_arguments) {
+const FunctionCall *AbstractFunction::generateFunctionCall(std::vector<Argument> concrete_arguments) {
 
     auto abstract_arguments = getArguments();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> abstract_to_concrete_adt;
@@ -95,9 +95,21 @@ Pattern AbstractFunction::rewriteAnnotWithConcreteArgs(std::vector<Argument> con
 
     // The binding is only valid for one use, erase it now.
     bindings = {};
-    return to<Pattern>(annotation
-                           .replaceDSArgs(abstract_to_concrete_adt)
-                           .replaceVariables(fresh_names));
+
+    std::vector<Variable> templated_args;
+    for (const auto &v : getTemplatedArguments()) {
+        if (fresh_names.contains(v)) {
+            templated_args.push_back(fresh_names.at(v));
+        } else {
+            templated_args.push_back(v);
+        }
+    }
+
+    Pattern rw_annotation = to<Pattern>(annotation
+                                            .replaceDSArgs(abstract_to_concrete_adt)
+                                            .replaceVariables(fresh_names));
+
+    return new const FunctionCall(getName(), rw_annotation, concrete_arguments, getHeader(), templated_args);
 }
 
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {

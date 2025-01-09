@@ -51,5 +51,12 @@ inline void add(ArrayCPU a, ArrayCPU b) {
     }
 }
 
+template<int64_t Len>
+inline void addTemplate(ArrayCPU a, ArrayCPU b) {
+    for (int64_t i = 0; i < Len; i++) {
+        b.data[i] += a.data[i];
+    }
+}
+
 }  // namespace impl
 }  // namespace gern

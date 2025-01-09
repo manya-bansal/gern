@@ -174,3 +174,43 @@ TEST(LoweringCPU, MultiFunc) {
         ASSERT_TRUE(c.data[i] == 6.0f);
     }
 }
+
+TEST(LoweringCPU, SingleElemFunctionTemplated) {
+    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
+    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
+
+    annot::addTemplate add_f;
+    Variable v("v");
+    Variable step("step");
+
+    std::vector<Compose> c = {add_f[{
+        {"end", v},
+        {"step", step},
+    }](inputDS, outputDS)};
+    Pipeline p(c);
+    Runner run(p);
+
+    run.compile(test::cpuRunner("array"));
+
+    impl::ArrayCPU a(10);
+    a.vvals(2.0f);
+    impl::ArrayCPU b(10);
+    b.vvals(3.0f);
+    int64_t var = 10;
+    int64_t step_val = 1;
+
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS->getName(), &a},
+        {outputDS->getName(), &b},
+        {v.getName(), &var},
+        {step.getName(), &step_val},
+    }));
+
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(b.data[i] == 5.0f);
+    }
+
+    a.destroy();
+    b.destroy();
+}

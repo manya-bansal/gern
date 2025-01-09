@@ -329,7 +329,7 @@ const QueryNode *Pipeline::constructQueryNode(AbstractDataTypePtr ds, std::vecto
     AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + ds->getName(),
                                                                            ds->getType());
     new_ds[ds] = queried;
-    // If any of the queried data-structures need to be free, append that.
+    // If any of the queried data-structures need to be free, track that.
     if (ds->freeQuery()) {
         to_free.insert(queried);
     }

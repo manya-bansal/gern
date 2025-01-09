@@ -28,6 +28,10 @@ public:
     virtual Pattern getAnnotation() = 0;
     virtual std::vector<Argument> getArguments() = 0;
     virtual std::vector<std::string> getHeader() = 0;
+    // Only allowing int64_t template args rn...
+    virtual std::vector<Variable> getTemplatedArguments() {
+        return {};
+    }
 
     AbstractFunction &operator[](const std::map<std::string, Variable> &replacements) {
         bindVariables(replacements);
@@ -38,31 +42,25 @@ public:
     const FunctionCall *operator()(T argument) {
         std::vector<Argument> arguments;
         addArguments(arguments, argument);
-        return new const FunctionCall(getName(),
-                                      rewriteAnnotWithConcreteArgs(arguments),
-                                      arguments, getHeader());
+        return generateFunctionCall(arguments);
     }
 
     template<typename FirstT, typename... Next>
     const FunctionCall *operator()(FirstT first, Next... remaining) {
         std::vector<Argument> arguments;
         addArguments(arguments, first, remaining...);
-        return new const FunctionCall(getName(),
-                                      rewriteAnnotWithConcreteArgs(arguments),
-                                      arguments, getHeader());
+        return generateFunctionCall(arguments);
     }
 
     const FunctionCall *operator()() {
         if (getArguments().size() != 0) {
             throw error::UserError("Called function " + getName() + " with 0 arguments");
         }
-        return new const FunctionCall(getName(),
-                                      rewriteAnnotWithConcreteArgs({}),
-                                      std::vector<Argument>(), getHeader());
+        return generateFunctionCall({});
     }
 
 private:
-    Pattern rewriteAnnotWithConcreteArgs(std::vector<Argument> concrete_arguments);
+    const FunctionCall *generateFunctionCall(std::vector<Argument> concrete_arguments);
     /**
      * @brief This function actually performs the binding, and checks
      *        the following conditions:

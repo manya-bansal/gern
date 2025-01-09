@@ -60,10 +60,20 @@ public:
         };
     }
 
-private:
+protected:
     std::shared_ptr<ArrayCPU> input;
     std::shared_ptr<ArrayCPU> output;
     Variable end{"end"};
+};
+
+class addTemplate : public add {
+public:
+    addTemplate()
+        : add() {
+    }
+    std::vector<Variable> getTemplatedArguments() override {
+        return {end};
+    }
 };
 
 // This is perhaps a contrived example, but it exists to
