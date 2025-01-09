@@ -95,6 +95,7 @@ void Pipeline::lower() {
     // temps as well.
     generateAllAllocs();
     // Generates all the queries and the compute node.
+    // by visiting all the functions.
     visit(*this);
     // Generate all the free nodes now.
     generateAllFrees();
@@ -118,36 +119,31 @@ std::ostream &operator<<(std::ostream &os, const Pipeline &p) {
 }
 
 void Pipeline::visit(const FunctionCall *c) {
+    // Generate the output query if it not an intermediate.
+    AbstractDataTypePtr output = c->getOutput();
+    if (!isIntermediate(output)) {
+        lowered.push_back(constructQueryNode(output,
+                                             c->getMetaDataFields(output)));
+    }
 
+    // Generate the queries for the true inputs.
+    // since intermediates should have been allocated,
+    // Putting these in temp because it may need to wrapped
+    // in an interval node.
     std::set<AbstractDataTypePtr> func_inputs = c->getInputs();
     std::vector<LowerIR> temp;
-
     for (const auto &in : func_inputs) {
         if (!isIntermediate(in)) {
             // Generate the query node.
-            AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + in->getName(),
-                                                                                   in->getType());
-            new_ds[in] = queried;
-            temp.push_back(new QueryNode(in,
-                                         queried,
-                                         c->getMetaDataFields(in)));
+            temp.push_back(constructQueryNode(in,
+                                              c->getMetaDataFields(in)));
         }
-        // We should have already generated an alloc node for the intermediate.
     }
 
-    // Now generate the output query.
-    AbstractDataTypePtr output = c->getOutput();
-    if (!isIntermediate(output)) {
-        AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + output->getName(),
-                                                                               output->getType());
-        new_ds[output] = queried;
-        lowered.push_back(new QueryNode(output,
-                                        queried,
-                                        c->getMetaDataFields(output)));
-    }
-    temp.push_back(new ComputeNode(c, new_ds));
+    // Actually construct the compute node.
+    temp.push_back(constructComputeNode(c));
 
-    // Now generate all the intervals if any!
+    // Now generate all the consumer intervals if any!
     std::vector<LowerIR> intervals = generateConsumesIntervals(c, temp);
     lowered.insert(lowered.end(), intervals.begin(), intervals.end());
 }
@@ -160,89 +156,6 @@ bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
     // We can find a function that produces this output.
     // and it is not the final output.
     return (intermediates.count(d) > 0);
-}
-
-std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
-
-    std::vector<LowerIR> current = body;
-    match(f->getAnnotation(), std::function<void(const ConsumesForNode *, Matcher *)>(
-                                  [&](const ConsumesForNode *op, Matcher *ctx) {
-                                      ctx->match(op->body);
-                                      current = {new IntervalNode(op->start, op->end, op->step, current)};
-                                  }));
-    return current;
-}
-
-std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
-
-    std::vector<LowerIR> current = body;
-    match(f->getAnnotation(), std::function<void(const ComputesForNode *, Matcher *)>(
-                                  [&](const ComputesForNode *op, Matcher *ctx) {
-                                      ctx->match(op->body);
-                                      current = {new IntervalNode(op->start, op->end, op->step, current)};
-                                  }));
-    return current;
-}
-
-void Pipeline::generateAllDefs() {
-    if (outputs_in_order.size() <= 1) {
-        // Do nothing.
-        return;
-    }
-
-    auto it = outputs_in_order.rbegin();
-    it++;  // Skip the last output.
-    // Go in reverse order, and define all the variables.
-    for (; it < outputs_in_order.rend(); ++it) {
-        // Define the variables assosciated with the producer func.
-        // For all functions that consume this data-structure, figure out the relationships for
-        // this input.
-        AbstractDataTypePtr temp = *it;
-        FunctionCallPtr producer_func = getProducerFunction(temp);
-        std::set<FunctionCallPtr> consumer_funcs = getConsumerFunctions(temp);
-        // No forks allowed, as is. Come back and change!
-        if (consumer_funcs.size() != 1) {
-            throw error::InternalError("Unimplemented");
-        }
-        // Writing as a for loop, will eventually change!
-        // Only one allowed for right now...
-        std::vector<Variable> var_fields = producer_func->getProducesFields();
-        for (const auto &cf : consumer_funcs) {
-            std::vector<Expr> consumer_fields = cf->getMetaDataFields(temp);
-            if (consumer_fields.size() != var_fields.size()) {
-                throw error::InternalError("Annotations for " + cf->getName() + " and " + producer_func->getName() +
-                                           " do not have the same size for " + temp->getName());
-            }
-            for (size_t i = 0; i < consumer_fields.size(); i++) {
-                lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i]));
-            }
-        }
-    }
-}
-
-void Pipeline::generateAllAllocs() {
-    // We need to define an allocation for all the
-    // intermediates.
-    for (const auto &temp : intermediates) {
-        // Finally make the allocation.
-        AbstractDataTypePtr alloc = std::make_shared<const AbstractDataType>("_alloc_" + temp->getName(),
-                                                                             temp->getType());
-        // Remember the name of the allocated variable.
-        new_ds[temp] = alloc;
-
-        lowered.push_back((new AllocateNode(
-            alloc,
-            getProducerFunction(temp)->getMetaDataFields(temp))));
-        // Got to free an allocated node later on!
-        to_free.insert(alloc);
-    }
-}
-
-void Pipeline::generateAllFrees() {
-    for (const auto &ds : to_free) {
-        lowered.push_back(
-            new FreeNode(ds));
-    }
 }
 
 void Pipeline::init(std::vector<Compose> compose) {
@@ -358,6 +271,107 @@ std::set<AbstractDataTypePtr> Pipeline::getAllReadDataStruct() const {
                                           reads.insert(func_inputs.begin(), func_inputs.end());
                                       }));
     return reads;
+}
+
+void Pipeline::generateAllDefs() {
+    if (outputs_in_order.size() <= 1) {
+        // Do nothing.
+        return;
+    }
+    auto it = outputs_in_order.rbegin();
+    it++;  // Skip the last output.
+    // Go in reverse order, and define all the variables.
+    for (; it < outputs_in_order.rend(); ++it) {
+        // Define the variables assosciated with the producer func.
+        // For all functions that consume this data-structure, figure out the relationships for
+        // this input.
+        AbstractDataTypePtr temp = *it;
+        FunctionCallPtr producer_func = getProducerFunction(temp);
+        std::set<FunctionCallPtr> consumer_funcs = getConsumerFunctions(temp);
+        // No forks allowed, as is. Come back and change!
+        if (consumer_funcs.size() != 1) {
+            throw error::InternalError("Unimplemented");
+        }
+        // Writing as a for loop, will eventually change!
+        // Only one allowed for right now...
+        std::vector<Variable> var_fields = producer_func->getProducesFields();
+        for (const auto &cf : consumer_funcs) {
+            std::vector<Expr> consumer_fields = cf->getMetaDataFields(temp);
+            if (consumer_fields.size() != var_fields.size()) {
+                throw error::InternalError("Annotations for " + cf->getName() + " and " + producer_func->getName() +
+                                           " do not have the same size for " + temp->getName());
+            }
+            for (size_t i = 0; i < consumer_fields.size(); i++) {
+                lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i]));
+            }
+        }
+    }
+}
+
+void Pipeline::generateAllAllocs() {
+    // We need to define an allocation for all the
+    // intermediates.
+    for (const auto &temp : intermediates) {
+        // Finally make the allocation.
+        lowered.push_back(constructAllocNode(
+            temp,
+            getProducerFunction(temp)->getMetaDataFields(temp)));
+    }
+}
+
+void Pipeline::generateAllFrees() {
+    for (const auto &ds : to_free) {
+        lowered.push_back(constructFreeNode(ds));
+    }
+}
+
+const QueryNode *Pipeline::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> query_args) {
+    AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + ds->getName(),
+                                                                           ds->getType());
+    new_ds[ds] = queried;
+    // If any of the queried data-structures need to be free, append that.
+    if (ds->freeQuery()) {
+        to_free.insert(queried);
+    }
+    return new QueryNode(ds, queried, query_args);
+}
+
+const FreeNode *Pipeline::constructFreeNode(AbstractDataTypePtr ds) {
+    return new FreeNode(ds);
+}
+
+const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
+    AbstractDataTypePtr allocated = std::make_shared<const AbstractDataType>("_alloc_" + ds->getName(),
+                                                                             ds->getType());
+    new_ds[ds] = allocated;
+    to_free.insert(allocated);
+    return new AllocateNode(allocated, alloc_args);
+}
+
+const ComputeNode *Pipeline::constructComputeNode(FunctionCallPtr f) {
+    return new ComputeNode(f, new_ds);
+}
+
+std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
+
+    std::vector<LowerIR> current = body;
+    match(f->getAnnotation(), std::function<void(const ConsumesForNode *, Matcher *)>(
+                                  [&](const ConsumesForNode *op, Matcher *ctx) {
+                                      ctx->match(op->body);
+                                      current = {new IntervalNode(op->start, op->end, op->step, current)};
+                                  }));
+    return current;
+}
+
+std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
+
+    std::vector<LowerIR> current = body;
+    match(f->getAnnotation(), std::function<void(const ComputesForNode *, Matcher *)>(
+                                  [&](const ComputesForNode *op, Matcher *ctx) {
+                                      ctx->match(op->body);
+                                      current = {new IntervalNode(op->start, op->end, op->step, current)};
+                                  }));
+    return current;
 }
 
 void AllocateNode::accept(PipelineVisitor *v) const {

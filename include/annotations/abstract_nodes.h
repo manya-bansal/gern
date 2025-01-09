@@ -60,6 +60,12 @@ public:
         return type;
     }
 
+    // Tracks whether any of the queries need to be free,
+    // or if they are actually returning views.
+    virtual bool freeQuery() const {
+        return false;
+    }
+
 private:
     std::string name;
     std::string type;

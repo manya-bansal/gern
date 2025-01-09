@@ -9,6 +9,11 @@ namespace gern {
 
 class PipelineVisitor;
 struct PipelineNode;
+struct AllocateNode;
+struct QueryNode;
+struct InsertNode;
+struct FreeNode;
+struct ComputeNode;
 
 using FunctionCallPtr = const FunctionCall *;
 
@@ -72,14 +77,21 @@ public:
     std::set<AbstractDataTypePtr> getAllWriteDataStruct() const;  // This gathers all the data-structures written to in the pipeline.
     std::set<AbstractDataTypePtr> getAllReadDataStruct() const;   // This gathers all the data-structures written to in the pipeline.
 private:
-    void init(std::vector<Compose> compose);
+    void init(std::vector<Compose> compose);  // Initializes private vars, and ensures that the user has constructed a valid pipeline.
     bool isIntermediate(AbstractDataTypePtr d) const;
 
     void generateAllDefs();    // Helper method to define all the variable definitions.
     void generateAllAllocs();  // Helper method to declare all the allocate node.
     void generateAllFrees();   // Helper method to declare all the frees.
+
+    const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
+    const FreeNode *constructFreeNode(AbstractDataTypePtr);                          // Constructs a free node for a data-structure, and tracks this relationship.
+    const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
+    const ComputeNode *constructComputeNode(FunctionCallPtr);                        // Constructs a compute node for teh pipeline, substituting any data-structures.
+
     std::vector<LowerIR> generateConsumesIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
+
     std::vector<Compose> compose;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
 
