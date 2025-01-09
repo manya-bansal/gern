@@ -91,7 +91,10 @@ void Pipeline::lower() {
     // generated nested allocations for
     // temps as well.
     generateAllAllocs();
+    // Generates all the queries and the compute node.
     visit(*this);
+    // Generate all the free nodes now.
+    generateAllFrees();
 
     // If its a vec of vec...then, need to do something else.
     // right now, gern will complain if you try.
@@ -99,10 +102,6 @@ void Pipeline::lower() {
     lowered = generateOuterIntervals(
         to<FunctionCall>(compose[compose.size() - 1].ptr), lowered);
     has_been_lowered = true;
-}
-
-std::map<Variable, Expr> Pipeline::getVariableDefinitions() const {
-    return variable_definitions;
 }
 
 std::vector<LowerIR> Pipeline::getIRNodes() const {
@@ -128,7 +127,7 @@ void Pipeline::visit(const FunctionCall *c) {
             new_ds[in] = queried;
             temp.push_back(new QueryNode(in,
                                          queried,
-                                         generateMetaDataFields(in, c)));
+                                         c->getMetaDataFields(in)));
         } else {
         }
     }
@@ -141,7 +140,7 @@ void Pipeline::visit(const FunctionCall *c) {
         new_ds[output] = queried;
         lowered.push_back(new QueryNode(output,
                                         queried,
-                                        generateMetaDataFields(output, c)));
+                                        c->getMetaDataFields(output)));
     }
     temp.push_back(new ComputeNode(c, new_ds));
 
@@ -158,33 +157,6 @@ bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
     // We can find a function that produces this output.
     // and it is not the final output.
     return (intermediates.count(d) > 0);
-}
-
-std::vector<Expr> Pipeline::generateMetaDataFields(AbstractDataTypePtr d, FunctionCallPtr c) {
-
-    std::vector<Expr> metaFields = c->getMetaDataFields(d);
-
-    if (!isIntermediate(d)) {
-        return metaFields;
-    } else {
-        // From the producer function, get producer fields.
-        // FunctionCallPtr producerFunc = getProducerFunc(d);
-        // std::cout << *producerFunc << std::endl;
-        // std::cout << *c << std::endl;
-        // std::vector<Expr> producerFields = producerFunc->getMetaDataFields(d);
-
-        // // Insert the definitions.
-        // for (size_t i = 0; i < metaFields.size(); i++) {
-        //     std::cout << producerFields[i] << " = " << metaFields[i] << std::endl;
-        //     // Make this true by construction!
-        //     if (isa<Variable>(producerFields[i])) {
-        //         lowered.push_back(
-        //             new DefNode(Assign(to<Variable>(producerFields[i]), metaFields[i])));
-        //     }
-        // }
-        // return producerFields;
-        throw error::InternalError("Unimpl");
-    }
 }
 
 std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
@@ -210,25 +182,30 @@ std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::ve
 }
 
 void Pipeline::generateAllAllocs() {
+    if (outputs_in_order.size() <= 1) {
+        // Do nothing.
+        return;
+    }
     // Generate an allocation for all the intermediates.
-    for (const auto &temp : intermediates) {
-        std::cout << *temp << std::endl;
-        // Get the producer func.
-        FunctionCallPtr producer_func = getProducerFunction(temp);
+    // and, push the definition for each variable onto a vector.
+    auto it = outputs_in_order.rbegin();
+    it++;  // Skip the last output.
+    for (; it < outputs_in_order.rend(); ++it) {
 
         // Define the variables assosciated with the producer func.
         // For all functions that consume this data-structure, figure out the relationships for
         // this input.
+        AbstractDataTypePtr temp = *it;
+        FunctionCallPtr producer_func = getProducerFunction(temp);
         std::set<FunctionCallPtr> consumer_funcs = getConsumerFunctions(temp);
         // No forks allowed, as is. Come back and change!
         if (consumer_funcs.size() != 1) {
             throw error::InternalError("Unimplemented");
         }
 
-        std::vector<Variable> var_fields = producer_func->getProducesFields();
-        std::cout << "out" << std::endl;
         // Writing as a for loop, will eventually change!
         // Only one allowed for right now...
+        std::vector<Variable> var_fields = producer_func->getProducesFields();
         for (const auto &cf : consumer_funcs) {
             std::vector<Expr> consumer_fields = cf->getMetaDataFields(temp);
             if (consumer_fields.size() != var_fields.size()) {
@@ -236,18 +213,28 @@ void Pipeline::generateAllAllocs() {
                                            " do not have the same size for " + temp->getName());
             }
             for (size_t i = 0; i < consumer_fields.size(); i++) {
-                variable_definitions[var_fields[i]] = consumer_fields[i];
+                lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i]));
             }
         }
 
+        // Finally make the allocation.
         AbstractDataTypePtr alloc = std::make_shared<const AbstractDataType>("_alloc_" + temp->getName(),
                                                                              temp->getType());
         // Remember the name of the allocated variable.
         new_ds[temp] = alloc;
-        // Finally make the allocation.
+
         lowered.push_back((new AllocateNode(
             alloc,
             producer_func->getMetaDataFields(temp))));
+        // Got to free an allocated node later on!
+        to_free.insert(alloc);
+    }
+}
+
+void Pipeline::generateAllFrees() {
+    for (const auto &ds : to_free) {
+        lowered.push_back(
+            new FreeNode(ds));
     }
 }
 
@@ -263,6 +250,9 @@ void Pipeline::init(std::vector<Compose> compose) {
         }
 
         void construct() {
+            if (compose.size() == 0) {
+                return;
+            }
             for (const auto &c : compose) {
                 this->visit(c);
             }
@@ -300,6 +290,7 @@ void Pipeline::init(std::vector<Compose> compose) {
             }
             intermediates.insert(output);
             true_output = output;  // Update final output.
+            outputs_in_order.push_back(output);
         }
 
         void visit(const PipelineNode *node) {
@@ -325,12 +316,14 @@ void Pipeline::init(std::vector<Compose> compose) {
 
             intermediates.insert(output);
             true_output = output;  // Update final output.
+            outputs_in_order.push_back(output);
         }
 
         std::vector<Compose> compose;
         std::set<AbstractDataTypePtr> intermediates;
         std::set<AbstractDataTypePtr> all_inputs;
         std::set<AbstractDataTypePtr> all_nested_temps;
+        std::vector<AbstractDataTypePtr> outputs_in_order;
         AbstractDataTypePtr true_output;
     };
 
@@ -338,6 +331,7 @@ void Pipeline::init(std::vector<Compose> compose) {
     df.construct();
     intermediates = df.intermediates;
     true_output = df.true_output;
+    outputs_in_order = df.outputs_in_order;
 }
 
 std::set<AbstractDataTypePtr> Pipeline::getAllWriteDataStruct() const {

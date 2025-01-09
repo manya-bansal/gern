@@ -61,7 +61,6 @@ public:
     void visit(const PipelineNode *c);
 
     std::vector<LowerIR> getIRNodes() const;
-    std::map<Variable, Expr> getVariableDefinitions() const;
     // Returns the function call that produces a particular output.
     std::set<AbstractDataTypePtr> getInputs() const;
     AbstractDataTypePtr getOutput() const;
@@ -77,17 +76,19 @@ private:
     bool isIntermediate(AbstractDataTypePtr d) const;
 
     void generateAllAllocs();
-    std::vector<Expr> generateMetaDataFields(AbstractDataTypePtr, FunctionCallPtr);
+    void generateAllFrees();
     std::vector<LowerIR> generateConsumesIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<Compose> compose;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
 
     std::vector<LowerIR> lowered;
-    std::map<Variable, Expr> variable_definitions;
+    std::vector<Assign> variable_definitions;
 
-    std::set<AbstractDataTypePtr> intermediates;  // All the intermediates visible to this pipeline.
-    AbstractDataTypePtr true_output;              // The output that this pipeline generates.
+    std::set<AbstractDataTypePtr> intermediates;        // All the intermediates visible to this pipeline.
+    std::vector<AbstractDataTypePtr> outputs_in_order;  // All the intermediates produces in reverse order.
+    std::set<AbstractDataTypePtr> to_free;              // All the intermediates produces in reverse order.
+    AbstractDataTypePtr true_output;                    // The output that this pipeline generates.
 
     bool has_been_lowered = false;
     bool device = false;
