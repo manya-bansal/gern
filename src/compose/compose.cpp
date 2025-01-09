@@ -18,6 +18,15 @@ std::vector<Expr> FunctionCall::getMetaDataFields(AbstractDataTypePtr d) const {
     return metaFields;
 }
 
+std::vector<Variable> FunctionCall::getProducesFields() const {
+    std::vector<Variable> metaFields;
+    match(getAnnotation(), std::function<void(const ProducesNode *)>(
+                               [&](const ProducesNode *op) {
+                                   metaFields = Produces(op).getFieldsAsVars();
+                               }));
+    return metaFields;
+}
+
 const FunctionCall *FunctionCall::withSymbolic(const std::map<std::string, Variable> &binding) {
     std::map<Variable, Variable> var_bindings;
     match(annotation, std::function<void(const VariableNode *)>(

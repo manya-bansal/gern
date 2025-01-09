@@ -212,12 +212,42 @@ std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::ve
 void Pipeline::generateAllAllocs() {
     // Generate an allocation for all the intermediates.
     for (const auto &temp : intermediates) {
+        std::cout << *temp << std::endl;
+        // Get the producer func.
+        FunctionCallPtr producer_func = getProducerFunction(temp);
+
+        // Define the variables assosciated with the producer func.
+        // For all functions that consume this data-structure, figure out the relationships for
+        // this input.
+        std::set<FunctionCallPtr> consumer_funcs = getConsumerFunctions(temp);
+        // No forks allowed, as is. Come back and change!
+        if (consumer_funcs.size() != 1) {
+            throw error::InternalError("Unimplemented");
+        }
+
+        std::vector<Variable> var_fields = producer_func->getProducesFields();
+        std::cout << "out" << std::endl;
+        // Writing as a for loop, will eventually change!
+        // Only one allowed for right now...
+        for (const auto &cf : consumer_funcs) {
+            std::vector<Expr> consumer_fields = cf->getMetaDataFields(temp);
+            if (consumer_fields.size() != var_fields.size()) {
+                throw error::InternalError("Annotations for " + cf->getName() + " and " + producer_func->getName() +
+                                           " do not have the same size for " + temp->getName());
+            }
+            for (size_t i = 0; i < consumer_fields.size(); i++) {
+                variable_definitions[var_fields[i]] = consumer_fields[i];
+            }
+        }
+
         AbstractDataTypePtr alloc = std::make_shared<const AbstractDataType>("_alloc_" + temp->getName(),
                                                                              temp->getType());
+        // Remember the name of the allocated variable.
         new_ds[temp] = alloc;
+        // Finally make the allocation.
         lowered.push_back((new AllocateNode(
             alloc,
-            getProducerFunction(temp)->getMetaDataFields(temp))));
+            producer_func->getMetaDataFields(temp))));
     }
 }
 

@@ -109,6 +109,13 @@ public:
     std::vector<Expr> getMetaDataFields(AbstractDataTypePtr d) const;
 
     /**
+     * @brief Get the Produces meta data fields, this should always be variables.
+     *
+     * @return std::vector<Variable> The meta-data fields.
+     */
+    std::vector<Variable> getProducesFields() const;
+
+    /**
      * @brief This function is used to bind a symbolic variable in the
      *        annotation with a user-provided variable. This is useful for
      *        passing in arguments for the function pointer, otherwise,
