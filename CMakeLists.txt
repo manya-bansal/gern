@@ -25,7 +25,6 @@ set_target_properties(
 target_sources(
     Gern_Gern
     PRIVATE
-        src/annotations/abstract_data.cpp
         src/annotations/abstract_function.cpp
         src/annotations/argument.cpp
         src/annotations/argument_visitor.cpp

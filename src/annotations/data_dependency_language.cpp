@@ -1,6 +1,7 @@
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
+#include "compose/compose.h"
 #include "utils/debug.h"
 #include "utils/error.h"
 
@@ -88,6 +89,50 @@ bool Variable::isBoundToInt64() const {
 
 bool Variable::isBound() const {
     return (isBoundToGrid() || isBoundToInt64());
+}
+
+std::vector<Variable> AbstractDataType::getFields() {
+    return {};
+}
+
+Function AbstractDataType::getAllocateFunction() {
+    return Function{
+        .name = "allocate",
+        .args = {},
+        .template_args = {},
+        .output = Argument(),
+    };
+}
+
+Function AbstractDataType::getFreeFunction() {
+    return Function{
+        .name = "free",
+        .args = {},
+        .template_args = {},
+        .output = Argument(),
+    };
+}
+
+Function AbstractDataType::getInsertFunction() {
+    return Function{
+        .name = "insert",
+        .args = {},
+        .template_args = {},
+        .output = Argument(),
+    };
+}
+
+Function AbstractDataType::getQueryFunction() {
+    return Function{
+        .name = "query",
+        .args = {},
+        .template_args = {},
+        .output = Argument()};
+}
+
+std::ostream &operator<<(std::ostream &os, const AbstractDataType &ads) {
+    os << ads.getName();
+    return os;
 }
 
 int64_t Variable::getInt64Val() const {

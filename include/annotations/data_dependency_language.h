@@ -25,6 +25,7 @@ struct GreaterNode;
 struct AndNode;
 struct OrNode;
 struct AssignNode;
+struct Function;
 
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
@@ -158,6 +159,48 @@ public:
 
     typedef VariableNode Node;
 };
+
+class AbstractDataType {
+public:
+    AbstractDataType() = default;
+
+    AbstractDataType(const std::string &name, const std::string &type)
+        : name(name), type(type) {
+    }
+    virtual ~AbstractDataType() = default;
+
+    virtual std::string getName() const {
+        return name;
+    }
+
+    virtual std::string getType() const {
+        return type;
+    }
+
+    virtual std::vector<Variable> getFields();
+    virtual Function getAllocateFunction();
+    virtual Function getFreeFunction();
+    virtual Function getInsertFunction();
+    virtual Function getQueryFunction();
+
+    // Tracks whether any of the queries need to be free,
+    // or if they are actually returning views.
+    virtual bool freeQuery() const {
+        return false;
+    }
+
+private:
+    Function allocate;
+    Function free;
+    Function allocate;
+    Function insert;
+    std::string name;
+    std::string type;
+};
+
+using AbstractDataTypePtr = std::shared_ptr<const AbstractDataType>;
+
+std::ostream &operator<<(std::ostream &os, const AbstractDataType &ads);
 
 }  // namespace gern
 
