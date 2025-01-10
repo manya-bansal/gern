@@ -1,6 +1,6 @@
 #pragma once
 
-#include "annotations/arguments.h"
+#include "annotations/argument.h"
 #include "annotations/data_dependency_language.h"
 #include "compose/compose.h"
 #include "utils/error.h"

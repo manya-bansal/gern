@@ -26,17 +26,16 @@ std::set<AbstractDataTypePtr> FunctionCall::getInputs() const {
 }
 
 std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
+
     os << f.getName() << "(";
     auto args = f.getArguments();
     auto args_size = args.size();
 
-    for (size_t i = 0; i < args_size - 1; i++) {
-        args[i].print(os);
-        os << ", ";
+    for (size_t i = 0; i < args_size; i++) {
+        os << args[i];
+        os << ((i != args_size - 1) ? ", " : "");
     }
-    if (args_size > 0) {
-        args[args_size - 1].print(os);
-    }
+
     os << ")";
     return os;
 }
@@ -55,21 +54,17 @@ const FunctionCall *AbstractFunction::generateFunctionCall(std::vector<Argument>
         auto conc_arg = concrete_arguments[i];
         auto abstract_arg = abstract_arguments[i];
 
-        if (abstract_arg.getType() == ArgumentType::UNDEFINED) {
+        if (!abstract_arg.defined()) {
             throw error::UserError("Calling with an undefined argument");
         }
 
-        if (abstract_arg.getType() != conc_arg.getType()) {
-            throw error::UserError("Calling with mismatched argument types");
-        }
-
-        if (abstract_arg.getType() == ArgumentType::DATA_STRUCTURE) {
+        if (isa<DSArg>(abstract_arg)) {
             const DSArg *abstract_ds = to<DSArg>(abstract_arg.get());
             const DSArg *concrete_ds = to<DSArg>(conc_arg.get());
             abstract_to_concrete_adt[abstract_ds->getADTPtr()] = concrete_ds->getADTPtr();
         }
 
-        if (abstract_arg.getType() == ArgumentType::GERN_VARIABLE) {
+        if (isa<VarArg>(abstract_arg)) {
             const VarArg *abstract_ds = to<VarArg>(abstract_arg.get());
             const VarArg *concrete_ds = to<VarArg>(conc_arg.get());
             fresh_names[abstract_ds->getVar()] = concrete_ds->getVar();

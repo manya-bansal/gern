@@ -8,41 +8,25 @@
 
 namespace gern {
 
-enum ArgumentType {
-    UNDEFINED,
-    DATA_STRUCTURE,
-    GERN_VARIABLE,  // Gern variable currently implies int64_t type;
-};
+class ArgumentVisitorStrict;
 
 class ArgumentNode : public util::Manageable<ArgumentNode>,
                      public util::Uncopyable {
 public:
     ArgumentNode() = default;
-    ArgumentNode(ArgumentType arg_type)
-        : arg_type(arg_type) {
-    }
     virtual ~ArgumentNode() = default;
-    virtual void print(std::ostream &os) const = 0;
-    ArgumentType getType() const {
-        return arg_type;
-    }
-
-private:
-    ArgumentType arg_type = UNDEFINED;
+    virtual void accept(ArgumentVisitorStrict *) const = 0;
 };
 
 class DSArg : public ArgumentNode {
 public:
     DSArg(AbstractDataTypePtr dataStruct)
-        : ArgumentNode(DATA_STRUCTURE),
-          dataStruct(dataStruct) {
-    }
-    void print(std::ostream &os) const override {
-        os << *(dataStruct.get());
+        : dataStruct(dataStruct) {
     }
     AbstractDataTypePtr getADTPtr() const {
         return dataStruct;
     }
+    virtual void accept(ArgumentVisitorStrict *) const;
 
 private:
     AbstractDataTypePtr dataStruct;
@@ -51,14 +35,12 @@ private:
 class VarArg : public ArgumentNode {
 public:
     VarArg(Variable v)
-        : ArgumentNode(GERN_VARIABLE), v(v) {
-    }
-    void print(std::ostream &os) const override {
-        os << v;
+        : v(v) {
     }
     Variable getVar() const {
         return v;
     }
+    virtual void accept(ArgumentVisitorStrict *) const;
 
 private:
     Variable v;
@@ -78,14 +60,10 @@ public:
     Argument(Variable v)
         : Argument(new const VarArg(v)) {
     }
-    void print(std::ostream &os) const {
-        ptr->print(os);
-    }
-    ArgumentType getType() const {
-        return ptr->getType();
-    }
+    void accept(ArgumentVisitorStrict *v) const;
 };
 
+std::ostream &operator<<(std::ostream &os, const Argument &);
 /*
 To add arguments to the vector of arguments in the
 overload of () for the AbstractFunction class,
@@ -123,6 +101,11 @@ template<typename E>
 inline const E *to(const ArgumentNode *e) {
     assert(isa<E>(e));
     return static_cast<const E *>(e);
+}
+
+template<typename E>
+inline bool isa(Argument a) {
+    return isa<E>(a.ptr);
 }
 
 }  // namespace gern

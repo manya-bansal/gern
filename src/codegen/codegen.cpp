@@ -1,4 +1,5 @@
 #include "codegen/codegen.h"
+#include "annotations/argument_visitor.h"
 #include "annotations/data_dependency_language.h"
 #include "annotations/grid.h"
 #include "annotations/lang_nodes.h"
@@ -311,32 +312,32 @@ CGStmt CodeGenerator::gen(Assign a, bool const_expr) {
 }
 
 CGExpr CodeGenerator::gen(Argument a, const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements) {
-    switch (a.getType()) {
 
-    case DATA_STRUCTURE: {
-        const DSArg *ds = to<DSArg>(a.get());
-        // If the actual data-structure has been queried, then we need to make
-        // sure that the queried name is used, not the original name.
-        if (replacements.count(ds->getADTPtr()) > 0) {
-            used_adt.insert(replacements.at(ds->getADTPtr()));
-            return Var::make(replacements.at(ds->getADTPtr())->getName());
-        } else {
-            used_adt.insert(ds->getADTPtr());
-            return Var::make(ds->getADTPtr()->getName());
+    struct GenArgument : public ArgumentVisitorStrict {
+        GenArgument(CodeGenerator *cg,
+                    const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements)
+            : cg(cg), replacements(replacements) {
         }
-        break;
-    }
-
-    case GERN_VARIABLE: {
-        const VarArg *v = to<VarArg>(a.get());
-        used.insert(v->getVar());
-        return Var::make(v->getVar().getName());
-    }
-
-    default:
-        throw error::InternalError("Unreachable");
-        break;
-    }
+        using ArgumentVisitorStrict::visit;
+        void visit(const DSArg *ds) {
+            if (replacements.count(ds->getADTPtr()) > 0) {
+                cg->used_adt.insert(replacements.at(ds->getADTPtr()));
+                gen_expr = Var::make(replacements.at(ds->getADTPtr())->getName());
+            } else {
+                cg->used_adt.insert(ds->getADTPtr());
+                gen_expr = Var::make(ds->getADTPtr()->getName());
+            }
+        }
+        void visit(const VarArg *ds) {
+            gen_expr = cg->gen(ds->getVar());
+        }
+        CodeGenerator *cg;
+        const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements;
+        CGExpr gen_expr;
+    };
+    GenArgument generate(this, replacements);
+    generate.visit(a);
+    return generate.gen_expr;
 }
 
 void CodeGenerator::insertInUsed(Variable v) {

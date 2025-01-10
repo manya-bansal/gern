@@ -1,6 +1,6 @@
 #pragma once
 
-#include "annotations/arguments.h"
+#include "annotations/argument.h"
 #include "annotations/data_dependency_language.h"
 #include "utils/uncopyable.h"
 #include <vector>
