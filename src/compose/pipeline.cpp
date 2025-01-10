@@ -120,6 +120,7 @@ std::ostream &operator<<(std::ostream &os, const Pipeline &p) {
 
 void Pipeline::visit(const ComputeFunctionCall *c) {
     // Generate the output query if it not an intermediate.
+    std::map<AbstractDataTypePtr, AbstractDataTypePtr> queries;
     AbstractDataTypePtr output = c->getOutput();
     if (!isIntermediate(output)) {
         lowered.push_back(constructQueryNode(output,
@@ -140,8 +141,9 @@ void Pipeline::visit(const ComputeFunctionCall *c) {
         }
     }
 
+    Function new_call = c->getCall().replaceAllDS(new_ds);
     // Actually construct the compute node.
-    temp.push_back(constructComputeNode(c));
+    temp.push_back(new const ComputeNode(new_call, {}, c->getHeader()));
 
     // Now generate all the consumer intervals if any!
     std::vector<LowerIR> intervals = generateConsumesIntervals(c, temp);
@@ -323,6 +325,13 @@ void Pipeline::generateAllAllocs() {
             temp,
             getProducerFunction(temp)->getMetaDataFields(temp)));
     }
+
+    // Change references to the allocated data-structures now.
+    std::vector<Compose> new_funcs;
+    for (const auto &c : compose) {
+        new_funcs.push_back(c.replaceAllDS(new_ds));
+    }
+    compose = new_funcs;
 }
 
 void Pipeline::generateAllFrees() {
@@ -351,12 +360,7 @@ const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::ve
     return new AllocateNode(ds, alloc_args);
 }
 
-const ComputeNode *Pipeline::constructComputeNode(ComputeFunctionCallPtr f) {
-    return new ComputeNode(f, new_ds);
-}
-
 std::vector<LowerIR> Pipeline::generateConsumesIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
-
     std::vector<LowerIR> current = body;
     match(f->getAnnotation(), std::function<void(const ConsumesForNode *, Matcher *)>(
                                   [&](const ConsumesForNode *op, Matcher *ctx) {
@@ -367,7 +371,6 @@ std::vector<LowerIR> Pipeline::generateConsumesIntervals(ComputeFunctionCallPtr 
 }
 
 std::vector<LowerIR> Pipeline::generateOuterIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
-
     std::vector<LowerIR> current = body;
     match(f->getAnnotation(), std::function<void(const ComputesForNode *, Matcher *)>(
                                   [&](const ComputesForNode *op, Matcher *ctx) {

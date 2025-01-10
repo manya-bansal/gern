@@ -45,6 +45,7 @@ public:
     Compose(std::vector<Compose> compose);
 
     void concretize();
+    Compose replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacements) const;
 
     int numFuncs() const;
 
@@ -67,6 +68,14 @@ struct Function {
     std::vector<Variable> template_args;
     // To model an explict return. Currently, no compute function can return.
     Argument output;
+
+    /**
+     * @brief Replace the data-structures in the function.
+     *
+     * @param Data structures to replace with.
+     * @return * Function
+     */
+    Function replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
 };
 
 class ComputeFunctionCall : public CompositionObject {
@@ -77,6 +86,11 @@ public:
                         std::vector<std::string> header)
         : call(call), annotation(annotation), header(header) {
     }
+
+    Function getCall() const {
+        return call;
+    }
+
     const std::string &getName() const {
         return call.name;
     }
@@ -99,7 +113,7 @@ public:
     /**
      * @brief Returns the data structures that the function treats as inputs.
      *
-     * @return std::set<AbstractDataTypePtr>
+     * @return std::set<AbstractDataTypePtr>=
      */
     std::set<AbstractDataTypePtr> getInputs() const;
 
@@ -150,6 +164,8 @@ public:
      * @return false
      */
     bool isTemplateArg(Variable v) const;
+
+    ComputeFunctionCall replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
 
     void accept(CompositionVisitorStrict *v) const;
 

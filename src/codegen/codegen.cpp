@@ -168,20 +168,21 @@ void CodeGenerator::visit(const QueryNode *op) {
 }
 
 void CodeGenerator::visit(const ComputeNode *op) {
-    std::string func_call = op->f->getName();
+
+    std::string func_call = op->f.name;
     std::vector<CGExpr> args;
-    for (auto a : op->f->getArguments()) {
+    for (auto a : op->f.args) {
         args.push_back(gen(a, op->new_ds));
     }
     std::vector<CGExpr> template_args;
-    for (auto a : op->f->getTemplateArguments()) {
+    for (auto a : op->f.template_args) {
         template_args.push_back(gen(a, true));  // All of these are const_expr;
     }
 
     code = VoidCall::make(Call::make(func_call, args, template_args));
 
     // Add the header.
-    std::vector<std::string> func_header = op->f->getHeader();
+    std::vector<std::string> func_header = op->headers;
     headers.insert(func_header.begin(), func_header.end());
 }
 
@@ -320,13 +321,8 @@ CGExpr CodeGenerator::gen(Argument a, const std::map<AbstractDataTypePtr, Abstra
         }
         using ArgumentVisitorStrict::visit;
         void visit(const DSArg *ds) {
-            if (replacements.count(ds->getADTPtr()) > 0) {
-                cg->used_adt.insert(replacements.at(ds->getADTPtr()));
-                gen_expr = Var::make(replacements.at(ds->getADTPtr())->getName());
-            } else {
-                cg->used_adt.insert(ds->getADTPtr());
-                gen_expr = Var::make(ds->getADTPtr()->getName());
-            }
+            cg->used_adt.insert(ds->getADTPtr());
+            gen_expr = Var::make(ds->getADTPtr()->getName());
         }
         void visit(const VarArg *ds) {
             gen_expr = cg->gen(ds->getVar());

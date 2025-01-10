@@ -75,6 +75,7 @@ private:
     }
 
 class PipelineMatcher : public CompositionVisitor {
+
 public:
     template<class T>
     void match(T stmt) {

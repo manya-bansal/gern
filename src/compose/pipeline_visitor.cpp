@@ -69,7 +69,7 @@ void PipelinePrinter::visit(const QueryNode *op) {
 }
 void PipelinePrinter::visit(const ComputeNode *op) {
     util::printIdent(os, ident);
-    os << "Compute " << op->f->getName()
+    os << "Compute " << op->f.name
        << " by passing in ";
     std::vector<AbstractDataType> true_args;
     for (const auto &ds : op->new_ds) {

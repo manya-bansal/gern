@@ -40,6 +40,27 @@ std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f) {
     return os;
 }
 
+Function Function::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
+    std::vector<Argument> new_args;
+    for (const auto &arg : args) {
+        if (isa<DSArg>(arg) &&
+            replacement.contains(to<DSArg>(arg)->getADTPtr())) {
+            new_args.push_back(replacement.at(to<DSArg>(arg)->getADTPtr()));
+        } else {
+            new_args.push_back(arg);
+        }
+    }
+    // Also change the annotation.
+    Function new_call{
+        .name = name,
+        .args = new_args,
+        .template_args = template_args,
+        .output = output,
+    };
+
+    return new_call;
+}
+
 const ComputeFunctionCall *AbstractFunction::generateComputeFunctionCall(std::vector<Argument> concrete_arguments) {
 
     Function f = getFunction();

@@ -48,6 +48,17 @@ bool ComputeFunctionCall::isTemplateArg(Variable v) const {
     return false;
 }
 
+ComputeFunctionCall ComputeFunctionCall::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
+
+    // Change the function call.
+    auto new_call = getCall().replaceAllDS(replacement);
+    // Also change the annotation.
+    auto new_annot = to<Pattern>(getAnnotation().replaceDSArgs(replacement));
+    return ComputeFunctionCall(new_call,
+                               new_annot,
+                               getHeader());
+}
+
 Compose::Compose(std::vector<Compose> compose)
     : Compose(Pipeline(compose)) {
 }
@@ -78,4 +89,25 @@ std::ostream &operator<<(std::ostream &os, const Compose &compose) {
     return os;
 }
 
+Compose Compose::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacements) const {
+    Compose c = *this;
+    compose_match(Compose(*this),
+                  std::function<void(const ComputeFunctionCall *, PipelineMatcher *)>(
+                      [&](const ComputeFunctionCall *op, PipelineMatcher *) {
+                          auto rw_call = op->replaceAllDS(replacements);
+                          c = new const ComputeFunctionCall(rw_call.getCall(),
+                                                            rw_call.getAnnotation(),
+                                                            rw_call.getHeader());
+                      }),
+                  std::function<void(const PipelineNode *, PipelineMatcher *)>(
+                      [&](const PipelineNode *op, PipelineMatcher *ctx) {
+                          std::vector<Compose> rw_compose;
+                          for (const auto &func : op->p.getFuncs()) {
+                              ctx->match(func);
+                              rw_compose.push_back(c);
+                          }
+                          c = Pipeline(rw_compose);
+                      }));
+    return c;
+}
 }  // namespace gern

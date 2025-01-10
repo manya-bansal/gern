@@ -70,13 +70,13 @@ public:
     std::set<AbstractDataTypePtr> getInputs() const;
     AbstractDataTypePtr getOutput() const;
     std::set<ComputeFunctionCallPtr> getConsumerFunctions(AbstractDataTypePtr) const;
-    ComputeFunctionCallPtr getProducerFunction(AbstractDataTypePtr ds) const;
 
     void accept(CompositionVisitorStrict *) const;
 
     std::set<AbstractDataTypePtr> getAllWriteDataStruct() const;  // This gathers all the data-structures written to in the pipeline.
     std::set<AbstractDataTypePtr> getAllReadDataStruct() const;   // This gathers all the data-structures written to in the pipeline.
 private:
+    ComputeFunctionCallPtr getProducerFunction(AbstractDataTypePtr ds) const;
     void init(std::vector<Compose> compose);  // Initializes private vars, and ensures that the user has constructed a valid pipeline.
     bool isIntermediate(AbstractDataTypePtr d) const;
 
@@ -87,7 +87,6 @@ private:
     const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
     const FreeNode *constructFreeNode(AbstractDataTypePtr);                          // Constructs a free node for a data-structure, and tracks this relationship.
     const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
-    const ComputeNode *constructComputeNode(ComputeFunctionCallPtr);                 // Constructs a compute node for teh pipeline, substituting any data-structures.
 
     std::vector<LowerIR> generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
@@ -158,12 +157,14 @@ struct QueryNode : public LowerIRNode {
 
 // IR Node marks a function call.
 struct ComputeNode : public LowerIRNode {
-    ComputeNode(ComputeFunctionCallPtr f, std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds)
-        : f(f), new_ds(new_ds) {
+    ComputeNode(Function f, std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds,
+                std::vector<std::string> headers)
+        : f(f), new_ds(new_ds), headers(headers) {
     }
     void accept(PipelineVisitor *) const;
-    ComputeFunctionCallPtr f;
+    Function f;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
+    std::vector<std::string> headers;
 };
 
 // To track the interval nodes that need to be generated

@@ -108,4 +108,9 @@ inline bool isa(Argument a) {
     return isa<E>(a.ptr);
 }
 
+template<typename E>
+inline const E *to(Argument a) {
+    return to<E>(a.ptr);
+}
+
 }  // namespace gern
