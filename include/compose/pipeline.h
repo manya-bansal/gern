@@ -267,13 +267,13 @@ public:
     }
 
     static AbstractDataTypePtr make(const std::string &name, AbstractDataTypePtr ds) {
-        return new const PipelineDS(name, ds.ptr->getType(),
-                                    ds.ptr->getFields(),
-                                    ds.ptr->getAllocateFunction(),
-                                    ds.ptr->getFreeFunction(),
-                                    ds.ptr->getInsertFunction(),
-                                    ds.ptr->getQueryFunction(),
-                                    ds.ptr->freeQuery());
+        return AbstractDataTypePtr(new const PipelineDS(name, ds.ptr->getType(),
+                                                        ds.ptr->getFields(),
+                                                        ds.ptr->getAllocateFunction(),
+                                                        ds.ptr->getFreeFunction(),
+                                                        ds.ptr->getInsertFunction(),
+                                                        ds.ptr->getQueryFunction(),
+                                                        ds.ptr->freeQuery()));
     }
 
 private:

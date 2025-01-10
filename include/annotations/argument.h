@@ -24,9 +24,6 @@ public:
         : dataStruct(dataStruct) {
     }
     AbstractDataTypePtr getADTPtr() const {
-        std::cout << "???" << std::endl;
-        std::cout << dataStruct.defined() << std::endl;
-        std::cout << dataStruct << std::endl;
         return dataStruct;
     }
     virtual void accept(ArgumentVisitorStrict *) const;
@@ -59,7 +56,6 @@ public:
     }
     Argument(AbstractDataTypePtr dataStuct)
         : Argument(new const DSArg(dataStuct)) {
-        std::cout << "here ----- " << std::endl;
     }
     Argument(Variable v)
         : Argument(new const VarArg(v)) {

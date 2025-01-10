@@ -20,10 +20,6 @@ TEST(PipelineTest, ReuseOutput) {
         add_f(tempDS, outputDS),
     });
 
-    std::cout << ".....&&&&&&&&&&&&&&&&&&&&&&&&&" << std::endl;
-
-    std::cout << "********" << std::endl
-              << inputDS << std::endl;
     // A pipeline can only assign to fresh outputs
     // each time.
     ASSERT_THROW(Pipeline p({
@@ -32,8 +28,6 @@ TEST(PipelineTest, ReuseOutput) {
                  }),
                  error::UserError);
 
-    std::cout << "where are you " << std::endl;
-    std::cout << "*******" << std::endl;
     // A pipeline can only assign to fresh outputs
     // each time. Should complain even if nested.
     ASSERT_THROW(Pipeline p({
@@ -55,9 +49,9 @@ TEST(PipelineTest, ReuseOutput) {
 }
 
 TEST(PipelineTest, NoReuseOutput) {
-    auto inputDS = Argument(new const annot::ArrayCPU("input_con"));
-    auto outputDS = Argument(new const annot::ArrayCPU("output_con"));
-    auto outputDS_new = Argument(new const annot::ArrayCPU("output_con_new"));
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto outputDS_new = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_new"));
 
     annot::add add_f;
 
@@ -77,9 +71,9 @@ TEST(PipelineTest, NoReuseOutput) {
 }
 
 TEST(PipelineTest, ExtraOutput) {
-    auto inputDS = Argument(new const annot::ArrayCPU("input_con"));
-    auto outputDS = Argument(new const annot::ArrayCPU("output_con"));
-    auto outputDS_new = Argument(new const annot::ArrayCPU("output_con_new"));
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto outputDS_new = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_new"));
 
     annot::add add_f;
 
@@ -123,29 +117,21 @@ TEST(PipelineTest, ExtraOutput) {
 }
 
 TEST(PipelineTest, AssignInput) {
-    Argument inputDS = Argument(AbstractDataTypePtr(new const annot::ArrayCPU("input_con")));
-    std::cout << inputDS << std::endl;
-    auto outputDS = Argument(new const annot::ArrayCPU("output_con"));
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 
     annot::add add_f;
-
-    std::cout << Pipeline({add_f(inputDS, outputDS)}) << std::endl;
-    // Gern does not allow assigning to "true" inputs.
     ASSERT_THROW(Pipeline p({
                      add_f(inputDS, outputDS),
                      add_f(outputDS, inputDS),
                  }),
                  error::UserError);
-
-    std::cout << inputDS << std::endl;
-    // std::cout << outputDS << std::endl;
 }
 
 TEST(PipelineTest, getConsumerFuncs) {
-
-    auto inputDS = new const annot::ArrayCPU("input_con");
-    auto outputDS = new const annot::ArrayCPU("output_con");
-    auto outputDS_new = new const annot::ArrayCPU("output_con_new");
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto outputDS_new = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_new"));
 
     annot::add add_f;
 

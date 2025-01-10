@@ -201,7 +201,7 @@ public:
     AbstractDataTypePtr()
         : util::IntrusivePtr<const AbstractDataType>(nullptr) {
     }
-    AbstractDataTypePtr(const AbstractDataType *n)
+    explicit AbstractDataTypePtr(const AbstractDataType *n)
         : util::IntrusivePtr<const AbstractDataType>(n) {
     }
     std::string getName() const {

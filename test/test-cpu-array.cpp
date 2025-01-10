@@ -73,8 +73,8 @@ TEST(LoweringCPU, SingleElemFunction) {
 }
 
 TEST(LoweringCPU, SingleReduceFunction) {
-    auto inputDS = new const annot::ArrayCPU("input_con");
-    auto outputDS = new const annot::ArrayCPU("output_con");
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 
     Variable v1("v1");
     Variable v2("v2");
@@ -99,8 +99,8 @@ TEST(LoweringCPU, SingleReduceFunction) {
     int64_t var2 = 1;
 
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {v2.getName(), &var2},
         {v1.getName(), &var1},
     }));
@@ -114,8 +114,8 @@ TEST(LoweringCPU, SingleReduceFunction) {
     // Run again, we should be able to
     // repeatedly used the compiled pipeline.
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {v2.getName(), &var2},
         {v1.getName(), &var1},
     }));
@@ -127,8 +127,8 @@ TEST(LoweringCPU, SingleReduceFunction) {
     // Try running with insufficient number
     // of arguments.
     ASSERT_THROW(run.evaluate({
-                     {inputDS->getName(), &a},
-                     {outputDS->getName(), &b},
+                     {inputDS.getName(), &a},
+                     {outputDS.getName(), &b},
                  }),
                  error::UserError);
 
@@ -137,9 +137,9 @@ TEST(LoweringCPU, SingleReduceFunction) {
 }
 
 TEST(LoweringCPU, MultiFunc) {
-    auto inputDS = new const annot::ArrayCPU("input");
-    auto tempDS = new const annot::ArrayCPU("temp");
-    auto outputDS = new const annot::ArrayCPU("output");
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
 
     annot::add add_f;
     Variable v("v");
@@ -163,8 +163,8 @@ TEST(LoweringCPU, MultiFunc) {
 
     // Temp should not be included.
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &c},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &c},
         {v.getName(), &var2},
         {step.getName(), &var1},
     }));
@@ -173,11 +173,14 @@ TEST(LoweringCPU, MultiFunc) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(c.data[i] == 6.0f);
     }
+
+    a.destroy();
+    c.destroy();
 }
 
 TEST(LoweringCPU, SingleElemFunctionTemplated) {
-    auto inputDS = new const annot::ArrayCPU("input_con");
-    auto outputDS = new const annot::ArrayCPU("output_con");
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 
     annot::addTemplate add_f;
     Variable v("v");
@@ -214,8 +217,8 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
 
     // Complain because the user is trying to set step.
     ASSERT_THROW(run2.evaluate({
-                     {inputDS->getName(), &a},
-                     {outputDS->getName(), &b},
+                     {inputDS.getName(), &a},
+                     {outputDS.getName(), &b},
                      {v.getName(), &var},
                      {step.getName(), &step_val},
                  }),
@@ -223,8 +226,8 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
 
     // No problem now.
     ASSERT_NO_THROW(run2.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {v.getName(), &var},
     }));
 
@@ -238,9 +241,9 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
 }
 
 TEST(LoweringCPU, MultiFunctionTemplated) {
-    auto inputDS = new const annot::ArrayCPU("input");
-    auto tempDS = new const annot::ArrayCPU("temp");
-    auto outputDS = new const annot::ArrayCPU("output");
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
 
     annot::addTemplate add_f;
     Variable v("v");
@@ -263,8 +266,8 @@ TEST(LoweringCPU, MultiFunctionTemplated) {
 
     // Temp should not be included.
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &c},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &c},
         {v.getName(), &var2},
     }));
 
@@ -272,12 +275,15 @@ TEST(LoweringCPU, MultiFunctionTemplated) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(c.data[i] == 6.0f);
     }
+
+    a.destroy();
+    c.destroy();
 }
 
 TEST(LoweringCPU, OverspecifiedGrid) {
-    auto inputDS = new const annot::ArrayCPU("input_con");
-    auto tempDS = new const annot::ArrayCPU("temp");
-    auto outputDS = new const annot::ArrayCPU("output_con");
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
 
     annot::addTemplate add_f;
     Variable v("v");

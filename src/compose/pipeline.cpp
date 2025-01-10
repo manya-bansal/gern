@@ -29,7 +29,6 @@ std::ostream &operator<<(std::ostream &os, const LowerIR &n) {
 Pipeline::Pipeline(std::vector<Compose> compose)
     : compose(compose) {
     init(compose);
-    std::cout << "where" << std::endl;
 }
 
 Pipeline &Pipeline::at_device() {
@@ -177,12 +176,9 @@ void Pipeline::init(std::vector<Compose> compose) {
                 return;
             }
             for (const auto &c : compose) {
-                std::cout << "test" << std::endl;
-                std::cout << c << std::endl;
                 this->visit(c);
             }
 
-            std::cout << "Not out" << std::endl;
             // Remove true_output (the last output produced) from intermediates.
             intermediates.erase(true_output);
             // For all intermediates, ensure that it gets read at least once.
@@ -195,8 +191,6 @@ void Pipeline::init(std::vector<Compose> compose) {
 
         using CompositionVisitorStrict::visit;
         void visit(const ComputeFunctionCall *node) {
-            std::cout << "test 1" << std::endl;
-            std::cout << *node << std::endl;
             // Add output to intermediates.
             AbstractDataTypePtr output = node->getOutput();
             std::set<AbstractDataTypePtr> func_inputs = node->getInputs();
@@ -223,8 +217,6 @@ void Pipeline::init(std::vector<Compose> compose) {
         }
 
         void visit(const PipelineNode *node) {
-            std::cout << "test 2" << std::endl;
-            std::cout << node->p << std::endl;
             // Add output to intermediates.
             AbstractDataTypePtr output = node->p.getOutput();
             if (all_inputs.contains(output)) {
@@ -259,13 +251,10 @@ void Pipeline::init(std::vector<Compose> compose) {
     };
 
     DataFlowConstructor df(compose);
-    std::cout << "here" << std::endl;
     df.construct();
-    std::cout << "never out " << std::endl;
     intermediates = df.intermediates;
     true_output = df.true_output;
     outputs_in_order = df.outputs_in_order;
-    std::cout << "returning??" << std::endl;
 }
 
 std::set<AbstractDataTypePtr> Pipeline::getAllWriteDataStruct() const {

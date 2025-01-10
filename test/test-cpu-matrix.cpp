@@ -13,8 +13,8 @@
 using namespace gern;
 
 TEST(LoweringCPU, MatrixCPUAdd) {
-    auto inputDS = new const annot::MatrixCPU("input_con");
-    auto outputDS = new const annot::MatrixCPU("output_con");
+    auto inputDS = AbstractDataTypePtr(new const annot::MatrixCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::MatrixCPU("output_con"));
 
     annot::MatrixAddCPU add;
     Variable row("row");
@@ -46,8 +46,8 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     int64_t l_y_val = 5;
 
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {row.getName(), &row_val},
         {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
@@ -63,8 +63,8 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     b.vvals(7.0f);
     l_y_val = 2;
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {row.getName(), &row_val},
         {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},

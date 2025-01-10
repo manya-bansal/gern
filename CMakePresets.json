@@ -22,7 +22,7 @@
         "VCPKG_MANIFEST_FEATURES": "dev",
         "BUILD_SHARED_LIBS": "ON",
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -pedantic -fsanitize=address -fno-omit-frame-pointer"
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -pedantic"
       }
     }
   ]

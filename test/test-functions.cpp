@@ -9,9 +9,9 @@
 using namespace gern;
 
 TEST(Functions, SingleFunction) {
-    auto inputDS = new const annot::ArrayCPU("input_con");
-    auto outputDS = new const annot::ArrayCPU("output_con");
-    auto output_2_DS = new const annot::ArrayCPU("output_con_2");
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto output_2_DS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_2"));
 
     annot::add add_f;
     const ComputeFunctionCall *concreteCall1 = add_f(inputDS, outputDS);

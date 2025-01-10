@@ -14,8 +14,8 @@
 using namespace gern;
 
 TEST(LoweringGPU, MatrixGPUAddNoBind) {
-    auto inputDS = new const annot::MatrixGPU("input_con");
-    auto outputDS = new const annot::MatrixGPU("output_con");
+    auto inputDS = AbstractDataTypePtr(new const annot::MatrixGPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::MatrixGPU("output_con"));
 
     annot::MatrixAddGPU add;
     Variable row("row");
@@ -48,8 +48,8 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
     int64_t l_y_val = 5;
 
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {row.getName(), &row_val},
         {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
@@ -66,8 +66,8 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
     b.vvals(7.0f);
     l_y_val = 2;
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {row.getName(), &row_val},
         {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
@@ -84,8 +84,8 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
 }
 
 TEST(LoweringGPU, MatrixGPUAddSingleBind) {
-    auto inputDS = new const annot::MatrixGPU("input_con");
-    auto outputDS = new const annot::MatrixGPU("output_con");
+    auto inputDS = AbstractDataTypePtr(new const annot::MatrixGPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::MatrixGPU("output_con"));
 
     annot::MatrixAddGPU add;
     Variable row("row");
@@ -126,8 +126,8 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
     int64_t l_y_val = 5;
 
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {row.getName(), &row_val},
         {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
@@ -146,8 +146,8 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
 }
 
 TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
-    auto inputDS = new const annot::MatrixGPU("input_con");
-    auto outputDS = new const annot::MatrixGPU("output_con");
+    auto inputDS = AbstractDataTypePtr(new const annot::MatrixGPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::MatrixGPU("output_con"));
 
     annot::MatrixAddGPU add;
     Variable row("row");
@@ -191,8 +191,8 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     int64_t l_y_val = 5;
 
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {row.getName(), &row_val},
         {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
