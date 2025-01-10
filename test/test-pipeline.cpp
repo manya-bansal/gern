@@ -105,9 +105,8 @@ TEST(PipelineTest, ExtraOutput) {
     ASSERT_THROW(Pipeline p({
                      Compose({
                          Compose({
-                             Compose({
-                                 add_f(inputDS, outputDS_new),
-                             }),
+                             Compose(
+                                 add_f(inputDS, outputDS_new)),
                          }),
                      }),
 
