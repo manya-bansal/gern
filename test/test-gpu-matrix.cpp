@@ -14,8 +14,8 @@
 using namespace gern;
 
 TEST(LoweringGPU, MatrixGPUAddNoBind) {
-    auto inputDS = std::make_shared<const annot::MatrixGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::MatrixGPU>("output_con");
+    auto inputDS = new const annot::MatrixGPU("input_con");
+    auto outputDS = new const annot::MatrixGPU("output_con");
 
     annot::MatrixAddGPU add;
     Variable row("row");
@@ -84,8 +84,8 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
 }
 
 TEST(LoweringGPU, MatrixGPUAddSingleBind) {
-    auto inputDS = std::make_shared<const annot::MatrixGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::MatrixGPU>("output_con");
+    auto inputDS = new const annot::MatrixGPU("input_con");
+    auto outputDS = new const annot::MatrixGPU("output_con");
 
     annot::MatrixAddGPU add;
     Variable row("row");
@@ -146,8 +146,8 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
 }
 
 TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
-    auto inputDS = std::make_shared<const annot::MatrixGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::MatrixGPU>("output_con");
+    auto inputDS = new const annot::MatrixGPU("input_con");
+    auto outputDS = new const annot::MatrixGPU("output_con");
 
     annot::MatrixAddGPU add;
     Variable row("row");

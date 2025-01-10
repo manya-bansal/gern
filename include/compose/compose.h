@@ -63,11 +63,11 @@ std::ostream &operator<<(std::ostream &os, const Compose &);
 // templated arguments, and a return type.
 struct Function {
     std::string name;
-    std::vector<Argument> args;
+    std::vector<Argument> args = {};
     // Only int64_t args allowed rn.
-    std::vector<Variable> template_args;
+    std::vector<Variable> template_args = {};
     // To model an explict return. Currently, no compute function can return.
-    Argument output;
+    Argument output = Argument();
 
     /**
      * @brief Replace the data-structures in the function.
