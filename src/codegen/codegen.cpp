@@ -300,24 +300,34 @@ CGStmt CodeGenerator::gen(Assign a, bool const_expr) {
         gen(a.getB()));
 }
 
-CGExpr CodeGenerator::gen(Argument a) {
+CGExpr CodeGenerator::gen(Argument a, bool lhs) {
 
     struct GenArgument : public ArgumentVisitorStrict {
-        GenArgument(CodeGenerator *cg)
-            : cg(cg) {
+        GenArgument(CodeGenerator *cg, bool lhs)
+            : cg(cg), lhs(lhs) {
         }
         using ArgumentVisitorStrict::visit;
         void visit(const DSArg *ds) {
             cg->used_adt.insert(ds->getADTPtr());
-            gen_expr = Var::make(ds->getADTPtr()->getName());
+            if (lhs) {
+                gen_expr = cg->declADT(ds->getADTPtr());
+            } else {
+                gen_expr = Var::make(ds->getADTPtr()->getName());
+            }
         }
         void visit(const VarArg *ds) {
-            gen_expr = cg->gen(ds->getVar());
+            if (lhs) {
+                gen_expr = cg->declVar(ds->getVar(), false);
+            } else {
+                gen_expr = cg->gen(ds->getVar());
+            }
         }
+
         CodeGenerator *cg;
+        bool lhs;
         CGExpr gen_expr;
     };
-    GenArgument generate(this);
+    GenArgument generate(this, lhs);
     generate.visit(a);
     return generate.gen_expr;
 }
@@ -332,7 +342,11 @@ CGStmt CodeGenerator::gen(Function f) {
         template_args.push_back(gen(a, true));  // All of these are const_expr;
     }
 
-    return VoidCall::make(Call::make(f.name, args, template_args));
+    CGExpr call = Call::make(f.name, args, template_args);
+    if (f.output.defined()) {
+        return VarAssign::make(gen(f.output, true), call);
+    }
+    return VoidCall::make(call);
 }
 
 void CodeGenerator::insertInUsed(Variable v) {
@@ -360,6 +374,13 @@ CGExpr CodeGenerator::declVar(Variable v, bool const_expr) {
     return VarDecl::make(Type::make((const_expr ? "constexpr " : "") +
                                     v.getType().str()),
                          v.getName());
+}
+
+CGExpr CodeGenerator::declADT(AbstractDataTypePtr ds) {
+    CGExpr decl = VarDecl::make(Type::make(ds->getType()),
+                                ds->getName());
+    declared_adt.insert(ds);
+    return decl;
 }
 
 static CGExpr genProp(const Grid::Property &p) {

@@ -49,21 +49,23 @@ public:
      * @param replacements Optional map to make replacements.
      * @return CGExpr
      */
-    CGExpr gen(Argument a);
+    CGExpr gen(Argument a, bool lhs = false);
 
     // To insert used variables.
     void insertInUsed(Variable);
     void insertInConstExpr(Variable);
+
+    // Little helper to make sure that
+    // that once a var is declared, it's been
+    // add to the declared set.
+    CGExpr declVar(Variable v, bool const_expr);
+    CGExpr declADT(AbstractDataTypePtr);
 
     std::string getName() const;
     std::string getHookName() const;
     std::vector<std::string> getArgumentOrder() const;
 
 private:
-    // Little helper to make sure that
-    // that once a var is declared, it's been
-    // add to the declared set.
-    CGExpr declVar(Variable v, bool const_expr);
     CGStmt setGrid(const IntervalNode *op);
 
     std::string name;
