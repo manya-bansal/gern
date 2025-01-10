@@ -72,26 +72,22 @@ struct Function {
 class ComputeFunctionCall : public CompositionObject {
 public:
     ComputeFunctionCall() = delete;
-    ComputeFunctionCall(const std::string &name,
+    ComputeFunctionCall(Function call,
                         Pattern annotation,
-                        std::vector<Argument> arguments,
-                        std::vector<std::string> header,
-                        std::vector<Variable> template_args)
-        : name(name), annotation(annotation),
-          arguments(arguments), header(header),
-          template_args(template_args) {
+                        std::vector<std::string> header)
+        : call(call), annotation(annotation), header(header) {
     }
     const std::string &getName() const {
-        return name;
+        return call.name;
     }
     const Pattern &getAnnotation() const {
         return annotation;
     }
     const std::vector<Argument> &getArguments() const {
-        return arguments;
+        return call.args;
     }
     const std::vector<Variable> &getTemplateArguments() const {
-        return template_args;
+        return call.template_args;
     }
     /**
      * @brief Returns the data structure that the function computes as output.
@@ -158,11 +154,9 @@ public:
     void accept(CompositionVisitorStrict *v) const;
 
 private:
-    std::string name;
+    Function call;
     Pattern annotation;
-    std::vector<Argument> arguments;
     std::vector<std::string> header;
-    std::vector<Variable> template_args;
 };
 
 std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f);

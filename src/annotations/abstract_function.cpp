@@ -110,7 +110,14 @@ const ComputeFunctionCall *AbstractFunction::generateComputeFunctionCall(std::ve
                                             .replaceDSArgs(abstract_to_concrete_adt)
                                             .replaceVariables(fresh_names));
 
-    return new const ComputeFunctionCall(f.name, rw_annotation, concrete_arguments, getHeader(), template_args);
+    Function call{
+        .name = f.name,
+        .args = concrete_arguments,
+        .template_args = template_args,
+        .output = f.output,
+    };
+
+    return new const ComputeFunctionCall(call, rw_annotation, getHeader());
 }
 
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {
