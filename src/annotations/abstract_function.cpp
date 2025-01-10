@@ -42,10 +42,11 @@ std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f) {
 
 const ComputeFunctionCall *AbstractFunction::generateComputeFunctionCall(std::vector<Argument> concrete_arguments) {
 
-    auto abstract_arguments = getArguments();
+    Function f = getFunction();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> abstract_to_concrete_adt;
     std::map<Variable, Variable> fresh_names;
 
+    auto abstract_arguments = f.args;
     if (concrete_arguments.size() != abstract_arguments.size()) {
         throw error::UserError("Size of both arguments should be the same");
     }
@@ -59,20 +60,24 @@ const ComputeFunctionCall *AbstractFunction::generateComputeFunctionCall(std::ve
         }
 
         if (isa<DSArg>(abstract_arg)) {
-            const DSArg *abstract_ds = to<DSArg>(abstract_arg.get());
-            const DSArg *concrete_ds = to<DSArg>(conc_arg.get());
+            auto abstract_ds = to<DSArg>(abstract_arg.get());
+            auto concrete_ds = to<DSArg>(conc_arg.get());
             abstract_to_concrete_adt[abstract_ds->getADTPtr()] = concrete_ds->getADTPtr();
         }
 
         if (isa<VarArg>(abstract_arg)) {
-            const VarArg *abstract_ds = to<VarArg>(abstract_arg.get());
-            const VarArg *concrete_ds = to<VarArg>(conc_arg.get());
+            auto abstract_ds = to<VarArg>(abstract_arg.get());
+            auto concrete_ds = to<VarArg>(conc_arg.get());
             fresh_names[abstract_ds->getVar()] = concrete_ds->getVar();
         }
     }
 
-    Pattern annotation = getAnnotation();
-    std::set<Variable> old_vars = getVariables(annotation);
+    for (const auto &template_arg : f.template_args) {
+        fresh_names[template_arg] = getUniqueName("_gern_" + template_arg.getName());
+    }
+
+    auto annotation = getAnnotation();
+    auto old_vars = getVariables(annotation);
     // Convert all variables to fresh names for each
     // individual callsite.
     for (const auto &v : old_vars) {
@@ -85,18 +90,19 @@ const ComputeFunctionCall *AbstractFunction::generateComputeFunctionCall(std::ve
         if (fresh_names.count(v) > 0) {
             continue;
         }
+        // Otherwise, generate a new name.
         fresh_names[v] = getUniqueName("_gern_" + v.getName());
     }
 
     // The binding is only valid for one use, erase it now.
     bindings = {};
 
-    std::vector<Variable> templated_args;
-    for (const auto &v : getTemplateArguments()) {
+    std::vector<Variable> template_args;
+    for (const auto &v : f.template_args) {
         if (fresh_names.contains(v)) {
-            templated_args.push_back(fresh_names.at(v));
+            template_args.push_back(fresh_names.at(v));
         } else {
-            templated_args.push_back(v);
+            template_args.push_back(v);
         }
     }
 
@@ -104,7 +110,7 @@ const ComputeFunctionCall *AbstractFunction::generateComputeFunctionCall(std::ve
                                             .replaceDSArgs(abstract_to_concrete_adt)
                                             .replaceVariables(fresh_names));
 
-    return new const ComputeFunctionCall(getName(), rw_annotation, concrete_arguments, getHeader(), templated_args);
+    return new const ComputeFunctionCall(f.name, rw_annotation, concrete_arguments, getHeader(), template_args);
 }
 
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {

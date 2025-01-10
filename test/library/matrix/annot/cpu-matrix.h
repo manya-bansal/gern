@@ -67,6 +67,13 @@ public:
         };
     }
 
+    virtual Function getFunction() override {
+        Function f;
+        f.name = "gern::impl::add";
+        f.args = {Argument(input), Argument(output)};
+        return f;
+    }
+
 private:
     std::shared_ptr<MatrixCPU> input;
     std::shared_ptr<MatrixCPU> output;

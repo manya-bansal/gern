@@ -1,6 +1,7 @@
 #pragma once
 
 #include "annotations/abstract_function.h"
+#include "library/array/annot/cpu-array.h"
 
 namespace gern {
 namespace annot {
@@ -26,30 +27,10 @@ private:
 };
 
 // This *must* be a device function.
-class addGPU : public AbstractFunction {
+class addGPU : public add {
 public:
     addGPU()
-        : input(std::make_shared<ArrayGPU>("input")),
-          output(std::make_shared<ArrayGPU>("output")) {
-    }
-    std::string getName() {
-        return "add";
-    }
-
-    Pattern getAnnotation() {
-        Variable x("x");
-        Variable step("step");
-
-        return For(x = Expr(0), end, step,
-                   Produces::Subset(output, {x, step}),
-                   Consumes::Subset(input, {x, step}));
-    }
-
-    std::vector<Argument> getArguments() {
-        return {
-            Argument(input),
-            Argument(output),
-        };
+        : add() {
     }
 
     std::vector<std::string> getHeader() {
@@ -64,7 +45,7 @@ private:
     Variable end{"end"};
 };
 
-class reductionGPU : public AbstractFunction {
+class reductionGPU : public reduction {
 public:
     reductionGPU()
         : input(std::make_shared<ArrayGPU>("input")),
@@ -95,6 +76,13 @@ public:
         return {
             "gpu-array.h",
         };
+    }
+
+    virtual Function getFunction() override {
+        Function f;
+        f.name = "gern::impl::add";
+        f.args = {Argument(input), Argument(output)};
+        return f;
     }
 
 private:

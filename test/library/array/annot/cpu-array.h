@@ -53,6 +53,13 @@ public:
         };
     }
 
+    virtual Function getFunction() override {
+        Function f;
+        f.name = "gern::impl::add";
+        f.args = {Argument(input), Argument(output)};
+        return f;
+    }
+
     std::vector<std::string> getHeader() {
         return {
             "cpu-array.h",
@@ -75,8 +82,12 @@ public:
         return "gern::impl::addTemplate";
     }
 
-    std::vector<Variable> getTemplateArguments() override {
-        return {step};
+    virtual Function getFunction() override {
+        Function f;
+        f.name = "gern::impl::addTemplate";
+        f.args = {Argument(input), Argument(output)};
+        f.template_args = {step};
+        return f;
     }
 };
 
@@ -118,7 +129,14 @@ public:
         };
     }
 
-private:
+    virtual Function getFunction() override {
+        Function f;
+        f.name = "gern::impl::add";
+        f.args = {Argument(input), Argument(output)};
+        return f;
+    }
+
+protected:
     std::shared_ptr<annot::ArrayCPU> input;
     std::shared_ptr<annot::ArrayCPU> output;
 };

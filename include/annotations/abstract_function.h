@@ -24,14 +24,9 @@ public:
     // Not marking these functions as constant
     // because users can meta-program these class
     // using cpp if they would like.
-    virtual std::string getName() = 0;
     virtual Pattern getAnnotation() = 0;
-    virtual std::vector<Argument> getArguments() = 0;
     virtual std::vector<std::string> getHeader() = 0;
-    // Only allowing int64_t template args rn...
-    virtual std::vector<Variable> getTemplateArguments() {
-        return {};
-    }
+    virtual Function getFunction() = 0;
 
     AbstractFunction &operator[](const std::map<std::string, Variable> &replacements) {
         bindVariables(replacements);
@@ -53,8 +48,8 @@ public:
     }
 
     const ComputeFunctionCall *operator()() {
-        if (getArguments().size() != 0) {
-            throw error::UserError("Called function " + getName() + " with 0 arguments");
+        if (getFunction().args.size() != 0) {
+            throw error::UserError("Called function " + getFunction().name + " with 0 arguments");
         }
         return generateComputeFunctionCall({});
     }

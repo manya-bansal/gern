@@ -2,6 +2,7 @@
 
 #include "annotations/abstract_function.h"
 #include "config.h"
+#include "library/matrix/annot/cpu-matrix.h"
 #include "test-utils.h"
 #include <iostream>
 
@@ -28,37 +29,10 @@ private:
     std::string name;
 };
 
-class MatrixAddGPU : public AbstractFunction {
+class MatrixAddGPU : public MatrixAddCPU {
 public:
     MatrixAddGPU()
-        : input(std::make_shared<MatrixGPU>("input")),
-          output(std::make_shared<MatrixGPU>("output")) {
-    }
-    std::string getName() {
-        return "gern::impl::add";
-    }
-
-    Pattern getAnnotation() {
-
-        Variable x("x");
-        Variable y("y");
-        Variable l_x("l_x");
-        Variable l_y("l_y");
-
-        Variable row("row");
-        Variable col("col");
-
-        return For(x = Expr(0), row, l_x,
-                   For(y = Expr(0), col, l_y,
-                       Produces::Subset(input, {x, y, l_x, l_y}),
-                       Consumes::Subset(output, {x, y, l_x, l_y})));
-    }
-
-    std::vector<Argument> getArguments() {
-        return {
-            Argument(input),
-            Argument(output),
-        };
+        : MatrixAddCPU() {
     }
 
     std::vector<std::string> getHeader() {
@@ -66,11 +40,6 @@ public:
             "gpu-matrix.h",
         };
     }
-
-private:
-    std::shared_ptr<MatrixGPU> input;
-    std::shared_ptr<MatrixGPU> output;
-    Variable end{"end"};
 };
 
 }  // namespace annot

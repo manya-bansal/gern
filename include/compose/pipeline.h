@@ -87,7 +87,7 @@ private:
     const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
     const FreeNode *constructFreeNode(AbstractDataTypePtr);                          // Constructs a free node for a data-structure, and tracks this relationship.
     const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
-    const ComputeNode *constructComputeNode(ComputeFunctionCallPtr);                        // Constructs a compute node for teh pipeline, substituting any data-structures.
+    const ComputeNode *constructComputeNode(ComputeFunctionCallPtr);                 // Constructs a compute node for teh pipeline, substituting any data-structures.
 
     std::vector<LowerIR> generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
