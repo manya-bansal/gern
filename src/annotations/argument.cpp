@@ -11,6 +11,7 @@ void Argument::accept(ArgumentVisitorStrict *v) const {
 }
 
 std::ostream &operator<<(std::ostream &os, const Argument &a) {
+    std::cout << "here !!!!! " << std::endl;
     ArgumentPrinter print(os);
     print.visit(a);
     return os;

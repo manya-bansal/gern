@@ -165,11 +165,11 @@ class AbstractDataType : public util::Manageable<AbstractDataType>,
                          public util::Uncopyable {
 public:
     AbstractDataType() = default;
+    virtual ~AbstractDataType() = default;
 
     AbstractDataType(const std::string &name, const std::string &type)
         : name(name), type(type) {
     }
-    virtual ~AbstractDataType() = default;
 
     virtual std::string getName() const {
         return name;

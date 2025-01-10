@@ -51,11 +51,12 @@ public:
     Argument()
         : util::IntrusivePtr<const ArgumentNode>(nullptr) {
     }
-    Argument(const ArgumentNode *a)
+    explicit Argument(const ArgumentNode *a)
         : util::IntrusivePtr<const ArgumentNode>(a) {
     }
     Argument(AbstractDataTypePtr dataStuct)
         : Argument(new const DSArg(dataStuct)) {
+        std::cout << "here ----- " << std::endl;
     }
     Argument(Variable v)
         : Argument(new const VarArg(v)) {
@@ -72,12 +73,17 @@ argument.
 */
 [[maybe_unused]] static void addArgument(std::vector<Argument> &vector,
                                          AbstractDataTypePtr dataStruct) {
-    vector.push_back(new const DSArg(dataStruct));
+    vector.push_back(Argument(new const DSArg(dataStruct)));
 }
 
 [[maybe_unused]] static void addArgument(std::vector<Argument> &vector,
                                          Variable v) {
-    vector.push_back(new const VarArg(v));
+    vector.push_back(Argument(new const VarArg(v)));
+}
+
+[[maybe_unused]] static void addArgument(std::vector<Argument> &vector,
+                                         Argument a) {
+    vector.push_back(a);
 }
 
 [[maybe_unused]] static void addArguments(std::vector<Argument> &arg) {
