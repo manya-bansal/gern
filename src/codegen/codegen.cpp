@@ -168,19 +168,7 @@ void CodeGenerator::visit(const QueryNode *op) {
 }
 
 void CodeGenerator::visit(const ComputeNode *op) {
-
-    std::string func_call = op->f.name;
-    std::vector<CGExpr> args;
-    for (auto a : op->f.args) {
-        args.push_back(gen(a));
-    }
-    std::vector<CGExpr> template_args;
-    for (auto a : op->f.template_args) {
-        template_args.push_back(gen(a, true));  // All of these are const_expr;
-    }
-
-    code = VoidCall::make(Call::make(func_call, args, template_args));
-
+    code = gen(op->f);
     // Add the header.
     std::vector<std::string> func_header = op->headers;
     headers.insert(func_header.begin(), func_header.end());
@@ -332,6 +320,19 @@ CGExpr CodeGenerator::gen(Argument a) {
     GenArgument generate(this);
     generate.visit(a);
     return generate.gen_expr;
+}
+
+CGStmt CodeGenerator::gen(Function f) {
+    std::vector<CGExpr> args;
+    for (const auto &a : f.args) {
+        args.push_back(gen(a));
+    }
+    std::vector<CGExpr> template_args;
+    for (auto a : f.template_args) {
+        template_args.push_back(gen(a, true));  // All of these are const_expr;
+    }
+
+    return VoidCall::make(Call::make(f.name, args, template_args));
 }
 
 void CodeGenerator::insertInUsed(Variable v) {

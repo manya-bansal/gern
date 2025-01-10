@@ -30,6 +30,7 @@ public:
 
     CGExpr gen(Expr, bool const_expr = false);  // Is this part of the LHS of a const_expr?
     CGExpr gen(Constraint);
+    CGStmt gen(Function);
     // Assign in used to track all the variables
     // that have been declared during lowering. The
     // const_expr tracks whether the assignment is
