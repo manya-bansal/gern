@@ -71,11 +71,7 @@ void PipelinePrinter::visit(const ComputeNode *op) {
     util::printIdent(os, ident);
     os << "Compute " << op->f.name
        << " by passing in ";
-    std::vector<AbstractDataType> true_args;
-    for (const auto &ds : op->new_ds) {
-        true_args.push_back(*(ds.second.get()));
-    }
-    vector_printer(os, true_args);
+    vector_printer(os, op->f.args);
 }
 
 void PipelinePrinter::visit(const IntervalNode *op) {

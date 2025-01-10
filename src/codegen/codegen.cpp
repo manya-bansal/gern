@@ -172,7 +172,7 @@ void CodeGenerator::visit(const ComputeNode *op) {
     std::string func_call = op->f.name;
     std::vector<CGExpr> args;
     for (auto a : op->f.args) {
-        args.push_back(gen(a, op->new_ds));
+        args.push_back(gen(a));
     }
     std::vector<CGExpr> template_args;
     for (auto a : op->f.template_args) {
@@ -312,12 +312,11 @@ CGStmt CodeGenerator::gen(Assign a, bool const_expr) {
         gen(a.getB()));
 }
 
-CGExpr CodeGenerator::gen(Argument a, const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements) {
+CGExpr CodeGenerator::gen(Argument a) {
 
     struct GenArgument : public ArgumentVisitorStrict {
-        GenArgument(CodeGenerator *cg,
-                    const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements)
-            : cg(cg), replacements(replacements) {
+        GenArgument(CodeGenerator *cg)
+            : cg(cg) {
         }
         using ArgumentVisitorStrict::visit;
         void visit(const DSArg *ds) {
@@ -328,10 +327,9 @@ CGExpr CodeGenerator::gen(Argument a, const std::map<AbstractDataTypePtr, Abstra
             gen_expr = cg->gen(ds->getVar());
         }
         CodeGenerator *cg;
-        const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements;
         CGExpr gen_expr;
     };
-    GenArgument generate(this, replacements);
+    GenArgument generate(this);
     generate.visit(a);
     return generate.gen_expr;
 }

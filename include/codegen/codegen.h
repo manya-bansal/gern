@@ -48,9 +48,7 @@ public:
      * @param replacements Optional map to make replacements.
      * @return CGExpr
      */
-    CGExpr gen(Argument a,
-               const std::map<AbstractDataTypePtr,
-                              AbstractDataTypePtr> &replacements = {});
+    CGExpr gen(Argument a);
 
     // To insert used variables.
     void insertInUsed(Variable);

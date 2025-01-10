@@ -92,10 +92,9 @@ private:
     std::vector<LowerIR> generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
 
     std::vector<Compose> compose;
-    std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
-
     std::vector<LowerIR> lowered;
     std::vector<Assign> variable_definitions;
+    std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
 
     std::set<AbstractDataTypePtr> intermediates;        // All the intermediates visible to this pipeline.
     std::vector<AbstractDataTypePtr> outputs_in_order;  // All the intermediates produces in reverse order.
@@ -157,13 +156,12 @@ struct QueryNode : public LowerIRNode {
 
 // IR Node marks a function call.
 struct ComputeNode : public LowerIRNode {
-    ComputeNode(Function f, std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds,
+    ComputeNode(Function f,
                 std::vector<std::string> headers)
-        : f(f), new_ds(new_ds), headers(headers) {
+        : f(f), headers(headers) {
     }
     void accept(PipelineVisitor *) const;
     Function f;
-    std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
     std::vector<std::string> headers;
 };
 

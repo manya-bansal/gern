@@ -141,9 +141,9 @@ void Pipeline::visit(const ComputeFunctionCall *c) {
         }
     }
 
+    // Rewrite the call with the queries and actually construct the compute node.
     Function new_call = c->getCall().replaceAllDS(new_ds);
-    // Actually construct the compute node.
-    temp.push_back(new const ComputeNode(new_call, {}, c->getHeader()));
+    temp.push_back(new const ComputeNode(new_call, c->getHeader()));
 
     // Now generate all the consumer intervals if any!
     std::vector<LowerIR> intervals = generateConsumesIntervals(c, temp);
