@@ -49,12 +49,12 @@ AbstractDataTypePtr Pipeline::getOutput() const {
     return true_output;
 }
 
-std::set<FunctionCallPtr> Pipeline::getConsumerFunctions(AbstractDataTypePtr ds) const {
-    std::set<FunctionCallPtr> funcs;
+std::set<ComputeFunctionCallPtr> Pipeline::getConsumerFunctions(AbstractDataTypePtr ds) const {
+    std::set<ComputeFunctionCallPtr> funcs;
     // Only the consumes part of the annotation has
     // multiple subsets, so, we will only ever get the inputs.
-    compose_match(Compose(*this), std::function<void(const FunctionCall *)>(
-                                      [&](const FunctionCall *op) {
+    compose_match(Compose(*this), std::function<void(const ComputeFunctionCall *)>(
+                                      [&](const ComputeFunctionCall *op) {
                                           if (op->getInputs().contains(ds)) {
                                               funcs.insert(op);
                                           }
@@ -62,12 +62,12 @@ std::set<FunctionCallPtr> Pipeline::getConsumerFunctions(AbstractDataTypePtr ds)
     return funcs;
 }
 
-FunctionCallPtr Pipeline::getProducerFunction(AbstractDataTypePtr ds) const {
-    FunctionCallPtr func;
+ComputeFunctionCallPtr Pipeline::getProducerFunction(AbstractDataTypePtr ds) const {
+    ComputeFunctionCallPtr func;
     // Only the consumes part of the annotation has
     // multiple subsets, so, we will only ever get the inputs.
-    compose_match(Compose(*this), std::function<void(const FunctionCall *)>(
-                                      [&](const FunctionCall *op) {
+    compose_match(Compose(*this), std::function<void(const ComputeFunctionCall *)>(
+                                      [&](const ComputeFunctionCall *op) {
                                           if (op->getOutput() == ds) {
                                               func = op;
                                           }
@@ -104,7 +104,7 @@ void Pipeline::lower() {
     // right now, gern will complain if you try.
     // Now generate the outer loops.
     lowered = generateOuterIntervals(
-        to<FunctionCall>(compose[compose.size() - 1].ptr), lowered);
+        to<ComputeFunctionCall>(compose[compose.size() - 1].ptr), lowered);
     has_been_lowered = true;
 }
 
@@ -118,7 +118,7 @@ std::ostream &operator<<(std::ostream &os, const Pipeline &p) {
     return os;
 }
 
-void Pipeline::visit(const FunctionCall *c) {
+void Pipeline::visit(const ComputeFunctionCall *c) {
     // Generate the output query if it not an intermediate.
     AbstractDataTypePtr output = c->getOutput();
     if (!isIntermediate(output)) {
@@ -187,7 +187,7 @@ void Pipeline::init(std::vector<Compose> compose) {
         }
 
         using CompositionVisitorStrict::visit;
-        void visit(const FunctionCall *node) {
+        void visit(const ComputeFunctionCall *node) {
             // Add output to intermediates.
             AbstractDataTypePtr output = node->getOutput();
             std::set<AbstractDataTypePtr> func_inputs = node->getInputs();
@@ -256,8 +256,8 @@ void Pipeline::init(std::vector<Compose> compose) {
 
 std::set<AbstractDataTypePtr> Pipeline::getAllWriteDataStruct() const {
     std::set<AbstractDataTypePtr> writes;
-    compose_match(Compose(*this), std::function<void(const FunctionCall *)>(
-                                      [&](const FunctionCall *op) {
+    compose_match(Compose(*this), std::function<void(const ComputeFunctionCall *)>(
+                                      [&](const ComputeFunctionCall *op) {
                                           writes.insert(op->getOutput());
                                       }));
     return writes;
@@ -265,8 +265,8 @@ std::set<AbstractDataTypePtr> Pipeline::getAllWriteDataStruct() const {
 
 std::set<AbstractDataTypePtr> Pipeline::getAllReadDataStruct() const {
     std::set<AbstractDataTypePtr> reads;
-    compose_match(Compose(*this), std::function<void(const FunctionCall *)>(
-                                      [&](const FunctionCall *op) {
+    compose_match(Compose(*this), std::function<void(const ComputeFunctionCall *)>(
+                                      [&](const ComputeFunctionCall *op) {
                                           auto func_inputs = op->getInputs();
                                           reads.insert(func_inputs.begin(), func_inputs.end());
                                       }));
@@ -286,8 +286,8 @@ void Pipeline::generateAllDefs() {
         // For all functions that consume this data-structure, figure out the relationships for
         // this input.
         AbstractDataTypePtr temp = *it;
-        FunctionCallPtr producer_func = getProducerFunction(temp);
-        std::set<FunctionCallPtr> consumer_funcs = getConsumerFunctions(temp);
+        ComputeFunctionCallPtr producer_func = getProducerFunction(temp);
+        std::set<ComputeFunctionCallPtr> consumer_funcs = getConsumerFunctions(temp);
         // No forks allowed, as is. Come back and change!
         if (consumer_funcs.size() != 1) {
             throw error::InternalError("Unimplemented");
@@ -347,18 +347,15 @@ const FreeNode *Pipeline::constructFreeNode(AbstractDataTypePtr ds) {
 }
 
 const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
-    AbstractDataTypePtr allocated = std::make_shared<const AbstractDataType>("_alloc_" + ds->getName(),
-                                                                             ds->getType());
-    new_ds[ds] = allocated;
-    to_free.insert(allocated);
-    return new AllocateNode(allocated, alloc_args);
+    to_free.insert(ds);
+    return new AllocateNode(ds, alloc_args);
 }
 
-const ComputeNode *Pipeline::constructComputeNode(FunctionCallPtr f) {
+const ComputeNode *Pipeline::constructComputeNode(ComputeFunctionCallPtr f) {
     return new ComputeNode(f, new_ds);
 }
 
-std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
+std::vector<LowerIR> Pipeline::generateConsumesIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
 
     std::vector<LowerIR> current = body;
     match(f->getAnnotation(), std::function<void(const ConsumesForNode *, Matcher *)>(
@@ -369,7 +366,7 @@ std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std:
     return current;
 }
 
-std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
+std::vector<LowerIR> Pipeline::generateOuterIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
 
     std::vector<LowerIR> current = body;
     match(f->getAnnotation(), std::function<void(const ComputesForNode *, Matcher *)>(

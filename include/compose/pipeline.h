@@ -15,7 +15,7 @@ struct InsertNode;
 struct FreeNode;
 struct ComputeNode;
 
-using FunctionCallPtr = const FunctionCall *;
+using ComputeFunctionCallPtr = const ComputeFunctionCall *;
 
 struct LowerIRNode : public util::Manageable<LowerIRNode>,
                      public util::Uncopyable {
@@ -62,15 +62,15 @@ public:
     void lower();
 
     using CompositionVisitorStrict::visit;
-    void visit(const FunctionCall *c);
+    void visit(const ComputeFunctionCall *c);
     void visit(const PipelineNode *c);
 
     std::vector<LowerIR> getIRNodes() const;
     // Returns the function call that produces a particular output.
     std::set<AbstractDataTypePtr> getInputs() const;
     AbstractDataTypePtr getOutput() const;
-    std::set<FunctionCallPtr> getConsumerFunctions(AbstractDataTypePtr) const;
-    FunctionCallPtr getProducerFunction(AbstractDataTypePtr ds) const;
+    std::set<ComputeFunctionCallPtr> getConsumerFunctions(AbstractDataTypePtr) const;
+    ComputeFunctionCallPtr getProducerFunction(AbstractDataTypePtr ds) const;
 
     void accept(CompositionVisitorStrict *) const;
 
@@ -87,10 +87,10 @@ private:
     const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
     const FreeNode *constructFreeNode(AbstractDataTypePtr);                          // Constructs a free node for a data-structure, and tracks this relationship.
     const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
-    const ComputeNode *constructComputeNode(FunctionCallPtr);                        // Constructs a compute node for teh pipeline, substituting any data-structures.
+    const ComputeNode *constructComputeNode(ComputeFunctionCallPtr);                        // Constructs a compute node for teh pipeline, substituting any data-structures.
 
-    std::vector<LowerIR> generateConsumesIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
-    std::vector<LowerIR> generateOuterIntervals(FunctionCallPtr, std::vector<LowerIR> body) const;
+    std::vector<LowerIR> generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
+    std::vector<LowerIR> generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
 
     std::vector<Compose> compose;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
@@ -158,11 +158,11 @@ struct QueryNode : public LowerIRNode {
 
 // IR Node marks a function call.
 struct ComputeNode : public LowerIRNode {
-    ComputeNode(FunctionCallPtr f, std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds)
+    ComputeNode(ComputeFunctionCallPtr f, std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds)
         : f(f), new_ds(new_ds) {
     }
     void accept(PipelineVisitor *) const;
-    FunctionCallPtr f;
+    ComputeFunctionCallPtr f;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
 };
 

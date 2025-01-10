@@ -6,21 +6,21 @@
 
 namespace gern {
 
-class FunctionCall;
+class ComputeFunctionCall;
 struct PipelineNode;
 
 class CompositionVisitorStrict {
 public:
     virtual void visit(Compose);
     virtual void visit(Pipeline);
-    virtual void visit(const FunctionCall *) = 0;
+    virtual void visit(const ComputeFunctionCall *) = 0;
     virtual void visit(const PipelineNode *) = 0;
 };
 
 class CompositionVisitor : public CompositionVisitorStrict {
 public:
     using CompositionVisitorStrict::visit;
-    virtual void visit(const FunctionCall *);
+    virtual void visit(const ComputeFunctionCall *);
     virtual void visit(const PipelineNode *);
 };
 
@@ -31,7 +31,7 @@ public:
     }
     void visit(Compose) override;
     void visit(Pipeline) override;
-    virtual void visit(const FunctionCall *) override;
+    virtual void visit(const ComputeFunctionCall *) override;
     virtual void visit(const PipelineNode *) override;
 
 private:
@@ -46,7 +46,7 @@ public:
     ComposeCounter() = default;
     int numFuncs(Compose c);
     using CompositionVisitorStrict::visit;
-    virtual void visit(const FunctionCall *) override;
+    virtual void visit(const ComputeFunctionCall *) override;
     virtual void visit(const PipelineNode *) override;
 
 private:
@@ -99,7 +99,7 @@ private:
 
     using CompositionVisitor::visit;
 
-    PIPELINE_RULE(FunctionCall);
+    PIPELINE_RULE(ComputeFunctionCall);
     PIPELINE_RULE(PipelineNode);
 };
 

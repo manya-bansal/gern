@@ -13,7 +13,7 @@ class CompositionVisitorStrict;
 /**
  * @brief This class tracks the objects that Gern
  *        can compose together in a pipeline. Currently,
- *         this includes a FunctionCall, and other pipelines.
+ *         this includes a ComputeFunctionCall, and other pipelines.
  *         By expressing the relationship between these Composition
  *         Object at this level, we can make sub-pipelining and breaks
  *         redundant.
@@ -57,10 +57,12 @@ private:
 
 std::ostream &operator<<(std::ostream &os, const Compose &);
 
-class FunctionCall : public CompositionObject {
+
+
+class ComputeFunctionCall : public CompositionObject {
 public:
-    FunctionCall() = delete;
-    FunctionCall(const std::string &name,
+    ComputeFunctionCall() = delete;
+    ComputeFunctionCall(const std::string &name,
                  Pattern annotation,
                  std::vector<Argument> arguments,
                  std::vector<std::string> header,
@@ -129,9 +131,9 @@ public:
      *
      * @param binding  Map that contains the name of the variable in the annotation
      *                 and a gern variable that will be bound to the variable.
-     * @return FunctionCall
+     * @return ComputeFunctionCall
      */
-    const FunctionCall *withSymbolic(const std::map<std::string, Variable> &binding);
+    const ComputeFunctionCall *withSymbolic(const std::map<std::string, Variable> &binding);
 
     /**
      * @brief This function checks whether a passed in variable is a template arg
@@ -153,7 +155,7 @@ private:
     std::vector<Variable> template_args;
 };
 
-std::ostream &operator<<(std::ostream &os, const FunctionCall &f);
+std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f);
 
 template<typename E>
 inline bool isa(const CompositionObject *e) {

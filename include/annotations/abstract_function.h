@@ -39,28 +39,28 @@ public:
     }
 
     template<typename T>
-    const FunctionCall *operator()(T argument) {
+    const ComputeFunctionCall *operator()(T argument) {
         std::vector<Argument> arguments;
         addArguments(arguments, argument);
-        return generateFunctionCall(arguments);
+        return generateComputeFunctionCall(arguments);
     }
 
     template<typename FirstT, typename... Next>
-    const FunctionCall *operator()(FirstT first, Next... remaining) {
+    const ComputeFunctionCall *operator()(FirstT first, Next... remaining) {
         std::vector<Argument> arguments;
         addArguments(arguments, first, remaining...);
-        return generateFunctionCall(arguments);
+        return generateComputeFunctionCall(arguments);
     }
 
-    const FunctionCall *operator()() {
+    const ComputeFunctionCall *operator()() {
         if (getArguments().size() != 0) {
             throw error::UserError("Called function " + getName() + " with 0 arguments");
         }
-        return generateFunctionCall({});
+        return generateComputeFunctionCall({});
     }
 
 private:
-    const FunctionCall *generateFunctionCall(std::vector<Argument> concrete_arguments);
+    const ComputeFunctionCall *generateComputeFunctionCall(std::vector<Argument> concrete_arguments);
     /**
      * @brief This function actually performs the binding, and checks
      *        the following conditions:

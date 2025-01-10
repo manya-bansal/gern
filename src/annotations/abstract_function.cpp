@@ -5,14 +5,14 @@
 #include <map>
 namespace gern {
 
-AbstractDataTypePtr FunctionCall::getOutput() const {
+AbstractDataTypePtr ComputeFunctionCall::getOutput() const {
     AbstractDataTypePtr ds;
     match(getAnnotation(), std::function<void(const ProducesNode *)>(
                                [&](const ProducesNode *op) { ds = op->output.getDS(); }));
     return ds;
 }
 
-std::set<AbstractDataTypePtr> FunctionCall::getInputs() const {
+std::set<AbstractDataTypePtr> ComputeFunctionCall::getInputs() const {
     std::set<AbstractDataTypePtr> inputs;
     // Only the consumes part of the annotation has
     // multiple subsets, so, we will only ever get the inputs.
@@ -25,7 +25,7 @@ std::set<AbstractDataTypePtr> FunctionCall::getInputs() const {
     return inputs;
 }
 
-std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
+std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f) {
 
     os << f.getName() << "(";
     auto args = f.getArguments();
@@ -40,7 +40,7 @@ std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
     return os;
 }
 
-const FunctionCall *AbstractFunction::generateFunctionCall(std::vector<Argument> concrete_arguments) {
+const ComputeFunctionCall *AbstractFunction::generateComputeFunctionCall(std::vector<Argument> concrete_arguments) {
 
     auto abstract_arguments = getArguments();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> abstract_to_concrete_adt;
@@ -104,7 +104,7 @@ const FunctionCall *AbstractFunction::generateFunctionCall(std::vector<Argument>
                                             .replaceDSArgs(abstract_to_concrete_adt)
                                             .replaceVariables(fresh_names));
 
-    return new const FunctionCall(getName(), rw_annotation, concrete_arguments, getHeader(), templated_args);
+    return new const ComputeFunctionCall(getName(), rw_annotation, concrete_arguments, getHeader(), templated_args);
 }
 
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {

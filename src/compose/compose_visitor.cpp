@@ -18,7 +18,7 @@ void CompositionVisitorStrict::visit(Pipeline p) {
     }
 }
 
-void CompositionVisitor::visit(const FunctionCall *) {
+void CompositionVisitor::visit(const ComputeFunctionCall *) {
 }
 
 void CompositionVisitor::visit(const PipelineNode *op) {
@@ -49,7 +49,7 @@ void ComposePrinter::visit(Pipeline p) {
     os << "}";
 }
 
-void ComposePrinter::visit(const FunctionCall *f) {
+void ComposePrinter::visit(const ComputeFunctionCall *f) {
     util::printIdent(os, ident);
     os << *f;
 }
@@ -66,7 +66,7 @@ int ComposeCounter::numFuncs(Compose c) {
     return num;
 }
 
-void ComposeCounter::visit(const FunctionCall *f) {
+void ComposeCounter::visit(const ComputeFunctionCall *f) {
     (void)f;
     num++;
 }

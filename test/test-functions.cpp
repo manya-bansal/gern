@@ -14,8 +14,8 @@ TEST(Functions, SingleFunction) {
     auto output_2_DS = std::make_shared<const annot::ArrayCPU>("output_con_2");
 
     annot::add add_f;
-    const FunctionCall *concreteCall1 = add_f(inputDS, outputDS);
-    const FunctionCall *concreteCall2 = add_f(outputDS, output_2_DS);
+    const ComputeFunctionCall *concreteCall1 = add_f(inputDS, outputDS);
+    const ComputeFunctionCall *concreteCall2 = add_f(outputDS, output_2_DS);
 
     // Test that all variables were replaced
     std::set<Variable> abstract_vars = getVariables(add_f.getAnnotation());
