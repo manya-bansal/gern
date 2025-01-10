@@ -13,8 +13,8 @@
 using namespace gern;
 
 TEST(LoweringCPU, SingleElemFunction) {
-    auto inputDS = new const annot::ArrayCPU("input_con");
-    auto outputDS = new const annot::ArrayCPU("output_con");
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 
     annot::add add_f;
     Variable v("v");
@@ -37,8 +37,8 @@ TEST(LoweringCPU, SingleElemFunction) {
     int64_t step_val = 1;
 
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {v.getName(), &var},
         {step.getName(), &step_val},
     }));
@@ -51,18 +51,18 @@ TEST(LoweringCPU, SingleElemFunction) {
     // Try running with insufficient number
     // of arguments.
     ASSERT_THROW(run.evaluate({
-                     {inputDS->getName(), &a},
-                     {outputDS->getName(), &b},
+                     {inputDS.getName(), &a},
+                     {outputDS.getName(), &b},
                      {v.getName(), &var},
                  }),
                  error::UserError);
 
-    auto dummyDS = new const annot::ArrayCPU("dummy_ds");
+    auto dummyDS = AbstractDataTypePtr(new const annot::ArrayCPU("dummy_ds"));
     // Try running the correct number of arguments,
     // but with the wrong reference data-structure.
     ASSERT_THROW(run.evaluate({
-                     {inputDS->getName(), &a},
-                     {dummyDS->getName(), &b},
+                     {inputDS.getName(), &a},
+                     {dummyDS.getName(), &b},
                      {v.getName(), &var},
                      {step.getName(), &step_val},
                  }),

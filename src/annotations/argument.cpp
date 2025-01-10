@@ -4,6 +4,8 @@
 namespace gern {
 
 void Argument::accept(ArgumentVisitorStrict *v) const {
+    std::cout << "ok...." << std::endl;
+    std::cout << defined() << std::endl;
     if (!defined()) {
         return;
     }

@@ -10,7 +10,9 @@ void ArgumentVisitorStrict::visit(Argument a) {
 }
 
 void ArgumentPrinter::visit(const DSArg *node) {
+    std::cout << "here" << std::endl;
     os << node->getADTPtr();
+    std::cout << "here" << std::endl;
 }
 void ArgumentPrinter::visit(const VarArg *node) {
     os << node->getVar();

@@ -24,6 +24,9 @@ public:
         : dataStruct(dataStruct) {
     }
     AbstractDataTypePtr getADTPtr() const {
+        std::cout << "???" << std::endl;
+        std::cout << dataStruct.defined() << std::endl;
+        std::cout << dataStruct << std::endl;
         return dataStruct;
     }
     virtual void accept(ArgumentVisitorStrict *) const;
@@ -73,7 +76,7 @@ argument.
 */
 [[maybe_unused]] static void addArgument(std::vector<Argument> &vector,
                                          AbstractDataTypePtr dataStruct) {
-    vector.push_back(Argument(new const DSArg(dataStruct)));
+    vector.push_back(Argument(dataStruct));
 }
 
 [[maybe_unused]] static void addArgument(std::vector<Argument> &vector,

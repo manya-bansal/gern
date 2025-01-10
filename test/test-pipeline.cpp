@@ -10,10 +10,20 @@
 using namespace gern;
 
 TEST(PipelineTest, ReuseOutput) {
-    auto inputDS = Argument(AbstractDataTypePtr(new const annot::ArrayCPU("input_con")));
-    auto outputDS = Argument(AbstractDataTypePtr(new const annot::ArrayCPU("output_con")));
+    Argument inputDS = Argument(AbstractDataTypePtr(new const annot::ArrayCPU("input_con")));
+    Argument outputDS = Argument(AbstractDataTypePtr(new const annot::ArrayCPU("output_con")));
+    Argument tempDS = Argument(AbstractDataTypePtr(new const annot::ArrayCPU("output_con")));
 
     annot::add add_f;
+    Pipeline p({
+        add_f(inputDS, tempDS),
+        add_f(tempDS, outputDS),
+    });
+
+    std::cout << ".....&&&&&&&&&&&&&&&&&&&&&&&&&" << std::endl;
+
+    std::cout << "********" << std::endl
+              << inputDS << std::endl;
     // A pipeline can only assign to fresh outputs
     // each time.
     ASSERT_THROW(Pipeline p({
@@ -45,9 +55,9 @@ TEST(PipelineTest, ReuseOutput) {
 }
 
 TEST(PipelineTest, NoReuseOutput) {
-    auto inputDS = new const annot::ArrayCPU("input_con");
-    auto outputDS = new const annot::ArrayCPU("output_con");
-    auto outputDS_new = new const annot::ArrayCPU("output_con_new");
+    auto inputDS = Argument(new const annot::ArrayCPU("input_con"));
+    auto outputDS = Argument(new const annot::ArrayCPU("output_con"));
+    auto outputDS_new = Argument(new const annot::ArrayCPU("output_con_new"));
 
     annot::add add_f;
 
@@ -67,9 +77,9 @@ TEST(PipelineTest, NoReuseOutput) {
 }
 
 TEST(PipelineTest, ExtraOutput) {
-    auto inputDS = new const annot::ArrayCPU("input_con");
-    auto outputDS = new const annot::ArrayCPU("output_con");
-    auto outputDS_new = new const annot::ArrayCPU("output_con_new");
+    auto inputDS = Argument(new const annot::ArrayCPU("input_con"));
+    auto outputDS = Argument(new const annot::ArrayCPU("output_con"));
+    auto outputDS_new = Argument(new const annot::ArrayCPU("output_con_new"));
 
     annot::add add_f;
 
