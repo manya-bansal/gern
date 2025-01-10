@@ -2,6 +2,7 @@
 
 #include "annotations/abstract_nodes.h"
 #include "annotations/grid.h"
+#include "utils/error.h"
 #include "utils/uncopyable.h"
 #include <cassert>
 #include <map>
@@ -160,7 +161,8 @@ public:
     typedef VariableNode Node;
 };
 
-class AbstractDataType {
+class AbstractDataType : public util::Manageable<AbstractDataType>,
+                         public util::Uncopyable {
 public:
     AbstractDataType() = default;
 
@@ -177,11 +179,11 @@ public:
         return type;
     }
 
-    virtual std::vector<Variable> getFields();
-    virtual Function getAllocateFunction();
-    virtual Function getFreeFunction();
-    virtual Function getInsertFunction();
-    virtual Function getQueryFunction();
+    virtual std::vector<Variable> getFields() const = 0;
+    virtual Function getAllocateFunction() const = 0;
+    virtual Function getFreeFunction() const = 0;
+    virtual Function getInsertFunction() const = 0;
+    virtual Function getQueryFunction() const = 0;
 
     // Tracks whether any of the queries need to be free,
     // or if they are actually returning views.
@@ -190,17 +192,41 @@ public:
     }
 
 private:
-    Function allocate;
-    Function free;
-    Function allocate;
-    Function insert;
     std::string name;
     std::string type;
 };
 
-using AbstractDataTypePtr = std::shared_ptr<const AbstractDataType>;
+class AbstractDataTypePtr : public util::IntrusivePtr<const AbstractDataType> {
+public:
+    AbstractDataTypePtr()
+        : util::IntrusivePtr<const AbstractDataType>(nullptr) {
+    }
+    AbstractDataTypePtr(const AbstractDataType *n)
+        : util::IntrusivePtr<const AbstractDataType>(n) {
+    }
+    std::string getName() const {
+        if (!defined()) {
+            throw error::InternalError("Deref null!");
+        }
+        return ptr->getName();
+    }
 
-std::ostream &operator<<(std::ostream &os, const AbstractDataType &ads);
+    std::string getType() const {
+        if (!defined()) {
+            throw error::InternalError("Deref null!");
+        }
+        return ptr->getType();
+    }
+
+    bool freeQuery() const {
+        if (!defined()) {
+            throw error::InternalError("Deref null!");
+        }
+        return ptr->freeQuery();
+    }
+};
+
+std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads);
 
 }  // namespace gern
 
@@ -216,6 +242,14 @@ struct less<gern::Variable> {
         return a.ptr < b.ptr;
     }
 };
+
+template<>
+struct less<gern::AbstractDataTypePtr> {
+    bool operator()(const gern::AbstractDataTypePtr &a, const gern::AbstractDataTypePtr &b) const {
+        return a.ptr < b.ptr;
+    }
+};
+
 }  // namespace std
 
 namespace gern {

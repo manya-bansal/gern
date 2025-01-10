@@ -72,7 +72,7 @@ void ComposeCounter::visit(const ComputeFunctionCall *f) {
 }
 
 void ComposeCounter::visit(const PipelineNode *v) {
-    this->visit(v);
+    this->visit(v->p);
 }
 
 }  // namespace gern

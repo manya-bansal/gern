@@ -13,8 +13,8 @@
 using namespace gern;
 
 TEST(LoweringCPU, MatrixCPUAdd) {
-    auto inputDS = std::make_shared<const annot::MatrixCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::MatrixCPU>("output_con");
+    auto inputDS = new const annot::MatrixCPU("input_con");
+    auto outputDS = new const annot::MatrixCPU("output_con");
 
     annot::MatrixAddCPU add;
     Variable row("row");

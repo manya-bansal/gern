@@ -176,6 +176,8 @@ void Pipeline::init(std::vector<Compose> compose) {
                 return;
             }
             for (const auto &c : compose) {
+                std::cout << "test" << std::endl;
+                std::cout << c << std::endl;
                 this->visit(c);
             }
             // Remove true_output (the last output produced) from intermediates.
@@ -183,7 +185,7 @@ void Pipeline::init(std::vector<Compose> compose) {
             // For all intermediates, ensure that it gets read at least once.
             for (const auto &temp : intermediates) {
                 if (all_inputs.count(temp) <= 0) {
-                    throw error::UserError(temp->getName() + " is never being read");
+                    throw error::UserError(temp.getName() + " is never being read");
                 }
             }
         }
@@ -198,16 +200,16 @@ void Pipeline::init(std::vector<Compose> compose) {
             // Check whether the output has already been assigned to.
             if (intermediates.count(output) > 0 ||
                 all_nested_temps.count(output) > 0) {
-                throw error::UserError("Cannot assign to" + output->getName() + "twice");
+                throw error::UserError("Cannot assign to" + output.getName() + "twice");
             }
             // Check if this output was ever used as an input.
             if (all_inputs.count(output) > 0) {
-                throw error::UserError("Assigning to a " + output->getName() + "that has already been read");
+                throw error::UserError("Assigning to a " + output.getName() + "that has already been read");
             }
             // Check if we are trying to use an intermediate from a nested pipeline.
             for (const auto &in : func_inputs) {
                 if (all_nested_temps.count(in)) {
-                    throw error::UserError("Trying to read intermediate" + in->getName() + " from nested pipeline");
+                    throw error::UserError("Trying to read intermediate" + in.getName() + " from nested pipeline");
                 }
             }
             intermediates.insert(output);
@@ -219,7 +221,7 @@ void Pipeline::init(std::vector<Compose> compose) {
             // Add output to intermediates.
             AbstractDataTypePtr output = node->p.getOutput();
             if (all_inputs.contains(output)) {
-                throw error::UserError("Assigning to a " + output->getName() + "that has already been read");
+                throw error::UserError("Assigning to a " + output.getName() + "that has already been read");
             }
 
             std::set<AbstractDataTypePtr> nested_writes = node->p.getAllWriteDataStruct();
@@ -228,7 +230,7 @@ void Pipeline::init(std::vector<Compose> compose) {
             // Check pipeline is writing to one of our outputs.
             for (const auto &in : nested_writes) {
                 if (intermediates.contains(in) || all_nested_temps.contains(in)) {
-                    throw error::UserError("Trying to write to intermediate" + in->getName() + " from nested pipeline");
+                    throw error::UserError("Trying to write to intermediate" + in.getName() + " from nested pipeline");
                 }
             }
 
@@ -250,7 +252,9 @@ void Pipeline::init(std::vector<Compose> compose) {
     };
 
     DataFlowConstructor df(compose);
+    std::cout << "here" << std::endl;
     df.construct();
+    std::cout << "never out " << std::endl;
     intermediates = df.intermediates;
     true_output = df.true_output;
     outputs_in_order = df.outputs_in_order;
@@ -301,12 +305,12 @@ void Pipeline::generateAllDefs() {
             std::vector<Expr> consumer_fields = cf->getMetaDataFields(temp);
             if (consumer_fields.size() != var_fields.size()) {
                 throw error::InternalError("Annotations for " + cf->getName() + " and " + producer_func->getName() +
-                                           " do not have the same size for " + temp->getName());
+                                           " do not have the same size for " + temp.getName());
             }
             for (size_t i = 0; i < consumer_fields.size(); i++) {
                 if (var_fields[i].isBound()) {
                     throw error::UserError(var_fields[i].getName() +
-                                           " while producing " + temp->getName() +
+                                           " while producing " + temp.getName() +
                                            " is completely bound, but is being set.");
                 }
                 lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i],
@@ -341,11 +345,10 @@ void Pipeline::generateAllFrees() {
 }
 
 const QueryNode *Pipeline::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> query_args) {
-    AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + ds->getName(),
-                                                                           ds->getType());
+    AbstractDataTypePtr queried = PipelineDS::make("_query_" + ds.getName(), ds);
     new_ds[ds] = queried;
     // If any of the queried data-structures need to be free, track that.
-    if (ds->freeQuery()) {
+    if (ds.freeQuery()) {
         to_free.insert(queried);
     }
     return new QueryNode(ds, queried, query_args);

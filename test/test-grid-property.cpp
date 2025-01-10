@@ -12,10 +12,6 @@
 using namespace gern;
 
 TEST(SetGridProperty, BindStableVar) {
-
-    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
-
     annot::addGPU add_f;
     Variable v("v");
 
@@ -27,10 +23,6 @@ TEST(SetGridProperty, BindStableVar) {
 }
 
 TEST(SetGridProperty, BindIntervalVar) {
-
-    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
-
     annot::addGPU add_f;
     Variable v("v");
 
@@ -41,10 +33,6 @@ TEST(SetGridProperty, BindIntervalVar) {
 }
 
 TEST(SetGridProperty, BindNestedIntervalVar) {
-
-    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
-
     annot::reductionGPU reduce_f;
     Variable v("v");
 
@@ -55,10 +43,6 @@ TEST(SetGridProperty, BindNestedIntervalVar) {
 }
 
 TEST(SetGridProperty, DoubleBind) {
-
-    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
-
     annot::reductionGPU reduce_f;
     Variable v("v");
 

@@ -22,8 +22,37 @@ public:
         return "gern::impl::ArrayGPU";
     }
 
+    std::vector<Variable> getFields() const override {
+        return {x, len};
+    }
+    Function getAllocateFunction() const override {
+        return Function{
+            .name = "allocate",
+            .args = {x, len},
+        };
+    }
+    Function getFreeFunction() const override {
+        return Function{
+            .name = "destroy",
+        };
+    }
+    Function getInsertFunction() const override {
+        return Function{
+            .name = "insert",
+            .args = {x, len},
+        };
+    }
+    Function getQueryFunction() const override {
+        return Function{
+            .name = "query",
+            .args = {x, len},
+        };
+    }
+
 private:
     std::string name;
+    Variable x{"x"};
+    Variable len{"len"};
 };
 
 // This *must* be a device function.
@@ -40,22 +69,22 @@ public:
     }
 
 private:
-    std::shared_ptr<ArrayGPU> input;
-    std::shared_ptr<ArrayGPU> output;
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
     Variable end{"end"};
 };
 
 class reductionGPU : public reduction {
 public:
     reductionGPU()
-        : input(std::make_shared<ArrayGPU>("input")),
-          output(std::make_shared<ArrayGPU>("output")) {
+        : input(new const ArrayGPU("input")),
+          output(new const ArrayGPU("output")) {
     }
     std::string getName() {
         return "gern::impl::add";
     }
 
-    Pattern getAnnotation() {
+    Pattern getAnnotation() override {
         Variable x("x");
         Variable r("r");
         Variable step("step");
@@ -68,11 +97,7 @@ public:
                            {input, {r, 1}})));
     }
 
-    std::vector<Argument> getArguments() {
-        return {Argument(input), Argument(output)};
-    }
-
-    std::vector<std::string> getHeader() {
+    std::vector<std::string> getHeader() override {
         return {
             "gpu-array.h",
         };
@@ -86,8 +111,8 @@ public:
     }
 
 private:
-    std::shared_ptr<ArrayGPU> input;
-    std::shared_ptr<ArrayGPU> output;
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
 };
 
 }  // namespace annot

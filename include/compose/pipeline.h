@@ -219,4 +219,72 @@ struct BlankNode : public LowerIRNode {
     void accept(PipelineVisitor *) const;
 };
 
+// Defining an abstract data class that we can use to define query and free node.
+class PipelineDS : public AbstractDataType {
+public:
+    PipelineDS(const std::string &name,
+               const std::string &type,
+               const std::vector<Variable> &fields,
+               const Function &allocate,
+               const Function &free,
+               const Function &insert,
+               const Function &query,
+               const bool &to_free)
+        : name(name), type(type), fields(fields),
+          allocate(allocate), free(free),
+          insert(insert), query(query),
+          to_free(to_free) {
+    }
+
+    virtual std::string getName() const override {
+        return name;
+    }
+
+    virtual std::string getType() const override {
+        return type;
+    }
+
+    std::vector<Variable> getFields() const override {
+        return fields;
+    }
+    Function getAllocateFunction() const override {
+        return allocate;
+    }
+    Function getFreeFunction() const override {
+        return free;
+    }
+    Function getInsertFunction() const override {
+        return insert;
+    }
+    Function getQueryFunction() const override {
+        return query;
+    }
+
+    // Tracks whether any of the queries need to be free,
+    // or if they are actually returning views.
+    bool freeQuery() const override {
+        return to_free;
+    }
+
+    static AbstractDataTypePtr make(const std::string &name, AbstractDataTypePtr ds) {
+        return new const PipelineDS(name, ds.ptr->getType(),
+                                    ds.ptr->getFields(),
+                                    ds.ptr->getAllocateFunction(),
+                                    ds.ptr->getFreeFunction(),
+                                    ds.ptr->getInsertFunction(),
+                                    ds.ptr->getQueryFunction(),
+                                    ds.ptr->freeQuery());
+    }
+
+private:
+    std::string name;
+    std::string type;
+    std::vector<Variable> fields;
+    Function allocate;
+    Function free;
+    Function insert;
+    Function query;
+    bool to_free;
+};
+
 }  // namespace gern

@@ -56,14 +56,14 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 
     int num_args = 0;
     for (const auto &ds : to_declare_adts) {
-        args.push_back(VarDecl::make(Type::make(ds->getType()), ds->getName()));
+        args.push_back(VarDecl::make(Type::make(ds.getType()), ds.getName()));
         hook_body.push_back(
-            VarAssign::make(VarDecl::make(Type::make(ds->getType()), ds->getName()),
+            VarAssign::make(VarDecl::make(Type::make(ds.getType()), ds.getName()),
                             Deref::make(
-                                Cast::make(Type::make(ds->getType() + "*"),
+                                Cast::make(Type::make(ds.getType() + "*"),
                                            Var::make("args[" + std::to_string(num_args) + "]")))));
-        hook_args.push_back(Var::make(ds->getName()));
-        argument_order.push_back(ds->getName());
+        hook_args.push_back(Var::make(ds.getName()));
+        argument_order.push_back(ds.getName());
         num_args++;
     }
 
@@ -116,13 +116,13 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 }
 
 void CodeGenerator::visit(const AllocateNode *op) {
-    std::string method_call = op->data->getType() + "::allocate";
+    std::string method_call = op->data.getType() + "::allocate";
     std::vector<CGExpr> args;
     for (const auto &a : op->fields) {
         args.push_back(gen(a));
     }
-    CGExpr lhs = VarDecl::make(Type::make(op->data->getType()),
-                               op->data->getName());
+    CGExpr lhs = VarDecl::make(Type::make(op->data.getType()),
+                               op->data.getName());
     code = VarAssign::make(lhs, Call::make(method_call, args));
 
     declared_adt.insert(op->data);
@@ -135,18 +135,18 @@ void CodeGenerator::visit(const FreeNode *op) {
             throw error::InternalError("Freeing a data-structure that hasn't been allocated??");
         })
 
-    std::string method_call = op->data->getName() + ".destroy";
+    std::string method_call = op->data.getName() + ".destroy";
     code = VoidCall::make(Call::make(method_call, {}));
 }
 
 void CodeGenerator::visit(const InsertNode *op) {
-    std::string method_call = op->parent->getName() + ".insert";
+    std::string method_call = op->parent.getName() + ".insert";
     std::vector<CGExpr> args;
     for (const auto &a : op->fields) {
         args.push_back(gen(a));
     }
-    CGExpr lhs = VarDecl::make(Type::make(op->child->getType()),
-                               op->child->getName());
+    CGExpr lhs = VarDecl::make(Type::make(op->child.getType()),
+                               op->child.getName());
     code = VarAssign::make(lhs, Call::make(method_call, args));
 
     declared_adt.insert(op->child);
@@ -154,13 +154,13 @@ void CodeGenerator::visit(const InsertNode *op) {
 }
 
 void CodeGenerator::visit(const QueryNode *op) {
-    std::string method_call = op->parent->getName() + ".query";
+    std::string method_call = op->parent.getName() + ".query";
     std::vector<CGExpr> args;
     for (const auto &a : op->fields) {
         args.push_back(gen(a));
     }
-    CGExpr lhs = VarDecl::make(Type::make(op->child->getType()),
-                               op->child->getName());
+    CGExpr lhs = VarDecl::make(Type::make(op->child.getType()),
+                               op->child.getName());
     code = VarAssign::make(lhs, Call::make(method_call, args));
 
     declared_adt.insert(op->child);
@@ -312,14 +312,14 @@ CGExpr CodeGenerator::gen(Argument a, bool lhs) {
             if (lhs) {
                 gen_expr = cg->declADT(ds->getADTPtr());
             } else {
-                gen_expr = Var::make(ds->getADTPtr()->getName());
+                gen_expr = Var::make(ds->getADTPtr().getName());
             }
         }
-        void visit(const VarArg *ds) {
+        void visit(const VarArg *v) {
             if (lhs) {
-                gen_expr = cg->declVar(ds->getVar(), false);
+                gen_expr = cg->declVar(v->getVar(), false);
             } else {
-                gen_expr = cg->gen(ds->getVar());
+                gen_expr = cg->gen(v->getVar());
             }
         }
 
@@ -377,8 +377,8 @@ CGExpr CodeGenerator::declVar(Variable v, bool const_expr) {
 }
 
 CGExpr CodeGenerator::declADT(AbstractDataTypePtr ds) {
-    CGExpr decl = VarDecl::make(Type::make(ds->getType()),
-                                ds->getName());
+    CGExpr decl = VarDecl::make(Type::make(ds.getType()),
+                                ds.getName());
     declared_adt.insert(ds);
     return decl;
 }

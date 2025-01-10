@@ -24,33 +24,56 @@ public:
         return "gern::impl::ArrayCPU";
     }
 
+    std::vector<Variable> getFields() const override {
+        return {x, len};
+    }
+    Function getAllocateFunction() const override {
+        return Function{
+            .name = "allocate",
+            .args = {x, len},
+        };
+    }
+    Function getFreeFunction() const override {
+        return Function{
+            .name = "destroy",
+            .args = {},
+        };
+    }
+    Function getInsertFunction() const override {
+        return Function{
+            .name = "insert",
+            .args = {x, len},
+        };
+    }
+    Function getQueryFunction() const override {
+        return Function{
+            .name = "query",
+            .args = {x, len},
+        };
+    }
+
 private:
     std::string name;
+    Variable x{"x"};
+    Variable len{"len"};
 };
 
 class add : public AbstractFunction {
 public:
     add()
-        : input(std::make_shared<ArrayCPU>("input")),
-          output(std::make_shared<ArrayCPU>("output")) {
+        : input(new const ArrayCPU("input")),
+          output(new const ArrayCPU("output")) {
     }
     std::string getName() {
         return "gern::impl::add";
     }
 
-    Pattern getAnnotation() {
+    Pattern getAnnotation() override {
         Variable x("x");
 
         return For(x = Expr(0), end, step,
                    Produces::Subset(output, {x, step}),
                    Consumes::Subset(input, {x, step}));
-    }
-
-    std::vector<Argument> getArguments() {
-        return {
-            Argument(input),
-            Argument(output),
-        };
     }
 
     virtual Function getFunction() override {
@@ -60,15 +83,15 @@ public:
         return f;
     }
 
-    std::vector<std::string> getHeader() {
+    std::vector<std::string> getHeader() override {
         return {
             "cpu-array.h",
         };
     }
 
 protected:
-    std::shared_ptr<ArrayCPU> input;
-    std::shared_ptr<ArrayCPU> output;
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
     Variable end{"end"};
     Variable step{"step"};
 };
@@ -97,14 +120,14 @@ public:
 class reduction : public AbstractFunction {
 public:
     reduction()
-        : input(std::make_shared<annot::ArrayCPU>("input")),
-          output(std::make_shared<annot::ArrayCPU>("output")) {
+        : input(new const annot::ArrayCPU("input")),
+          output(new const annot::ArrayCPU("output")) {
     }
     std::string getName() {
         return "gern::impl::add";
     }
 
-    Pattern getAnnotation() {
+    Pattern getAnnotation() override {
         Variable x("x");
         Variable r("r");
         Variable step("step");
@@ -119,11 +142,7 @@ public:
                                    SubsetObj(input, {r, 1})}))));
     }
 
-    std::vector<Argument> getArguments() {
-        return {Argument(input), Argument(output)};
-    }
-
-    std::vector<std::string> getHeader() {
+    std::vector<std::string> getHeader() override {
         return {
             "cpu-array.h",
         };
@@ -137,8 +156,8 @@ public:
     }
 
 protected:
-    std::shared_ptr<annot::ArrayCPU> input;
-    std::shared_ptr<annot::ArrayCPU> output;
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
 };
 
 }  // namespace annot

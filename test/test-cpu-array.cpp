@@ -13,8 +13,8 @@
 using namespace gern;
 
 TEST(LoweringCPU, SingleElemFunction) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
+    auto inputDS = new const annot::ArrayCPU("input_con");
+    auto outputDS = new const annot::ArrayCPU("output_con");
 
     annot::add add_f;
     Variable v("v");
@@ -57,7 +57,7 @@ TEST(LoweringCPU, SingleElemFunction) {
                  }),
                  error::UserError);
 
-    auto dummyDS = std::make_shared<const annot::ArrayCPU>("dummy_ds");
+    auto dummyDS = new const annot::ArrayCPU("dummy_ds");
     // Try running the correct number of arguments,
     // but with the wrong reference data-structure.
     ASSERT_THROW(run.evaluate({
@@ -73,8 +73,8 @@ TEST(LoweringCPU, SingleElemFunction) {
 }
 
 TEST(LoweringCPU, SingleReduceFunction) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
+    auto inputDS = new const annot::ArrayCPU("input_con");
+    auto outputDS = new const annot::ArrayCPU("output_con");
 
     Variable v1("v1");
     Variable v2("v2");
@@ -137,9 +137,9 @@ TEST(LoweringCPU, SingleReduceFunction) {
 }
 
 TEST(LoweringCPU, MultiFunc) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input");
-    auto tempDS = std::make_shared<const annot::ArrayCPU>("temp");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output");
+    auto inputDS = new const annot::ArrayCPU("input");
+    auto tempDS = new const annot::ArrayCPU("temp");
+    auto outputDS = new const annot::ArrayCPU("output");
 
     annot::add add_f;
     Variable v("v");
@@ -176,8 +176,8 @@ TEST(LoweringCPU, MultiFunc) {
 }
 
 TEST(LoweringCPU, SingleElemFunctionTemplated) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
+    auto inputDS = new const annot::ArrayCPU("input_con");
+    auto outputDS = new const annot::ArrayCPU("output_con");
 
     annot::addTemplate add_f;
     Variable v("v");
@@ -238,9 +238,9 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
 }
 
 TEST(LoweringCPU, MultiFunctionTemplated) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input");
-    auto tempDS = std::make_shared<const annot::ArrayCPU>("temp");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output");
+    auto inputDS = new const annot::ArrayCPU("input");
+    auto tempDS = new const annot::ArrayCPU("temp");
+    auto outputDS = new const annot::ArrayCPU("output");
 
     annot::addTemplate add_f;
     Variable v("v");
@@ -275,9 +275,9 @@ TEST(LoweringCPU, MultiFunctionTemplated) {
 }
 
 TEST(LoweringCPU, OverspecifiedGrid) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto tempDS = std::make_shared<const annot::ArrayCPU>("temp");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
+    auto inputDS = new const annot::ArrayCPU("input_con");
+    auto tempDS = new const annot::ArrayCPU("temp");
+    auto outputDS = new const annot::ArrayCPU("output_con");
 
     annot::addTemplate add_f;
     Variable v("v");

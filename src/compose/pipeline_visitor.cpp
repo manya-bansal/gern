@@ -46,24 +46,24 @@ static void vector_printer(std::ostream &os, std::vector<T> v) {
 
 void PipelinePrinter::visit(const AllocateNode *op) {
     util::printIdent(os, ident);
-    os << "Allocate " << *(op->data.get()) << " with ";
+    os << "Allocate " << op->data << " with ";
     vector_printer(os, op->fields);
 }
 void PipelinePrinter::visit(const FreeNode *op) {
     util::printIdent(os, ident);
-    os << "Free " << *(op->data.get());
+    os << "Free " << op->data;
 }
 void PipelinePrinter::visit(const InsertNode *op) {
     util::printIdent(os, ident);
-    os << "Insert " << *(op->child.get())
-       << " into " << *(op->parent.get())
+    os << "Insert " << op->child
+       << " into " << op->child
        << " with ";
     vector_printer(os, op->fields);
 }
 void PipelinePrinter::visit(const QueryNode *op) {
     util::printIdent(os, ident);
-    os << "Query " << *(op->child.get())
-       << " from " << *(op->parent.get())
+    os << "Query " << op->child
+       << " from " << op->child
        << " with ";
     vector_printer(os, op->fields);
 }

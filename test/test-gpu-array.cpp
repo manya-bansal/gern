@@ -13,8 +13,8 @@
 using namespace gern;
 
 TEST(LoweringGPU, SingleElemFunctionNoBind) {
-    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
+    auto inputDS = new const annot::ArrayGPU("input_con");
+    auto outputDS = new const annot::ArrayGPU("output_con");
 
     annot::addGPU add_f;
     Variable v("v");
@@ -66,7 +66,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
                  }),
                  error::UserError);
 
-    auto dummyDS = std::make_shared<const annot::ArrayGPU>("dummy_ds");
+    auto dummyDS = new const annot::ArrayGPU("dummy_ds");
     // Try running the correct number of arguments,
     // but with the wrong reference data-structure.
     ASSERT_THROW(run.evaluate({
@@ -82,8 +82,8 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
 }
 
 TEST(LoweringGPU, SingleElemFunctionBind) {
-    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
+    auto inputDS = new const annot::ArrayGPU("input_con");
+    auto outputDS = new const annot::ArrayGPU("output_con");
 
     annot::addGPU add_f;
     Variable v("v");
@@ -134,8 +134,8 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
 }
 
 TEST(LoweringGPU, SingleReduceNoBind) {
-    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
+    auto inputDS = new const annot::ArrayGPU("input_con");
+    auto outputDS = new const annot::ArrayGPU("output_con");
 
     Variable v1("v1");
     Variable v2("v2");
@@ -205,8 +205,8 @@ TEST(LoweringGPU, SingleReduceNoBind) {
 }
 
 TEST(LoweringGPU, SingleReduceBind) {
-    auto inputDS = std::make_shared<const annot::ArrayGPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayGPU>("output_con");
+    auto inputDS = new const annot::ArrayGPU("input_con");
+    auto outputDS = new const annot::ArrayGPU("output_con");
 
     Variable v1("v1");
     Variable v2("v2");

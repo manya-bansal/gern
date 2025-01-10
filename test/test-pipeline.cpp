@@ -10,8 +10,8 @@
 using namespace gern;
 
 TEST(PipelineTest, ReuseOutput) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
+    auto inputDS = new const annot::ArrayCPU("input_con");
+    auto outputDS = new const annot::ArrayCPU("output_con");
 
     annot::add add_f;
 
@@ -33,7 +33,7 @@ TEST(PipelineTest, ReuseOutput) {
                  }),
                  error::UserError);
 
-    auto outputDS2 = std::make_shared<const annot::ArrayCPU>("output_con");
+    auto outputDS2 = new const annot::ArrayCPU("output_con");
     // A pipeline can only assign to fresh outputs
     // each time. Should complain even if nested.
     ASSERT_THROW(Pipeline p({
@@ -46,9 +46,9 @@ TEST(PipelineTest, ReuseOutput) {
 }
 
 TEST(PipelineTest, NoReuseOutput) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
-    auto outputDS_new = std::make_shared<const annot::ArrayCPU>("output_con_new");
+    auto inputDS = new const annot::ArrayCPU("input_con");
+    auto outputDS = new const annot::ArrayCPU("output_con");
+    auto outputDS_new = new const annot::ArrayCPU("output_con_new");
 
     annot::add add_f;
 
@@ -68,9 +68,9 @@ TEST(PipelineTest, NoReuseOutput) {
 }
 
 TEST(PipelineTest, ExtraOutput) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
-    auto outputDS_new = std::make_shared<const annot::ArrayCPU>("output_con_new");
+    auto inputDS = new const annot::ArrayCPU("input_con");
+    auto outputDS = new const annot::ArrayCPU("output_con");
+    auto outputDS_new = new const annot::ArrayCPU("output_con_new");
 
     annot::add add_f;
 
@@ -114,9 +114,9 @@ TEST(PipelineTest, ExtraOutput) {
 }
 
 TEST(PipelineTest, AssignInput) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
-    auto outputDS_new = std::make_shared<const annot::ArrayCPU>("output_con_new");
+    auto inputDS = new const annot::ArrayCPU("input_con");
+    auto outputDS = new const annot::ArrayCPU("output_con");
+    auto outputDS_new = new const annot::ArrayCPU("output_con_new");
 
     annot::add add_f;
     // Gern does not allow assigning to "true" inputs.
@@ -129,9 +129,9 @@ TEST(PipelineTest, AssignInput) {
 
 TEST(PipelineTest, getConsumerFuncs) {
 
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
-    auto outputDS_new = std::make_shared<const annot::ArrayCPU>("output_con_new");
+    auto inputDS = new const annot::ArrayCPU("input_con");
+    auto outputDS = new const annot::ArrayCPU("output_con");
+    auto outputDS_new = new const annot::ArrayCPU("output_con_new");
 
     annot::add add_f;
 

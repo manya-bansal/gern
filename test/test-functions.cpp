@@ -9,9 +9,9 @@
 using namespace gern;
 
 TEST(Functions, SingleFunction) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
-    auto output_2_DS = std::make_shared<const annot::ArrayCPU>("output_con_2");
+    auto inputDS = new const annot::ArrayCPU("input_con");
+    auto outputDS = new const annot::ArrayCPU("output_con");
+    auto output_2_DS = new const annot::ArrayCPU("output_con_2");
 
     annot::add add_f;
     const ComputeFunctionCall *concreteCall1 = add_f(inputDS, outputDS);
