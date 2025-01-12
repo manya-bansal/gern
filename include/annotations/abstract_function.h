@@ -34,20 +34,20 @@ public:
     }
 
     template<typename T>
-    const ComputeFunctionCall *operator()(T argument) {
+    Compose operator()(T argument) {
         std::vector<Argument> arguments;
         addArguments(arguments, argument);
         return generateComputeFunctionCall(arguments);
     }
 
     template<typename FirstT, typename... Next>
-    const ComputeFunctionCall *operator()(FirstT first, Next... remaining) {
+    Compose operator()(FirstT first, Next... remaining) {
         std::vector<Argument> arguments;
         addArguments(arguments, first, remaining...);
         return generateComputeFunctionCall(arguments);
     }
 
-    const ComputeFunctionCall *operator()() {
+    Compose operator()() {
         if (getFunction().args.size() != 0) {
             throw error::UserError("Called function " + getFunction().name + " with 0 arguments");
         }
@@ -55,7 +55,7 @@ public:
     }
 
 private:
-    const ComputeFunctionCall *generateComputeFunctionCall(std::vector<Argument> concrete_arguments);
+    Compose generateComputeFunctionCall(std::vector<Argument> concrete_arguments);
     /**
      * @brief This function actually performs the binding, and checks
      *        the following conditions:

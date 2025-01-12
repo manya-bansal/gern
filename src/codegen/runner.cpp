@@ -65,20 +65,16 @@ void Runner::evaluate(std::map<std::string, void *> args) {
     // and argument order contains the order
     // in which the arguments need to be set into
     // a void **.
-    void **args_in_order = (void **)malloc(sizeof(void *) * num_args);
-    int arg_num = 0;
+    std::vector<void *> args_in_order;
     for (const auto &a : argument_order) {
         if (args.count(a) <= 0) {
             throw error::UserError("Argument " + a + "was not passed in");
         }
-        args_in_order[arg_num] = args.at(a);
-        arg_num++;
+        args_in_order.push_back(args.at(a));
     }
 
     // Now, actually run the function.
-    fp(args_in_order);
-    // Free storage.
-    free(args_in_order);
+    fp(args_in_order.data());
 }
 
 }  // namespace gern

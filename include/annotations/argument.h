@@ -54,7 +54,7 @@ public:
     explicit Argument(const ArgumentNode *a)
         : util::IntrusivePtr<const ArgumentNode>(a) {
     }
-    Argument(AbstractDataTypePtr dataStuct)
+    explicit Argument(AbstractDataTypePtr dataStuct)
         : Argument(new const DSArg(dataStuct)) {
     }
     Argument(Variable v)
@@ -77,7 +77,7 @@ argument.
 
 [[maybe_unused]] static void addArgument(std::vector<Argument> &vector,
                                          Variable v) {
-    vector.push_back(Argument(new const VarArg(v)));
+    vector.push_back(Argument(v));
 }
 
 [[maybe_unused]] static void addArgument(std::vector<Argument> &vector,

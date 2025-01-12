@@ -95,9 +95,9 @@ Compose Compose::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr>
                   std::function<void(const ComputeFunctionCall *, PipelineMatcher *)>(
                       [&](const ComputeFunctionCall *op, PipelineMatcher *) {
                           auto rw_call = op->replaceAllDS(replacements);
-                          c = new const ComputeFunctionCall(rw_call.getCall(),
-                                                            rw_call.getAnnotation(),
-                                                            rw_call.getHeader());
+                          c = Compose(new const ComputeFunctionCall(rw_call.getCall(),
+                                                                    rw_call.getAnnotation(),
+                                                                    rw_call.getHeader()));
                       }),
                   std::function<void(const PipelineNode *, PipelineMatcher *)>(
                       [&](const PipelineNode *op, PipelineMatcher *ctx) {
@@ -106,7 +106,7 @@ Compose Compose::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr>
                               ctx->match(func);
                               rw_compose.push_back(c);
                           }
-                          c = Pipeline(rw_compose);
+                          c = Compose(rw_compose);
                       }));
     return c;
 }

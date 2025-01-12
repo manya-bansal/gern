@@ -37,7 +37,7 @@ public:
     Compose()
         : util::IntrusivePtr<const CompositionObject>(nullptr) {
     }
-    Compose(const CompositionObject *n)
+    explicit Compose(const CompositionObject *n)
         : util::IntrusivePtr<const CompositionObject>(n) {
     }
 
@@ -45,6 +45,7 @@ public:
     Compose(std::vector<Compose> compose);
 
     void concretize();
+
     Compose replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacements) const;
 
     int numFuncs() const;
@@ -186,6 +187,17 @@ template<typename E>
 inline const E *to(const CompositionObject *e) {
     assert(isa<E>(e));
     return static_cast<const E *>(e);
+}
+
+template<typename E>
+inline bool isa(const Compose c) {
+    return isa<E>(c.ptr);
+}
+
+template<typename E>
+inline const E *to(const Compose c) {
+    assert(isa<E>(e));
+    return to<E>(c.ptr);
 }
 
 }  // namespace gern

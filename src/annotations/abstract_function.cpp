@@ -47,7 +47,7 @@ Function Function::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePt
     for (const auto &arg : args) {
         if (isa<DSArg>(arg) &&
             replacement.contains(to<DSArg>(arg)->getADTPtr())) {
-            new_args.push_back(replacement.at(to<DSArg>(arg)->getADTPtr()));
+            new_args.push_back(Argument(replacement.at(to<DSArg>(arg)->getADTPtr())));
         } else {
             new_args.push_back(arg);
         }
@@ -63,7 +63,7 @@ Function Function::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePt
     return new_call;
 }
 
-const ComputeFunctionCall *AbstractFunction::generateComputeFunctionCall(std::vector<Argument> concrete_arguments) {
+Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> concrete_arguments) {
 
     Function f = getFunction();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> abstract_to_concrete_adt;
@@ -140,7 +140,7 @@ const ComputeFunctionCall *AbstractFunction::generateComputeFunctionCall(std::ve
         .output = f.output,
     };
 
-    return new const ComputeFunctionCall(call, rw_annotation, getHeader());
+    return Compose(new const ComputeFunctionCall(call, rw_annotation, getHeader()));
 }
 
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {
