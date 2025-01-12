@@ -422,6 +422,13 @@ Function AbstractDataTypePtr::getQueryFunction() const {
     return ptr->getQueryFunction();
 }
 
+Function AbstractDataTypePtr::getInsertFunction() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getInsertFunction();
+}
+
 std::vector<Variable> AbstractDataTypePtr::getFields() const {
     if (!defined()) {
         throw error::InternalError("Deref null!");
@@ -434,6 +441,10 @@ bool AbstractDataTypePtr::freeQuery() const {
         throw error::InternalError("Deref null!");
     }
     return ptr->freeQuery();
+}
+
+bool AbstractDataTypePtr::insertQuery() const {
+    return ptr->insertQuery();
 }
 
 }  // namespace gern

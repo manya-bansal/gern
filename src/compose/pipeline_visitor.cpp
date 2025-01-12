@@ -55,10 +55,7 @@ void PipelinePrinter::visit(const FreeNode *op) {
 }
 void PipelinePrinter::visit(const InsertNode *op) {
     util::printIdent(os, ident);
-    os << "Insert " << op->child
-       << " into " << op->child
-       << " with ";
-    vector_printer(os, op->fields);
+    os << op->f;
 }
 void PipelinePrinter::visit(const QueryNode *op) {
     util::printIdent(os, ident);

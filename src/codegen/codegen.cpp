@@ -56,9 +56,9 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 
     int num_args = 0;
     for (const auto &ds : to_declare_adts) {
-        args.push_back(VarDecl::make(Type::make(ds.getType()), ds.getName()));
+        args.push_back(VarDecl::make(Type::make(ds.getType()), ds.getName(), false, !p.is_at_device()));
         hook_body.push_back(
-            VarAssign::make(VarDecl::make(Type::make(ds.getType()), ds.getName()),
+            VarAssign::make(VarDecl::make(Type::make(ds.getType()), ds.getName(), false, !p.is_at_device()),
                             Deref::make(
                                 Cast::make(Type::make(ds.getType() + "*"),
                                            Var::make("args[" + std::to_string(num_args) + "]")))));
@@ -131,16 +131,7 @@ void CodeGenerator::visit(const FreeNode *op) {
 }
 
 void CodeGenerator::visit(const InsertNode *op) {
-    std::string method_call = op->parent.getName() + ".insert";
-    std::vector<CGExpr> args;
-    for (const auto &a : op->fields) {
-        args.push_back(gen(a));
-    }
-    CGExpr lhs = VarDecl::make(Type::make(op->child.getType()),
-                               op->child.getName());
-    code = VarAssign::make(lhs, Call::make(method_call, args));
-
-    declared_adt.insert(op->child);
+    code = genFunc(op->f);
     used_adt.insert(op->parent);
 }
 
@@ -360,7 +351,7 @@ CGExpr CodeGenerator::declVar(Variable v, bool const_expr) {
 }
 
 CGExpr CodeGenerator::declADT(AbstractDataTypePtr ds) {
-    CGExpr decl = VarDecl::make(Type::make(ds.getType()),
+    CGExpr decl = VarDecl::make(Type::make("auto"),
                                 ds.getName());
     declared_adt.insert(ds);
     return decl;

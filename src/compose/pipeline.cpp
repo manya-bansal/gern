@@ -122,9 +122,12 @@ void Pipeline::visit(const ComputeFunctionCall *c) {
     // Generate the output query if it not an intermediate.
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> queries;
     AbstractDataTypePtr output = c->getOutput();
+    Argument queried;
     if (!isIntermediate(output)) {
-        lowered.push_back(constructQueryNode(output,
-                                             c->getMetaDataFields(output)));
+        const QueryNode *q = constructQueryNode(output,
+                                                c->getMetaDataFields(output));
+        queried = q->f.output;
+        lowered.push_back(q);
     }
 
     // Generate the queries for the true inputs.
@@ -148,6 +151,15 @@ void Pipeline::visit(const ComputeFunctionCall *c) {
     // Now generate all the consumer intervals if any!
     std::vector<LowerIR> intervals = generateConsumesIntervals(c, temp);
     lowered.insert(lowered.end(), intervals.begin(), intervals.end());
+
+    // Insety the computed output if necessary.
+    if (output.insertQuery()) {
+        Function f = constructFunction(output.getInsertFunction(),
+                                       output.getFields(), c->getProducesFields());
+        f.name = output.getName() + "." + f.name;
+        f.args.push_back(queried);
+        lowered.push_back(new InsertNode(output, f));
+    }
 }
 
 void Pipeline::visit(const PipelineNode *) {

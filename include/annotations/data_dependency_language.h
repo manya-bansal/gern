@@ -190,6 +190,9 @@ public:
     virtual bool freeQuery() const {
         return false;
     }
+    virtual bool insertQuery() const {
+        return false;
+    }
 
 private:
     std::string name;
@@ -209,8 +212,10 @@ public:
     std::string getType() const;
     Function getAllocateFunction() const;
     Function getQueryFunction() const;
+    Function getInsertFunction() const;
     std::vector<Variable> getFields() const;
     bool freeQuery() const;
+    bool insertQuery() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads);

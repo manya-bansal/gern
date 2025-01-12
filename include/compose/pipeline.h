@@ -140,13 +140,12 @@ struct FreeNode : public LowerIRNode {
 // into the parent data-structure as the
 // subset with meta-data values in fields.
 struct InsertNode : public LowerIRNode {
-    InsertNode(AbstractDataTypePtr parent, AbstractDataTypePtr child)
-        : parent(parent), child(child) {
+    InsertNode(AbstractDataTypePtr parent, Function f)
+        : parent(parent), f(f) {
     }
     void accept(PipelineVisitor *) const;
     AbstractDataTypePtr parent;
-    AbstractDataTypePtr child;
-    std::vector<Expr> fields;
+    Function f;
 };
 
 // IR Node that marks a query

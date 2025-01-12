@@ -52,7 +52,7 @@ public:
         };
     }
 
-private:
+protected:
     std::string name;
     Variable x{"x"};
     Variable len{"len"};

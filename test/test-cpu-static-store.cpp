@@ -1,0 +1,50 @@
+#include "annotations/visitor.h"
+#include "compose/compose.h"
+#include "compose/pipeline.h"
+#include "compose/runner.h"
+#include "config.h"
+#include "library/array/annot/cpu-array-template.h"
+#include "library/array/impl/cpu-array-template.h"
+#include "test-utils.h"
+
+#include <algorithm>
+#include <gtest/gtest.h>
+
+using namespace gern;
+
+TEST(StaticStore, Single) {
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPUTemplate<10>("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPUTemplate<10>("output_con"));
+
+    annot::addStaticStore add_f;
+    Variable v("v");
+    Variable step("step");
+
+    std::vector<Compose> c = {add_f[{
+        {"end", v},
+        {"step", step.bindToInt64(5)},
+    }](inputDS, outputDS)};
+
+    Pipeline p(c);
+    Runner run(p);
+
+    ASSERT_NO_THROW(run.compile(test::cpuRunner("array")));
+
+    impl::ArrayCPUTemplate<10> input;
+    input.vvals(2.0f);
+    impl::ArrayCPUTemplate<10> output;
+    output.vvals(4.0f);
+    int64_t var2 = 10;
+
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS.getName(), &input},
+        {outputDS.getName(), &output},
+        {v.getName(), &var2},
+    }));
+
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        std::cout << output.data[i] << std::endl;
+        ASSERT_TRUE(output.data[i] == 6.0f);
+    }
+}

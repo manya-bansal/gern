@@ -5,8 +5,10 @@ add_executable(gern_test)
 
 set(LIB_HEADERS
     library/array/annot/cpu-array.h
+    library/array/annot/cpu-array-template.h
     library/array/annot/gpu-array.h
     library/array/impl/cpu-array.h
+    library/array/impl/cpu-array-template.h
     
     library/matrix/annot/cpu-matrix.h
     library/matrix/annot/gpu-matrix.h
@@ -21,6 +23,7 @@ set(TEST_SOURCES
     test-grid-property.cpp
     test-cpu-array.cpp
     test-cpu-matrix.cpp
+    test-cpu-static-store.cpp
 )
 
 
