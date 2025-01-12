@@ -43,12 +43,6 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     a.vvals(2.0f);
     impl::ArrayGPU b(10);
     b.vvals(3.0f);
-    impl::ArrayCPU result = b.get();
-    for (int i = 0; i < 10; i++) {
-        std::cout << result.data[i] << std::endl;
-        // ASSERT_TRUE(result.data[i] == 5.0f);
-    }
-
     int64_t var = 10;
     int64_t step_val = 10;
 
@@ -61,8 +55,8 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
 
     // impl::ArrayCPU result = b.get();
     // Make sure we got the correct answer.
+    impl::ArrayCPU result = b.get();
     for (int i = 0; i < 10; i++) {
-        std::cout << result.data[i] << std::endl;
         ASSERT_TRUE(result.data[i] == 5.0f);
     }
 
