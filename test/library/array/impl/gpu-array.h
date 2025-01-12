@@ -3,6 +3,9 @@
 #include "cpu-array.h"
 
 #include <cuda_runtime.h>
+#include <iostream>
+#include <stdexcept>
+#include <stdio.h>
 #include <stdlib.h>
 
 namespace gern {
@@ -12,7 +15,9 @@ class ArrayGPU {
 public:
     ArrayGPU(int64_t size)
         : size(size) {
-        cudaMalloc(&data, size * sizeof(float));
+        if (cudaMalloc(&data, size * sizeof(float)) != cudaSuccess) {
+            throw std::runtime_error("Failed to allocate GPU memory.");
+        }
     }
     __device__ ArrayGPU(float *data, int64_t size)
         : data(data), size(size) {
@@ -44,8 +49,9 @@ public:
 };
 
 __device__ inline void add(ArrayGPU a, ArrayGPU b) {
-
+    printf("running");
     for (int64_t i = 0; i < a.size; i++) {
+        printf("%f\n", a.data[i]);
         b.data[i] += a.data[i];
     }
 }
