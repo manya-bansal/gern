@@ -23,6 +23,9 @@
         "BUILD_SHARED_LIBS": "ON",
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "CMAKE_CXX_FLAGS": "-Wall -Wextra -pedantic -fsanitize=address -fomit-frame-pointer"
+      },
+      "environment": {
+        "LSAN_OPTIONS": "suppressions=${sourceDir}/suppressions.txt"
       }
     }
   ]
