@@ -324,7 +324,7 @@ void Pipeline::generateAllAllocs() {
         // Finally make the allocation.
         lowered.push_back(constructAllocNode(
             temp,
-            getProducerFunction(temp)->getMetaDataFields(temp)));
+            getProducerFunction(temp)->getProducesFields()));
     }
 
     // Change references to the allocated data-structures now.
@@ -351,13 +351,43 @@ const QueryNode *Pipeline::constructQueryNode(AbstractDataTypePtr ds, std::vecto
     return new QueryNode(ds, queried, query_args);
 }
 
+Function Pipeline::constructFunction(Function f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const {
+    if (ref_md_fields.size() != true_md_fields.size()) {
+        throw error::InternalError("Incorrect number of fields passed!");
+    }
+    // Put all the fields in a map.
+    std::map<Variable, Variable> mappings;
+    for (size_t i = 0; i < ref_md_fields.size(); i++) {
+        mappings[ref_md_fields[i]] = true_md_fields[i];
+    }
+    // Now, set up the args.
+    std::vector<Argument> new_args;
+    for (auto const &a : f.args) {
+        new_args.push_back(mappings[to<VarArg>(a)->getVar()]);
+    }
+    // set up the templated args.
+    std::vector<Variable> template_args;
+    for (auto const &a : f.template_args) {
+        template_args.push_back(mappings[a]);
+    }
+
+    Function f_new{
+        .name = f.name,
+        .args = new_args,
+        .template_args = template_args,
+    };
+    return f_new;
+}
+
 const FreeNode *Pipeline::constructFreeNode(AbstractDataTypePtr ds) {
     return new FreeNode(ds);
 }
 
-const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
+const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::vector<Variable> alloc_args) {
+    Function alloc_func = constructFunction(ds.getAllocateFunction(), ds.getFields(), alloc_args);
+    alloc_func.output = Argument(ds);
     to_free.insert(ds);
-    return new AllocateNode(ds, alloc_args);
+    return new AllocateNode(alloc_func);
 }
 
 std::vector<LowerIR> Pipeline::generateConsumesIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {

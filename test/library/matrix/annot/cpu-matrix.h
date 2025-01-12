@@ -30,7 +30,7 @@ public:
 
     Function getAllocateFunction() const override {
         return Function{
-            .name = "allocate",
+            .name = "gern::impl::MatrixCPU::allocate",
             .args = {x, y, l_x, l_y},
         };
     }

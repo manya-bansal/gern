@@ -7,6 +7,29 @@
 
 namespace gern {
 
+std::ostream &operator<<(std::ostream &os, const Function &f) {
+    os << f.output << " ";
+    os << f.name;
+    int num_template_args = f.template_args.size();
+    if (num_template_args > 0) {
+        os << "<";
+        for (int i = 0; i < num_template_args; i++) {
+            os << f.template_args[i];
+            os << ((i != num_template_args - 1) ? ", " : "");
+        }
+        os << ">";
+    }
+
+    int args_size = f.args.size();
+    os << "(";
+    for (int i = 0; i < args_size; i++) {
+        os << f.args[i];
+        os << ((i != args_size - 1) ? ", " : "");
+    }
+    os << ")";
+    return os;
+}
+
 std::vector<Expr> ComputeFunctionCall::getMetaDataFields(AbstractDataTypePtr d) const {
     std::vector<Expr> metaFields;
     match(getAnnotation(), std::function<void(const SubsetNode *)>(

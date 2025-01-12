@@ -46,8 +46,8 @@ static void vector_printer(std::ostream &os, std::vector<T> v) {
 
 void PipelinePrinter::visit(const AllocateNode *op) {
     util::printIdent(os, ident);
-    os << "Allocate " << op->data << " with ";
-    vector_printer(os, op->fields);
+    os << "Allocate " << op->f.output << " with ";
+    vector_printer(os, op->f.args);
 }
 void PipelinePrinter::visit(const FreeNode *op) {
     util::printIdent(os, ident);

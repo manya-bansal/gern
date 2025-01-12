@@ -204,26 +204,12 @@ public:
     explicit AbstractDataTypePtr(const AbstractDataType *n)
         : util::IntrusivePtr<const AbstractDataType>(n) {
     }
-    std::string getName() const {
-        if (!defined()) {
-            throw error::InternalError("Deref null!");
-        }
-        return ptr->getName();
-    }
 
-    std::string getType() const {
-        if (!defined()) {
-            throw error::InternalError("Deref null!");
-        }
-        return ptr->getType();
-    }
-
-    bool freeQuery() const {
-        if (!defined()) {
-            throw error::InternalError("Deref null!");
-        }
-        return ptr->freeQuery();
-    }
+    std::string getName() const;
+    std::string getType() const;
+    Function getAllocateFunction() const;
+    std::vector<Variable> getFields() const;
+    bool freeQuery() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads);

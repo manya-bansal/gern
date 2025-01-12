@@ -84,9 +84,11 @@ private:
     void generateAllAllocs();  // Helper method to declare all the allocate node.
     void generateAllFrees();   // Helper method to declare all the frees.
 
-    const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
-    const FreeNode *constructFreeNode(AbstractDataTypePtr);                          // Constructs a free node for a data-structure, and tracks this relationship.
-    const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
+    const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);         // Constructs a query node for a data-structure, and tracks this relationship.
+    const FreeNode *constructFreeNode(AbstractDataTypePtr);                              // Constructs a free node for a data-structure, and tracks this relationship.
+    const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Variable>);  // Constructs a allocate for a data-structure, and tracks this relationship.
+
+    Function constructFunction(Function f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
 
     std::vector<LowerIR> generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
@@ -109,12 +111,11 @@ std::ostream &operator<<(std::ostream &os, const Pipeline &p);
 
 // IR Node that marks an allocation
 struct AllocateNode : public LowerIRNode {
-    AllocateNode(AbstractDataTypePtr data, const std::vector<Expr> &fields)
-        : data(data), fields(fields) {
+    AllocateNode(Function f)
+        : f(f) {
     }
     void accept(PipelineVisitor *) const;
-    AbstractDataTypePtr data;
-    std::vector<Expr> fields;
+    Function f;
 };
 
 // IR Node that marks an free

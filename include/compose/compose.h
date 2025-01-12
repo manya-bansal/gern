@@ -79,6 +79,8 @@ struct Function {
     Function replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
 };
 
+std::ostream &operator<<(std::ostream &os, const Function &f);
+
 class ComputeFunctionCall : public CompositionObject {
 public:
     ComputeFunctionCall() = delete;

@@ -394,4 +394,39 @@ Pattern For(Assign start, Expr end, Expr step,
     return For(start, end, step, Computes(produces, consumes), parallel);
 }
 
+std::string AbstractDataTypePtr::getName() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getName();
+}
+
+std::string AbstractDataTypePtr::getType() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getType();
+}
+
+Function AbstractDataTypePtr::getAllocateFunction() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getAllocateFunction();
+}
+
+std::vector<Variable> AbstractDataTypePtr::getFields() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getFields();
+}
+
+bool AbstractDataTypePtr::freeQuery() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->freeQuery();
+}
+
 }  // namespace gern

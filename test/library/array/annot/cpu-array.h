@@ -29,7 +29,7 @@ public:
     }
     Function getAllocateFunction() const override {
         return Function{
-            .name = "allocate",
+            .name = "gern::impl::ArrayCPU::allocate",
             .args = {x, len},
         };
     }

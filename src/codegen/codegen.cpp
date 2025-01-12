@@ -116,16 +116,7 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 }
 
 void CodeGenerator::visit(const AllocateNode *op) {
-    std::string method_call = op->data.getType() + "::allocate";
-    std::vector<CGExpr> args;
-    for (const auto &a : op->fields) {
-        args.push_back(gen(a));
-    }
-    CGExpr lhs = VarDecl::make(Type::make(op->data.getType()),
-                               op->data.getName());
-    code = VarAssign::make(lhs, Call::make(method_call, args));
-
-    declared_adt.insert(op->data);
+    code = gen(op->f);
 }
 
 void CodeGenerator::visit(const FreeNode *op) {

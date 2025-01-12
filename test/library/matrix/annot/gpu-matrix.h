@@ -31,7 +31,7 @@ public:
 
     Function getAllocateFunction() const override {
         return Function{
-            .name = "allocate",
+            .name = "gern::impl::MatrixGPU::allocate",
             .args = {x, y, l_x, l_y},
         };
     }
