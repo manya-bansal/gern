@@ -37,6 +37,13 @@ public:
 
 std::ostream &operator<<(std::ostream &os, const LowerIR &n);
 
+struct FunctionCall {
+    std::string name;
+    std::vector<Expr> args;
+    std::vector<Expr> template_args;
+    Argument output = Argument();
+};
+
 // The pipeline actually holds the lowered
 // nodes, and helps us nest pipelines.
 class Pipeline : public CompositionVisitorStrict {
@@ -88,7 +95,8 @@ private:
     const FreeNode *constructFreeNode(AbstractDataTypePtr);                              // Constructs a free node for a data-structure, and tracks this relationship.
     const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Variable>);  // Constructs a allocate for a data-structure, and tracks this relationship.
 
-    Function constructFunction(Function f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
+    Function constructFunction(Function f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const;      // Constructs a call with the true meta data fields mapped in the correct place.
+    FunctionCall constructFunctionCall(Function f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
 
     std::vector<LowerIR> generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
@@ -146,13 +154,12 @@ struct InsertNode : public LowerIRNode {
 // from the parent data-structure corresponding to
 // the subset with meta-data values in fields.
 struct QueryNode : public LowerIRNode {
-    QueryNode(AbstractDataTypePtr parent, AbstractDataTypePtr child, std::vector<Expr> fields)
-        : parent(parent), child(child), fields(fields) {
+    QueryNode(AbstractDataTypePtr parent, FunctionCall f)
+        : parent(parent), f(f) {
     }
     void accept(PipelineVisitor *) const;
     AbstractDataTypePtr parent;
-    AbstractDataTypePtr child;
-    std::vector<Expr> fields;
+    FunctionCall f;
 };
 
 // IR Node marks a function call.

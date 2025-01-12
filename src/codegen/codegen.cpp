@@ -116,7 +116,7 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 }
 
 void CodeGenerator::visit(const AllocateNode *op) {
-    code = gen(op->f);
+    code = genFunc(op->f);
 }
 
 void CodeGenerator::visit(const FreeNode *op) {
@@ -145,21 +145,12 @@ void CodeGenerator::visit(const InsertNode *op) {
 }
 
 void CodeGenerator::visit(const QueryNode *op) {
-    std::string method_call = op->parent.getName() + ".query";
-    std::vector<CGExpr> args;
-    for (const auto &a : op->fields) {
-        args.push_back(gen(a));
-    }
-    CGExpr lhs = VarDecl::make(Type::make(op->child.getType()),
-                               op->child.getName());
-    code = VarAssign::make(lhs, Call::make(method_call, args));
-
-    declared_adt.insert(op->child);
+    code = genFunc(op->f);
     used_adt.insert(op->parent);
 }
 
 void CodeGenerator::visit(const ComputeNode *op) {
-    code = gen(op->f);
+    code = genFunc(op->f);
     // Add the header.
     std::vector<std::string> func_header = op->headers;
     headers.insert(func_header.begin(), func_header.end());
@@ -323,7 +314,8 @@ CGExpr CodeGenerator::gen(Argument a, bool lhs) {
     return generate.gen_expr;
 }
 
-CGStmt CodeGenerator::gen(Function f) {
+template<typename T>
+CGStmt CodeGenerator::genFunc(T f) {
     std::vector<CGExpr> args;
     for (const auto &a : f.args) {
         args.push_back(gen(a));

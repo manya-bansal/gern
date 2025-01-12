@@ -343,12 +343,15 @@ void Pipeline::generateAllFrees() {
 
 const QueryNode *Pipeline::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> query_args) {
     AbstractDataTypePtr queried = PipelineDS::make("_query_" + ds.getName(), ds);
+    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds.getFields(), query_args);
+    f.name = ds.getName() + "." + f.name;
+    f.output = Argument(queried);
     new_ds[ds] = queried;
     // If any of the queried data-structures need to be free, track that.
     if (ds.freeQuery()) {
         to_free.insert(queried);
     }
-    return new QueryNode(ds, queried, query_args);
+    return new QueryNode(ds, f);
 }
 
 Function Pipeline::constructFunction(Function f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const {
@@ -376,6 +379,36 @@ Function Pipeline::constructFunction(Function f, std::vector<Variable> ref_md_fi
         .args = new_args,
         .template_args = template_args,
     };
+    return f_new;
+}
+
+FunctionCall Pipeline::constructFunctionCall(Function f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const {
+
+    if (ref_md_fields.size() != true_md_fields.size()) {
+        throw error::InternalError("Incorrect number of fields passed!");
+    }
+    // Put all the fields in a map.
+    std::map<Variable, Expr> mappings;
+    for (size_t i = 0; i < ref_md_fields.size(); i++) {
+        mappings[ref_md_fields[i]] = true_md_fields[i];
+    }
+    // Now, set up the args.
+    std::vector<Expr> new_args;
+    for (auto const &a : f.args) {
+        new_args.push_back(mappings[to<VarArg>(a)->getVar()]);
+    }
+    // set up the templated args.
+    std::vector<Expr> template_args;
+    for (auto const &a : f.template_args) {
+        template_args.push_back(mappings[a]);
+    }
+
+    FunctionCall f_new{
+        .name = f.name,
+        .args = new_args,
+        .template_args = template_args,
+    };
+
     return f_new;
 }
 

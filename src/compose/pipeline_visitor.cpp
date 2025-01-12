@@ -62,10 +62,10 @@ void PipelinePrinter::visit(const InsertNode *op) {
 }
 void PipelinePrinter::visit(const QueryNode *op) {
     util::printIdent(os, ident);
-    os << "Query " << op->child
-       << " from " << op->child
+    os << "Query " << op->f.output
+       << " from " << op->parent
        << " with ";
-    vector_printer(os, op->fields);
+    vector_printer(os, op->f.args);
 }
 void PipelinePrinter::visit(const ComputeNode *op) {
     util::printIdent(os, ident);

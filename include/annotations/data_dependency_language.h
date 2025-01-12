@@ -208,6 +208,7 @@ public:
     std::string getName() const;
     std::string getType() const;
     Function getAllocateFunction() const;
+    Function getQueryFunction() const;
     std::vector<Variable> getFields() const;
     bool freeQuery() const;
 };

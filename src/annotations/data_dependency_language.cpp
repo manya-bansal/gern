@@ -415,6 +415,13 @@ Function AbstractDataTypePtr::getAllocateFunction() const {
     return ptr->getAllocateFunction();
 }
 
+Function AbstractDataTypePtr::getQueryFunction() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getQueryFunction();
+}
+
 std::vector<Variable> AbstractDataTypePtr::getFields() const {
     if (!defined()) {
         throw error::InternalError("Deref null!");
