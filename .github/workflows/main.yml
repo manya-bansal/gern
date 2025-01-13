@@ -21,20 +21,27 @@ jobs:
       # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:
         os: [ubuntu-latest] 
+        include:
+          - os: windows-latest
+            vcpkgCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
+          - os: ubuntu-latest
+            vcpkgCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
+          - os: macos-latest
+            vcpkgCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
     
     steps:
     - uses: actions/checkout@v4 
 
-    # - name: Download vcpkg 
-    #   run: git clone https://github.com/microsoft/vcpkg.git '${{ runner.workspace }}/vcpkg' 
-    #   shell: bash
-
-    # - name: Bootstrap vcpkg 
-    #   run: ${{ runner.workspace }}/vcpkg/bootstrap-vcpkg.sh
-    #   shell: bash
-    - name: Set Presets
-      run: cmake --preset dev
-      shell: bash
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      id: runvcpkg
+      with:
+        # This specifies the location of vcpkg, where it is going to be restored from cache, or create from scratch.
+        vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
+        # The Git commit id of vcpkg to be checked out. This is only needed because we are not using a submodule.
+        vcpkgGitCommitId: '${{ matrix.vcpkgCommitId}}'
+        # The vcpkg.json file, which will be part of cache key computation.
+        vcpkgJsonGlob: '${{  github.workspace }}/vcpkg.json'
 
     - name: Build Gern
       run: cmake --build build/dev
