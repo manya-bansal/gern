@@ -82,12 +82,16 @@ TEST(LoweringCPU, Softmax) {
 
     auto inputDS = AbstractDataTypePtr(new const annot::MatrixCPU("input"));
     auto outputDS = AbstractDataTypePtr(new const annot::MatrixCPU("output_final"));
+    auto ExpDS = AbstractDataTypePtr(new const annot::MatrixCPU("expDS"));
+    auto SubDS = AbstractDataTypePtr(new const annot::MatrixCPU("subDS"));
     auto SumRowDS = AbstractDataTypePtr(new const annot::ArrayCPU("rowSum"));
     auto MaxRowDS = AbstractDataTypePtr(new const annot::ArrayCPU("rowMax"));
 
     annot::SumRow sum_row;
     annot::MaxRow max_row;
     annot::SubtractVec subtract_vec;
+    annot::ExpMatrix exp_matrix;
+    annot::DivideVec divide_vec;
 
     Variable row("row");
     Variable col("col");
@@ -97,14 +101,19 @@ TEST(LoweringCPU, Softmax) {
 
     std::vector<Compose> c = {
         max_row[{
-            {"col", col_1},  // This should go away, once I allow member variables as args.
+            {"col", col},  // This should go away, once I allow member variables as args.
         }](inputDS, MaxRowDS),
-        subtract_vec[{
+        subtract_vec(MaxRowDS, inputDS, SubDS),
+        exp_matrix(SubDS, ExpDS),
+        sum_row[{
+            {"col", col},  // This should go away, once I allow member variables as args.
+        }](ExpDS, SumRowDS),
+        divide_vec[{
             {"row", row},
             {"col", col},
             {"l_x", l_x},
             {"l_y", l_y},
-        }](MaxRowDS, inputDS, outputDS),
+        }](SumRowDS, ExpDS, outputDS),
     };
 
     Pipeline p(c);
@@ -128,7 +137,6 @@ TEST(LoweringCPU, Softmax) {
         {outputDS.getName(), &b},
         {row.getName(), &row_val},
         {col.getName(), &col_val},
-        {col_1.getName(), &col_val},
         {l_x.getName(), &l_x_val},
         {l_y.getName(), &l_y_val},
     }));
@@ -140,6 +148,9 @@ TEST(LoweringCPU, Softmax) {
 
     gern::impl::max_row(a, max_row_ref);
     gern::impl::subtract_vec(max_row_ref, a, reference);
+    gern::impl::exp_matrix(reference, reference);
+    gern::impl::sum_row(reference, max_row_ref);
+    gern::impl::divide_vec(max_row_ref, reference, reference);
 
     for (int i = 0; i < row_val * col_val; i++) {
         ASSERT_EQ(b.data[i], reference.data[i]);

@@ -305,7 +305,7 @@ void Pipeline::generateAllDefs() {
         std::set<ComputeFunctionCallPtr> consumer_funcs = getConsumerFunctions(temp);
         // No forks allowed, as is. Come back and change!
         if (consumer_funcs.size() != 1) {
-            throw error::InternalError("Unimplemented");
+            std::cout << "WARNING::FORKS ARE NOT IMPL, ASSUMING EQUAL CONSUMPTION!" << std::endl;
         }
         // Writing as a for loop, will eventually change!
         // Only one allowed for right now...
@@ -325,6 +325,7 @@ void Pipeline::generateAllDefs() {
                 lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i],
                                               producer_func->isTemplateArg(var_fields[i])));
             }
+            break;
         }
     }
 }

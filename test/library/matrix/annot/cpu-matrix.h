@@ -84,8 +84,8 @@ public:
 
         return For(x = Expr(0), row, l_x,
                    For(y = Expr(0), col, l_y,
-                       Produces::Subset(input, {x, y, l_x, l_y}),
-                       Consumes::Subset(output, {x, y, l_x, l_y})));
+                       Produces::Subset(output, {x, y, l_x, l_y}),
+                       Consumes::Subset(input, {x, y, l_x, l_y})));
     }
 
     std::vector<Argument> getArguments() {
@@ -108,7 +108,7 @@ public:
         return f;
     }
 
-private:
+protected:
     AbstractDataTypePtr input;
     AbstractDataTypePtr output;
     Variable end{"end"};
@@ -169,6 +169,20 @@ public:
     }
 };
 
+class ExpMatrix : public MatrixAddCPU {
+public:
+    ExpMatrix()
+        : MatrixAddCPU() {
+    }
+
+    virtual Function getFunction() override {
+        Function f;
+        f.name = "gern::impl::exp_matrix";
+        f.args = {Argument(input), Argument(output)};
+        return f;
+    }
+};
+
 class SubtractVec : public AbstractFunction {
 public:
     SubtractVec()
@@ -210,11 +224,25 @@ public:
         };
     }
 
-private:
+protected:
     AbstractDataTypePtr input;
     AbstractDataTypePtr output;
     AbstractDataTypePtr vec;
     Variable end{"end"};
+};
+
+class DivideVec : public SubtractVec {
+public:
+    DivideVec()
+        : SubtractVec() {
+    }
+
+    virtual Function getFunction() override {
+        Function f;
+        f.name = "gern::impl::divide_vec";
+        f.args = {Argument(vec), Argument(input), Argument(output)};
+        return f;
+    }
 };
 
 }  // namespace annot
