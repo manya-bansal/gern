@@ -26,13 +26,10 @@ jobs:
         os: [ubuntu-latest] 
     
     steps:
-    - uses: actions/checkout@v4
-      with:
-        repository: "https://github.com/Microsoft/vcpkg"
-        path: "vcpkg"
+    - uses: actions/checkout@v4 
 
     - name: Bootstrap vcpkg
-      run: "${{ github.workspace }}/vcpkg/bootstrap-vcpkg.sh"
+      run: ls -l vcpkg 
       shell: bash
 
     - name: Set presets 
