@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  VCPKG_ROOT: ${{ runner.workspace }}/vcpkg/
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -28,13 +25,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4 
 
-    - name: Download vcpkg 
-      run: git clone https://github.com/microsoft/vcpkg.git '${{ runner.workspace }}/vcpkg' 
-      shell: bash
+    # - name: Download vcpkg 
+    #   run: git clone https://github.com/microsoft/vcpkg.git '${{ runner.workspace }}/vcpkg' 
+    #   shell: bash
 
-    - name: Bootstrap vcpkg 
-      run: ${{ runner.workspace }}/vcpkg/bootstrap-vcpkg.sh
-      shell: bash
+    # - name: Bootstrap vcpkg 
+    #   run: ${{ runner.workspace }}/vcpkg/bootstrap-vcpkg.sh
+    #   shell: bash
 
     - name: Build Gern
       run: cmake --build build/dev
