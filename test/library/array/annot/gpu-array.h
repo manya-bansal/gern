@@ -151,6 +151,10 @@ public:
     bool freeAlloc() const override {
         return false;
     }
+
+    bool insertQuery() const override {
+        return true;
+    }
 };
 
 class addGPUTemplate : public addGPU {

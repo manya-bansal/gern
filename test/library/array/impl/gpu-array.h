@@ -49,9 +49,9 @@ public:
     }
 
     template<int Size>
-    __device__ inline void insert(int start, ArrayStaticGPU<Size> a) {
-        float queried[Size];
+    __device__ inline void insert_array(int start, ArrayStaticGPU<Size> &a) {
         for (int i = 0; i < Size; i++) {
+            printf("%f\n", a.data[i]);
             data[start + i] = a.data[i];
         }
     }
@@ -92,7 +92,7 @@ __device__ inline void add(ArrayGPU a, ArrayGPU b) {
 }
 
 template<int Size>
-__device__ inline void add(ArrayStaticGPU<Size> a, ArrayStaticGPU<Size> b) {
+__device__ inline void add(ArrayStaticGPU<Size> &a, ArrayStaticGPU<Size> &b) {
     for (int64_t i = 0; i < Size; i++) {
         b.data[i] += a.data[i];
     }

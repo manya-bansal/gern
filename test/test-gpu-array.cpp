@@ -279,7 +279,7 @@ TEST(LoweringGPU, MultiArray) {
     std::vector<Compose> c = {
         add_f(inputDS, tempDS),
         add_f[{
-            {"x", x.bindToGrid(Grid::Property::BLOCK_ID_X)},
+            // {"x", x.bindToGrid(Grid::Property::BLOCK_ID_X)},
             {"step", step.bindToInt64(5)},
             {"end", end},
         }](tempDS, outputDS)};
@@ -294,7 +294,7 @@ TEST(LoweringGPU, MultiArray) {
     input.vvals(2.0f);
     impl::ArrayGPU output(10);
     output.vvals(6.0f);
-    int end_val = 10;
+    int64_t end_val = 10;
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &input},
