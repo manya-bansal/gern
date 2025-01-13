@@ -132,7 +132,6 @@ Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> conc
     Pattern rw_annotation = to<Pattern>(annotation
                                             .replaceDSArgs(abstract_to_concrete_adt)
                                             .replaceVariables(fresh_names));
-
     Function call{
         .name = f.name,
         .args = concrete_arguments,

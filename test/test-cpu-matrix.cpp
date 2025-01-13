@@ -91,17 +91,20 @@ TEST(LoweringCPU, Softmax) {
 
     Variable row("row");
     Variable col("col");
+    Variable col_1("col_1");
     Variable l_x("l_x");
     Variable l_y("l_y");
 
     std::vector<Compose> c = {
-        max_row(inputDS, MaxRowDS),
+        max_row[{
+            {"col", col_1},  // This should go away, once I allow member variables as args.
+        }](inputDS, MaxRowDS),
         subtract_vec[{
             {"row", row},
             {"col", col},
             {"l_x", l_x},
             {"l_y", l_y},
-        }](inputDS, MaxRowDS, outputDS),
+        }](MaxRowDS, inputDS, outputDS),
     };
 
     Pipeline p(c);
@@ -124,6 +127,7 @@ TEST(LoweringCPU, Softmax) {
         {outputDS.getName(), &b},
         {row.getName(), &row_val},
         {col.getName(), &col_val},
+        {col_1.getName(), &col_val},
         {l_x.getName(), &l_x_val},
         {l_y.getName(), &l_y_val},
     }));

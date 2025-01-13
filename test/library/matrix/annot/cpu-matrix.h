@@ -200,7 +200,7 @@ public:
     virtual Function getFunction() override {
         Function f;
         f.name = "gern::impl::subtract_vec";
-        f.args = {Argument(input), Argument(vec), Argument(output)};
+        f.args = {Argument(vec), Argument(input), Argument(output)};
         return f;
     }
 
