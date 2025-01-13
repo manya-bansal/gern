@@ -32,12 +32,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     p.at_device();
     Runner run(p);
 
-    run.compile(Runner::Options{
-        .filename = "test",
-        .prefix = "/tmp",
-        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
-        .arch = std::string(GERN_CUDA_ARCH),
-    });
+    run.compile(test::gpuRunner("array"));
 
     // Now, actually run the function.
     impl::ArrayGPU a(10);
@@ -102,13 +97,7 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     p.at_device();
     Runner run(p);
 
-    run.compile(Runner::Options{
-        .filename = "test",
-        .prefix = "/tmp",
-        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
-        .arch = std::string(GERN_CUDA_ARCH),
-    });
-
+    run.compile(test::gpuRunner("array"));
     // Now, actually run the function.
     impl::ArrayGPU a(10);
     a.vvals(2.0f);
@@ -150,12 +139,7 @@ TEST(LoweringGPU, SingleReduceNoBind) {
     p.at_device();
     Runner run(p);
 
-    run.compile(Runner::Options{
-        .filename = "test",
-        .prefix = "/tmp",
-        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
-        .arch = std::string(GERN_CUDA_ARCH),
-    });
+    run.compile(test::gpuRunner("array"));
 
     impl::ArrayGPU a(10);
     a.vvals(2.0f);
@@ -226,12 +210,7 @@ TEST(LoweringGPU, SingleReduceBind) {
     p.at_device();
     Runner run(p);
 
-    run.compile(Runner::Options{
-        .filename = "test",
-        .prefix = "/tmp",
-        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/array/impl",
-        .arch = std::string(GERN_CUDA_ARCH),
-    });
+    run.compile(test::gpuRunner("array"));
 
     impl::ArrayGPU a(10);
     a.vvals(2.0f);

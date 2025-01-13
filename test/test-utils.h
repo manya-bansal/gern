@@ -26,13 +26,24 @@ static bool areDisjoint(std::set<T> s1, std::set<T> s2) {
     return true;
 }
 
-[[maybe_unused]] static gern::Runner::Options cpuRunner(std::string dir) {
+[[maybe_unused]] static gern::Runner::Options cpuRunner(const std::vector<std::string> &dirs) {
+
+    std::string include = " -I " + std::string(GERN_ROOT_DIR) + "/test/";
+    for (const auto &dir : dirs) {
+        include += " -I " + std::string(GERN_ROOT_DIR) +
+                   "/test/library/" + dir + "/impl";
+    }
+
     gern::Runner::Options o;
     o.filename = "test";
     o.prefix = "/tmp";
-    o.include = " -I " + std::string(GERN_ROOT_DIR) +
-                "/test/library/" + dir + "/impl";
+    o.include = include;
+
     return o;
+}
+
+[[maybe_unused]] static gern::Runner::Options cpuRunner(std::string dir) {
+    return cpuRunner(std::vector<std::string>{dir});
 }
 
 }  // namespace test

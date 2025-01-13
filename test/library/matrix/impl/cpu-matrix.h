@@ -1,6 +1,9 @@
 #pragma once
 
+#include "library/array/impl/cpu-array.h"
+#include <algorithm>
 #include <cstring>
+#include <limits>
 #include <stdlib.h>
 
 namespace gern {
@@ -70,6 +73,43 @@ inline void add(MatrixCPU a, MatrixCPU b) {
         b_data = b.data + (i * b.lda);
         for (int64_t j = 0; j < a.col; j++) {
             b_data[j] += a_data[j];
+        }
+    }
+}
+
+inline void sum_row(MatrixCPU a, ArrayCPU b) {
+    float *a_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        float sum = 0.0f;
+        a_data = a.data + (i * a.lda);
+        for (int64_t j = 0; j < a.col; j++) {
+            sum += a_data[i];
+        }
+        b.data[i] = sum;
+    }
+}
+
+inline void max_row(MatrixCPU a, ArrayCPU b) {
+    float *a_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        float maximum = std::numeric_limits<float>::max();
+        a_data = a.data + (i * a.lda);
+        for (int64_t j = 0; j < a.col; j++) {
+            maximum = std::max(maximum, a_data[i]);
+        }
+        b.data[i] = maximum;
+    }
+}
+
+inline void subtract_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
+    float *a_data;
+    float *out_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        float vec_data = b.data[i];
+        a_data = a.data + (i * a.lda);
+        out_data = out.data + (i * out.lda);
+        for (int64_t j = 0; j < a.col; j++) {
+            out_data[i] = vec_data - a_data[i];
         }
     }
 }

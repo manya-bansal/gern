@@ -354,7 +354,7 @@ void Pipeline::generateAllFrees() {
 }
 
 const QueryNode *Pipeline::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> query_args) {
-    AbstractDataTypePtr queried = PipelineDS::make("_query_" + ds.getName(), ds);
+    AbstractDataTypePtr queried = PipelineDS::make(getUniqueName("_query_" + ds.getName()), ds);
     FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds.getFields(), query_args);
     f.name = ds.getName() + "." + f.name;
     f.output = Argument(queried);

@@ -13,6 +13,9 @@ set(LIB_HEADERS
     library/matrix/annot/cpu-matrix.h
     library/matrix/annot/gpu-matrix.h
     library/matrix/impl/cpu-matrix.h
+     
+    library/scalar/annot/cpu-scalar.h
+    library/scalar/impl/cpu-scalar.h
 )
 
 set(TEST_SOURCES

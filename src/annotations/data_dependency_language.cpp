@@ -241,7 +241,7 @@ Stmt Stmt::replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_d
         using Rewriter::rewrite;
 
         void visit(const SubsetNode *op) {
-            if (rw_ds.find(op->data) != rw_ds.end()) {
+            if (rw_ds.contains(op->data)) {
                 stmt = SubsetObj(rw_ds[op->data], op->mdFields);
             } else {
                 stmt = SubsetObj(op->data, op->mdFields);

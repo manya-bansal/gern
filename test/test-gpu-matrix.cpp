@@ -34,7 +34,7 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
     p.at_device();
     Runner run(p);
 
-    run.compile(test::gpuRunner("matrix"));
+    run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));
 
     int64_t row_val = 10;
     int64_t col_val = 10;
@@ -107,12 +107,7 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
     p.at_device();
     Runner run(p);
 
-    run.compile(Runner::Options{
-        .filename = "test",
-        .prefix = "/tmp",
-        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
-        .arch = std::string(GERN_CUDA_ARCH),
-    });
+    run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));
 
     int64_t row_val = 10;
     int64_t col_val = 10;
@@ -172,12 +167,7 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     p.at_device();
     Runner run(p);
 
-    run.compile(Runner::Options{
-        .filename = "test",
-        .prefix = "/tmp",
-        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
-        .arch = std::string(GERN_CUDA_ARCH),
-    });
+    run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));
 
     int64_t row_val = 10;
     int64_t col_val = 10;

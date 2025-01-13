@@ -32,7 +32,7 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     Pipeline p(c);
     Runner run(p);
 
-    run.compile(test::cpuRunner("matrix"));
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
 
     int64_t row_val = 10;
     int64_t col_val = 10;
@@ -73,6 +73,64 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     for (int i = 0; i < row_val * col_val; i++) {
         ASSERT_TRUE(b.data[i] == 9.0f);
     }
+
+    a.destroy();
+    b.destroy();
+}
+
+TEST(LoweringCPU, Softmax) {
+
+    auto inputDS = AbstractDataTypePtr(new const annot::MatrixCPU("input"));
+    auto outputDS = AbstractDataTypePtr(new const annot::MatrixCPU("output_final"));
+    auto SumRowDS = AbstractDataTypePtr(new const annot::ArrayCPU("rowSum"));
+    auto MaxRowDS = AbstractDataTypePtr(new const annot::ArrayCPU("rowMax"));
+
+    annot::SumRow sum_row;
+    annot::MaxRow max_row;
+    annot::SubtractVec subtract_vec;
+
+    Variable row("row");
+    Variable col("col");
+    Variable l_x("l_x");
+    Variable l_y("l_y");
+
+    std::vector<Compose> c = {
+        max_row(inputDS, MaxRowDS),
+        subtract_vec[{
+            {"row", row},
+            {"col", col},
+            {"l_x", l_x},
+            {"l_y", l_y},
+        }](inputDS, MaxRowDS, outputDS),
+    };
+
+    Pipeline p(c);
+    Runner run(p);
+
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+
+    int64_t row_val = 100;
+    int64_t col_val = 100;
+    int64_t l_x_val = 5;
+    int64_t l_y_val = 100;
+
+    impl::MatrixCPU a(row_val, col_val, row_val);
+    a.vvals(2.0f);
+    impl::MatrixCPU b(row_val, col_val, row_val);
+    b.vvals(0.0f);
+
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+        {row.getName(), &row_val},
+        {col.getName(), &col_val},
+        {l_x.getName(), &l_x_val},
+        {l_y.getName(), &l_y_val},
+    }));
+
+    // for (int i = 0; i < row_val; i++) {
+    //     ASSERT_TRUE(b.data[i] == 0);
+    // }
 
     a.destroy();
     b.destroy();

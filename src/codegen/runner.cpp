@@ -32,6 +32,7 @@ void Runner::compile(Options config) {
                       arch + " " + config.include +
                       " --shared -o " + shared_obj + " " +
                       file + " " + config.ldflags + " 2>&1";
+
     int runStatus = std::system(cmd.data());
     if (runStatus != 0) {
         throw error::UserError("Compilation Failed");

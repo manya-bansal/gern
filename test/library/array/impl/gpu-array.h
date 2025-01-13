@@ -51,7 +51,6 @@ public:
     template<int Size>
     __device__ inline void insert_array(int start, ArrayStaticGPU<Size> &a) {
         for (int i = 0; i < Size; i++) {
-            printf("%f\n", a.data[i]);
             data[start + i] = a.data[i];
         }
     }
