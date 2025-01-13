@@ -45,4 +45,7 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+
+    - name: Download VCPKG
+      run: git clone https://github.com/microsoft/vcpkg.git && cd vcpkg && bootstrap-vcpkg.sh 
   
