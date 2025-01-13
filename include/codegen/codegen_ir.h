@@ -683,17 +683,20 @@ struct KernelLaunch : public CGStmtNode<KernelLaunch> {
     // Should be of type call, just wrapping in stmt
     std::string name;
     std::vector<CGExpr> args;
+    std::vector<CGExpr> template_args;
     CGExpr grid;
     CGExpr block;
 
     static CGStmt make(std::string name,
                        std::vector<CGExpr> args,
+                       std::vector<CGExpr> template_args,
                        CGExpr grid,
                        CGExpr block) {
 
         KernelLaunch *call = new KernelLaunch;
         call->name = name;
         call->args = args;
+        call->template_args = template_args;
         call->grid = grid;
         call->block = block;
         return call;

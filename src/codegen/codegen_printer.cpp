@@ -186,6 +186,15 @@ void CGPrinter::visit(const VoidCall *op) {
 
 void CGPrinter::visit(const KernelLaunch *op) {
     os << op->name;
+    int num_template_args = op->template_args.size();
+    if (num_template_args > 0) {
+        os << "<";
+        for (int i = 0; i < num_template_args; i++) {
+            os << op->template_args[i];
+            os << ((i != num_template_args - 1) ? ", " : "");
+        }
+        os << ">";
+    }
     os << "<<<" << op->grid << ", " << op->block << ">>>";
     if (op->args.size() == 0) {
         os << "()";

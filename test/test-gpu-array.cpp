@@ -5,6 +5,7 @@
 #include "config.h"
 #include "library/array/annot/gpu-array.h"
 #include "library/array/impl/gpu-array.h"
+#include "test-gpu-utils.h"
 #include "test-utils.h"
 
 #include <algorithm>
@@ -263,4 +264,47 @@ TEST(LoweringGPU, SingleReduceBind) {
     a.destroy();
     b.destroy();
     result.destroy();
+}
+
+TEST(LoweringGPU, MultiArray) {
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("input_con"));
+    auto tempDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("temp"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("output_con"));
+
+    annot::addGPUTemplate add_f;
+    Variable x("x");
+    Variable end("end");
+    Variable step("step");
+
+    std::vector<Compose> c = {
+        add_f(inputDS, tempDS),
+        add_f[{
+            {"x", x.bindToGrid(Grid::Property::BLOCK_ID_X)},
+            {"step", step.bindToInt64(5)},
+            {"end", end},
+        }](tempDS, outputDS)};
+
+    Pipeline p(c);
+    p.at_device();
+    Runner run(p);
+
+    run.compile(test::gpuRunner("array"));
+
+    impl::ArrayGPU input(10);
+    input.vvals(2.0f);
+    impl::ArrayGPU output(10);
+    output.vvals(6.0f);
+    int end_val = 10;
+
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS.getName(), &input},
+        {outputDS.getName(), &output},
+        {end.getName(), &end_val},
+    }));
+
+    impl::ArrayCPU result = output.get();
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(result.data[i] == 8.0f);
+    }
 }

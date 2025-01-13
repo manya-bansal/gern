@@ -447,4 +447,8 @@ bool AbstractDataTypePtr::insertQuery() const {
     return ptr->insertQuery();
 }
 
+bool AbstractDataTypePtr::freeAlloc() const {
+    return ptr->freeAlloc();
+}
+
 }  // namespace gern

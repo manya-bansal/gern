@@ -194,6 +194,10 @@ public:
         return false;
     }
 
+    virtual bool freeAlloc() const {
+        return true;
+    }
+
 private:
     std::string name;
     std::string type;
@@ -216,6 +220,7 @@ public:
     std::vector<Variable> getFields() const;
     bool freeQuery() const;
     bool insertQuery() const;
+    bool freeAlloc() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads);

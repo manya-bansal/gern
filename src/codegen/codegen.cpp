@@ -91,7 +91,7 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
         // Declare the grid and block dimensions.
         hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
         hook_body.push_back(EscapeCGStmt::make("dim3 __block_dim__(" + block_dim.str() + ");"));
-        hook_call = KernelLaunch::make(name, hook_args, Var::make("__grid_dim__"), Var::make("__block_dim__"));
+        hook_call = KernelLaunch::make(name, hook_args, call_template_vars, Var::make("__grid_dim__"), Var::make("__block_dim__"));
         full_code.push_back(EscapeCGStmt::make("#include <cuda_runtime.h>"));
     }
 

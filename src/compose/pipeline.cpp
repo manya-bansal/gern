@@ -431,7 +431,9 @@ const FreeNode *Pipeline::constructFreeNode(AbstractDataTypePtr ds) {
 const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::vector<Variable> alloc_args) {
     Function alloc_func = constructFunction(ds.getAllocateFunction(), ds.getFields(), alloc_args);
     alloc_func.output = Argument(ds);
-    to_free.insert(ds);
+    if (ds.freeAlloc()) {
+        to_free.insert(ds);
+    }
     return new AllocateNode(alloc_func);
 }
 
