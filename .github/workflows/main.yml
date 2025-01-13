@@ -32,6 +32,9 @@ jobs:
     # - name: Bootstrap vcpkg 
     #   run: ${{ runner.workspace }}/vcpkg/bootstrap-vcpkg.sh
     #   shell: bash
+    - name: Set Presets
+      run: cmake --preset dev
+      shell: bash
 
     - name: Build Gern
       run: cmake --build build/dev
