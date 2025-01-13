@@ -28,13 +28,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4 
 
-    - name: Bootstrap vcpkg
-      run: ls -l vcpkg 
+    - name: Download vcpkg 
+      run: git clone https://github.com/microsoft/vcpkg.git '${{ runner.workspace }}' 
       shell: bash
 
-    - name: Set presets 
-      run: cmake --preset dev 
+    # - name: Set presets 
+    #   run: cmake --preset dev 
 
-    - name: Build Gern
-      run: cmake --build build/dev
+    # - name: Build Gern
+    #   run: cmake --build build/dev
   
