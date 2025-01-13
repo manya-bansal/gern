@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 env:
-  VCPKG_ROOT: 19.1.6
+  VCPKG_ROOT: ${{ runner.workspace }}/vcpkg/
 
 jobs:
   build:
@@ -36,6 +36,7 @@ jobs:
       run: ${{ runner.workspace }}/vcpkg/bootstrap-vcpkg.sh
       shell: bash
 
-    # - name: Build Gern
-    #   run: cmake --build build/dev
+    - name: Build Gern
+      run: cmake --build build/dev
+      shell: bash
   
