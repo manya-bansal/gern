@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 #include <stdlib.h>
 
 namespace gern {
@@ -44,6 +45,15 @@ public:
     float *data;
     int size;
 };
+
+[[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const ArrayCPU &m) {
+    os << "[";
+    for (int64_t j = 0; j < m.size; j++) {
+        os << m.data[j] << " ";
+    }
+    os << "]";
+    return os;
+}
 
 inline void add(ArrayCPU a, ArrayCPU b) {
     for (int64_t i = 0; i < a.size; i++) {

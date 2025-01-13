@@ -112,13 +112,14 @@ TEST(LoweringCPU, Softmax) {
 
     run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
 
-    int64_t row_val = 100;
-    int64_t col_val = 100;
-    int64_t l_x_val = 5;
-    int64_t l_y_val = 100;
+    int64_t row_val = 2;
+    int64_t col_val = 2;
+    int64_t l_x_val = 2;
+    int64_t l_y_val = col_val;
 
     impl::MatrixCPU a(row_val, col_val, row_val);
-    a.vvals(2.0f);
+    // fill with random values.
+    a.random_fill();
     impl::MatrixCPU b(row_val, col_val, row_val);
     b.vvals(0.0f);
 
@@ -132,10 +133,20 @@ TEST(LoweringCPU, Softmax) {
         {l_y.getName(), &l_y_val},
     }));
 
-    // for (int i = 0; i < row_val; i++) {
-    //     ASSERT_TRUE(b.data[i] == 0);
-    // }
+    // Compute unfused for reference.
+    impl::MatrixCPU reference(row_val, col_val, row_val);
+    reference.vvals(0.0f);
+    impl::ArrayCPU max_row_ref(row_val);
+
+    gern::impl::max_row(a, max_row_ref);
+    gern::impl::subtract_vec(max_row_ref, a, reference);
+
+    for (int i = 0; i < row_val * col_val; i++) {
+        ASSERT_EQ(b.data[i], reference.data[i]);
+    }
 
     a.destroy();
     b.destroy();
+    reference.destroy();
+    max_row_ref.destroy();
 }

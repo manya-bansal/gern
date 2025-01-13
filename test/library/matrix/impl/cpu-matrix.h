@@ -3,7 +3,9 @@
 #include "library/array/impl/cpu-array.h"
 #include <algorithm>
 #include <cstring>
+#include <iostream>
 #include <limits>
+#include <random>
 #include <stdlib.h>
 
 namespace gern {
@@ -59,11 +61,37 @@ public:
         }
     }
 
+    void random_fill(float min = 0.0f, float max = 10.0f) {
+        float *data_tmp;
+        std::uniform_real_distribution<float> dist(min, max);
+        std::mt19937 gen(0);
+        for (int64_t i = 0; i < row; i++) {
+            data_tmp = data + (i * lda);
+            for (int64_t j = 0; j < col; j++) {
+                data_tmp[j] = dist(gen);
+            }
+        }
+    }
+
     float *data;
     int64_t row;
     int64_t col;
     int64_t lda;
 };
+
+[[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const MatrixCPU &m) {
+    float *data_tmp;
+    os << "[" << "\n";
+    for (int64_t i = 0; i < m.row; i++) {
+        data_tmp = m.data + (i * m.lda);
+        for (int64_t j = 0; j < m.col; j++) {
+            os << data_tmp[j] << " ";
+        }
+        os << "\n";
+    }
+    os << "]";
+    return os;
+}
 
 inline void add(MatrixCPU a, MatrixCPU b) {
     float *a_data;
