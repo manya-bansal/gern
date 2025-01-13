@@ -31,8 +31,7 @@ public:
     }
     Function getAllocateFunction() const override {
         return Function{
-            .name = "gern::impl::ArrayCPUTemplate::allocate",
-            .args = {x},
+            .name = "gern::impl::temp_allocate",
             .template_args = {len},
         };
     }
@@ -92,6 +91,7 @@ public:
         Function f;
         f.name = "gern::impl::add";
         f.args = {Argument(input), Argument(output)};
+        f.template_args = {step};
         return f;
     }
 

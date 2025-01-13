@@ -153,7 +153,7 @@ void Pipeline::visit(const ComputeFunctionCall *c) {
     lowered.insert(lowered.end(), intervals.begin(), intervals.end());
 
     // Insety the computed output if necessary.
-    if (output.insertQuery()) {
+    if (!isIntermediate(output) && output.insertQuery()) {
         Function f = constructFunction(output.getInsertFunction(),
                                        output.getFields(), c->getProducesFields());
         f.name = output.getName() + "." + f.name;

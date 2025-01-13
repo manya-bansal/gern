@@ -16,10 +16,6 @@ template<int Size>
 class ArrayCPUTemplate {
 public:
     template<int Len>
-    static ArrayCPUTemplate<Len> allocate() {
-        return ArrayCPUTemplate<Len>();
-    }
-    template<int Len>
     ArrayCPUTemplate<Len> query(int start) {
         ArrayCPUTemplate<Len> queried;
         for (int i = 0; i < Len; i++) {
@@ -44,8 +40,13 @@ public:
         }
     }
 
-    float data[Size];
+    float data[Size] = {0};
 };
+
+template<int Len>
+ArrayCPUTemplate<Len> temp_allocate() {
+    return ArrayCPUTemplate<Len>();
+}
 
 template<int Size>
 inline void add(ArrayCPUTemplate<Size> &a, ArrayCPUTemplate<Size> &b) {
