@@ -46,36 +46,29 @@ static void vector_printer(std::ostream &os, std::vector<T> v) {
 
 void PipelinePrinter::visit(const AllocateNode *op) {
     util::printIdent(os, ident);
-    os << "Allocate " << *(op->data.get()) << " with ";
-    vector_printer(os, op->fields);
+    os << "Allocate " << op->f.output << " with ";
+    vector_printer(os, op->f.args);
 }
 void PipelinePrinter::visit(const FreeNode *op) {
     util::printIdent(os, ident);
-    os << "Free " << *(op->data.get());
+    os << "Free " << op->data;
 }
 void PipelinePrinter::visit(const InsertNode *op) {
     util::printIdent(os, ident);
-    os << "Insert " << *(op->child.get())
-       << " into " << *(op->parent.get())
-       << " with ";
-    vector_printer(os, op->fields);
+    os << op->f;
 }
 void PipelinePrinter::visit(const QueryNode *op) {
     util::printIdent(os, ident);
-    os << "Query " << *(op->child.get())
-       << " from " << *(op->parent.get())
+    os << "Query " << op->f.output
+       << " from " << op->parent
        << " with ";
-    vector_printer(os, op->fields);
+    vector_printer(os, op->f.args);
 }
 void PipelinePrinter::visit(const ComputeNode *op) {
     util::printIdent(os, ident);
-    os << "Compute " << op->f->getName()
+    os << "Compute " << op->f.name
        << " by passing in ";
-    std::vector<AbstractDataType> true_args;
-    for (const auto &ds : op->new_ds) {
-        true_args.push_back(*(ds.second.get()));
-    }
-    vector_printer(os, true_args);
+    vector_printer(os, op->f.args);
 }
 
 void PipelinePrinter::visit(const IntervalNode *op) {
@@ -95,6 +88,11 @@ void PipelinePrinter::visit(const IntervalNode *op) {
     ident--;
     util::printIdent(os, ident);
     os << "}";
+}
+
+void PipelinePrinter::visit(const DefNode *op) {
+    util::printIdent(os, ident);
+    os << op->assign;
 }
 
 void PipelinePrinter::visit(const BlankNode *op) {

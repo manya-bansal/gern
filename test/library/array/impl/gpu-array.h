@@ -3,16 +3,33 @@
 #include "cpu-array.h"
 
 #include <cuda_runtime.h>
+#include <iostream>
+#include <stdexcept>
+#include <stdio.h>
 #include <stdlib.h>
 
 namespace gern {
 namespace impl {
 
+#define gpuErrchk(ans) \
+    { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true) {
+    if (code != cudaSuccess) {
+        fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+        if (abort) exit(code);
+    }
+}
+
+template<int Size>
+struct ArrayStaticGPU {
+    float data[Size] = {0};
+};
+
 class ArrayGPU {
 public:
     ArrayGPU(int64_t size)
         : size(size) {
-        cudaMalloc(&data, size * sizeof(float));
+        gpuErrchk(cudaMalloc(&data, size * sizeof(float)));
     }
     __device__ ArrayGPU(float *data, int64_t size)
         : data(data), size(size) {
@@ -20,6 +37,22 @@ public:
 
     __device__ ArrayGPU query(int64_t start, int64_t len) {
         return ArrayGPU(data + start, len);
+    }
+
+    template<int Size>
+    __device__ inline ArrayStaticGPU<Size> query(int start) {
+        ArrayStaticGPU<Size> arr;
+        for (int i = 0; i < Size; i++) {
+            arr.data[i] = data[start + i];
+        }
+        return arr;
+    }
+
+    template<int Size>
+    __device__ inline void insert_array(int start, ArrayStaticGPU<Size> &a) {
+        for (int i = 0; i < Size; i++) {
+            data[start + i] = a.data[i];
+        }
     }
 
     void vvals(float v) {
@@ -39,13 +72,27 @@ public:
         cudaFree(data);
     }
 
+    __device__ void dummy() const {
+    }
+
     float *data;
     int64_t size;
 };
 
-__device__ inline void add(ArrayGPU a, ArrayGPU b) {
+template<int Size>
+__device__ ArrayStaticGPU<Size> allocate_local() {
+    return ArrayStaticGPU<Size>();
+}
 
+__device__ inline void add(ArrayGPU a, ArrayGPU b) {
     for (int64_t i = 0; i < a.size; i++) {
+        b.data[i] += a.data[i];
+    }
+}
+
+template<int Size>
+__device__ inline void add(ArrayStaticGPU<Size> &a, ArrayStaticGPU<Size> &b) {
+    for (int64_t i = 0; i < Size; i++) {
         b.data[i] += a.data[i];
     }
 }

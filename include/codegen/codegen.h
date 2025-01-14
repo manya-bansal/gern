@@ -26,18 +26,23 @@ public:
     void visit(const ComputeNode *);
     void visit(const IntervalNode *);
     void visit(const BlankNode *);
+    void visit(const DefNode *);
 
-    CGExpr gen(Expr);
+    CGExpr gen(Expr, bool const_expr = false);  // Is this part of the LHS of a const_expr?
     CGExpr gen(Constraint);
+    CGStmt gen(FunctionCall f);
+
     // Assign in used to track all the variables
-    // that have been declared during lowering.
-    CGStmt gen(Assign);
+    // that have been declared during lowering. The
+    // const_expr tracks whether the assignment is
+    // to a const_expr variable.
+    CGStmt gen(Assign, bool const_expr);
     /**
      * @brief  Generate code expressions for Arguments.
      * This also tracks the input and output
      * data-structures for the pipeline,
      * and uses that information to expose
-     * function arguments. The function takes an optional
+     * FunctionSignature arguments. The FunctionSignature takes an optional
      * replacement argument that substitutes data-structures
      * for an argument if provided.
      *
@@ -45,28 +50,30 @@ public:
      * @param replacements Optional map to make replacements.
      * @return CGExpr
      */
-    CGExpr gen(Argument a,
-               const std::map<AbstractDataTypePtr,
-                              AbstractDataTypePtr> &replacements = {});
+    CGExpr gen(Argument a, bool lhs = false);
 
     // To insert used variables.
     void insertInUsed(Variable);
+    void insertInConstExpr(Variable);
+
+    // Little helper to make sure that
+    // that once a var is declared, it's been
+    // add to the declared set.
+    CGExpr declVar(Variable v, bool const_expr);
+    CGExpr declADT(AbstractDataTypePtr);
 
     std::string getName() const;
     std::string getHookName() const;
     std::vector<std::string> getArgumentOrder() const;
 
 private:
-    // Little helper to make sure that
-    // that once a var is declared, it's been
-    // add to the declared set.
-    CGExpr declVar(Variable v);
     CGStmt setGrid(const IntervalNode *op);
 
     std::string name;
     std::string hook_name;
     std::set<Variable> declared;
     std::set<Variable> used;
+    std::set<Variable> const_expr_vars;
     std::set<AbstractDataTypePtr> declared_adt;
     std::set<AbstractDataTypePtr> used_adt;
     CGStmt code;

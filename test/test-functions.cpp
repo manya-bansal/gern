@@ -9,13 +9,17 @@
 using namespace gern;
 
 TEST(Functions, SingleFunction) {
-    auto inputDS = std::make_shared<const annot::ArrayCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::ArrayCPU>("output_con");
-    auto output_2_DS = std::make_shared<const annot::ArrayCPU>("output_con_2");
+    AbstractDataTypePtr inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    AbstractDataTypePtr outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    AbstractDataTypePtr output_2_DS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_2"));
 
     annot::add add_f;
-    const FunctionCall *concreteCall1 = add_f(inputDS, outputDS);
-    const FunctionCall *concreteCall2 = add_f(outputDS, output_2_DS);
+
+    Compose c1 = add_f(inputDS, outputDS);
+    Compose c2 = add_f(outputDS, output_2_DS);
+
+    ComputeFunctionCallPtr concreteCall1 = to<ComputeFunctionCall>(c1);
+    ComputeFunctionCallPtr concreteCall2 = to<ComputeFunctionCall>(c2);
 
     // Test that all variables were replaced
     std::set<Variable> abstract_vars = getVariables(add_f.getAnnotation());

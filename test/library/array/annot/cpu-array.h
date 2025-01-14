@@ -24,46 +24,94 @@ public:
         return "gern::impl::ArrayCPU";
     }
 
-private:
+    std::vector<Variable> getFields() const override {
+        return {x, len};
+    }
+    FunctionSignature getAllocateFunction() const override {
+        return FunctionSignature{
+            .name = "gern::impl::ArrayCPU::allocate",
+            .args = {x, len},
+        };
+    }
+    FunctionSignature getFreeFunction() const override {
+        return FunctionSignature{
+            .name = "destroy",
+            .args = {},
+        };
+    }
+    FunctionSignature getInsertFunction() const override {
+        return FunctionSignature{
+            .name = "insert",
+            .args = {x, len},
+        };
+    }
+    FunctionSignature getQueryFunction() const override {
+        return FunctionSignature{
+            .name = "query",
+            .args = {x, len},
+        };
+    }
+
+protected:
     std::string name;
+    Variable x{"x"};
+    Variable len{"len"};
 };
 
 class add : public AbstractFunction {
 public:
     add()
-        : input(std::make_shared<ArrayCPU>("input")),
-          output(std::make_shared<ArrayCPU>("output")) {
+        : input(new const ArrayCPU("input")),
+          output(new const ArrayCPU("output")) {
     }
     std::string getName() {
         return "gern::impl::add";
     }
 
-    Pattern getAnnotation() {
+    Pattern getAnnotation() override {
         Variable x("x");
-        Variable step("step");
 
         return For(x = Expr(0), end, step,
                    Produces::Subset(output, {x, step}),
                    Consumes::Subset(input, {x, step}));
     }
 
-    std::vector<Argument> getArguments() {
-        return {
-            Argument(input),
-            Argument(output),
-        };
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::add";
+        f.args = {Parameter(input), Parameter(output)};
+        return f;
     }
 
-    std::vector<std::string> getHeader() {
+    std::vector<std::string> getHeader() override {
         return {
             "cpu-array.h",
         };
     }
 
-private:
-    std::shared_ptr<ArrayCPU> input;
-    std::shared_ptr<ArrayCPU> output;
+protected:
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
     Variable end{"end"};
+    Variable step{"step"};
+};
+
+class addTemplate : public add {
+public:
+    addTemplate()
+        : add() {
+    }
+    std::string getName() {
+        return "gern::impl::addTemplate";
+    }
+
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::addTemplate";
+        f.args = {Parameter(input), Parameter(output)};
+        f.template_args = {step};
+        return f;
+    }
 };
 
 // This is perhaps a contrived example, but it exists to
@@ -72,14 +120,14 @@ private:
 class reduction : public AbstractFunction {
 public:
     reduction()
-        : input(std::make_shared<annot::ArrayCPU>("input")),
-          output(std::make_shared<annot::ArrayCPU>("output")) {
+        : input(new const annot::ArrayCPU("input")),
+          output(new const annot::ArrayCPU("output")) {
     }
     std::string getName() {
         return "gern::impl::add";
     }
 
-    Pattern getAnnotation() {
+    Pattern getAnnotation() override {
         Variable x("x");
         Variable r("r");
         Variable step("step");
@@ -94,19 +142,22 @@ public:
                                    SubsetObj(input, {r, 1})}))));
     }
 
-    std::vector<Argument> getArguments() {
-        return {Argument(input), Argument(output)};
-    }
-
-    std::vector<std::string> getHeader() {
+    std::vector<std::string> getHeader() override {
         return {
             "cpu-array.h",
         };
     }
 
-private:
-    std::shared_ptr<annot::ArrayCPU> input;
-    std::shared_ptr<annot::ArrayCPU> output;
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::add";
+        f.args = {Parameter(input), Parameter(output)};
+        return f;
+    }
+
+protected:
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
 };
 
 }  // namespace annot

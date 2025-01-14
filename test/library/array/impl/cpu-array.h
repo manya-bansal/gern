@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 #include <stdlib.h>
 
 namespace gern {
@@ -18,7 +19,7 @@ public:
         : data(data), size(size) {
     }
     ArrayCPU(int size)
-        : ArrayCPU((float *)malloc(sizeof(float) * size), size) {
+        : ArrayCPU((float *)calloc(size, sizeof(float)), size) {
     }
     static ArrayCPU allocate(int start, int len) {
         (void)start;
@@ -45,8 +46,24 @@ public:
     int size;
 };
 
+[[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const ArrayCPU &m) {
+    os << "[";
+    for (int64_t j = 0; j < m.size; j++) {
+        os << m.data[j] << " ";
+    }
+    os << "]";
+    return os;
+}
+
 inline void add(ArrayCPU a, ArrayCPU b) {
     for (int64_t i = 0; i < a.size; i++) {
+        b.data[i] += a.data[i];
+    }
+}
+
+template<int64_t Len>
+inline void addTemplate(ArrayCPU a, ArrayCPU b) {
+    for (int64_t i = 0; i < Len; i++) {
         b.data[i] += a.data[i];
     }
 }

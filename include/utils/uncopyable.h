@@ -68,7 +68,7 @@ public:
         return *this;
     }
 
-    // Special function needed in pybind11 for custom smart pointers
+    // Special FunctionSignature needed in pybind11 for custom smart pointers
     const T *get() {
         return ptr;
     }

@@ -5,21 +5,28 @@ add_executable(gern_test)
 
 set(LIB_HEADERS
     library/array/annot/cpu-array.h
+    library/array/annot/cpu-array-template.h
     library/array/annot/gpu-array.h
     library/array/impl/cpu-array.h
+    library/array/impl/cpu-array-template.h
     
     library/matrix/annot/cpu-matrix.h
     library/matrix/annot/gpu-matrix.h
     library/matrix/impl/cpu-matrix.h
+     
+    library/scalar/annot/cpu-scalar.h
+    library/scalar/impl/cpu-scalar.h
 )
 
 set(TEST_SOURCES
     test-nodes.cpp
+    test-pipeline.cpp
     test-resolve-constraints.cpp
     test-functions.cpp
     test-grid-property.cpp
     test-cpu-array.cpp
     test-cpu-matrix.cpp
+    test-cpu-static-store.cpp
 )
 
 

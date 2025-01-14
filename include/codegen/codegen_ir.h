@@ -541,16 +541,18 @@ struct DeclFunc : public CGStmtNode<DeclFunc> {
     std::vector<CGExpr> args;
     CGStmt body;
     std::string name;
+    std::vector<CGExpr> template_args;
     bool device;
 
     static CGStmt make(std::string name, CGExpr return_type, std::vector<CGExpr> args,
-                       CGStmt body, bool device = false) {
+                       CGStmt body, bool device = false, std::vector<CGExpr> template_args = {}) {
         DeclFunc *declFunc = new DeclFunc;
         declFunc->name = name;
         declFunc->return_type = return_type;
         declFunc->args = args;
         declFunc->device = device;
         declFunc->body = Scope::make(body);
+        declFunc->template_args = template_args;
         return declFunc;
     }
 
@@ -596,11 +598,14 @@ struct VarAssign : public CGStmtNode<VarAssign> {
 struct Call : public CGExprNode<Call> {
     std::vector<CGExpr> arg;
     std::string name;
+    std::vector<CGExpr> template_args;
 
-    static CGExpr make(std::string name, std::vector<CGExpr> arg) {
+    static CGExpr make(std::string name, std::vector<CGExpr> arg,
+                       std::vector<CGExpr> template_args = {}) {
         Call *call = new Call;
         call->name = name;
         call->arg = arg;
+        call->template_args = template_args;
         return call;
     }
 
@@ -678,17 +683,20 @@ struct KernelLaunch : public CGStmtNode<KernelLaunch> {
     // Should be of type call, just wrapping in stmt
     std::string name;
     std::vector<CGExpr> args;
+    std::vector<CGExpr> template_args;
     CGExpr grid;
     CGExpr block;
 
     static CGStmt make(std::string name,
                        std::vector<CGExpr> args,
+                       std::vector<CGExpr> template_args,
                        CGExpr grid,
                        CGExpr block) {
 
         KernelLaunch *call = new KernelLaunch;
         call->name = name;
         call->args = args;
+        call->template_args = template_args;
         call->grid = grid;
         call->block = block;
         return call;

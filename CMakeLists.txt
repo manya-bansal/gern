@@ -25,8 +25,9 @@ set_target_properties(
 target_sources(
     Gern_Gern
     PRIVATE
-        src/annotations/abstract_data.cpp
         src/annotations/abstract_function.cpp
+        src/annotations/argument.cpp
+        src/annotations/argument_visitor.cpp
         src/annotations/data_dependency_language.cpp
         src/annotations/datatypes.cpp
         src/annotations/grid.cpp
@@ -49,7 +50,8 @@ target_sources(
     FILES
         include/annotations/abstract_nodes.h
         include/annotations/abstract_function.h
-        include/annotations/arguments.h
+        include/annotations/argument.h
+        include/annotations/argument_visitor.h
         include/annotations/data_dependency_language.h
         include/annotations/datatypes.h
         include/annotations/grid.h

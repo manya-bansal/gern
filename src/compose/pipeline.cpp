@@ -26,6 +26,11 @@ std::ostream &operator<<(std::ostream &os, const LowerIR &n) {
     return os;
 }
 
+Pipeline::Pipeline(std::vector<Compose> compose)
+    : compose(compose) {
+    init(compose);
+}
+
 Pipeline &Pipeline::at_device() {
     device = true;
     return *this;
@@ -40,6 +45,36 @@ bool Pipeline::is_at_device() const {
     return device;
 }
 
+AbstractDataTypePtr Pipeline::getOutput() const {
+    return true_output;
+}
+
+std::set<ComputeFunctionCallPtr> Pipeline::getConsumerFunctions(AbstractDataTypePtr ds) const {
+    std::set<ComputeFunctionCallPtr> funcs;
+    // Only the consumes part of the annotation has
+    // multiple subsets, so, we will only ever get the inputs.
+    compose_match(Compose(*this), std::function<void(const ComputeFunctionCall *)>(
+                                      [&](const ComputeFunctionCall *op) {
+                                          if (op->getInputs().contains(ds)) {
+                                              funcs.insert(op);
+                                          }
+                                      }));
+    return funcs;
+}
+
+ComputeFunctionCallPtr Pipeline::getProducerFunction(AbstractDataTypePtr ds) const {
+    ComputeFunctionCallPtr func;
+    // Only the consumes part of the annotation has
+    // multiple subsets, so, we will only ever get the inputs.
+    compose_match(Compose(*this), std::function<void(const ComputeFunctionCall *)>(
+                                      [&](const ComputeFunctionCall *op) {
+                                          if (op->getOutput() == ds) {
+                                              func = op;
+                                          }
+                                      }));
+    return func;
+}
+
 int Pipeline::numFuncs() {
     ComposeCounter cc;
     return cc.numFuncs(Compose(*this));
@@ -51,25 +86,26 @@ void Pipeline::lower() {
         return;
     }
 
-    if (numFuncs() != 1) {
-        throw error::InternalError("Lowering is only "
-                                   "implemented for one function!");
-    }
-
-    for (const auto &f : compose) {
-        visit(f);
-    }
+    // Generate all the variable definitions
+    // that the functions can then directly refer to.
+    generateAllDefs();
+    // Generate all the allocations.
+    // For nested pipelines, this should
+    // generated nested allocations for
+    // temps as well.
+    generateAllAllocs();
+    // Generates all the queries and the compute node.
+    // by visiting all the functions.
+    visit(*this);
+    // Generate all the free nodes now.
+    generateAllFrees();
 
     // If its a vec of vec...then, need to do something else.
     // right now, gern will complain if you try.
     // Now generate the outer loops.
     lowered = generateOuterIntervals(
-        to<FunctionCall>(compose[compose.size() - 1].ptr), lowered);
+        to<ComputeFunctionCall>(compose[compose.size() - 1].ptr), lowered);
     has_been_lowered = true;
-}
-
-std::map<Variable, Expr> Pipeline::getVariableDefinitions() const {
-    return variable_definitions;
 }
 
 std::vector<LowerIR> Pipeline::getIRNodes() const {
@@ -82,43 +118,48 @@ std::ostream &operator<<(std::ostream &os, const Pipeline &p) {
     return os;
 }
 
-void Pipeline::visit(const FunctionCall *c) {
+void Pipeline::visit(const ComputeFunctionCall *c) {
+    // Generate the output query if it not an intermediate.
+    std::map<AbstractDataTypePtr, AbstractDataTypePtr> queries;
+    AbstractDataTypePtr output = c->getOutput();
+    Argument queried;
+    if (!isIntermediate(output)) {
+        const QueryNode *q = constructQueryNode(output,
+                                                c->getMetaDataFields(output));
+        queried = q->f.output;
+        lowered.push_back(q);
+    }
 
-    std::set<AbstractDataTypePtr> inputs = c->getInputs();
-    std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
+    // Generate the queries for the true inputs.
+    // since intermediates should have been allocated,
+    // Putting these in temp because it may need to wrapped
+    // in an interval node.
+    std::set<AbstractDataTypePtr> func_inputs = c->getInputs();
     std::vector<LowerIR> temp;
-
-    for (const auto &in : inputs) {
+    for (const auto &in : func_inputs) {
         if (!isIntermediate(in)) {
             // Generate the query node.
-            AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + in->getName(),
-                                                                                   in->getType());
-            new_ds[in] = queried;
-            temp.push_back(new QueryNode(in,
-                                         queried,
-                                         generateMetaDataFields(in, c)));
-        } else {
-            // Generate an allocate node!
-            throw error::InternalError("Unimplemented");
+            temp.push_back(constructQueryNode(in,
+                                              c->getMetaDataFields(in)));
         }
     }
 
-    // Now generate the output query.
-    AbstractDataTypePtr output = c->getOutput();
-    if (!isIntermediate(output)) {
-        AbstractDataTypePtr queried = std::make_shared<const AbstractDataType>("_query_" + output->getName(),
-                                                                               output->getType());
-        new_ds[output] = queried;
-        lowered.push_back(new QueryNode(output,
-                                        queried,
-                                        generateMetaDataFields(output, c)));
-    }
+    // Rewrite the call with the queries and actually construct the compute node.
+    FunctionCall new_call = c->getCall().replaceAllDS(new_ds);
+    temp.push_back(new const ComputeNode(new_call, c->getHeader()));
 
-    temp.push_back(new ComputeNode(c, new_ds));
-
-    // Now generate all the intervals if any!
+    // Now generate all the consumer intervals if any!
     std::vector<LowerIR> intervals = generateConsumesIntervals(c, temp);
     lowered.insert(lowered.end(), intervals.begin(), intervals.end());
+
+    // Insert the computed output if necessary.
+    if (!isIntermediate(output) && output.insertQuery()) {
+        FunctionCall f = constructFunctionCall(output.getInsertFunction(),
+                                               output.getFields(), c->getMetaDataFields(output));
+        f.name = output.getName() + "." + f.name;
+        f.args.push_back(Argument(queried));
+        lowered.push_back(new InsertNode(output, f));
+    }
 }
 
 void Pipeline::visit(const PipelineNode *) {
@@ -126,32 +167,278 @@ void Pipeline::visit(const PipelineNode *) {
 }
 
 bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
-    (void)d;
-    // This WILL change as I go beyond 1 function.
-    return false;
+    // We can find a FunctionSignature that produces this output.
+    // and it is not the final output.
+    return (intermediates.count(d) > 0);
 }
 
-std::vector<Expr> Pipeline::generateMetaDataFields(AbstractDataTypePtr d, FunctionCallPtr c) const {
+void Pipeline::init(std::vector<Compose> compose) {
+    // A pipeline is legal if each output
+    // is assigned to only once, an input
+    // is never assigned to later, and each
+    // intermediate is used at least once as an
+    // input.
+    struct DataFlowConstructor : public CompositionVisitorStrict {
+        DataFlowConstructor(std::vector<Compose> compose)
+            : compose(compose) {
+        }
 
-    std::vector<Expr> metaFields;
-    match(c->getAnnotation(), std::function<void(const SubsetNode *)>(
-                                  [&](const SubsetNode *op) {
-                                      if (op->data == d) {
-                                          metaFields = op->mdFields;
-                                      }
-                                  }));
-    if (!isIntermediate(d) || d == c->getOutput()) {
-        return metaFields;
-    } else {
-        // Find the function that produces d
-        // Solve the constraints for that function,
-        // And return the solved constraints.
-        throw error::InternalError("Unimplemented");
+        void construct() {
+            if (compose.size() == 0) {
+                return;
+            }
+            for (const auto &c : compose) {
+                this->visit(c);
+            }
+
+            // Remove true_output (the last output produced) from intermediates.
+            intermediates.erase(true_output);
+            // For all intermediates, ensure that it gets read at least once.
+            for (const auto &temp : intermediates) {
+                if (all_inputs.count(temp) <= 0) {
+                    throw error::UserError(temp.getName() + " is never being read");
+                }
+            }
+        }
+
+        using CompositionVisitorStrict::visit;
+        void visit(const ComputeFunctionCall *node) {
+            // Add output to intermediates.
+            AbstractDataTypePtr output = node->getOutput();
+            std::set<AbstractDataTypePtr> func_inputs = node->getInputs();
+            all_inputs.insert(func_inputs.begin(), func_inputs.end());
+
+            // Check whether the output has already been assigned to.
+            if (intermediates.count(output) > 0 ||
+                all_nested_temps.count(output) > 0) {
+                throw error::UserError("Cannot assign to" + output.getName() + "twice");
+            }
+            // Check if this output was ever used as an input.
+            if (all_inputs.count(output) > 0) {
+                throw error::UserError("Assigning to a " + output.getName() + "that has already been read");
+            }
+            // Check if we are trying to use an intermediate from a nested pipeline.
+            for (const auto &in : func_inputs) {
+                if (all_nested_temps.count(in)) {
+                    throw error::UserError("Trying to read intermediate" + in.getName() + " from nested pipeline");
+                }
+            }
+            intermediates.insert(output);
+            true_output = output;  // Update final output.
+            outputs_in_order.push_back(output);
+        }
+
+        void visit(const PipelineNode *node) {
+            // Add output to intermediates.
+            AbstractDataTypePtr output = node->p.getOutput();
+            if (all_inputs.contains(output)) {
+                throw error::UserError("Assigning to a " + output.getName() + "that has already been read");
+            }
+
+            std::set<AbstractDataTypePtr> nested_writes = node->p.getAllWriteDataStruct();
+            std::set<AbstractDataTypePtr> nested_reads = node->p.getAllReadDataStruct();
+
+            // Check pipeline is writing to one of our outputs.
+            for (const auto &in : nested_writes) {
+                if (intermediates.contains(in) || all_nested_temps.contains(in)) {
+                    throw error::UserError("Trying to write to intermediate" + in.getName() + " from nested pipeline");
+                }
+            }
+
+            all_nested_temps.insert(nested_writes.begin(), nested_writes.end());
+            all_nested_temps.erase(output);  // Remove the final output. We can see this.
+            all_inputs.insert(nested_reads.begin(), nested_reads.end());
+
+            intermediates.insert(output);
+            true_output = output;  // Update final output.
+            outputs_in_order.push_back(output);
+        }
+
+        std::vector<Compose> compose;
+        std::set<AbstractDataTypePtr> intermediates;
+        std::set<AbstractDataTypePtr> all_inputs;
+        std::set<AbstractDataTypePtr> all_nested_temps;
+        std::vector<AbstractDataTypePtr> outputs_in_order;
+        AbstractDataTypePtr true_output;
+    };
+
+    DataFlowConstructor df(compose);
+    df.construct();
+    intermediates = df.intermediates;
+    true_output = df.true_output;
+    outputs_in_order = df.outputs_in_order;
+}
+
+std::set<AbstractDataTypePtr> Pipeline::getAllWriteDataStruct() const {
+    std::set<AbstractDataTypePtr> writes;
+    compose_match(Compose(*this), std::function<void(const ComputeFunctionCall *)>(
+                                      [&](const ComputeFunctionCall *op) {
+                                          writes.insert(op->getOutput());
+                                      }));
+    return writes;
+}
+
+std::set<AbstractDataTypePtr> Pipeline::getAllReadDataStruct() const {
+    std::set<AbstractDataTypePtr> reads;
+    compose_match(Compose(*this), std::function<void(const ComputeFunctionCall *)>(
+                                      [&](const ComputeFunctionCall *op) {
+                                          auto func_inputs = op->getInputs();
+                                          reads.insert(func_inputs.begin(), func_inputs.end());
+                                      }));
+    return reads;
+}
+
+void Pipeline::generateAllDefs() {
+    if (outputs_in_order.size() <= 1) {
+        // Do nothing.
+        return;
+    }
+    auto it = outputs_in_order.rbegin();
+    it++;  // Skip the last output.
+    // Go in reverse order, and define all the variables.
+    for (; it < outputs_in_order.rend(); ++it) {
+        // Define the variables assosciated with the producer func.
+        // For all functions that consume this data-structure, figure out the relationships for
+        // this input.
+        AbstractDataTypePtr temp = *it;
+        ComputeFunctionCallPtr producer_func = getProducerFunction(temp);
+        std::set<ComputeFunctionCallPtr> consumer_funcs = getConsumerFunctions(temp);
+        // No forks allowed, as is. Come back and change!
+        if (consumer_funcs.size() != 1) {
+            std::cout << "WARNING::FORKS ARE NOT IMPL, ASSUMING EQUAL CONSUMPTION!" << std::endl;
+        }
+        // Writing as a for loop, will eventually change!
+        // Only one allowed for right now...
+        std::vector<Variable> var_fields = producer_func->getProducesFields();
+        for (const auto &cf : consumer_funcs) {
+            std::vector<Expr> consumer_fields = cf->getMetaDataFields(temp);
+            if (consumer_fields.size() != var_fields.size()) {
+                throw error::InternalError("Annotations for " + cf->getName() + " and " + producer_func->getName() +
+                                           " do not have the same size for " + temp.getName());
+            }
+            for (size_t i = 0; i < consumer_fields.size(); i++) {
+                if (var_fields[i].isBound()) {
+                    throw error::UserError(var_fields[i].getName() +
+                                           " while producing " + temp.getName() +
+                                           " is completely bound, but is being set.");
+                }
+                lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i],
+                                              producer_func->isTemplateArg(var_fields[i])));
+            }
+            break;
+        }
     }
 }
 
-std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
+void Pipeline::generateAllAllocs() {
+    // We need to define an allocation for all the
+    // intermediates.
+    for (const auto &temp : intermediates) {
+        // Finally make the allocation.
+        lowered.push_back(constructAllocNode(
+            temp,
+            getProducerFunction(temp)->getMetaDataFields(temp)));
+    }
 
+    // Change references to the allocated data-structures now.
+    std::vector<Compose> new_funcs;
+    for (const auto &c : compose) {
+        new_funcs.push_back(c.replaceAllDS(new_ds));
+    }
+    compose = new_funcs;
+}
+
+void Pipeline::generateAllFrees() {
+    for (const auto &ds : to_free) {
+        lowered.push_back(constructFreeNode(ds));
+    }
+}
+
+const QueryNode *Pipeline::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> query_args) {
+    AbstractDataTypePtr queried = PipelineDS::make(getUniqueName("_query_" + ds.getName()), ds);
+    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds.getFields(), query_args);
+    f.name = ds.getName() + "." + f.name;
+    f.output = Argument(queried);
+    new_ds[ds] = queried;
+    // If any of the queried data-structures need to be free, track that.
+    if (ds.freeQuery()) {
+        to_free.insert(queried);
+    }
+    return new QueryNode(ds, f);
+}
+
+FunctionSignature Pipeline::constructFunction(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const {
+    if (ref_md_fields.size() != true_md_fields.size()) {
+        throw error::InternalError("Incorrect number of fields passed!");
+    }
+    // Put all the fields in a map.
+    std::map<Variable, Variable> mappings;
+    for (size_t i = 0; i < ref_md_fields.size(); i++) {
+        mappings[ref_md_fields[i]] = true_md_fields[i];
+    }
+    // Now, set up the args.
+    std::vector<Parameter> new_args;
+    for (auto const &a : f.args) {
+        new_args.push_back(mappings[to<VarArg>(a)->getVar()]);
+    }
+    // set up the templated args.
+    std::vector<Variable> template_args;
+    for (auto const &a : f.template_args) {
+        template_args.push_back(mappings[a]);
+    }
+
+    FunctionSignature f_new{
+        .name = f.name,
+        .args = new_args,
+        .template_args = template_args,
+    };
+    return f_new;
+}
+
+FunctionCall Pipeline::constructFunctionCall(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const {
+
+    if (ref_md_fields.size() != true_md_fields.size()) {
+        throw error::InternalError("Incorrect number of fields passed!");
+    }
+    // Put all the fields in a map.
+    std::map<Variable, Expr> mappings;
+    for (size_t i = 0; i < ref_md_fields.size(); i++) {
+        mappings[ref_md_fields[i]] = true_md_fields[i];
+    }
+    // Now, set up the args.
+    std::vector<Argument> new_args;
+    for (auto const &a : f.args) {
+        new_args.push_back(Argument(mappings[to<VarArg>(a)->getVar()]));
+    }
+    // set up the templated args.
+    std::vector<Expr> template_args;
+    for (auto const &a : f.template_args) {
+        template_args.push_back(mappings[a]);
+    }
+
+    FunctionCall f_new{
+        .name = f.name,
+        .args = new_args,
+        .template_args = template_args,
+    };
+
+    return f_new;
+}
+
+const FreeNode *Pipeline::constructFreeNode(AbstractDataTypePtr ds) {
+    return new FreeNode(ds);
+}
+
+const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
+    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds.getFields(), alloc_args);
+    alloc_func.output = Parameter(ds);
+    if (ds.freeAlloc()) {
+        to_free.insert(ds);
+    }
+    return new AllocateNode(alloc_func);
+}
+
+std::vector<LowerIR> Pipeline::generateConsumesIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
     std::vector<LowerIR> current = body;
     match(f->getAnnotation(), std::function<void(const ConsumesForNode *, Matcher *)>(
                                   [&](const ConsumesForNode *op, Matcher *ctx) {
@@ -161,8 +448,7 @@ std::vector<LowerIR> Pipeline::generateConsumesIntervals(FunctionCallPtr f, std:
     return current;
 }
 
-std::vector<LowerIR> Pipeline::generateOuterIntervals(FunctionCallPtr f, std::vector<LowerIR> body) const {
-
+std::vector<LowerIR> Pipeline::generateOuterIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
     std::vector<LowerIR> current = body;
     match(f->getAnnotation(), std::function<void(const ComputesForNode *, Matcher *)>(
                                   [&](const ComputesForNode *op, Matcher *ctx) {
@@ -196,6 +482,10 @@ void IntervalNode::accept(PipelineVisitor *v) const {
     v->visit(this);
 }
 
+void DefNode::accept(PipelineVisitor *v) const {
+    v->visit(this);
+}
+
 bool IntervalNode::isMappedToGrid() const {
     return getIntervalVariable().isBoundToGrid();
 }
@@ -209,7 +499,7 @@ void BlankNode::accept(PipelineVisitor *v) const {
     v->visit(this);
 }
 
-void PipelineNode::accept(CompositionVisitor *v) const {
+void PipelineNode::accept(CompositionVisitorStrict *v) const {
     v->visit(this);
 }
 

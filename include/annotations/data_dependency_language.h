@@ -2,6 +2,7 @@
 
 #include "annotations/abstract_nodes.h"
 #include "annotations/grid.h"
+#include "utils/error.h"
 #include "utils/uncopyable.h"
 #include <cassert>
 #include <map>
@@ -25,6 +26,7 @@ struct GreaterNode;
 struct AndNode;
 struct OrNode;
 struct AssignNode;
+struct FunctionSignature;
 
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
@@ -126,7 +128,7 @@ public:
     Variable(const VariableNode *);
 
     /**
-     *  @brief This function indicates that the
+     *  @brief This FunctionSignature indicates that the
      *          value of the variable is derived
      *          from a grid property. (blockIDx,
      *          etc)
@@ -135,17 +137,93 @@ public:
      *           to.
      */
     Variable bindToGrid(const Grid::Property &p) const;
+    Variable bindToInt64(int64_t) const;
     bool isBoundToGrid() const;
+    bool isBoundToInt64() const;
+
+    /**
+     * @brief Returns whether the variable has been set up the user.
+     *        This means that either the variable was bound to the grid or
+     *        to an int64_t val.
+     *
+     * @return true
+     * @return false
+     */
+    bool isBound() const;
+    int64_t getInt64Val() const;
     Grid::Property getBoundProperty() const;
 
     std::string getName() const;
     Datatype getType() const;
-
-    Assign operator=(const Expr &);
-    Assign operator+=(const Expr &);
+    Assign operator+=(const Expr &) const;
+    Assign operator=(const Expr &) const;
 
     typedef VariableNode Node;
 };
+
+class AbstractDataType : public util::Manageable<AbstractDataType>,
+                         public util::Uncopyable {
+public:
+    AbstractDataType() = default;
+    virtual ~AbstractDataType() = default;
+
+    AbstractDataType(const std::string &name, const std::string &type)
+        : name(name), type(type) {
+    }
+
+    virtual std::string getName() const {
+        return name;
+    }
+
+    virtual std::string getType() const {
+        return type;
+    }
+
+    virtual std::vector<Variable> getFields() const = 0;
+    virtual FunctionSignature getAllocateFunction() const = 0;
+    virtual FunctionSignature getFreeFunction() const = 0;
+    virtual FunctionSignature getInsertFunction() const = 0;
+    virtual FunctionSignature getQueryFunction() const = 0;
+
+    // Tracks whether any of the queries need to be free,
+    // or if they are actually returning views.
+    virtual bool freeQuery() const {
+        return false;
+    }
+    virtual bool insertQuery() const {
+        return false;
+    }
+
+    virtual bool freeAlloc() const {
+        return true;
+    }
+
+private:
+    std::string name;
+    std::string type;
+};
+
+class AbstractDataTypePtr : public util::IntrusivePtr<const AbstractDataType> {
+public:
+    AbstractDataTypePtr()
+        : util::IntrusivePtr<const AbstractDataType>(nullptr) {
+    }
+    explicit AbstractDataTypePtr(const AbstractDataType *n)
+        : util::IntrusivePtr<const AbstractDataType>(n) {
+    }
+
+    std::string getName() const;
+    std::string getType() const;
+    FunctionSignature getAllocateFunction() const;
+    FunctionSignature getQueryFunction() const;
+    FunctionSignature getInsertFunction() const;
+    std::vector<Variable> getFields() const;
+    bool freeQuery() const;
+    bool insertQuery() const;
+    bool freeAlloc() const;
+};
+
+std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads);
 
 }  // namespace gern
 
@@ -161,6 +239,14 @@ struct less<gern::Variable> {
         return a.ptr < b.ptr;
     }
 };
+
+template<>
+struct less<gern::AbstractDataTypePtr> {
+    bool operator()(const gern::AbstractDataTypePtr &a, const gern::AbstractDataTypePtr &b) const {
+        return a.ptr < b.ptr;
+    }
+};
+
 }  // namespace std
 
 namespace gern {
@@ -187,7 +273,7 @@ public:
     /**
      * @brief Add a constraint to a statement
      *
-     *  The function checks that only variables that are in
+     *  The FunctionSignature checks that only variables that are in
      *  scope are used within the constraint.
      *
      * @param constraint Constraint to add.
@@ -323,7 +409,7 @@ public:
 // checker to ensures that only legal patterns are written down.
 Pattern For(Assign start, Expr end, Expr step, Pattern body,
             bool parallel = false);
-// Function so that users do need an explicit compute initialization.
+// FunctionSignature so that users do need an explicit compute initialization.
 Pattern For(Assign start, Expr end, Expr step,
             Produces produces, Consumes consumes,
             bool parallel = false);

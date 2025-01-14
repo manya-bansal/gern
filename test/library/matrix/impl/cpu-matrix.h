@@ -1,6 +1,12 @@
 #pragma once
 
+#include "library/array/impl/cpu-array.h"
+#include <algorithm>
+#include <cmath>
 #include <cstring>
+#include <iostream>
+#include <limits>
+#include <random>
 #include <stdlib.h>
 
 namespace gern {
@@ -56,11 +62,37 @@ public:
         }
     }
 
+    void random_fill(float min = 0.0f, float max = 1.0f) {
+        float *data_tmp;
+        std::mt19937 gen(0);
+        std::uniform_real_distribution<float> dist(min, max);
+        for (int64_t i = 0; i < row; i++) {
+            data_tmp = data + (i * lda);
+            for (int64_t j = 0; j < col; j++) {
+                data_tmp[j] = (float)dist(gen);
+            }
+        }
+    }
+
     float *data;
     int64_t row;
     int64_t col;
     int64_t lda;
 };
+
+[[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const MatrixCPU &m) {
+    float *data_tmp;
+    os << "[" << "\n";
+    for (int64_t i = 0; i < m.row; i++) {
+        data_tmp = m.data + (i * m.lda);
+        for (int64_t j = 0; j < m.col; j++) {
+            os << data_tmp[j] << " ";
+        }
+        os << "\n";
+    }
+    os << "]";
+    return os;
+}
 
 inline void add(MatrixCPU a, MatrixCPU b) {
     float *a_data;
@@ -70,6 +102,68 @@ inline void add(MatrixCPU a, MatrixCPU b) {
         b_data = b.data + (i * b.lda);
         for (int64_t j = 0; j < a.col; j++) {
             b_data[j] += a_data[j];
+        }
+    }
+}
+
+inline void exp_matrix(MatrixCPU a, MatrixCPU b) {
+    float *a_data;
+    float *b_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        a_data = a.data + (i * a.lda);
+        b_data = b.data + (i * b.lda);
+        for (int64_t j = 0; j < a.col; j++) {
+            b_data[j] = expf(a_data[j]);
+        }
+    }
+}
+
+inline void sum_row(MatrixCPU a, ArrayCPU b) {
+    float *a_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        float sum = 0.0f;
+        a_data = a.data + (i * a.lda);
+        for (int64_t j = 0; j < a.col; j++) {
+            sum += a_data[j];
+        }
+        b.data[i] = sum;
+    }
+}
+
+inline void max_row(MatrixCPU a, ArrayCPU b) {
+    float *a_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        float maximum = std::numeric_limits<float>::min();
+        a_data = a.data + (i * a.lda);
+        for (int64_t j = 0; j < a.col; j++) {
+            maximum = std::max(maximum, a_data[j]);
+        }
+        b.data[i] = maximum;
+    }
+}
+
+inline void subtract_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
+    float *a_data;
+    float *out_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        float vec_data = b.data[i];
+        a_data = a.data + (i * a.lda);
+        out_data = out.data + (i * out.lda);
+        for (int64_t j = 0; j < a.col; j++) {
+            out_data[j] = vec_data - a_data[j];
+        }
+    }
+}
+
+inline void divide_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
+    float *a_data;
+    float *out_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        float vec_data = b.data[i];
+        a_data = a.data + (i * a.lda);
+        out_data = out.data + (i * out.lda);
+        for (int64_t j = 0; j < a.col; j++) {
+            out_data[j] = a_data[j] / vec_data;
         }
     }
 }

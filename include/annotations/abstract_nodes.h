@@ -43,30 +43,4 @@ public:
     virtual void accept(StmtVisitorStrict *) const = 0;
 };
 
-class AbstractDataType {
-public:
-    AbstractDataType() = default;
-
-    AbstractDataType(const std::string &name, const std::string &type)
-        : name(name), type(type) {
-    }
-    virtual ~AbstractDataType() = default;
-
-    virtual std::string getName() const {
-        return name;
-    }
-
-    virtual std::string getType() const {
-        return type;
-    }
-
-private:
-    std::string name;
-    std::string type;
-};
-
-typedef std::shared_ptr<const AbstractDataType> AbstractDataTypePtr;
-
-std::ostream &operator<<(std::ostream &os, const AbstractDataType &ads);
-
 }  // namespace gern

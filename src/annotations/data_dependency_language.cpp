@@ -1,6 +1,7 @@
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
+#include "compose/compose.h"
 #include "utils/debug.h"
 #include "utils/error.h"
 
@@ -73,8 +74,33 @@ Variable Variable::bindToGrid(const Grid::Property &p) const {
     return Variable(new const VariableNode(getName(), p));
 }
 
+Variable Variable::bindToInt64(int64_t val) const {
+    return Variable(new const VariableNode(getName(), getBoundProperty(),
+                                           Datatype::Int64, true, val));
+}
+
 bool Variable::isBoundToGrid() const {
     return isGridPropertySet(getBoundProperty());
+}
+
+bool Variable::isBoundToInt64() const {
+    return getNode(*this)->bound;
+}
+
+bool Variable::isBound() const {
+    return (isBoundToGrid() || isBoundToInt64());
+}
+
+std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads) {
+    if (!ads.defined()) {
+        return os;
+    }
+    os << ads.ptr->getName();
+    return os;
+}
+
+int64_t Variable::getInt64Val() const {
+    return getNode(*this)->val;
 }
 
 Grid::Property Variable::getBoundProperty() const {
@@ -89,11 +115,11 @@ Datatype Variable::getType() const {
     return getNode(*this)->type;
 }
 
-Assign Variable::operator=(const Expr &e) {
+Assign Variable::operator=(const Expr &e) const {
     return Assign(*this, e);
 }
 
-Assign Variable::operator+=(const Expr &e) {
+Assign Variable::operator+=(const Expr &e) const {
     return Assign(*this, *this + e);
 }
 
@@ -215,7 +241,7 @@ Stmt Stmt::replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_d
         using Rewriter::rewrite;
 
         void visit(const SubsetNode *op) {
-            if (rw_ds.find(op->data) != rw_ds.end()) {
+            if (rw_ds.contains(op->data)) {
                 stmt = SubsetObj(rw_ds[op->data], op->mdFields);
             } else {
                 stmt = SubsetObj(op->data, op->mdFields);
@@ -366,6 +392,63 @@ Pattern For(Assign start, Expr end, Expr step,
             Produces produces, Consumes consumes,
             bool parallel) {
     return For(start, end, step, Computes(produces, consumes), parallel);
+}
+
+std::string AbstractDataTypePtr::getName() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getName();
+}
+
+std::string AbstractDataTypePtr::getType() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getType();
+}
+
+FunctionSignature AbstractDataTypePtr::getAllocateFunction() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getAllocateFunction();
+}
+
+FunctionSignature AbstractDataTypePtr::getQueryFunction() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getQueryFunction();
+}
+
+FunctionSignature AbstractDataTypePtr::getInsertFunction() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getInsertFunction();
+}
+
+std::vector<Variable> AbstractDataTypePtr::getFields() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getFields();
+}
+
+bool AbstractDataTypePtr::freeQuery() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->freeQuery();
+}
+
+bool AbstractDataTypePtr::insertQuery() const {
+    return ptr->insertQuery();
+}
+
+bool AbstractDataTypePtr::freeAlloc() const {
+    return ptr->freeAlloc();
 }
 
 }  // namespace gern

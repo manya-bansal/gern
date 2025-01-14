@@ -30,8 +30,10 @@ std::ostream &operator<<(std::ostream &os, const LiteralNode &);
 struct VariableNode : public ExprNode {
     VariableNode(const std::string &name,
                  Grid::Property p = Grid::Property::UNDEFINED,
-                 Datatype type = Datatype::Int64)
-        : ExprNode(Datatype::Kind::Int64), name(name), p(p), type(type) {
+                 Datatype type = Datatype::Int64,
+                 bool bound = false, int64_t val = 0)
+        : ExprNode(Datatype::Kind::Int64), name(name), p(p),
+          type(type), bound(bound), val(val) {
     }
     void accept(ExprVisitorStrict *v) const override {
         v->visit(this);
@@ -40,6 +42,8 @@ struct VariableNode : public ExprNode {
     std::string name;
     Grid::Property p;
     Datatype type;
+    bool bound;
+    int64_t val;
 };
 
 #define DEFINE_BINARY_NODE(NAME, NODE)                       \

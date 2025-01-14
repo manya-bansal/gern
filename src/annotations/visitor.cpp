@@ -79,7 +79,7 @@ DEFINE_PRINTER_METHOD(AssignNode, =)
 
 void Printer::visit(const SubsetNode *op) {
     util::printIdent(os, ident);
-    os << *(op->data) << " {"
+    os << op->data << " {"
        << "\n";
     ident++;
     int size_mf = op->mdFields.size();

@@ -1,4 +1,5 @@
 #include "codegen/codegen.h"
+#include "annotations/argument_visitor.h"
 #include "annotations/data_dependency_language.h"
 #include "annotations/grid.h"
 #include "annotations/lang_nodes.h"
@@ -19,10 +20,10 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     code = Block::make(lowered_nodes);
 
     // Once we have visited the pipeline, we need to
-    // wrap the body in a function interface.
+    // wrap the body in a FunctionSignature interface.
 
     // Add all the data-structures that haven't been declared
-    // or allocated to the function arguments. These are the
+    // or allocated to the FunctionSignature arguments. These are the
     // true inputs, or the true outputs.
     std::vector<AbstractDataTypePtr> to_declare_adts;
     std::set_difference(used_adt.begin(), used_adt.end(),
@@ -30,25 +31,39 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
                         std::back_inserter(to_declare_adts));
 
     std::vector<Variable> to_declare_vars;
-    std::set_difference(used.begin(), used.end(),
-                        declared.begin(), declared.end(),
-                        std::back_inserter(to_declare_vars),
-                        std::less<Variable>());
+    std::vector<CGExpr> template_arg_vars;
+    std::vector<CGExpr> call_template_vars;
+    std::vector<CGStmt> hook_body;
+    // Declare all the variables that have been used, but have not been defined.
+    for (const auto &v : used) {
+        if (declared.contains(v)) {
+            continue;
+        }
+        if (const_expr_vars.contains(v)) {
+            template_arg_vars.push_back(VarDecl::make(Type::make(v.getType().str()), v.getName()));
+            call_template_vars.push_back(Var::make(v.getName()));
+            if (!v.isBoundToInt64()) {
+                throw error::UserError(v.getName() + " must be bound to an int64_t, it is a template parameter");
+            }
+            hook_body.push_back(gen(v = Expr(v.getInt64Val()), true));
+            continue;
+        }
+        to_declare_vars.push_back(v);
+    }
 
     std::vector<CGExpr> args;
-    std::vector<CGStmt> hook_body;
     std::vector<CGExpr> hook_args;
 
     int num_args = 0;
     for (const auto &ds : to_declare_adts) {
-        args.push_back(VarDecl::make(Type::make(ds->getType()), ds->getName()));
+        args.push_back(VarDecl::make(Type::make(ds.getType()), ds.getName(), false, !p.is_at_device()));
         hook_body.push_back(
-            VarAssign::make(VarDecl::make(Type::make(ds->getType()), ds->getName()),
+            VarAssign::make(VarDecl::make(Type::make(ds.getType()), ds.getName(), false, !p.is_at_device()),
                             Deref::make(
-                                Cast::make(Type::make(ds->getType() + "*"),
+                                Cast::make(Type::make(ds.getType() + "*"),
                                            Var::make("args[" + std::to_string(num_args) + "]")))));
-        hook_args.push_back(Var::make(ds->getName()));
-        argument_order.push_back(ds->getName());
+        hook_args.push_back(Var::make(ds.getName()));
+        argument_order.push_back(ds.getName());
         num_args++;
     }
 
@@ -66,17 +81,17 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 
     // The return type is always void, the output
     // is modified by reference.
-    code = DeclFunc::make(name, Type::make("void"), args, code, p.is_at_device());
+    code = DeclFunc::make(name, Type::make("void"), args, code, p.is_at_device(), template_arg_vars);
 
-    // Also make the function that is used as the entry point for
+    // Also make the FunctionSignature that is used as the entry point for
     // user code.
     std::vector<CGStmt> full_code;
-    CGStmt hook_call = VoidCall::make(Call::make(name, hook_args));
+    CGStmt hook_call = VoidCall::make(Call::make(name, hook_args, call_template_vars));
     if (p.is_at_device()) {
         // Declare the grid and block dimensions.
         hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
         hook_body.push_back(EscapeCGStmt::make("dim3 __block_dim__(" + block_dim.str() + ");"));
-        hook_call = KernelLaunch::make(name, hook_args, Var::make("__grid_dim__"), Var::make("__block_dim__"));
+        hook_call = KernelLaunch::make(name, hook_args, call_template_vars, Var::make("__grid_dim__"), Var::make("__block_dim__"));
         full_code.push_back(EscapeCGStmt::make("#include <cuda_runtime.h>"));
     }
 
@@ -93,23 +108,15 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 
     full_code.push_back(BlankLine::make());
     full_code.push_back(BlankLine::make());
+    full_code.push_back(code);
     full_code.push_back(EscapeCGStmt::make("extern \"C\""));
-    full_code.push_back(Scope::make(Block::make({code, hook})));
+    full_code.push_back(Scope::make(hook));
 
     return Block::make(full_code);
 }
 
 void CodeGenerator::visit(const AllocateNode *op) {
-    std::string method_call = op->data->getType() + "::allocate";
-    std::vector<CGExpr> args;
-    for (const auto &a : op->fields) {
-        args.push_back(gen(a));
-    }
-    CGExpr lhs = VarDecl::make(Type::make(op->data->getType()),
-                               op->data->getName());
-    code = VarAssign::make(lhs, Call::make(method_call, args));
-
-    declared_adt.insert(op->data);
+    code = gen(op->f);
 }
 
 void CodeGenerator::visit(const FreeNode *op) {
@@ -119,49 +126,24 @@ void CodeGenerator::visit(const FreeNode *op) {
             throw error::InternalError("Freeing a data-structure that hasn't been allocated??");
         })
 
-    std::string method_call = op->data->getName() + ".destroy";
+    std::string method_call = op->data.getName() + ".destroy";
     code = VoidCall::make(Call::make(method_call, {}));
 }
 
 void CodeGenerator::visit(const InsertNode *op) {
-    std::string method_call = op->parent->getName() + ".insert";
-    std::vector<CGExpr> args;
-    for (const auto &a : op->fields) {
-        args.push_back(gen(a));
-    }
-    CGExpr lhs = VarDecl::make(Type::make(op->child->getType()),
-                               op->child->getName());
-    code = VarAssign::make(lhs, Call::make(method_call, args));
-
-    declared_adt.insert(op->child);
+    code = gen(op->f);
     used_adt.insert(op->parent);
 }
 
 void CodeGenerator::visit(const QueryNode *op) {
-    std::string method_call = op->parent->getName() + ".query";
-    std::vector<CGExpr> args;
-    for (const auto &a : op->fields) {
-        args.push_back(gen(a));
-    }
-    CGExpr lhs = VarDecl::make(Type::make(op->child->getType()),
-                               op->child->getName());
-    code = VarAssign::make(lhs, Call::make(method_call, args));
-
-    declared_adt.insert(op->child);
+    code = gen(op->f);
     used_adt.insert(op->parent);
 }
 
 void CodeGenerator::visit(const ComputeNode *op) {
-    std::string func_call = op->f->getName();
-    std::vector<CGExpr> args;
-    for (auto a : op->f->getArguments()) {
-        args.push_back(gen(a, op->new_ds));
-    }
-
-    code = VoidCall::make(Call::make(func_call, args));
-
+    code = gen(op->f);
     // Add the header.
-    std::vector<std::string> func_header = op->f->getHeader();
+    std::vector<std::string> func_header = op->headers;
     headers.insert(func_header.begin(), func_header.end());
 }
 
@@ -183,11 +165,15 @@ void CodeGenerator::visit(const IntervalNode *op) {
     // wrap it in a for loop.
     if (!op->isMappedToGrid()) {
         Variable v = op->getIntervalVariable();
-        CGStmt start = gen(op->start);
+        CGStmt start = gen(op->start, false);  // Definitely not a constexpr.
         CGExpr cond = gen(v < op->end);
-        CGStmt step = gen(v += op->step);
+        CGStmt step = gen(v += op->step, false);  // Definitely not a constexpr.
         code = For::make(start, cond, step, code);
     }
+}
+
+void CodeGenerator::visit(const DefNode *op) {
+    code = gen(op->assign, op->const_expr);
 }
 
 void CodeGenerator::visit(const BlankNode *) {
@@ -202,11 +188,11 @@ void CodeGenerator::visit(const BlankNode *) {
         cg_e = op::make(a, cg_e);      \
     }
 
-CGExpr CodeGenerator::gen(Expr e) {
+CGExpr CodeGenerator::gen(Expr e, bool const_expr) {
 
     struct ConvertToCode : public ExprVisitorStrict {
-        ConvertToCode(CodeGenerator *cg)
-            : cg(cg) {
+        ConvertToCode(CodeGenerator *cg, bool const_expr)
+            : cg(cg), const_expr(const_expr) {
         }
         using ExprVisitorStrict::visit;
         void visit(const LiteralNode *op) {
@@ -215,6 +201,9 @@ CGExpr CodeGenerator::gen(Expr e) {
         void visit(const VariableNode *op) {
             cg_e = Var::make(op->name);
             cg->insertInUsed(op);
+            if (const_expr) {
+                cg->insertInConstExpr(op);
+            }
         }
 
         VISIT_AND_DECLARE(Add);
@@ -224,10 +213,11 @@ CGExpr CodeGenerator::gen(Expr e) {
         VISIT_AND_DECLARE(Mod);
 
         CodeGenerator *cg;
+        bool const_expr;
         CGExpr cg_e;
     };
 
-    ConvertToCode cg(this);
+    ConvertToCode cg(this, const_expr);
     cg.visit(e);
     return cg.cg_e;
 }
@@ -265,7 +255,7 @@ CGExpr CodeGenerator::gen(Constraint c) {
     return cg.cg_e;
 }
 
-CGStmt CodeGenerator::gen(Assign a) {
+CGStmt CodeGenerator::gen(Assign a, bool const_expr) {
     if (!isa<Variable>(a.getA())) {
         throw error::UserError("Assignments can only be made to Variables");
     }
@@ -279,41 +269,69 @@ CGStmt CodeGenerator::gen(Assign a) {
     }
 
     return VarAssign::make(
-        declVar(to_declare),
+        declVar(to_declare, const_expr),
         gen(a.getB()));
 }
 
-CGExpr CodeGenerator::gen(Argument a, const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &replacements) {
-    switch (a.getType()) {
+CGExpr CodeGenerator::gen(Argument a, bool lhs) {
 
-    case DATA_STRUCTURE: {
-        const DSArg *ds = to<DSArg>(a.get());
-        // Track the fact that we are using this ADT
-        used_adt.insert(ds->getADTPtr());
-        // If the actual data-structure has been queried, then we need to make
-        // sure that the queried name is used, not the original name.
-        if (replacements.count(ds->getADTPtr()) > 0) {
-            return Var::make(replacements.at(ds->getADTPtr())->getName());
-        } else {
-            return Var::make(ds->getADTPtr()->getName());
+    struct GenArgument : public ArgumentVisitorStrict {
+        GenArgument(CodeGenerator *cg, bool lhs)
+            : cg(cg), lhs(lhs) {
         }
-        break;
+        using ArgumentVisitorStrict::visit;
+        void visit(const DSArg *ds) {
+            cg->used_adt.insert(ds->getADTPtr());
+            if (lhs) {
+                gen_expr = cg->declADT(ds->getADTPtr());
+            } else {
+                gen_expr = Var::make(ds->getADTPtr().getName());
+            }
+        }
+        void visit(const VarArg *v) {
+            if (lhs) {
+                gen_expr = cg->declVar(v->getVar(), false);
+            } else {
+                gen_expr = cg->gen(v->getVar());
+            }
+        }
+
+        void visit(const ExprArg *v) {
+            gen_expr = cg->gen(v->getExpr());
+        }
+
+        CodeGenerator *cg;
+        bool lhs;
+        CGExpr gen_expr;
+    };
+    GenArgument generate(this, lhs);
+    generate.visit(a);
+    return generate.gen_expr;
+}
+
+CGStmt CodeGenerator::gen(FunctionCall f) {
+    std::vector<CGExpr> args;
+    for (const auto &a : f.args) {
+        args.push_back(gen(a));
+    }
+    std::vector<CGExpr> template_args;
+    for (auto a : f.template_args) {
+        template_args.push_back(gen(a, true));  // All of these are const_expr;
     }
 
-    case GERN_VARIABLE: {
-        const VarArg *v = to<VarArg>(a.get());
-        used.insert(v->getVar());
-        return Var::make(v->getVar().getName());
+    CGExpr call = Call::make(f.name, args, template_args);
+    if (f.output.defined()) {
+        return VarAssign::make(gen(f.output, true), call);
     }
-
-    default:
-        throw error::InternalError("Unreachable");
-        break;
-    }
+    return VoidCall::make(call);
 }
 
 void CodeGenerator::insertInUsed(Variable v) {
     used.insert(v);
+}
+
+void CodeGenerator::insertInConstExpr(Variable v) {
+    const_expr_vars.insert(v);
 }
 
 std::string CodeGenerator::getName() const {
@@ -328,9 +346,18 @@ std::vector<std::string> CodeGenerator::getArgumentOrder() const {
     return argument_order;
 }
 
-CGExpr CodeGenerator::declVar(Variable v) {
+CGExpr CodeGenerator::declVar(Variable v, bool const_expr) {
     declared.insert(v);
-    return VarDecl::make(Type::make(v.getType().str()), v.getName());
+    return VarDecl::make(Type::make((const_expr ? "constexpr " : "") +
+                                    v.getType().str()),
+                         v.getName());
+}
+
+CGExpr CodeGenerator::declADT(AbstractDataTypePtr ds) {
+    CGExpr decl = VarDecl::make(Type::make("auto"),
+                                ds.getName());
+    declared_adt.insert(ds);
+    return decl;
 }
 
 static CGExpr genProp(const Grid::Property &p) {
@@ -395,7 +422,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
 
     // Actually declare the variable to use the grid.
     return VarAssign::make(
-        declVar(interval_var),
+        declVar(interval_var, false),
         // Add any shift factor specified in the interval.
         (genProp(interval_var.getBoundProperty()) * gen(op->step)) + gen(op->start.getB()));
 }

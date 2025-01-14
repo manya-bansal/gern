@@ -1,0 +1,46 @@
+name: CMake Build and Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: false
+    
+      matrix:
+        os: [ubuntu-latest] 
+    
+    steps:
+    - uses: actions/checkout@v4 
+    - uses: seanmiddleditch/gha-setup-ninja@master
+
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      id: runvcpkg
+      with:
+        # This specifies the location of vcpkg, where it is going to be restored from cache, or create from scratch.
+        vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
+        # The Git commit id of vcpkg to be checked out. This is only needed because we are not using a submodule.
+        vcpkgGitCommitId: '${{ matrix.vcpkgCommitId}}'
+
+    - name: Set Preset
+      run: |
+          echo "LSAN_OPTIONS=suppressions=${{  github.workspace }}/suppressions.txt" >> $GITHUB_ENV
+          cmake --preset dev  \
+          -DCMAKE_CXX_FLAGS="-fsanitize=address -fomit-frame-pointer -fomit-frame-pointer"
+      shell: bash
+
+    - name: Build Gern 
+      run: cmake --build build/dev
+      shell: bash
+
+    - name: Run CPU Tests
+      run: ctest --test-dir ${{  github.workspace }}/build/dev 
+      shell: bash
+  

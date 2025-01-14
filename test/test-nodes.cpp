@@ -39,7 +39,7 @@ TEST(StmtNode, Constraint) {
     Constraint test(e == e);
     ASSERT_TRUE(test::getStrippedString(test) == "((1-v_)==(1-v_))");
 
-    auto TestDSCPU = std::make_shared<const annot::ArrayCPU>();
+    auto TestDSCPU = AbstractDataTypePtr(new const annot::ArrayCPU());
     SubsetObj subset{TestDSCPU, {1 - v, v * 2}};
 
     ASSERT_TRUE(test::getStrippedString(subset) == "test{(1-v_),(v_*2)}");
@@ -48,7 +48,7 @@ TEST(StmtNode, Constraint) {
 TEST(Annotations, ConstrainPatterns) {
     Variable v("v");
     Variable v1("v1");
-    auto TestDSCPU = std::make_shared<const annot::ArrayCPU>();
+    auto TestDSCPU = AbstractDataTypePtr(new const annot::ArrayCPU());
     SubsetObj s{TestDSCPU, {1 - v, v * 2}};
 
     ASSERT_NO_THROW(For(v = Expr(0), Expr(0), Expr(0),

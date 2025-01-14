@@ -33,7 +33,7 @@ struct GinacLess {
 typedef std::map<Variable, GiNaC::symbol> VariableToSymbolMap;
 typedef std::map<GiNaC::symbol, Variable, GinacLess> SymbolToVariableMap;
 
-// Helper function to convert an equality constraint to a GiNaC
+// Helper FunctionSignature to convert an equality constraint to a GiNaC
 // expression. Currently, only equality constraints are accepted.
 static GiNaC::ex convertToGinac(Eq q, VariableToSymbolMap names) {
     struct ExprToGinac : public ExprVisitorStrict {
@@ -83,7 +83,7 @@ static GiNaC::ex convertToGinac(Eq q, VariableToSymbolMap names) {
     return a == b;
 }
 
-// Helper function to convert an GiNaC expression to a Gern
+// Helper FunctionSignature to convert an GiNaC expression to a Gern
 // expression.
 static Expr convertToGern(GiNaC::ex ginacExpr, SymbolToVariableMap variables) {
     struct GinacToExpr : public GiNaC::visitor,

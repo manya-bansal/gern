@@ -13,8 +13,8 @@
 using namespace gern;
 
 TEST(LoweringCPU, MatrixCPUAdd) {
-    auto inputDS = std::make_shared<const annot::MatrixCPU>("input_con");
-    auto outputDS = std::make_shared<const annot::MatrixCPU>("output_con");
+    auto inputDS = AbstractDataTypePtr(new const annot::MatrixCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::MatrixCPU("output_con"));
 
     annot::MatrixAddCPU add;
     Variable row("row");
@@ -32,11 +32,7 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     Pipeline p(c);
     Runner run(p);
 
-    run.compile(Runner::Options{
-        .filename = "test",
-        .prefix = "/tmp",
-        .include = " -I " + std::string(GERN_ROOT_DIR) + "/test/library/matrix/impl",
-    });
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
 
     int64_t row_val = 10;
     int64_t col_val = 10;
@@ -50,8 +46,8 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     int64_t l_y_val = 5;
 
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {row.getName(), &row_val},
         {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
@@ -67,8 +63,8 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     b.vvals(7.0f);
     l_y_val = 2;
     ASSERT_NO_THROW(run.evaluate({
-        {inputDS->getName(), &a},
-        {outputDS->getName(), &b},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
         {row.getName(), &row_val},
         {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
@@ -80,4 +76,88 @@ TEST(LoweringCPU, MatrixCPUAdd) {
 
     a.destroy();
     b.destroy();
+}
+
+TEST(LoweringCPU, Softmax) {
+
+    auto inputDS = AbstractDataTypePtr(new const annot::MatrixCPU("input"));
+    auto outputDS = AbstractDataTypePtr(new const annot::MatrixCPU("output_final"));
+    auto ExpDS = AbstractDataTypePtr(new const annot::MatrixCPU("expDS"));
+    auto SubDS = AbstractDataTypePtr(new const annot::MatrixCPU("subDS"));
+    auto SumRowDS = AbstractDataTypePtr(new const annot::ArrayCPU("rowSum"));
+    auto MaxRowDS = AbstractDataTypePtr(new const annot::ArrayCPU("rowMax"));
+
+    annot::SumRow sum_row;
+    annot::MaxRow max_row;
+    annot::SubtractVec subtract_vec;
+    annot::ExpMatrix exp_matrix;
+    annot::DivideVec divide_vec;
+
+    Variable row("row");
+    Variable col("col");
+    Variable col_1("col_1");
+    Variable l_x("l_x");
+    Variable l_y("l_y");
+
+    std::vector<Compose> c = {
+        max_row[{
+            {"col", col},  // This should go away, once I allow member variables as args.
+        }](inputDS, MaxRowDS),
+        subtract_vec(MaxRowDS, inputDS, SubDS),
+        exp_matrix(SubDS, ExpDS),
+        sum_row[{
+            {"col", col},  // This should go away, once I allow member variables as args.
+        }](ExpDS, SumRowDS),
+        divide_vec[{
+            {"row", row},
+            {"col", col},
+            {"l_x", l_x},
+            {"l_y", l_y},
+        }](SumRowDS, ExpDS, outputDS),
+    };
+
+    Pipeline p(c);
+    Runner run(p);
+
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+
+    int64_t row_val = 2;
+    int64_t col_val = 2;
+    int64_t l_x_val = 2;
+    int64_t l_y_val = col_val;
+
+    impl::MatrixCPU a(row_val, col_val, row_val);
+    // fill with random values.
+    a.random_fill();
+    impl::MatrixCPU b(row_val, col_val, row_val);
+    b.vvals(0.0f);
+
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+        {row.getName(), &row_val},
+        {col.getName(), &col_val},
+        {l_x.getName(), &l_x_val},
+        {l_y.getName(), &l_y_val},
+    }));
+
+    // Compute unfused for reference.
+    impl::MatrixCPU reference(row_val, col_val, row_val);
+    reference.vvals(0.0f);
+    impl::ArrayCPU max_row_ref(row_val);
+
+    gern::impl::max_row(a, max_row_ref);
+    gern::impl::subtract_vec(max_row_ref, a, reference);
+    gern::impl::exp_matrix(reference, reference);
+    gern::impl::sum_row(reference, max_row_ref);
+    gern::impl::divide_vec(max_row_ref, reference, reference);
+
+    for (int i = 0; i < row_val * col_val; i++) {
+        ASSERT_EQ(b.data[i], reference.data[i]);
+    }
+
+    a.destroy();
+    b.destroy();
+    reference.destroy();
+    max_row_ref.destroy();
 }

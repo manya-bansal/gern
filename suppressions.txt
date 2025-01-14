@@ -1,0 +1,2 @@
+# Suppression for cln
+leak:cln::xmalloc
