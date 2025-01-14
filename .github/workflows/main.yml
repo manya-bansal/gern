@@ -31,7 +31,7 @@ jobs:
 
     - name: Set Preset
       run: |
-          echo "LSAN_OPTIONS=\"suppressions=${{  github.workspace }}/suppressions.txt\"" >> $GITHUB_ENV
+          echo "LSAN_OPTIONS=suppressions=${{  github.workspace }}/suppressions.txt\ >> $GITHUB_ENV
           cmake --preset dev  \
           -DCMAKE_CXX_FLAGS="-fsanitize=address -fomit-frame-pointer -fomit-frame-pointer"
       shell: bash
