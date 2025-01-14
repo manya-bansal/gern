@@ -27,26 +27,26 @@ public:
     std::vector<Variable> getFields() const override {
         return {};
     }
-    Function getAllocateFunction() const override {
-        return Function{
+    FunctionSignature getAllocateFunction() const override {
+        return FunctionSignature{
             .name = "gern::impl::allocate_f32",
             .args = {},
         };
     }
-    Function getFreeFunction() const override {
-        return Function{
+    FunctionSignature getFreeFunction() const override {
+        return FunctionSignature{
             .name = "destroy",
             .args = {},
         };
     }
-    Function getInsertFunction() const override {
-        return Function{
+    FunctionSignature getInsertFunction() const override {
+        return FunctionSignature{
             .name = "insert",
             .args = {},
         };
     }
-    Function getQueryFunction() const override {
-        return Function{
+    FunctionSignature getQueryFunction() const override {
+        return FunctionSignature{
             .name = "query",
             .args = {},
         };

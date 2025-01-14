@@ -26,7 +26,7 @@ struct GreaterNode;
 struct AndNode;
 struct OrNode;
 struct AssignNode;
-struct Function;
+struct FunctionSignature;
 
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
@@ -128,7 +128,7 @@ public:
     Variable(const VariableNode *);
 
     /**
-     *  @brief This function indicates that the
+     *  @brief This FunctionSignature indicates that the
      *          value of the variable is derived
      *          from a grid property. (blockIDx,
      *          etc)
@@ -180,10 +180,10 @@ public:
     }
 
     virtual std::vector<Variable> getFields() const = 0;
-    virtual Function getAllocateFunction() const = 0;
-    virtual Function getFreeFunction() const = 0;
-    virtual Function getInsertFunction() const = 0;
-    virtual Function getQueryFunction() const = 0;
+    virtual FunctionSignature getAllocateFunction() const = 0;
+    virtual FunctionSignature getFreeFunction() const = 0;
+    virtual FunctionSignature getInsertFunction() const = 0;
+    virtual FunctionSignature getQueryFunction() const = 0;
 
     // Tracks whether any of the queries need to be free,
     // or if they are actually returning views.
@@ -214,9 +214,9 @@ public:
 
     std::string getName() const;
     std::string getType() const;
-    Function getAllocateFunction() const;
-    Function getQueryFunction() const;
-    Function getInsertFunction() const;
+    FunctionSignature getAllocateFunction() const;
+    FunctionSignature getQueryFunction() const;
+    FunctionSignature getInsertFunction() const;
     std::vector<Variable> getFields() const;
     bool freeQuery() const;
     bool insertQuery() const;
@@ -273,7 +273,7 @@ public:
     /**
      * @brief Add a constraint to a statement
      *
-     *  The function checks that only variables that are in
+     *  The FunctionSignature checks that only variables that are in
      *  scope are used within the constraint.
      *
      * @param constraint Constraint to add.
@@ -409,7 +409,7 @@ public:
 // checker to ensures that only legal patterns are written down.
 Pattern For(Assign start, Expr end, Expr step, Pattern body,
             bool parallel = false);
-// Function so that users do need an explicit compute initialization.
+// FunctionSignature so that users do need an explicit compute initialization.
 Pattern For(Assign start, Expr end, Expr step,
             Produces produces, Consumes consumes,
             bool parallel = false);

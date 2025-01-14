@@ -66,7 +66,7 @@ public:
 std::ostream &operator<<(std::ostream &os, const Argument &);
 /*
 To add arguments to the vector of arguments in the
-overload of () for the AbstractFunction class,
+overload of () for the AbstractFunction  class,
 an addArgument must be defined for that type of
 argument.
 */

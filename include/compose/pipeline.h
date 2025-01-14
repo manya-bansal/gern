@@ -73,7 +73,7 @@ public:
     void visit(const PipelineNode *c);
 
     std::vector<LowerIR> getIRNodes() const;
-    // Returns the function call that produces a particular output.
+    // Returns the FunctionSignature call that produces a particular output.
     std::set<AbstractDataTypePtr> getInputs() const;
     AbstractDataTypePtr getOutput() const;
     std::set<ComputeFunctionCallPtr> getConsumerFunctions(AbstractDataTypePtr) const;
@@ -95,8 +95,8 @@ private:
     const FreeNode *constructFreeNode(AbstractDataTypePtr);                              // Constructs a free node for a data-structure, and tracks this relationship.
     const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Variable>);  // Constructs a allocate for a data-structure, and tracks this relationship.
 
-    Function constructFunction(Function f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const;      // Constructs a call with the true meta data fields mapped in the correct place.
-    FunctionCall constructFunctionCall(Function f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
+    FunctionSignature constructFunction(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
+    FunctionCall constructFunctionCall(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const;       // Constructs a call with the true meta data fields mapped in the correct place.
 
     std::vector<LowerIR> generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
@@ -119,11 +119,11 @@ std::ostream &operator<<(std::ostream &os, const Pipeline &p);
 
 // IR Node that marks an allocation
 struct AllocateNode : public LowerIRNode {
-    AllocateNode(Function f)
+    AllocateNode(FunctionSignature f)
         : f(f) {
     }
     void accept(PipelineVisitor *) const;
-    Function f;
+    FunctionSignature f;
 };
 
 // IR Node that marks an free
@@ -140,12 +140,12 @@ struct FreeNode : public LowerIRNode {
 // into the parent data-structure as the
 // subset with meta-data values in fields.
 struct InsertNode : public LowerIRNode {
-    InsertNode(AbstractDataTypePtr parent, Function f)
+    InsertNode(AbstractDataTypePtr parent, FunctionSignature f)
         : parent(parent), f(f) {
     }
     void accept(PipelineVisitor *) const;
     AbstractDataTypePtr parent;
-    Function f;
+    FunctionSignature f;
 };
 
 // IR Node that marks a query
@@ -161,14 +161,14 @@ struct QueryNode : public LowerIRNode {
     FunctionCall f;
 };
 
-// IR Node marks a function call.
+// IR Node marks a FunctionSignature call.
 struct ComputeNode : public LowerIRNode {
-    ComputeNode(Function f,
+    ComputeNode(FunctionSignature f,
                 std::vector<std::string> headers)
         : f(f), headers(headers) {
     }
     void accept(PipelineVisitor *) const;
-    Function f;
+    FunctionSignature f;
     std::vector<std::string> headers;
 };
 
@@ -232,10 +232,10 @@ public:
     PipelineDS(const std::string &name,
                const std::string &type,
                const std::vector<Variable> &fields,
-               const Function &allocate,
-               const Function &free,
-               const Function &insert,
-               const Function &query,
+               const FunctionSignature &allocate,
+               const FunctionSignature &free,
+               const FunctionSignature &insert,
+               const FunctionSignature &query,
                const bool &to_free)
         : name(name), type(type), fields(fields),
           allocate(allocate), free(free),
@@ -254,16 +254,16 @@ public:
     std::vector<Variable> getFields() const override {
         return fields;
     }
-    Function getAllocateFunction() const override {
+    FunctionSignature getAllocateFunction() const override {
         return allocate;
     }
-    Function getFreeFunction() const override {
+    FunctionSignature getFreeFunction() const override {
         return free;
     }
-    Function getInsertFunction() const override {
+    FunctionSignature getInsertFunction() const override {
         return insert;
     }
-    Function getQueryFunction() const override {
+    FunctionSignature getQueryFunction() const override {
         return query;
     }
 
@@ -287,10 +287,10 @@ private:
     std::string name;
     std::string type;
     std::vector<Variable> fields;
-    Function allocate;
-    Function free;
-    Function insert;
-    Function query;
+    FunctionSignature allocate;
+    FunctionSignature free;
+    FunctionSignature insert;
+    FunctionSignature query;
     bool to_free;
 };
 

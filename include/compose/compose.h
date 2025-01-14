@@ -59,15 +59,15 @@ private:
 
 std::ostream &operator<<(std::ostream &os, const Compose &);
 
-// A function call has a name,
+// A FunctionSignature call has a name,
 // a set of arguments, a set of
 // templated arguments, and a return type.
-struct Function {
+struct FunctionSignature {
     std::string name;
     std::vector<Argument> args = {};
     // Only int64_t args allowed rn.
     std::vector<Variable> template_args = {};
-    // To model an explict return. Currently, no compute function can return.
+    // To model an explict return. Currently, no compute FunctionSignature can return.
     Argument output = Argument();
 
     /**
@@ -76,21 +76,21 @@ struct Function {
      * @param Data structures to replace with.
      * @return * Function
      */
-    Function replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
+    FunctionSignature replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
 };
 
-std::ostream &operator<<(std::ostream &os, const Function &f);
+std::ostream &operator<<(std::ostream &os, const FunctionSignature &f);
 
 class ComputeFunctionCall : public CompositionObject {
 public:
     ComputeFunctionCall() = delete;
-    ComputeFunctionCall(Function call,
+    ComputeFunctionCall(FunctionSignature call,
                         Pattern annotation,
                         std::vector<std::string> header)
         : call(call), annotation(annotation), header(header) {
     }
 
-    Function getCall() const {
+    FunctionSignature getCall() const {
         return call;
     }
 
@@ -107,21 +107,21 @@ public:
         return call.template_args;
     }
     /**
-     * @brief Returns the data structure that the function computes as output.
+     * @brief Returns the data structure that the FunctionSignature computes as output.
      *
      * @return Pointer to the data structure.
      */
     AbstractDataTypePtr getOutput() const;
 
     /**
-     * @brief Returns the data structures that the function treats as inputs.
+     * @brief Returns the data structures that the FunctionSignature treats as inputs.
      *
      * @return std::set<AbstractDataTypePtr>=
      */
     std::set<AbstractDataTypePtr> getInputs() const;
 
     /**
-     * @brief Returns the name of the header file where the function is
+     * @brief Returns the name of the header file where the FunctionSignature is
      *        declared.
      *
      */
@@ -146,9 +146,9 @@ public:
     std::vector<Variable> getProducesFields() const;
 
     /**
-     * @brief This function is used to bind a symbolic variable in the
+     * @brief This FunctionSignature is used to bind a symbolic variable in the
      *        annotation with a user-provided variable. This is useful for
-     *        passing in arguments for the function pointer, otherwise,
+     *        passing in arguments for the FunctionSignature pointer, otherwise,
      *        users do not have a hook for passing arguments properly,
      *        since the argument order is not pre-determined.
      *
@@ -159,7 +159,7 @@ public:
     const ComputeFunctionCall *withSymbolic(const std::map<std::string, Variable> &binding);
 
     /**
-     * @brief This function checks whether a passed in variable is a template arg
+     * @brief This FunctionSignature checks whether a passed in variable is a template arg
      *        for a given function.
      *
      * @param v Var to check.
@@ -173,7 +173,7 @@ public:
     void accept(CompositionVisitorStrict *v) const;
 
 private:
-    Function call;
+    FunctionSignature call;
     Pattern annotation;
     std::vector<std::string> header;
 };

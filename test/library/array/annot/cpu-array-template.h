@@ -29,31 +29,31 @@ public:
     std::vector<Variable> getFields() const override {
         return {x, len};
     }
-    Function getAllocateFunction() const override {
-        return Function{
+    FunctionSignature getAllocateFunction() const override {
+        return FunctionSignature{
             .name = "gern::impl::temp_allocate",
             .template_args = {len},
         };
     }
 
-    Function getQueryFunction() const override {
-        return Function{
+    FunctionSignature getQueryFunction() const override {
+        return FunctionSignature{
             .name = "query",
             .args = {x},
             .template_args = {len},
         };
     }
 
-    Function getInsertFunction() const override {
-        return Function{
+    FunctionSignature getInsertFunction() const override {
+        return FunctionSignature{
             .name = "insert",
             .args = {x},
             .template_args = {len},
         };
     }
 
-    Function getFreeFunction() const override {
-        return Function{
+    FunctionSignature getFreeFunction() const override {
+        return FunctionSignature{
             .name = "destroy",
             .args = {},
         };
@@ -87,8 +87,8 @@ public:
                    Consumes::Subset(input, {x, step}));
     }
 
-    virtual Function getFunction() override {
-        Function f;
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
         f.name = "gern::impl::add";
         f.args = {Argument(input), Argument(output)};
         f.template_args = {step};

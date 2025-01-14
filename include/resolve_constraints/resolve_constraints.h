@@ -12,7 +12,7 @@ namespace resolve {
  *        each Variable.
  *
  * Currently, solve uses the GiNaC library. To plug-in a different
- * method for bounds inference, re-implement this function adhering to
+ * method for bounds inference, re-implement this FunctionSignature adhering to
  * same interface. There are no dependencies on GiNaC except in the
  * implementation of this function.
  *

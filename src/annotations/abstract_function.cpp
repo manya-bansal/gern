@@ -42,7 +42,7 @@ std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f) {
     return os;
 }
 
-Function Function::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
+FunctionSignature FunctionSignature::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
     std::vector<Argument> new_args;
     for (const auto &arg : args) {
         if (isa<DSArg>(arg) &&
@@ -53,7 +53,7 @@ Function Function::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePt
         }
     }
     // Also change the annotation.
-    Function new_call{
+    FunctionSignature new_call{
         .name = name,
         .args = new_args,
         .template_args = template_args,
@@ -65,7 +65,7 @@ Function Function::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePt
 
 Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> concrete_arguments) {
 
-    Function f = getFunction();
+    FunctionSignature f = getFunction();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> abstract_to_concrete_adt;
     std::map<Variable, Variable> fresh_names;
 
@@ -132,7 +132,7 @@ Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> conc
     Pattern rw_annotation = to<Pattern>(annotation
                                             .replaceDSArgs(abstract_to_concrete_adt)
                                             .replaceVariables(fresh_names));
-    Function call{
+    FunctionSignature call{
         .name = f.name,
         .args = concrete_arguments,
         .template_args = template_args,

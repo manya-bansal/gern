@@ -7,7 +7,7 @@
 
 namespace gern {
 
-std::ostream &operator<<(std::ostream &os, const Function &f) {
+std::ostream &operator<<(std::ostream &os, const FunctionSignature &f) {
     os << f.output << " ";
     os << f.name;
     int num_template_args = f.template_args.size();
@@ -73,7 +73,7 @@ bool ComputeFunctionCall::isTemplateArg(Variable v) const {
 
 ComputeFunctionCall ComputeFunctionCall::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
 
-    // Change the function call.
+    // Change the FunctionSignature call.
     auto new_call = getCall().replaceAllDS(replacement);
     // Also change the annotation.
     auto new_annot = to<Pattern>(getAnnotation().replaceDSArgs(replacement));

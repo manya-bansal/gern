@@ -29,26 +29,26 @@ public:
         return {x, y, l_x, l_y};
     }
 
-    Function getAllocateFunction() const override {
-        return Function{
+    FunctionSignature getAllocateFunction() const override {
+        return FunctionSignature{
             .name = "gern::impl::MatrixCPU::allocate",
             .args = {x, y, l_x, l_y},
         };
     }
-    Function getFreeFunction() const override {
-        return Function{
+    FunctionSignature getFreeFunction() const override {
+        return FunctionSignature{
             .name = "destroy",
             .args = {},
         };
     }
-    Function getInsertFunction() const override {
-        return Function{
+    FunctionSignature getInsertFunction() const override {
+        return FunctionSignature{
             .name = "insert",
             .args = {x, y, l_x, l_y},
         };
     }
-    Function getQueryFunction() const override {
-        return Function{
+    FunctionSignature getQueryFunction() const override {
+        return FunctionSignature{
             .name = "query",
             .args = {x, y, l_x, l_y},
         };
@@ -101,8 +101,8 @@ public:
         };
     }
 
-    virtual Function getFunction() override {
-        Function f;
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
         f.name = "gern::impl::add";
         f.args = {Argument(input), Argument(output)};
         return f;
@@ -142,8 +142,8 @@ public:
         };
     }
 
-    virtual Function getFunction() override {
-        Function f;
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
         f.name = "gern::impl::sum_row";
         f.args = {Argument(input), Argument(output)};
         return f;
@@ -161,8 +161,8 @@ public:
         : SumRow() {
     }
 
-    virtual Function getFunction() override {
-        Function f;
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
         f.name = "gern::impl::max_row";
         f.args = {Argument(input), Argument(output)};
         return f;
@@ -175,8 +175,8 @@ public:
         : MatrixAddCPU() {
     }
 
-    virtual Function getFunction() override {
-        Function f;
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
         f.name = "gern::impl::exp_matrix";
         f.args = {Argument(input), Argument(output)};
         return f;
@@ -211,8 +211,8 @@ public:
                            }))));
     }
 
-    virtual Function getFunction() override {
-        Function f;
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
         f.name = "gern::impl::subtract_vec";
         f.args = {Argument(vec), Argument(input), Argument(output)};
         return f;
@@ -237,8 +237,8 @@ public:
         : SubtractVec() {
     }
 
-    virtual Function getFunction() override {
-        Function f;
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
         f.name = "gern::impl::divide_vec";
         f.args = {Argument(vec), Argument(input), Argument(output)};
         return f;

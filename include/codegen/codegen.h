@@ -44,7 +44,7 @@ public:
      * This also tracks the input and output
      * data-structures for the pipeline,
      * and uses that information to expose
-     * function arguments. The function takes an optional
+     * FunctionSignature arguments. The FunctionSignature takes an optional
      * replacement argument that substitutes data-structures
      * for an argument if provided.
      *

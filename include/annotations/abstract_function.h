@@ -11,8 +11,8 @@
 namespace gern {
 
 /**
- * @brief To add a function to gern, the user needs to
- *        define an instance of the AbstractFunction class.
+ * @brief To add a FunctionSignature to gern, the user needs to
+ *        define an instance of the AbstractFunction  class.
  *
  * The class consists of  x virtual function;
  *
@@ -26,7 +26,7 @@ public:
     // using cpp if they would like.
     virtual Pattern getAnnotation() = 0;
     virtual std::vector<std::string> getHeader() = 0;
-    virtual Function getFunction() = 0;
+    virtual FunctionSignature getFunction() = 0;
 
     AbstractFunction &operator[](const std::map<std::string, Variable> &replacements) {
         bindVariables(replacements);
@@ -49,7 +49,7 @@ public:
 
     Compose operator()() {
         if (getFunction().args.size() != 0) {
-            throw error::UserError("Called function " + getFunction().name + " with 0 arguments");
+            throw error::UserError("Called FunctionSignature " + getFunction().name + " with 0 arguments");
         }
         return generateComputeFunctionCall({});
     }
@@ -57,7 +57,7 @@ public:
 private:
     Compose generateComputeFunctionCall(std::vector<Argument> concrete_arguments);
     /**
-     * @brief This function actually performs the binding, and checks
+     * @brief This FunctionSignature actually performs the binding, and checks
      *        the following conditions:
      *
      *        1. Interval variables can only be bound to ID property.

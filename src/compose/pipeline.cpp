@@ -145,7 +145,7 @@ void Pipeline::visit(const ComputeFunctionCall *c) {
     }
 
     // Rewrite the call with the queries and actually construct the compute node.
-    Function new_call = c->getCall().replaceAllDS(new_ds);
+    FunctionSignature new_call = c->getCall().replaceAllDS(new_ds);
     temp.push_back(new const ComputeNode(new_call, c->getHeader()));
 
     // Now generate all the consumer intervals if any!
@@ -154,8 +154,8 @@ void Pipeline::visit(const ComputeFunctionCall *c) {
 
     // Insety the computed output if necessary.
     if (!isIntermediate(output) && output.insertQuery()) {
-        Function f = constructFunction(output.getInsertFunction(),
-                                       output.getFields(), c->getProducesFields());
+        FunctionSignature f = constructFunction(output.getInsertFunction(),
+                                                output.getFields(), c->getProducesFields());
         f.name = output.getName() + "." + f.name;
         f.args.push_back(queried);
         lowered.push_back(new InsertNode(output, f));
@@ -167,7 +167,7 @@ void Pipeline::visit(const PipelineNode *) {
 }
 
 bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
-    // We can find a function that produces this output.
+    // We can find a FunctionSignature that produces this output.
     // and it is not the final output.
     return (intermediates.count(d) > 0);
 }
@@ -367,7 +367,7 @@ const QueryNode *Pipeline::constructQueryNode(AbstractDataTypePtr ds, std::vecto
     return new QueryNode(ds, f);
 }
 
-Function Pipeline::constructFunction(Function f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const {
+FunctionSignature Pipeline::constructFunction(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const {
     if (ref_md_fields.size() != true_md_fields.size()) {
         throw error::InternalError("Incorrect number of fields passed!");
     }
@@ -387,7 +387,7 @@ Function Pipeline::constructFunction(Function f, std::vector<Variable> ref_md_fi
         template_args.push_back(mappings[a]);
     }
 
-    Function f_new{
+    FunctionSignature f_new{
         .name = f.name,
         .args = new_args,
         .template_args = template_args,
@@ -395,7 +395,7 @@ Function Pipeline::constructFunction(Function f, std::vector<Variable> ref_md_fi
     return f_new;
 }
 
-FunctionCall Pipeline::constructFunctionCall(Function f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const {
+FunctionCall Pipeline::constructFunctionCall(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const {
 
     if (ref_md_fields.size() != true_md_fields.size()) {
         throw error::InternalError("Incorrect number of fields passed!");
@@ -430,7 +430,7 @@ const FreeNode *Pipeline::constructFreeNode(AbstractDataTypePtr ds) {
 }
 
 const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::vector<Variable> alloc_args) {
-    Function alloc_func = constructFunction(ds.getAllocateFunction(), ds.getFields(), alloc_args);
+    FunctionSignature alloc_func = constructFunction(ds.getAllocateFunction(), ds.getFields(), alloc_args);
     alloc_func.output = Argument(ds);
     if (ds.freeAlloc()) {
         to_free.insert(ds);

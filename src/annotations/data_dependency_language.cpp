@@ -408,21 +408,21 @@ std::string AbstractDataTypePtr::getType() const {
     return ptr->getType();
 }
 
-Function AbstractDataTypePtr::getAllocateFunction() const {
+FunctionSignature AbstractDataTypePtr::getAllocateFunction() const {
     if (!defined()) {
         throw error::InternalError("Deref null!");
     }
     return ptr->getAllocateFunction();
 }
 
-Function AbstractDataTypePtr::getQueryFunction() const {
+FunctionSignature AbstractDataTypePtr::getQueryFunction() const {
     if (!defined()) {
         throw error::InternalError("Deref null!");
     }
     return ptr->getQueryFunction();
 }
 
-Function AbstractDataTypePtr::getInsertFunction() const {
+FunctionSignature AbstractDataTypePtr::getInsertFunction() const {
     if (!defined()) {
         throw error::InternalError("Deref null!");
     }

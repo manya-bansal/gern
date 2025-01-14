@@ -39,7 +39,7 @@ private:
     int ident = 0;
 };
 
-// Utility class to count how many distinct function calls
+// Utility class to count how many distinct FunctionSignature calls
 // a compose object contains.
 class ComposeCounter : public CompositionVisitorStrict {
 public:

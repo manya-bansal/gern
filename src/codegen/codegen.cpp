@@ -20,10 +20,10 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     code = Block::make(lowered_nodes);
 
     // Once we have visited the pipeline, we need to
-    // wrap the body in a function interface.
+    // wrap the body in a FunctionSignature interface.
 
     // Add all the data-structures that haven't been declared
-    // or allocated to the function arguments. These are the
+    // or allocated to the FunctionSignature arguments. These are the
     // true inputs, or the true outputs.
     std::vector<AbstractDataTypePtr> to_declare_adts;
     std::set_difference(used_adt.begin(), used_adt.end(),
@@ -83,7 +83,7 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     // is modified by reference.
     code = DeclFunc::make(name, Type::make("void"), args, code, p.is_at_device(), template_arg_vars);
 
-    // Also make the function that is used as the entry point for
+    // Also make the FunctionSignature that is used as the entry point for
     // user code.
     std::vector<CGStmt> full_code;
     CGStmt hook_call = VoidCall::make(Call::make(name, hook_args, call_template_vars));

@@ -29,26 +29,26 @@ public:
         return "gern::impl::MatrixGPU";
     }
 
-    Function getAllocateFunction() const override {
-        return Function{
+    FunctionSignature getAllocateFunction() const override {
+        return FunctionSignature{
             .name = "gern::impl::MatrixGPU::allocate",
             .args = {x, y, l_x, l_y},
         };
     }
-    Function getFreeFunction() const override {
-        return Function{
+    FunctionSignature getFreeFunction() const override {
+        return FunctionSignature{
             .name = "destroy",
             .args = {},
         };
     }
-    Function getInsertFunction() const override {
-        return Function{
+    FunctionSignature getInsertFunction() const override {
+        return FunctionSignature{
             .name = "insert",
             .args = {x, y, l_x, l_y},
         };
     }
-    Function getQueryFunction() const override {
-        return Function{
+    FunctionSignature getQueryFunction() const override {
+        return FunctionSignature{
             .name = "query",
             .args = {x, y, l_x, l_y},
         };

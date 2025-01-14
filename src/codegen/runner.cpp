@@ -62,7 +62,7 @@ void Runner::evaluate(std::map<std::string, void *> args) {
     if (args.size() != num_args) {
         throw error::UserError("All the arguments have not been passed! Expecting " + std::to_string(num_args) + " args");
     }
-    // Now, fp has the function pointer,
+    // Now, fp has the FunctionSignature pointer,
     // and argument order contains the order
     // in which the arguments need to be set into
     // a void **.
