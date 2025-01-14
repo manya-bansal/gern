@@ -75,14 +75,11 @@ public:
         : input(new const ArrayCPUTemplate<10>("input")),
           output(new const ArrayCPUTemplate<10>("output")) {
     }
-    std::string getName() {
-        return "gern::impl::add";
-    }
 
     Pattern getAnnotation() override {
         Variable x("x");
 
-        return For(x = Expr(0), end, step,
+        return For(x = Expr(0), output["size"], step,
                    Produces::Subset(output, {x, step}),
                    Consumes::Subset(input, {x, step}));
     }

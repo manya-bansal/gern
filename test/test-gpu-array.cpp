@@ -25,7 +25,6 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     // this implementation runs the entire computation on a
     // single thread.
     std::vector<Compose> c = {add_f[{
-        {"end", v},
         {"step", step},
     }](inputDS, outputDS)};
     Pipeline p(c);
@@ -39,13 +38,11 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     a.vvals(2.0f);
     impl::ArrayGPU b(10);
     b.vvals(3.0f);
-    int64_t var = 10;
     int64_t step_val = 10;
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {v.getName(), &var},
         {step.getName(), &step_val},
     }));
 
@@ -69,7 +66,6 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     ASSERT_THROW(run.evaluate({
                      {inputDS.getName(), &a},
                      {dummyDS.getName(), &b},
-                     {v.getName(), &var},
                  }),
                  error::UserError);
 
@@ -88,7 +84,6 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     Variable blk("blk");
 
     std::vector<Compose> c = {add_f[{
-        {"end", v},
         {"step", step},
         {"x", blk.bindToGrid(Grid::Property::BLOCK_ID_X)},
     }](inputDS, outputDS)};
@@ -103,13 +98,11 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     a.vvals(2.0f);
     impl::ArrayGPU b(10);
     b.vvals(3.0f);
-    int64_t var = 10;
     int64_t step_val = 1;
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {v.getName(), &var},
         {step.getName(), &step_val},
     }));
 
@@ -260,7 +253,6 @@ TEST(LoweringGPU, MultiArray) {
         add_f[{
             {"x", x.bindToGrid(Grid::Property::BLOCK_ID_X)},
             {"step", step.bindToInt64(5)},
-            {"end", end},
         }](tempDS, outputDS)};
 
     Pipeline p(c);
@@ -273,12 +265,10 @@ TEST(LoweringGPU, MultiArray) {
     input.vvals(2.0f);
     impl::ArrayGPU output(10);
     output.vvals(6.0f);
-    int64_t end_val = 10;
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &input},
         {outputDS.getName(), &output},
-        {end.getName(), &end_val},
     }));
 
     impl::ArrayCPU result = output.get();

@@ -71,7 +71,7 @@ public:
     Pattern getAnnotation() override {
         Variable x("x");
 
-        return For(x = Expr(0), end, step,
+        return For(x = Expr(0), output["size"], step,
                    Produces::Subset(output, {x, step}),
                    Consumes::Subset(input, {x, step}));
     }

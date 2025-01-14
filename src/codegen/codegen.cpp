@@ -198,6 +198,9 @@ CGExpr CodeGenerator::gen(Expr e, bool const_expr) {
         void visit(const LiteralNode *op) {
             cg_e = Literal::make(op->val, op->getDatatype());
         }
+        void visit(const ADTMemberNode *op) {
+            cg_e = MetaData::make(cg->gen(op->ds), op->member);
+        }
         void visit(const VariableNode *op) {
             cg_e = Var::make(op->name);
             cg->insertInUsed(op);
@@ -255,6 +258,11 @@ CGExpr CodeGenerator::gen(Constraint c) {
     return cg.cg_e;
 }
 
+CGExpr CodeGenerator::gen(AbstractDataTypePtr ds) {
+    used_adt.insert(ds);
+    return Var::make(ds.getName());
+}
+
 CGStmt CodeGenerator::gen(Assign a, bool const_expr) {
     if (!isa<Variable>(a.getA())) {
         throw error::UserError("Assignments can only be made to Variables");
@@ -285,7 +293,7 @@ CGExpr CodeGenerator::gen(Argument a, bool lhs) {
             if (lhs) {
                 gen_expr = cg->declADT(ds->getADTPtr());
             } else {
-                gen_expr = Var::make(ds->getADTPtr().getName());
+                gen_expr = cg->gen(ds->getADTPtr());
             }
         }
         void visit(const VarArg *v) {

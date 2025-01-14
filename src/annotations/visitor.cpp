@@ -57,6 +57,11 @@ void Printer::visit(const VariableNode *op) {
     }
 }
 
+void Printer::visit(const ADTMemberNode *op) {
+    os << op->ds
+       << "." << op->member;
+}
+
 #define DEFINE_PRINTER_METHOD(CLASS_NAME, OPERATOR)      \
     void Printer::visit(const CLASS_NAME *op) {          \
         os << "(" << op->a << #OPERATOR << op->b << ")"; \
@@ -211,6 +216,9 @@ DEFINE_BINARY_VISITOR_METHOD(AssignNode)
 void AnnotVisitor::visit(const VariableNode *) {
 }
 
+void AnnotVisitor::visit(const ADTMemberNode *) {
+}
+
 void AnnotVisitor::visit(const SubsetNode *op) {
     for (const auto &field : op->mdFields) {
         this->visit(field);
@@ -292,6 +300,10 @@ Constraint Rewriter::rewrite(Constraint c) {
 
 void Rewriter::visit(const VariableNode *op) {
     expr = Variable(op);
+}
+
+void Rewriter::visit(const ADTMemberNode *op) {
+    expr = ADTMember(op);
 }
 
 void Rewriter::visit(const LiteralNode *op) {
