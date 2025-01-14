@@ -1,6 +1,7 @@
 #pragma once
 
 #include "annotations/data_dependency_language.h"
+#include <algorithm>
 
 namespace gern {
 namespace test {
