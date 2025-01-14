@@ -82,8 +82,8 @@ public:
         Variable row("row");
         Variable col("col");
 
-        return For(x = Expr(0), row, l_x,
-                   For(y = Expr(0), col, l_y,
+        return For(x = Expr(0), output["row"], l_x,
+                   For(y = Expr(0), output["col"], l_y,
                        Produces::Subset(output, {x, y, l_x, l_y}),
                        Consumes::Subset(input, {x, y, l_x, l_y})));
     }
@@ -131,7 +131,7 @@ public:
         Variable row("row");
         Variable col("col");
 
-        return For(x = Expr(0), row, l_x,
+        return For(x = Expr(0), output["size"], l_x,
                    Produces::Subset(output, {x, l_x}),
                    Consumes::Subset(input, {x, 0, l_x, col}));
     }
@@ -201,8 +201,8 @@ public:
         Variable row("row");
         Variable col("col");
 
-        return For(x = Expr(0), row, l_x,
-                   For(y = Expr(0), col, l_y,
+        return For(x = Expr(0), output["row"], l_x,
+                   For(y = Expr(0), output["row"], l_y,
                        Produces::Subset(output, {x, y, l_x, l_y}),
                        Consumes::Subsets(
                            SubsetObjMany({

@@ -17,14 +17,10 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     auto outputDS = AbstractDataTypePtr(new const annot::MatrixCPU("output_con"));
 
     annot::MatrixAddCPU add;
-    Variable row("row");
-    Variable col("col");
     Variable l_x("l_x");
     Variable l_y("l_y");
 
     std::vector<Compose> c = {add[{
-        {"row", row},
-        {"col", col},
         {"l_x", l_x},
         {"l_y", l_y},
     }](inputDS, outputDS)};
@@ -48,8 +44,6 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {row.getName(), &row_val},
-        {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
         {l_y.getName(), &l_y_val},
     }));
@@ -65,8 +59,6 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {row.getName(), &row_val},
-        {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
         {l_y.getName(), &l_y_val},
     }));
@@ -109,8 +101,6 @@ TEST(LoweringCPU, Softmax) {
             {"col", col},  // This should go away, once I allow member variables as args.
         }](ExpDS, SumRowDS),
         divide_vec[{
-            {"row", row},
-            {"col", col},
             {"l_x", l_x},
             {"l_y", l_y},
         }](SumRowDS, ExpDS, outputDS),
@@ -135,7 +125,6 @@ TEST(LoweringCPU, Softmax) {
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {row.getName(), &row_val},
         {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
         {l_y.getName(), &l_y_val},

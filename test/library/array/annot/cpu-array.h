@@ -64,9 +64,6 @@ public:
         : input(new const ArrayCPU("input")),
           output(new const ArrayCPU("output")) {
     }
-    std::string getName() {
-        return "gern::impl::add";
-    }
 
     Pattern getAnnotation() override {
         Variable x("x");
@@ -101,9 +98,6 @@ public:
     addTemplate()
         : add() {
     }
-    std::string getName() {
-        return "gern::impl::addTemplate";
-    }
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
@@ -123,9 +117,6 @@ public:
         : input(new const annot::ArrayCPU("input")),
           output(new const annot::ArrayCPU("output")) {
     }
-    std::string getName() {
-        return "gern::impl::add";
-    }
 
     Pattern getAnnotation() override {
         Variable x("x");
@@ -133,7 +124,7 @@ public:
         Variable step("step");
         Variable end("end");
 
-        return For(x = Expr(0), end, step,
+        return For(x = Expr(0), output["size"], step,
                    Computes(
                        Produces::Subset(output, {x, step}),
                        Consumes::Subsets(

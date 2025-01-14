@@ -18,14 +18,10 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
     auto outputDS = AbstractDataTypePtr(new const annot::MatrixGPU("output_con"));
 
     annot::MatrixAddGPU add;
-    Variable row("row");
-    Variable col("col");
     Variable l_x("l_x");
     Variable l_y("l_y");
 
     std::vector<Compose> c = {add[{
-        {"row", row},
-        {"col", col},
         {"l_x", l_x},
         {"l_y", l_y},
     }](inputDS, outputDS)};
@@ -50,8 +46,6 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {row.getName(), &row_val},
-        {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
         {l_y.getName(), &l_y_val},
     }));
@@ -68,8 +62,6 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {row.getName(), &row_val},
-        {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
         {l_y.getName(), &l_y_val},
     }));
@@ -88,8 +80,6 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
     auto outputDS = AbstractDataTypePtr(new const annot::MatrixGPU("output_con"));
 
     annot::MatrixAddGPU add;
-    Variable row("row");
-    Variable col("col");
     Variable l_x("l_x");
     Variable l_y("l_y");
 
@@ -97,8 +87,6 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
 
     std::vector<Compose> c = {add[{
         {"x", x.bindToGrid(Grid::Property::BLOCK_ID_X)},
-        {"row", row},
-        {"col", col},
         {"l_x", l_x},
         {"l_y", l_y},
     }](inputDS, outputDS)};
@@ -123,8 +111,6 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {row.getName(), &row_val},
-        {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
         {l_y.getName(), &l_y_val},
     }));
@@ -145,8 +131,6 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     auto outputDS = AbstractDataTypePtr(new const annot::MatrixGPU("output_con"));
 
     annot::MatrixAddGPU add;
-    Variable row("row");
-    Variable col("col");
     Variable l_x("l_x");
     Variable l_y("l_y");
 
@@ -157,8 +141,6 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
         add[{
             {"x", x.bindToGrid(Grid::Property::BLOCK_ID_X)},
             {"y", y.bindToGrid(Grid::Property::BLOCK_ID_Y)},
-            {"row", row},
-            {"col", col},
             {"l_x", l_x},
             {"l_y", l_y},
         }](inputDS, outputDS)};
@@ -183,8 +165,6 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {row.getName(), &row_val},
-        {col.getName(), &col_val},
         {l_x.getName(), &l_x_val},
         {l_y.getName(), &l_y_val},
     }));

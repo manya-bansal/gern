@@ -75,9 +75,6 @@ public:
         : input(new const ArrayGPU("input")),
           output(new const ArrayGPU("output")) {
     }
-    std::string getName() {
-        return "gern::impl::add";
-    }
 
     Pattern getAnnotation() override {
         Variable x("x");
@@ -85,7 +82,7 @@ public:
         Variable step("step");
         Variable end("end");
 
-        return For(x = Expr(0), end, step,
+        return For(x = Expr(0), output["size"], step,
                    Produces::Subset(output, {x, step}),
                    Consumes::Subsets(
                        For(r = Expr(0), end, 1,
