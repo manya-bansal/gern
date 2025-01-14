@@ -60,7 +60,6 @@ enum class CGNodeType {
     Comment,
     BlankLine,
     Print,
-    GetProperty,
     Continue,
     Sort,
     Break,

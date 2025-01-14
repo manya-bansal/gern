@@ -30,14 +30,14 @@ struct GinacLess {
     }
 };
 
-typedef std::map<Variable, GiNaC::symbol> VariableToSymbolMap;
-typedef std::map<GiNaC::symbol, Variable, GinacLess> SymbolToVariableMap;
+typedef std::map<Expr, GiNaC::symbol> ExprToSymbolMap;
+typedef std::map<GiNaC::symbol, Expr, GinacLess> SymbolToExprMap;
 
 // Helper FunctionSignature to convert an equality constraint to a GiNaC
 // expression. Currently, only equality constraints are accepted.
-static GiNaC::ex convertToGinac(Eq q, VariableToSymbolMap names) {
+static GiNaC::ex convertToGinac(Eq q, ExprToSymbolMap names) {
     struct ExprToGinac : public ExprVisitorStrict {
-        ExprToGinac(VariableToSymbolMap names)
+        ExprToGinac(ExprToSymbolMap names)
             : names(names) {
         }
         using ExprVisitorStrict::visit;
@@ -45,6 +45,13 @@ static GiNaC::ex convertToGinac(Eq q, VariableToSymbolMap names) {
         void visit(const VariableNode *op) {
             if (names.find(Variable(op)) == names.end()) {
                 throw error::InternalError("Map does not contain a symbol for variable");
+            }
+            ginacExpr = names[op];
+        }
+
+        void visit(const ADTMemberNode *op) {
+            if (names.find(ADTMember(op)) == names.end()) {
+                throw error::InternalError("Map does not contain a symbol for ADT member");
             }
             ginacExpr = names[op];
         }
@@ -70,7 +77,7 @@ static GiNaC::ex convertToGinac(Eq q, VariableToSymbolMap names) {
         COMPLAIN(ModNode);
 
         GiNaC::ex ginacExpr;
-        VariableToSymbolMap names;
+        ExprToSymbolMap names;
     };
 
     ExprToGinac convert_a{names};
@@ -85,14 +92,14 @@ static GiNaC::ex convertToGinac(Eq q, VariableToSymbolMap names) {
 
 // Helper FunctionSignature to convert an GiNaC expression to a Gern
 // expression.
-static Expr convertToGern(GiNaC::ex ginacExpr, SymbolToVariableMap variables) {
+static Expr convertToGern(GiNaC::ex ginacExpr, SymbolToExprMap variables) {
     struct GinacToExpr : public GiNaC::visitor,
                          public GiNaC::symbol::visitor,
                          public GiNaC::add::visitor,
                          public GiNaC::mul::visitor,
                          public GiNaC::numeric::visitor,
                          public GiNaC::power::visitor {
-        GinacToExpr(SymbolToVariableMap names)
+        GinacToExpr(SymbolToExprMap names)
             : names(names) {
         }
 
@@ -152,7 +159,7 @@ static Expr convertToGern(GiNaC::ex ginacExpr, SymbolToVariableMap variables) {
             }
         }
 
-        SymbolToVariableMap names;
+        SymbolToExprMap names;
         Expr e;
     };
 
@@ -164,7 +171,7 @@ static Expr convertToGern(GiNaC::ex ginacExpr, SymbolToVariableMap variables) {
 
 Expr solve(Eq eq, Variable v) {
     // Generate a GiNaC symbol for each variable node that we want to lower.
-    VariableToSymbolMap symbols;
+    ExprToSymbolMap symbols;
     match(eq, std::function<void(const VariableNode *)>([&](const VariableNode *op) { symbols[op] = GiNaC::symbol(op->name); }));
 
     // Convert the Gern equations into GiNaC equations.
@@ -172,7 +179,7 @@ Expr solve(Eq eq, Variable v) {
 
     // Track all the symbols that we would like solutions for (may be an
     // overestimate).
-    SymbolToVariableMap variables;
+    SymbolToExprMap variables;
     for (const auto &var : symbols) {
         variables[var.second] = var.first;
     }

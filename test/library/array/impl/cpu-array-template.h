@@ -12,10 +12,10 @@ namespace impl {
  * codegen facilities.
  *
  */
-template<int Size>
+template<int64_t Size>
 class ArrayCPUTemplate {
 public:
-    template<int Len>
+    template<int64_t Len>
     ArrayCPUTemplate<Len> query(int start) {
         ArrayCPUTemplate<Len> queried;
         for (int i = 0; i < Len; i++) {
@@ -24,7 +24,7 @@ public:
         return queried;
     }
 
-    template<int ToInsert, int Len>
+    template<int64_t ToInsert, int64_t Len>
     void insert(int start, ArrayCPUTemplate<Len> to_insert) {
         for (int i = 0; i < ToInsert; i++) {
             data[start + i] = to_insert.data[i];
@@ -41,6 +41,7 @@ public:
     }
 
     float data[Size] = {0};
+    int64_t size = Size;
 };
 
 template<int Len>

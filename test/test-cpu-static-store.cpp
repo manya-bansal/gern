@@ -21,7 +21,6 @@ TEST(StaticStore, Single) {
     Variable step("step");
 
     std::vector<Compose> c = {add_f[{
-        {"end", v},
         {"step", step.bindToInt64(5)},
     }](inputDS, outputDS)};
 
@@ -34,12 +33,10 @@ TEST(StaticStore, Single) {
     input.vvals(2.0f);
     impl::ArrayCPUTemplate<10> output;
     output.vvals(4.0f);
-    int64_t var2 = 10;
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &input},
         {outputDS.getName(), &output},
-        {v.getName(), &var2},
     }));
 
     // Make sure we got the correct answer.
@@ -60,7 +57,6 @@ TEST(StaticStore, Multi) {
     std::vector<Compose> c = {
         add_f(inputDS, tempDS),
         add_f[{
-            {"end", v},
             {"step", step.bindToInt64(5)},
         }](tempDS, outputDS)};
 
@@ -73,12 +69,10 @@ TEST(StaticStore, Multi) {
     input.vvals(2.0f);
     impl::ArrayCPUTemplate<10> output;
     output.vvals(4.0f);
-    int64_t var2 = 10;
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &input},
         {outputDS.getName(), &output},
-        {v.getName(), &var2},
     }));
 
     // Make sure we got the correct answer.

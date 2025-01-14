@@ -13,6 +13,7 @@ struct SubNode;
 struct DivNode;
 struct ModNode;
 struct VariableNode;
+struct ADTMemberNode;
 struct EqNode;
 struct NeqNode;
 struct LeqNode;
@@ -47,6 +48,7 @@ public:
     virtual void visit(const DivNode *) = 0;
     virtual void visit(const ModNode *) = 0;
     virtual void visit(const VariableNode *) = 0;
+    virtual void visit(const ADTMemberNode *) = 0;
 };
 
 class ConstraintVisitorStrict {
@@ -109,6 +111,7 @@ public:
     void visit(const DivNode *);
     void visit(const ModNode *);
     void visit(const VariableNode *);
+    void visit(const ADTMemberNode *);
 
     void visit(const EqNode *);
     void visit(const NeqNode *);
@@ -148,6 +151,7 @@ public:
     void visit(const DivNode *);
     void visit(const ModNode *);
     void visit(const VariableNode *);
+    void visit(const ADTMemberNode *);
 
     void visit(const EqNode *);
     void visit(const NeqNode *);
@@ -230,6 +234,7 @@ private:
     RULE(LessNode);
     RULE(GreaterNode);
     RULE(VariableNode);
+    RULE(ADTMemberNode);
     RULE(LiteralNode);
     RULE(AssignNode);
     RULE(SubsetNode);
@@ -301,6 +306,7 @@ protected:
     void visit(const DivNode *);
     void visit(const ModNode *);
     void visit(const VariableNode *);
+    void visit(const ADTMemberNode *);
 
     void visit(const EqNode *);
     void visit(const NeqNode *);
