@@ -64,11 +64,11 @@ std::ostream &operator<<(std::ostream &os, const Compose &);
 // templated arguments, and a return type.
 struct FunctionSignature {
     std::string name;
-    std::vector<Argument> args = {};
+    std::vector<Parameter> args = {};
     // Only int64_t args allowed rn.
     std::vector<Variable> template_args = {};
     // To model an explict return. Currently, no compute FunctionSignature can return.
-    Argument output = Argument();
+    Parameter output = Parameter();
 
     /**
      * @brief Replace the data-structures in the function.
@@ -79,18 +79,28 @@ struct FunctionSignature {
     FunctionSignature replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
 };
 
+// For making an actual function call.
+struct FunctionCall {
+    std::string name;
+    std::vector<Argument> args;
+    std::vector<Expr> template_args;
+    Argument output = Argument();
+    FunctionCall replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
+};
+
 std::ostream &operator<<(std::ostream &os, const FunctionSignature &f);
+std::ostream &operator<<(std::ostream &os, const FunctionCall &f);
 
 class ComputeFunctionCall : public CompositionObject {
 public:
     ComputeFunctionCall() = delete;
-    ComputeFunctionCall(FunctionSignature call,
+    ComputeFunctionCall(FunctionCall call,
                         Pattern annotation,
                         std::vector<std::string> header)
         : call(call), annotation(annotation), header(header) {
     }
 
-    FunctionSignature getCall() const {
+    FunctionCall getCall() const {
         return call;
     }
 
@@ -103,7 +113,7 @@ public:
     const std::vector<Argument> &getArguments() const {
         return call.args;
     }
-    const std::vector<Variable> &getTemplateArguments() const {
+    const std::vector<Expr> &getTemplateArguments() const {
         return call.template_args;
     }
     /**
@@ -173,7 +183,7 @@ public:
     void accept(CompositionVisitorStrict *v) const;
 
 private:
-    FunctionSignature call;
+    FunctionCall call;
     Pattern annotation;
     std::vector<std::string> header;
 };

@@ -296,6 +296,10 @@ CGExpr CodeGenerator::gen(Argument a, bool lhs) {
             }
         }
 
+        void visit(const ExprArg *v) {
+            gen_expr = cg->gen(v->getExpr());
+        }
+
         CodeGenerator *cg;
         bool lhs;
         CGExpr gen_expr;

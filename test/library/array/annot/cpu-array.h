@@ -79,7 +79,7 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::add";
-        f.args = {Argument(input), Argument(output)};
+        f.args = {Parameter(input), Parameter(output)};
         return f;
     }
 
@@ -108,7 +108,7 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::addTemplate";
-        f.args = {Argument(input), Argument(output)};
+        f.args = {Parameter(input), Parameter(output)};
         f.template_args = {step};
         return f;
     }
@@ -151,7 +151,7 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::add";
-        f.args = {Argument(input), Argument(output)};
+        f.args = {Parameter(input), Parameter(output)};
         return f;
     }
 

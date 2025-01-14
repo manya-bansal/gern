@@ -24,4 +24,8 @@ void VarArg::accept(ArgumentVisitorStrict *v) const {
     v->visit(this);
 }
 
+void ExprArg::accept(ArgumentVisitorStrict *v) const {
+    v->visit(this);
+}
+
 }  // namespace gern

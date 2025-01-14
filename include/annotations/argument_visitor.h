@@ -7,6 +7,7 @@ namespace gern {
 
 class DSArg;
 class VarArg;
+class ExprArg;
 
 class ArgumentVisitorStrict {
 public:
@@ -14,6 +15,7 @@ public:
     virtual void visit(Argument);
     virtual void visit(const DSArg *) = 0;
     virtual void visit(const VarArg *) = 0;
+    virtual void visit(const ExprArg *) = 0;
 };
 
 class ArgumentPrinter : public ArgumentVisitorStrict {
@@ -25,6 +27,7 @@ public:
 
     virtual void visit(const DSArg *);
     virtual void visit(const VarArg *);
+    virtual void visit(const ExprArg *);
 
 private:
     std::ostream &os;

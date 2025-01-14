@@ -90,8 +90,8 @@ public:
 
     std::vector<Argument> getArguments() {
         return {
-            Argument(input),
-            Argument(output),
+            Parameter(input),
+            Parameter(output),
         };
     }
 
@@ -104,7 +104,7 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::add";
-        f.args = {Argument(input), Argument(output)};
+        f.args = {Parameter(input), Parameter(output)};
         return f;
     }
 
@@ -145,7 +145,7 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::sum_row";
-        f.args = {Argument(input), Argument(output)};
+        f.args = {Parameter(input), Parameter(output)};
         return f;
     }
 
@@ -164,7 +164,7 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::max_row";
-        f.args = {Argument(input), Argument(output)};
+        f.args = {Parameter(input), Parameter(output)};
         return f;
     }
 };
@@ -178,7 +178,7 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::exp_matrix";
-        f.args = {Argument(input), Argument(output)};
+        f.args = {Parameter(input), Parameter(output)};
         return f;
     }
 };
@@ -214,7 +214,7 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::subtract_vec";
-        f.args = {Argument(vec), Argument(input), Argument(output)};
+        f.args = {Parameter(vec), Parameter(input), Parameter(output)};
         return f;
     }
 
@@ -240,7 +240,7 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::divide_vec";
-        f.args = {Argument(vec), Argument(input), Argument(output)};
+        f.args = {Parameter(vec), Parameter(input), Parameter(output)};
         return f;
     }
 };

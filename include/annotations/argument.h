@@ -46,6 +46,20 @@ private:
     Variable v;
 };
 
+class ExprArg : public ArgumentNode {
+public:
+    ExprArg(Expr e)
+        : e(e) {
+    }
+    Expr getExpr() const {
+        return e;
+    }
+    virtual void accept(ArgumentVisitorStrict *) const;
+
+private:
+    Expr e;
+};
+
 class Argument : public util::IntrusivePtr<const ArgumentNode> {
 public:
     Argument()
@@ -57,10 +71,28 @@ public:
     explicit Argument(AbstractDataTypePtr dataStuct)
         : Argument(new const DSArg(dataStuct)) {
     }
+    explicit Argument(Expr e)
+        : Argument(new const ExprArg(e)) {
+    }
     Argument(Variable v)
         : Argument(new const VarArg(v)) {
     }
     void accept(ArgumentVisitorStrict *v) const;
+};
+
+// Class used to limit the types of arguments possible
+// to pass in FunctionSignature.
+class Parameter : public Argument {
+public:
+    Parameter()
+        : Argument() {
+    }
+    Parameter(Variable v)
+        : Argument(v) {
+    }
+    explicit Parameter(AbstractDataTypePtr ds)
+        : Argument(ds) {
+    }
 };
 
 std::ostream &operator<<(std::ostream &os, const Argument &);
@@ -114,7 +146,17 @@ inline bool isa(Argument a) {
 }
 
 template<typename E>
+inline bool isa(Parameter a) {
+    return isa<E>(a.ptr);
+}
+
+template<typename E>
 inline const E *to(Argument a) {
+    return to<E>(a.ptr);
+}
+
+template<typename E>
+inline const E *to(Parameter a) {
     return to<E>(a.ptr);
 }
 

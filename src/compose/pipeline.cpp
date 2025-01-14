@@ -145,19 +145,19 @@ void Pipeline::visit(const ComputeFunctionCall *c) {
     }
 
     // Rewrite the call with the queries and actually construct the compute node.
-    FunctionSignature new_call = c->getCall().replaceAllDS(new_ds);
+    FunctionCall new_call = c->getCall().replaceAllDS(new_ds);
     temp.push_back(new const ComputeNode(new_call, c->getHeader()));
 
     // Now generate all the consumer intervals if any!
     std::vector<LowerIR> intervals = generateConsumesIntervals(c, temp);
     lowered.insert(lowered.end(), intervals.begin(), intervals.end());
 
-    // Insety the computed output if necessary.
+    // Insert the computed output if necessary.
     if (!isIntermediate(output) && output.insertQuery()) {
-        FunctionSignature f = constructFunction(output.getInsertFunction(),
-                                                output.getFields(), c->getProducesFields());
+        FunctionCall f = constructFunctionCall(output.getInsertFunction(),
+                                               output.getFields(), c->getMetaDataFields(output));
         f.name = output.getName() + "." + f.name;
-        f.args.push_back(queried);
+        f.args.push_back(Argument(queried));
         lowered.push_back(new InsertNode(output, f));
     }
 }
@@ -377,7 +377,7 @@ FunctionSignature Pipeline::constructFunction(FunctionSignature f, std::vector<V
         mappings[ref_md_fields[i]] = true_md_fields[i];
     }
     // Now, set up the args.
-    std::vector<Argument> new_args;
+    std::vector<Parameter> new_args;
     for (auto const &a : f.args) {
         new_args.push_back(mappings[to<VarArg>(a)->getVar()]);
     }
@@ -406,9 +406,9 @@ FunctionCall Pipeline::constructFunctionCall(FunctionSignature f, std::vector<Va
         mappings[ref_md_fields[i]] = true_md_fields[i];
     }
     // Now, set up the args.
-    std::vector<Expr> new_args;
+    std::vector<Argument> new_args;
     for (auto const &a : f.args) {
-        new_args.push_back(mappings[to<VarArg>(a)->getVar()]);
+        new_args.push_back(Argument(mappings[to<VarArg>(a)->getVar()]));
     }
     // set up the templated args.
     std::vector<Expr> template_args;
@@ -431,7 +431,7 @@ const FreeNode *Pipeline::constructFreeNode(AbstractDataTypePtr ds) {
 
 const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::vector<Variable> alloc_args) {
     FunctionSignature alloc_func = constructFunction(ds.getAllocateFunction(), ds.getFields(), alloc_args);
-    alloc_func.output = Argument(ds);
+    alloc_func.output = Parameter(ds);
     if (ds.freeAlloc()) {
         to_free.insert(ds);
     }

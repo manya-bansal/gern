@@ -37,13 +37,6 @@ public:
 
 std::ostream &operator<<(std::ostream &os, const LowerIR &n);
 
-struct FunctionCall {
-    std::string name;
-    std::vector<Expr> args;
-    std::vector<Expr> template_args;
-    Argument output = Argument();
-};
-
 // The pipeline actually holds the lowered
 // nodes, and helps us nest pipelines.
 class Pipeline : public CompositionVisitorStrict {
@@ -140,12 +133,12 @@ struct FreeNode : public LowerIRNode {
 // into the parent data-structure as the
 // subset with meta-data values in fields.
 struct InsertNode : public LowerIRNode {
-    InsertNode(AbstractDataTypePtr parent, FunctionSignature f)
+    InsertNode(AbstractDataTypePtr parent, FunctionCall f)
         : parent(parent), f(f) {
     }
     void accept(PipelineVisitor *) const;
     AbstractDataTypePtr parent;
-    FunctionSignature f;
+    FunctionCall f;
 };
 
 // IR Node that marks a query
@@ -163,12 +156,12 @@ struct QueryNode : public LowerIRNode {
 
 // IR Node marks a FunctionSignature call.
 struct ComputeNode : public LowerIRNode {
-    ComputeNode(FunctionSignature f,
+    ComputeNode(FunctionCall f,
                 std::vector<std::string> headers)
         : f(f), headers(headers) {
     }
     void accept(PipelineVisitor *) const;
-    FunctionSignature f;
+    FunctionCall f;
     std::vector<std::string> headers;
 };
 

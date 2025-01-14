@@ -16,4 +16,8 @@ void ArgumentPrinter::visit(const VarArg *node) {
     os << node->getVar();
 }
 
+void ArgumentPrinter::visit(const ExprArg *node) {
+    os << node->getExpr();
+}
+
 }  // namespace gern

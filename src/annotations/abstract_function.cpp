@@ -43,23 +43,44 @@ std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f) {
 }
 
 FunctionSignature FunctionSignature::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
-    std::vector<Argument> new_args;
+
+    std::vector<Parameter> new_args;
     for (const auto &arg : args) {
         if (isa<DSArg>(arg) &&
             replacement.contains(to<DSArg>(arg)->getADTPtr())) {
-            new_args.push_back(Argument(replacement.at(to<DSArg>(arg)->getADTPtr())));
+            new_args.push_back(Parameter(replacement.at(to<DSArg>(arg)->getADTPtr())));
         } else {
             new_args.push_back(arg);
         }
     }
-    // Also change the annotation.
+
     FunctionSignature new_call{
         .name = name,
         .args = new_args,
         .template_args = template_args,
         .output = output,
     };
+    return new_call;
+}
 
+FunctionCall FunctionCall::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
+
+    std::vector<Argument> new_args;
+    for (const auto &arg : args) {
+        if (isa<DSArg>(arg) &&
+            replacement.contains(to<DSArg>(arg)->getADTPtr())) {
+            new_args.push_back(Parameter(replacement.at(to<DSArg>(arg)->getADTPtr())));
+        } else {
+            new_args.push_back(arg);
+        }
+    }
+
+    FunctionCall new_call{
+        .name = name,
+        .args = new_args,
+        .template_args = template_args,
+        .output = output,
+    };
     return new_call;
 }
 
@@ -120,7 +141,7 @@ Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> conc
     // The binding is only valid for one use, erase it now.
     bindings = {};
 
-    std::vector<Variable> template_args;
+    std::vector<Expr> template_args;
     for (const auto &v : f.template_args) {
         if (fresh_names.contains(v)) {
             template_args.push_back(fresh_names.at(v));
@@ -132,7 +153,7 @@ Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> conc
     Pattern rw_annotation = to<Pattern>(annotation
                                             .replaceDSArgs(abstract_to_concrete_adt)
                                             .replaceVariables(fresh_names));
-    FunctionSignature call{
+    FunctionCall call{
         .name = f.name,
         .args = concrete_arguments,
         .template_args = template_args,
