@@ -42,8 +42,16 @@ jobs:
         vcpkgGitCommitId: '${{ matrix.vcpkgCommitId}}'
         # The vcpkg.json file, which will be part of cache key computation.
         vcpkgJsonGlob: '${{  github.workspace }}/vcpkg.json'
-    
-    # - name: Build Gern
-    #   run: cmake --build build/dev
-    #   shell: bash
+
+    - name: Set Preset
+      run: cmake --preset dev
+      shell: bash
+
+    - name: Build Gern
+      run: cmake --build build/dev
+      shell: bash
+
+    - name: Build Gern
+      run: ctest --test-dir ${{  github.workspace }}/build/dev 
+      shell: bash
   
