@@ -123,6 +123,22 @@ Assign Variable::operator+=(const Expr &e) const {
     return Assign(*this, *this + e);
 }
 
+ADTMember::ADTMember(const ADTMemberNode *op)
+    : Expr(op) {
+}
+
+ADTMember::ADTMember(AbstractDataTypePtr ds, const std::string &member)
+    : ADTMember(new ADTMemberNode(ds, member)) {
+}
+
+AbstractDataTypePtr ADTMember::getDS() const {
+    return getNode(*this)->ds;
+}
+
+std::string ADTMember::getMember() const {
+    return getNode(*this)->member;
+}
+
 std::ostream &operator<<(std::ostream &os, const Expr &e) {
     Printer p{os};
     p.visit(e);
@@ -240,11 +256,24 @@ Stmt Stmt::replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_d
         }
         using Rewriter::rewrite;
 
-        void visit(const SubsetNode *op) {
-            if (rw_ds.contains(op->data)) {
-                stmt = SubsetObj(rw_ds[op->data], op->mdFields);
+        void visit(const ADTMemberNode *op) {
+            if (rw_ds.contains(op->ds)) {
+                expr = ADTMember(rw_ds.at(op->ds), op->member);
             } else {
-                stmt = SubsetObj(op->data, op->mdFields);
+                expr = op;
+            }
+        }
+        void visit(const SubsetNode *op) {
+            // Rewrite all the fields.
+            std::vector<Expr> rw_expr;
+            for (size_t i = 0; i < op->mdFields.size(); i++) {
+                rw_expr.push_back(this->rewrite(op->mdFields[i]));
+            }
+            // Construct the new subset object.
+            if (rw_ds.contains(op->data)) {
+                stmt = SubsetObj(rw_ds[op->data], rw_expr);
+            } else {
+                stmt = SubsetObj(op->data, rw_expr);
             }
         }
         std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds;
@@ -449,6 +478,10 @@ bool AbstractDataTypePtr::insertQuery() const {
 
 bool AbstractDataTypePtr::freeAlloc() const {
     return ptr->freeAlloc();
+}
+
+ADTMember AbstractDataTypePtr::operator[](std::string member) const {
+    return ADTMember(*this, member);
 }
 
 }  // namespace gern

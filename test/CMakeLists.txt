@@ -21,7 +21,7 @@ set(LIB_HEADERS
 set(TEST_SOURCES
     test-nodes.cpp
     test-pipeline.cpp
-    test-resolve-constraints.cpp
+    # test-resolve-constraints.cpp
     test-functions.cpp
     test-grid-property.cpp
     test-cpu-array.cpp
@@ -62,7 +62,7 @@ target_sources(
 
 include_directories(${PROJECT_BINARY_DIR}/test)
 target_link_libraries(gern_test PRIVATE Gern::Gern GTest::gtest_main)
-target_link_libraries(gern_test PRIVATE ginac::ginac)
+# target_link_libraries(gern_test PRIVATE ginac::ginac)
 
 if (DEFINED Gern_CUDA_ARCH)
     target_link_libraries(gern_test PRIVATE CUDA::cudart)

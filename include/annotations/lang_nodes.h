@@ -46,6 +46,17 @@ struct VariableNode : public ExprNode {
     int64_t val;
 };
 
+struct ADTMemberNode : public ExprNode {
+    ADTMemberNode(AbstractDataTypePtr ds, const std::string &member)
+        : ds(ds), member(member) {
+    }
+    AbstractDataTypePtr ds;
+    std::string member;
+    void accept(ExprVisitorStrict *v) const override {
+        v->visit(this);
+    }
+};
+
 #define DEFINE_BINARY_NODE(NAME, NODE)                       \
     struct NAME : public NODE##Node {                        \
     public:                                                  \

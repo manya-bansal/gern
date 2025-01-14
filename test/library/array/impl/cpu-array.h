@@ -15,20 +15,20 @@ namespace impl {
 
 class ArrayCPU {
 public:
-    ArrayCPU(float *data, int size)
+    ArrayCPU(float *data, int64_t size)
         : data(data), size(size) {
     }
-    ArrayCPU(int size)
+    ArrayCPU(int64_t size)
         : ArrayCPU((float *)calloc(size, sizeof(float)), size) {
     }
-    static ArrayCPU allocate(int start, int len) {
+    static ArrayCPU allocate(int64_t start, int64_t len) {
         (void)start;
         return ArrayCPU(len);
     }
-    ArrayCPU query(int start, int len) {
+    ArrayCPU query(int64_t start, int64_t len) {
         return ArrayCPU(data + start, len);
     }
-    void insert(int start, int len, ArrayCPU to_insert) {
+    void insert(int64_t start, int64_t len, ArrayCPU to_insert) {
         std::memcpy(data + start, to_insert.data, len);
     }
 
@@ -37,13 +37,13 @@ public:
     }
 
     void vvals(float f) {
-        for (int i = 0; i < size; i++) {
+        for (int64_t i = 0; i < size; i++) {
             data[i] = f;
         }
     }
 
     float *data;
-    int size;
+    int64_t size;
 };
 
 [[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const ArrayCPU &m) {

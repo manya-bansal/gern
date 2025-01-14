@@ -12,6 +12,7 @@
 namespace gern {
 
 struct VariableNode;
+struct ADTMemberNode;
 struct AddNode;
 struct SubNode;
 struct MulNode;
@@ -128,7 +129,7 @@ public:
     Variable(const VariableNode *);
 
     /**
-     *  @brief This FunctionSignature indicates that the
+     *  @brief  bindToGrid indicates that the
      *          value of the variable is derived
      *          from a grid property. (blockIDx,
      *          etc)
@@ -203,6 +204,8 @@ private:
     std::string type;
 };
 
+class ADTMember;
+
 class AbstractDataTypePtr : public util::IntrusivePtr<const AbstractDataType> {
 public:
     AbstractDataTypePtr()
@@ -221,9 +224,21 @@ public:
     bool freeQuery() const;
     bool insertQuery() const;
     bool freeAlloc() const;
+
+    ADTMember operator[](std::string) const;
 };
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads);
+
+class ADTMember : public Expr {
+public:
+    ADTMember(const ADTMemberNode *);
+    ADTMember(AbstractDataTypePtr ds, const std::string &field);
+    AbstractDataTypePtr getDS() const;
+    std::string getMember() const;
+
+    typedef ADTMemberNode Node;
+};
 
 }  // namespace gern
 
@@ -236,6 +251,13 @@ namespace std {
 template<>
 struct less<gern::Variable> {
     bool operator()(const gern::Variable &a, const gern::Variable &b) const {
+        return a.ptr < b.ptr;
+    }
+};
+
+template<>
+struct less<gern::Expr> {
+    bool operator()(const gern::Expr &a, const gern::Expr &b) const {
         return a.ptr < b.ptr;
     }
 };

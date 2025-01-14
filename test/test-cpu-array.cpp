@@ -21,7 +21,6 @@ TEST(LoweringCPU, SingleElemFunction) {
     Variable step("step");
 
     std::vector<Compose> c = {add_f[{
-        {"end", v},
         {"step", step},
     }](inputDS, outputDS)};
     Pipeline p(c);
@@ -39,7 +38,6 @@ TEST(LoweringCPU, SingleElemFunction) {
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {v.getName(), &var},
         {step.getName(), &step_val},
     }));
 
@@ -147,7 +145,6 @@ TEST(LoweringCPU, MultiFunc) {
 
     Pipeline p({add_f(inputDS, tempDS),
                 add_f[{
-                    {"end", v},
                     {"step", step},
                 }](tempDS, outputDS)});
 
@@ -159,13 +156,11 @@ TEST(LoweringCPU, MultiFunc) {
     impl::ArrayCPU c(10);
     c.vvals(4.0f);
     int64_t var1 = 10;
-    int64_t var2 = 1;
 
     // Temp should not be included.
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &c},
-        {v.getName(), &var2},
         {step.getName(), &var1},
     }));
 
@@ -187,7 +182,6 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
     Variable step("step");
 
     std::vector<Compose> c = {add_f[{
-        {"end", v},
         {"step", step},
     }](inputDS, outputDS)};
 
@@ -212,14 +206,12 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
     a.vvals(2.0f);
     impl::ArrayCPU b(10);
     b.vvals(3.0f);
-    int64_t var = 10;
     int64_t step_val = 1;
 
     // Complain because the user is trying to set step.
     ASSERT_THROW(run2.evaluate({
                      {inputDS.getName(), &a},
                      {outputDS.getName(), &b},
-                     {v.getName(), &var},
                      {step.getName(), &step_val},
                  }),
                  error::UserError);
@@ -228,7 +220,6 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
     ASSERT_NO_THROW(run2.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {v.getName(), &var},
     }));
 
     // Make sure we got the correct answer.
@@ -251,7 +242,6 @@ TEST(LoweringCPU, MultiFunctionTemplated) {
 
     Pipeline p({add_f(inputDS, tempDS),
                 add_f[{
-                    {"end", v},
                     {"step", step.bindToInt64(10)},
                 }](tempDS, outputDS)});
 
@@ -262,13 +252,11 @@ TEST(LoweringCPU, MultiFunctionTemplated) {
     a.vvals(2.0f);
     impl::ArrayCPU c(10);
     c.vvals(4.0f);
-    int64_t var2 = 1;
 
     // Temp should not be included.
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &c},
-        {v.getName(), &var2},
     }));
 
     // Make sure we got the correct answer.
