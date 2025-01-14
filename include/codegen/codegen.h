@@ -30,9 +30,7 @@ public:
 
     CGExpr gen(Expr, bool const_expr = false);  // Is this part of the LHS of a const_expr?
     CGExpr gen(Constraint);
-
-    template<typename T>
-    CGStmt genFunc(T f);
+    CGStmt gen(FunctionCall f);
 
     // Assign in used to track all the variables
     // that have been declared during lowering. The

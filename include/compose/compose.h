@@ -69,14 +69,6 @@ struct FunctionSignature {
     std::vector<Variable> template_args = {};
     // To model an explict return. Currently, no compute FunctionSignature can return.
     Parameter output = Parameter();
-
-    /**
-     * @brief Replace the data-structures in the function.
-     *
-     * @param Data structures to replace with.
-     * @return * Function
-     */
-    FunctionSignature replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
 };
 
 // For making an actual function call.
@@ -85,6 +77,13 @@ struct FunctionCall {
     std::vector<Argument> args;
     std::vector<Expr> template_args;
     Argument output = Argument();
+
+    /**
+     * @brief Replace the data-structures in this function call.
+     *
+     * @param Data structures to replace with.
+     * @return * Function
+     */
     FunctionCall replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
 };
 

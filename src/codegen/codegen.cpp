@@ -116,7 +116,7 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 }
 
 void CodeGenerator::visit(const AllocateNode *op) {
-    code = genFunc(op->f);
+    code = gen(op->f);
 }
 
 void CodeGenerator::visit(const FreeNode *op) {
@@ -131,17 +131,17 @@ void CodeGenerator::visit(const FreeNode *op) {
 }
 
 void CodeGenerator::visit(const InsertNode *op) {
-    code = genFunc(op->f);
+    code = gen(op->f);
     used_adt.insert(op->parent);
 }
 
 void CodeGenerator::visit(const QueryNode *op) {
-    code = genFunc(op->f);
+    code = gen(op->f);
     used_adt.insert(op->parent);
 }
 
 void CodeGenerator::visit(const ComputeNode *op) {
-    code = genFunc(op->f);
+    code = gen(op->f);
     // Add the header.
     std::vector<std::string> func_header = op->headers;
     headers.insert(func_header.begin(), func_header.end());
@@ -309,8 +309,7 @@ CGExpr CodeGenerator::gen(Argument a, bool lhs) {
     return generate.gen_expr;
 }
 
-template<typename T>
-CGStmt CodeGenerator::genFunc(T f) {
+CGStmt CodeGenerator::gen(FunctionCall f) {
     std::vector<CGExpr> args;
     for (const auto &a : f.args) {
         args.push_back(gen(a));

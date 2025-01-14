@@ -10,9 +10,9 @@
 using namespace gern;
 
 TEST(PipelineTest, ReuseOutput) {
-    Argument inputDS = Argument(AbstractDataTypePtr(new const annot::ArrayCPU("input_con")));
-    Argument outputDS = Argument(AbstractDataTypePtr(new const annot::ArrayCPU("output_con")));
-    Argument tempDS = Argument(AbstractDataTypePtr(new const annot::ArrayCPU("output_con")));
+    Argument inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    Argument outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    Argument tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 
     annot::add add_f;
     Pipeline p({

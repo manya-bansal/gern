@@ -337,7 +337,7 @@ void Pipeline::generateAllAllocs() {
         // Finally make the allocation.
         lowered.push_back(constructAllocNode(
             temp,
-            getProducerFunction(temp)->getProducesFields()));
+            getProducerFunction(temp)->getMetaDataFields(temp)));
     }
 
     // Change references to the allocated data-structures now.
@@ -429,8 +429,8 @@ const FreeNode *Pipeline::constructFreeNode(AbstractDataTypePtr ds) {
     return new FreeNode(ds);
 }
 
-const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::vector<Variable> alloc_args) {
-    FunctionSignature alloc_func = constructFunction(ds.getAllocateFunction(), ds.getFields(), alloc_args);
+const AllocateNode *Pipeline::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
+    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds.getFields(), alloc_args);
     alloc_func.output = Parameter(ds);
     if (ds.freeAlloc()) {
         to_free.insert(ds);

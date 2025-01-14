@@ -8,25 +8,13 @@
 namespace gern {
 
 std::ostream &operator<<(std::ostream &os, const FunctionSignature &f) {
-    os << f.output << " ";
-    os << f.name;
-    int num_template_args = f.template_args.size();
-    if (num_template_args > 0) {
-        os << "<";
-        for (int i = 0; i < num_template_args; i++) {
-            os << f.template_args[i];
-            os << ((i != num_template_args - 1) ? ", " : "");
-        }
-        os << ">";
-    }
-
-    int args_size = f.args.size();
-    os << "(";
-    for (int i = 0; i < args_size; i++) {
-        os << f.args[i];
-        os << ((i != args_size - 1) ? ", " : "");
-    }
-    os << ")";
+    FunctionCall f_call{
+        .name = f.name,
+        .args = std::vector<Argument>(f.args.begin(), f.args.end()),
+        .template_args = std::vector<Expr>(f.template_args.begin(), f.template_args.end()),
+        .output = f.output,
+    };
+    os << f_call << std::endl;
     return os;
 }
 

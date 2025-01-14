@@ -42,34 +42,13 @@ std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f) {
     return os;
 }
 
-FunctionSignature FunctionSignature::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
-
-    std::vector<Parameter> new_args;
-    for (const auto &arg : args) {
-        if (isa<DSArg>(arg) &&
-            replacement.contains(to<DSArg>(arg)->getADTPtr())) {
-            new_args.push_back(Parameter(replacement.at(to<DSArg>(arg)->getADTPtr())));
-        } else {
-            new_args.push_back(arg);
-        }
-    }
-
-    FunctionSignature new_call{
-        .name = name,
-        .args = new_args,
-        .template_args = template_args,
-        .output = output,
-    };
-    return new_call;
-}
-
 FunctionCall FunctionCall::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
 
     std::vector<Argument> new_args;
     for (const auto &arg : args) {
         if (isa<DSArg>(arg) &&
             replacement.contains(to<DSArg>(arg)->getADTPtr())) {
-            new_args.push_back(Parameter(replacement.at(to<DSArg>(arg)->getADTPtr())));
+            new_args.push_back(Argument(replacement.at(to<DSArg>(arg)->getADTPtr())));
         } else {
             new_args.push_back(arg);
         }

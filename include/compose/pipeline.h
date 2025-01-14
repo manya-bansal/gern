@@ -1,6 +1,6 @@
 #pragma once
 
-#include "annotations/data_dependency_language.h"
+#include "annotations/abstract_function.h"
 #include "compose/compose.h"
 #include "compose/compose_visitor.h"
 #include "utils/uncopyable.h"
@@ -84,9 +84,9 @@ private:
     void generateAllAllocs();  // Helper method to declare all the allocate node.
     void generateAllFrees();   // Helper method to declare all the frees.
 
-    const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);         // Constructs a query node for a data-structure, and tracks this relationship.
-    const FreeNode *constructFreeNode(AbstractDataTypePtr);                              // Constructs a free node for a data-structure, and tracks this relationship.
-    const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Variable>);  // Constructs a allocate for a data-structure, and tracks this relationship.
+    const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
+    const FreeNode *constructFreeNode(AbstractDataTypePtr);                          // Constructs a free node for a data-structure, and tracks this relationship.
+    const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
 
     FunctionSignature constructFunction(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
     FunctionCall constructFunctionCall(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const;       // Constructs a call with the true meta data fields mapped in the correct place.
@@ -112,11 +112,11 @@ std::ostream &operator<<(std::ostream &os, const Pipeline &p);
 
 // IR Node that marks an allocation
 struct AllocateNode : public LowerIRNode {
-    AllocateNode(FunctionSignature f)
+    AllocateNode(FunctionCall f)
         : f(f) {
     }
     void accept(PipelineVisitor *) const;
-    FunctionSignature f;
+    FunctionCall f;
 };
 
 // IR Node that marks an free

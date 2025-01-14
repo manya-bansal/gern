@@ -68,7 +68,7 @@ public:
     explicit Argument(const ArgumentNode *a)
         : util::IntrusivePtr<const ArgumentNode>(a) {
     }
-    explicit Argument(AbstractDataTypePtr dataStuct)
+    Argument(AbstractDataTypePtr dataStuct)
         : Argument(new const DSArg(dataStuct)) {
     }
     explicit Argument(Expr e)
