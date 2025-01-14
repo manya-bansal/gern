@@ -22,10 +22,7 @@
         "VCPKG_MANIFEST_FEATURES": "dev",
         "BUILD_SHARED_LIBS": "ON",
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -pedantic"
-      },
-      "environment": {
-        "LSAN_OPTIONS": "suppressions=${sourceDir}/suppressions.txt"
+        "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -pedantic"
       }
     }
   ]

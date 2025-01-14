@@ -3,6 +3,7 @@
 #include "annotations/data_dependency_language.h"
 #include "compose/runner.h"
 #include "config.h"
+#include <algorithm>
 
 namespace gern {
 namespace test {
