@@ -114,6 +114,25 @@ public:
     }
 };
 
+// Doesn't actually exist, there to
+// exercise  test.
+class addWithSize : public add {
+public:
+    addWithSize()
+        : add() {
+    }
+    std::string getName() {
+        return "gern::impl::addWithSize";
+    }
+
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::addTemplate";
+        f.args = {Parameter(input), Parameter(output), Parameter(step)};
+        return f;
+    }
+};
+
 // This is perhaps a contrived example, but it exists to
 // exercise the ability to add for loops inside
 // the compute annotation.

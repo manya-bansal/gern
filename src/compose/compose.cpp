@@ -144,4 +144,22 @@ Compose Compose::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr>
                       }));
     return c;
 }
+
+// GCOVR_EXCL_START
+std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f) {
+
+    os << f.getName() << "(";
+    auto args = f.getArguments();
+    auto args_size = args.size();
+
+    for (size_t i = 0; i < args_size; i++) {
+        os << args[i];
+        os << ((i != args_size - 1) ? ", " : "");
+    }
+
+    os << ")";
+    return os;
+}
+// GCOVR_EXCL_STOP
+
 }  // namespace gern

@@ -3,6 +3,19 @@
 
 namespace gern {
 
+bool Argument::isSameTypeAs(Argument arg) const {
+    if (isa<DSArg>(*this) && isa<DSArg>(arg)) {
+        return true;
+    }
+    if (isa<VarArg>(*this) && isa<VarArg>(arg)) {
+        return true;
+    }
+    if (isa<ExprArg>(*this) && isa<ExprArg>(arg)) {
+        return true;
+    }
+    return false;
+}
+
 void Argument::accept(ArgumentVisitorStrict *v) const {
     if (!defined()) {
         return;

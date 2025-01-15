@@ -21,8 +21,15 @@
       "cacheVariables": {
         "VCPKG_MANIFEST_FEATURES": "dev",
         "BUILD_SHARED_LIBS": "ON",
-        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -pedantic"
+      }
+    },
+    {
+      "name": "coverage",
+      "inherits": "dev",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -pedantic --coverage"
       }
     }
   ]

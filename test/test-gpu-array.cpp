@@ -28,6 +28,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
         {"end", v},
         {"step", step},
     }](inputDS, outputDS)};
+
     Pipeline p(c);
     p.at_device();
     Runner run(p);

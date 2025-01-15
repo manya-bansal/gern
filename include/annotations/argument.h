@@ -2,6 +2,7 @@
 
 #include "annotations/abstract_nodes.h"
 #include "annotations/data_dependency_language.h"
+#include "utils/error.h"
 #include "utils/uncopyable.h"
 #include <cassert>
 #include <iostream>
@@ -77,6 +78,7 @@ public:
     Argument(Variable v)
         : Argument(new const VarArg(v)) {
     }
+    bool isSameTypeAs(Argument) const;
     void accept(ArgumentVisitorStrict *v) const;
 };
 
@@ -114,6 +116,9 @@ argument.
 
 [[maybe_unused]] static void addArgument(std::vector<Argument> &vector,
                                          Argument a) {
+    if (!a.defined()) {
+        throw error::UserError("Calling with an empty argument");
+    }
     vector.push_back(a);
 }
 
