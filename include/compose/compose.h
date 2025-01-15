@@ -207,7 +207,7 @@ inline bool isa(const Compose c) {
 
 template<typename E>
 inline const E *to(const Compose c) {
-    assert(isa<E>(e));
+    assert(isa<E>(c));
     return to<E>(c.ptr);
 }
 

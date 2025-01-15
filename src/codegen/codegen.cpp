@@ -121,10 +121,9 @@ void CodeGenerator::visit(const AllocateNode *op) {
 
 void CodeGenerator::visit(const FreeNode *op) {
 
-    DEBUG(
-        if (declared_adt.count(op->data) > 0) {
-            throw error::InternalError("Freeing a data-structure that hasn't been allocated??");
-        })
+    if (!declared_adt.contains(op->data)) {
+        throw error::InternalError("Freeing a data-structure that hasn't been allocated??");
+    }
 
     std::string method_call = op->data.getName() + ".destroy";
     code = VoidCall::make(Call::make(method_call, {}));
