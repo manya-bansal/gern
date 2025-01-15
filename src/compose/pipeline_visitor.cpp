@@ -4,9 +4,6 @@
 
 namespace gern {
 void PipelineVisitor::visit(LowerIR ir) {
-    if (!ir.defined()) {
-        return;
-    }
     ir.accept(this);
 }
 void PipelineVisitor::visit(const Pipeline &p) {

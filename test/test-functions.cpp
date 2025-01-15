@@ -8,6 +8,14 @@
 
 using namespace gern;
 
+TEST(Arguments, isSameType) {
+    Variable x("x");
+    Variable y("y");
+
+    ASSERT_FALSE(Argument(x + y).isSameTypeAs(x));
+    ASSERT_TRUE(Argument(x + y).isSameTypeAs(Argument(x + y)));
+}
+
 TEST(Functions, CallFunctions) {
     annot::add add_f;
     AbstractDataTypePtr inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));

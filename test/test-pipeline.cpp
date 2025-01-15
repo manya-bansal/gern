@@ -15,10 +15,12 @@ TEST(PipelineTest, ReuseOutput) {
     Argument tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 
     annot::add add_f;
-    Pipeline p({
+
+    ASSERT_NO_THROW(Pipeline(std::vector<Compose>{}));
+    ASSERT_NO_THROW(Pipeline p({
         add_f(inputDS, tempDS),
         add_f(tempDS, outputDS),
-    });
+    }));
 
     // A pipeline can only assign to fresh outputs
     // each time.
@@ -32,7 +34,7 @@ TEST(PipelineTest, ReuseOutput) {
     // each time. Should complain even if nested.
     ASSERT_THROW(Pipeline p({
                      add_f(inputDS, outputDS),
-                     {
+                     Pipeline{
                          add_f(outputDS, outputDS),
                      },
                  }),
@@ -44,6 +46,14 @@ TEST(PipelineTest, ReuseOutput) {
                      Compose(
                          add_f(outputDS, outputDS)),
                      add_f(inputDS, outputDS),
+                 }),
+                 error::UserError);
+
+    // Try to assign to an output that has been read by the child.
+    ASSERT_THROW(Pipeline p({
+                     Pipeline(
+                         add_f(inputDS, outputDS)),
+                     add_f(outputDS, inputDS),
                  }),
                  error::UserError);
 }
@@ -60,13 +70,47 @@ TEST(PipelineTest, NoReuseOutput) {
         add_f(outputDS, outputDS_new),
     }));
 
-    // A pipeline can only assign to fresh outputs
-    // each time. Should complain even if nested.
     ASSERT_NO_THROW(Pipeline p({
         add_f(inputDS, outputDS),
         {
             add_f(outputDS, outputDS_new),
         },
+    }));
+}
+
+TEST(PipelineTest, IntermediateVisibility) {
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto outputDS_vis = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_new"));
+    auto outputDS_new = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_new"));
+
+    annot::add add_f;
+    // Try to read a child's intermediate.
+    ASSERT_THROW(Pipeline({
+                     Pipeline({
+                         add_f(inputDS, outputDS),
+                         add_f(outputDS, outputDS_new),
+                     }),
+                     add_f(outputDS, outputDS_vis),
+                 }),
+                 error::UserError);
+    // Try to write to a child's intermediate.
+    ASSERT_THROW(Pipeline({
+                     Pipeline({
+                         add_f(inputDS, outputDS),
+                         add_f(outputDS, outputDS_new),
+                     }),
+                     add_f(outputDS_new, outputDS),
+                 }),
+                 error::UserError);
+
+    // Should be okay now
+    ASSERT_NO_THROW(Pipeline({
+        Pipeline({
+            add_f(inputDS, outputDS),
+            add_f(outputDS, outputDS_new),
+        }),
+        add_f(outputDS_new, outputDS_vis),
     }));
 }
 
@@ -103,9 +147,9 @@ TEST(PipelineTest, ExtraOutput) {
                  error::UserError);
 
     ASSERT_THROW(Pipeline p({
-                     Compose({
-                         Compose({
-                             Compose(
+                     Pipeline({
+                         Pipeline({
+                             Pipeline(
                                  add_f(inputDS, outputDS_new)),
                          }),
                      }),
@@ -150,19 +194,18 @@ TEST(PipelineTest, getConsumerFuncs) {
 
     Pipeline p_nested({add_1,
                        {
-                           Compose(add_2),
+                           Pipeline(add_2),
                        }});
     funcs = p_nested.getConsumerFunctions(outputDS);
     ASSERT_TRUE(funcs.size() == 1);
+    ASSERT_TRUE(outputDS_new == p_nested.getOutput());
     // ASSERT_TRUE(funcs.contains(add_2));
     funcs = p_nested.getConsumerFunctions(outputDS_new);
     ASSERT_TRUE(funcs.size() == 0);
 
     Pipeline p_nested_2({
-        Compose(
-            Compose(
-                Compose(
-                    add_1))),
+        Pipeline({Pipeline({Pipeline(
+            add_1)})}),
         add_2,
     });
 

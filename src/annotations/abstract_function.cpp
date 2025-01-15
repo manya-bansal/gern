@@ -64,7 +64,7 @@ Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> conc
         auto abstract_arg = abstract_arguments[i];
 
         if (!abstract_arg.isSameTypeAs(conc_arg)) {
-            throw error::UserError("Calling with incorrect type of argument");
+            throw error::UserError("Type of " + abstract_arg.str() + " and " + conc_arg.str() + " is not the same");
         }
 
         if (isa<DSArg>(abstract_arg)) {

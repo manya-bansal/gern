@@ -78,6 +78,7 @@ public:
     Argument(Variable v)
         : Argument(new const VarArg(v)) {
     }
+    std::string str() const;
     bool isSameTypeAs(Argument) const;
     void accept(ArgumentVisitorStrict *v) const;
 };

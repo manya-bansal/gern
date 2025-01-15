@@ -10,31 +10,16 @@
 
 namespace gern {
 
-Expr::Expr(uint8_t val)
-    : Expr(new LiteralNode(val)) {
-}
-Expr::Expr(uint16_t val)
-    : Expr(new LiteralNode(val)) {
-}
 Expr::Expr(uint32_t val)
     : Expr(new LiteralNode(val)) {
 }
 Expr::Expr(uint64_t val)
     : Expr(new LiteralNode(val)) {
 }
-Expr::Expr(int8_t val)
-    : Expr(new LiteralNode(val)) {
-}
-Expr::Expr(int16_t val)
-    : Expr(new LiteralNode(val)) {
-}
 Expr::Expr(int32_t val)
     : Expr(new LiteralNode(val)) {
 }
 Expr::Expr(int64_t val)
-    : Expr(new LiteralNode(val)) {
-}
-Expr::Expr(float val)
     : Expr(new LiteralNode(val)) {
 }
 Expr::Expr(double val)
@@ -46,6 +31,18 @@ void Expr::accept(ExprVisitorStrict *v) const {
         return;
     }
     ptr->accept(v);
+}
+
+std::string Expr::str() const {
+    std::stringstream ss;
+    ss << *this;
+    return ss.str();
+}
+
+std::string Constraint::str() const {
+    std::stringstream ss;
+    ss << *this;
+    return ss.str();
 }
 
 void Constraint::accept(ConstraintVisitorStrict *v) const {
@@ -159,6 +156,12 @@ std::ostream &operator<<(std::ostream &os, const Stmt &s) {
     Printer p{os};
     p.visit(s);
     return os;
+}
+
+std::string Stmt::str() const {
+    std::stringstream ss;
+    ss << *this;
+    return ss.str();
 }
 
 Stmt Stmt::whereStmt(Constraint constraint) const {
@@ -301,10 +304,6 @@ AbstractDataTypePtr SubsetObj::getDS() const {
     return getNode(*this)->data;
 }
 
-SubsetObjMany::SubsetObjMany(const std::vector<SubsetObj> &inputs)
-    : ConsumeMany(new const SubsetObjManyNode(inputs)) {
-}
-
 Produces::Produces(const ProducesNode *n)
     : Stmt(n) {
 }
@@ -328,6 +327,10 @@ SubsetObj Produces::getSubset() const {
 
 SubsetObjMany::SubsetObjMany(const SubsetObjManyNode *n)
     : ConsumeMany(n) {
+}
+
+SubsetObjMany::SubsetObjMany(const std::vector<SubsetObj> &inputs)
+    : SubsetObjMany(new const SubsetObjManyNode(inputs)) {
 }
 
 Consumes::Consumes(const ConsumesNode *c)
@@ -367,7 +370,7 @@ Allocates::Allocates(const AllocatesNode *n)
 }
 
 Allocates::Allocates(Expr reg, Expr smem)
-    : Stmt(new const AllocatesNode(reg, smem)) {
+    : Allocates(new const AllocatesNode(reg, smem)) {
 }
 
 Computes::Computes(const ComputesNode *n)
@@ -444,11 +447,23 @@ bool AbstractDataTypePtr::freeQuery() const {
 }
 
 bool AbstractDataTypePtr::insertQuery() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
     return ptr->insertQuery();
 }
 
 bool AbstractDataTypePtr::freeAlloc() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
     return ptr->freeAlloc();
+}
+
+std::string AbstractDataTypePtr::str() const {
+    std::stringstream ss;
+    ss << *this;
+    return ss.str();
 }
 
 }  // namespace gern

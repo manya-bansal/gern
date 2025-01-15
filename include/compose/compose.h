@@ -48,8 +48,6 @@ public:
 
     Compose replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacements) const;
 
-    int numFuncs() const;
-
     void accept(CompositionVisitorStrict *v) const;
 
 private:
@@ -153,19 +151,6 @@ public:
      * @return std::vector<Variable> The meta-data fields.
      */
     std::vector<Variable> getProducesFields() const;
-
-    /**
-     * @brief This FunctionSignature is used to bind a symbolic variable in the
-     *        annotation with a user-provided variable. This is useful for
-     *        passing in arguments for the FunctionSignature pointer, otherwise,
-     *        users do not have a hook for passing arguments properly,
-     *        since the argument order is not pre-determined.
-     *
-     * @param binding  Map that contains the name of the variable in the annotation
-     *                 and a gern variable that will be bound to the variable.
-     * @return ComputeFunctionCall
-     */
-    const ComputeFunctionCall *withSymbolic(const std::map<std::string, Variable> &binding);
 
     /**
      * @brief This FunctionSignature checks whether a passed in variable is a template arg

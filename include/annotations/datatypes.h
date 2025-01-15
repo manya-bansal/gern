@@ -49,7 +49,6 @@ public:
     bool isComplex() const;
     bool isBool() const;
     std::string str() const;
-    /// @}
 
     /// Returns the number of bytes required to store one element of this type.
     int getNumBytes() const;

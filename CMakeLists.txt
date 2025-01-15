@@ -40,7 +40,6 @@ target_sources(
         src/codegen/codegen.cpp
         src/codegen/codegen_ir.cpp
         src/codegen/codegen_printer.cpp
-        src/codegen/codegen_visitor.cpp
         src/codegen/runner.cpp
         src/resolve_constraints/resolve_constraints.cpp
         src/utils/name_generator.cpp

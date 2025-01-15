@@ -3,6 +3,12 @@
 
 namespace gern {
 
+std::string Argument::str() const {
+    std::stringstream ss;
+    ss << *this;
+    return ss.str();
+}
+
 bool Argument::isSameTypeAs(Argument arg) const {
     if (isa<DSArg>(*this) && isa<DSArg>(arg)) {
         return true;

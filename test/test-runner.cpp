@@ -26,4 +26,6 @@ TEST(Runner, FailGracefully) {
     // Try to compile with no include flag sets, so that the compilation
     // step fails.
     ASSERT_THROW(run.compile(Runner::Options()), error::UserError);
+    // Okay now.
+    ASSERT_NO_THROW(run.compile(test::cpuRunner("matrix")));
 }

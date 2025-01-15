@@ -61,18 +61,6 @@ std::vector<Variable> ComputeFunctionCall::getProducesFields() const {
     return metaFields;
 }
 
-const ComputeFunctionCall *ComputeFunctionCall::withSymbolic(const std::map<std::string, Variable> &binding) {
-    std::map<Variable, Variable> var_bindings;
-    match(annotation, std::function<void(const VariableNode *)>(
-                          [&](const VariableNode *op) {
-                              if (binding.count(op->name) > 0) {
-                                  var_bindings[op] = binding.at(op->name);
-                              }
-                          }));
-    annotation = to<Pattern>(annotation.replaceVariables(var_bindings));
-    return this;
-}
-
 bool ComputeFunctionCall::isTemplateArg(Variable v) const {
     for (const auto &arg : getTemplateArguments()) {
         if (arg.ptr == v.ptr) {
@@ -106,11 +94,6 @@ void Compose::accept(CompositionVisitorStrict *v) const {
         return;
     }
     ptr->accept(v);
-}
-
-int Compose::numFuncs() const {
-    ComposeCounter cc;
-    return cc.numFuncs(*this);
 }
 
 void ComputeFunctionCall::accept(CompositionVisitorStrict *v) const {
