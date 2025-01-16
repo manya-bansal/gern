@@ -489,12 +489,6 @@ bool AbstractDataTypePtr::freeAlloc() const {
     return ptr->freeAlloc();
 }
 
-std::string AbstractDataTypePtr::str() const {
-    std::stringstream ss;
-    ss << *this;
-    return ss.str();
-}
-
 ADTMember AbstractDataTypePtr::operator[](std::string member) const {
     return ADTMember(*this, member);
 }
