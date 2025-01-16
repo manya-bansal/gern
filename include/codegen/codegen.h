@@ -8,7 +8,7 @@
 namespace gern {
 namespace codegen {
 
-class CodeGenerator : public PipelineVisitor {
+class CodeGenerator : public LowerIRVisitor {
 public:
     CodeGenerator(std::string name = getUniqueName("function"),
                   std::string hook_prefix = "hook_")
@@ -17,7 +17,7 @@ public:
 
     CGStmt generate_code(const Pipeline &);
 
-    using PipelineVisitor::visit;
+    using LowerIRVisitor::visit;
 
     void visit(const AllocateNode *);
     void visit(const FreeNode *);

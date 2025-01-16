@@ -3,31 +3,9 @@
 #include "utils/printer.h"
 
 namespace gern {
-void PipelineVisitor::visit(LowerIR ir) {
+
+void LowerIRVisitor::visit(LowerIR ir) {
     ir.accept(this);
-}
-void PipelineVisitor::visit(const Pipeline &p) {
-    for (const auto &node : p.getIRNodes()) {
-        this->visit(node);
-    }
-}
-
-void PipelinePrinter::visit(const Pipeline &p) {
-    std::vector<LowerIR> nodes = p.getIRNodes();
-    int len_nodes = nodes.size();
-    util::printIdent(os, ident);
-    os << "Pipeline (" << "\n";
-    ident++;
-
-    PipelinePrinter print(os, ident);
-    for (int i = 0; i < len_nodes; i++) {
-        print.visit(nodes[i]);
-        os << "\n";
-    }
-
-    ident--;
-    util::printIdent(os, ident);
-    os << ")";
 }
 
 template<typename T>

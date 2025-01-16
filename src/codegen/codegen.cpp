@@ -4,6 +4,7 @@
 #include "annotations/grid.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
+#include "codegen/lower.h"
 #include "utils/debug.h"
 #include "utils/error.h"
 
@@ -12,8 +13,10 @@ namespace codegen {
 
 CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     // Lower each IR node one by one.
+    Compose c(p);
+    ComposeLower lower(c);
     std::vector<CGStmt> lowered_nodes;
-    for (const auto &node : p.getIRNodes()) {
+    for (const auto &node : lower.lower()) {
         this->visit(node);
         lowered_nodes.push_back(code);
     }

@@ -9,7 +9,6 @@
 namespace gern {
 
 void Runner::compile(Options config) {
-    p.lower();
 
     codegen::CodeGenerator cg;
     codegen::CGStmt code = cg.generate_code(p);
