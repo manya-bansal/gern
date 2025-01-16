@@ -36,10 +36,14 @@ TEST(PipelineTest, ReuseOutput) {
                      add_f(inputDS, outputDS),
                      Pipeline{
 <<<<<<< HEAD
+<<<<<<< HEAD
                          add_f(inputDS, outputDS),
 =======
                          add_f(outputDS, outputDS),
 >>>>>>> a900948 (tests)
+=======
+                         add_f(inputDS, outputDS),
+>>>>>>> 45c930a (coverage for pipeline)
                      },
                  }),
                  error::UserError);
@@ -61,6 +65,9 @@ TEST(PipelineTest, ReuseOutput) {
                  }),
                  error::UserError);
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 45c930a (coverage for pipeline)
 
     // Assign to input that has been read by parent.
     ASSERT_THROW(Pipeline p({
@@ -70,8 +77,11 @@ TEST(PipelineTest, ReuseOutput) {
                      },
                  }),
                  error::UserError);
+<<<<<<< HEAD
 =======
 >>>>>>> a900948 (tests)
+=======
+>>>>>>> 45c930a (coverage for pipeline)
 }
 
 TEST(PipelineTest, NoReuseOutput) {
@@ -98,10 +108,14 @@ TEST(PipelineTest, IntermediateVisibility) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 <<<<<<< HEAD
+<<<<<<< HEAD
     auto outputDS_vis = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_vis"));
 =======
     auto outputDS_vis = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_new"));
 >>>>>>> a900948 (tests)
+=======
+    auto outputDS_vis = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_vis"));
+>>>>>>> 45c930a (coverage for pipeline)
     auto outputDS_new = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_new"));
 
     annot::add add_f;

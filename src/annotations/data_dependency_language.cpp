@@ -489,24 +489,20 @@ bool AbstractDataTypePtr::freeAlloc() const {
     return ptr->freeAlloc();
 }
 
-<<<<<<< HEAD
 std::string AbstractDataTypePtr::str() const {
     std::stringstream ss;
     ss << *this;
     return ss.str();
 }
 
-=======
-<<<<<<< HEAD
->>>>>>> a900948 (tests)
 ADTMember AbstractDataTypePtr::operator[](std::string member) const {
     return ADTMember(*this, member);
-=======
+}
+
 std::string AbstractDataTypePtr::str() const {
     std::stringstream ss;
     ss << *this;
     return ss.str();
->>>>>>> c5162a3 (tests)
 }
 
 }  // namespace gern
