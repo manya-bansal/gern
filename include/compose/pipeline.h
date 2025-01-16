@@ -14,7 +14,7 @@ using ComputeFunctionCallPtr = const ComputeFunctionCall *;
 class Pipeline {
 
 public:
-    Pipeline(std::vector<Compose> compose);
+    Pipeline(std::vector<Compose> compose, bool fuse = true);
     Pipeline(Compose compose);
 
     std::vector<Compose> getFuncs() const {
@@ -44,8 +44,7 @@ private:
     AbstractDataTypePtr true_output;
     std::vector<AbstractDataTypePtr> all_outputs;
     std::set<AbstractDataTypePtr> intermediates_set;
-    bool has_been_lowered = false;
-    bool device = false;
+    bool fuse = false;
 };
 
 std::ostream &operator<<(std::ostream &os, const Pipeline &p);

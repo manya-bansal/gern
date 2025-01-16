@@ -11,9 +11,8 @@
 namespace gern {
 namespace codegen {
 
-CGStmt CodeGenerator::generate_code(const Pipeline &p) {
+CGStmt CodeGenerator::generate_code(Compose c) {
     // Lower each IR node one by one.
-    Compose c(p);
     ComposeLower lower(c);
     std::vector<CGStmt> lowered_nodes;
 
@@ -22,6 +21,8 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
         lowered_nodes.push_back(code);
     }
     code = Block::make(lowered_nodes);
+
+    bool is_device_launch = false;
 
     // Once we have visited the pipeline, we need to
     // wrap the body in a FunctionSignature interface.
@@ -60,9 +61,9 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 
     int num_args = 0;
     for (const auto &ds : to_declare_adts) {
-        args.push_back(VarDecl::make(Type::make(ds.getType()), ds.getName(), false, !p.is_at_device()));
+        args.push_back(VarDecl::make(Type::make(ds.getType()), ds.getName(), false, !is_device_launch));
         hook_body.push_back(
-            VarAssign::make(VarDecl::make(Type::make(ds.getType()), ds.getName(), false, !p.is_at_device()),
+            VarAssign::make(VarDecl::make(Type::make(ds.getType()), ds.getName(), false, !is_device_launch),
                             Deref::make(
                                 Cast::make(Type::make(ds.getType() + "*"),
                                            Var::make("args[" + std::to_string(num_args) + "]")))));
@@ -85,13 +86,13 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
 
     // The return type is always void, the output
     // is modified by reference.
-    code = DeclFunc::make(name, Type::make("void"), args, code, p.is_at_device(), template_arg_vars);
+    code = DeclFunc::make(name, Type::make("void"), args, code, is_device_launch, template_arg_vars);
 
     // Also make the FunctionSignature that is used as the entry point for
     // user code.
     std::vector<CGStmt> full_code;
     CGStmt hook_call = VoidCall::make(Call::make(name, hook_args, call_template_vars));
-    if (p.is_at_device()) {
+    if (is_device_launch) {
         // Declare the grid and block dimensions.
         hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
         hook_body.push_back(EscapeCGStmt::make("dim3 __block_dim__(" + block_dim.str() + ");"));

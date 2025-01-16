@@ -15,7 +15,7 @@ public:
         : name(name), hook_name(hook_prefix + name) {
     }
 
-    CGStmt generate_code(const Pipeline &);
+    CGStmt generate_code(Compose);
 
     using LowerIRVisitor::visit;
 

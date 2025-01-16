@@ -81,8 +81,8 @@ ComputeFunctionCall ComputeFunctionCall::replaceAllDS(std::map<AbstractDataTypeP
                                getHeader());
 }
 
-Compose::Compose(std::vector<Compose> compose)
-    : Compose(Pipeline(compose)) {
+Compose::Compose(std::vector<Compose> compose, bool fuse)
+    : Compose(Pipeline(compose, fuse)) {
 }
 
 Compose::Compose(Pipeline p)

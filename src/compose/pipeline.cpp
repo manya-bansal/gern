@@ -12,27 +12,13 @@
 
 namespace gern {
 
-Pipeline::Pipeline(std::vector<Compose> compose)
-    : compose(compose) {
+Pipeline::Pipeline(std::vector<Compose> compose, bool fuse)
+    : compose(compose), fuse(fuse) {
     init(compose);
 }
 
 Pipeline::Pipeline(Compose compose)
     : Pipeline(std::vector<Compose>{compose}) {
-}
-
-Pipeline &Pipeline::at_device() {
-    device = true;
-    return *this;
-}
-
-Pipeline &Pipeline::at_host() {
-    device = false;
-    return *this;
-}
-
-bool Pipeline::is_at_device() const {
-    return device;
 }
 
 AbstractDataTypePtr Pipeline::getOutput() const {

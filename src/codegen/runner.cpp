@@ -11,18 +11,19 @@ namespace gern {
 void Runner::compile(Options config) {
 
     codegen::CodeGenerator cg;
-    codegen::CGStmt code = cg.generate_code(p);
+    codegen::CGStmt code = cg.generate_code(c);
 
     config.prefix += "/";
-    std::string suffix = p.is_at_device() ? ".cu" : ".cpp";
+    bool at_device = false;
+    std::string suffix = at_device ? ".cu" : ".cpp";
     std::string file = config.prefix + config.filename + suffix;
     std::ofstream outFile(file);
     outFile << code;
     outFile.close();
 
-    std::string arch = p.is_at_device() ? "-arch=sm_" + config.arch : "";
-    std::string compiler = p.is_at_device() ? "nvcc" : "g++";
-    std::string compiler_option = p.is_at_device() ? "--compiler-options " : "";
+    std::string arch = at_device ? "-arch=sm_" + config.arch : "";
+    std::string compiler = at_device ? "nvcc" : "g++";
+    std::string compiler_option = at_device ? "--compiler-options " : "";
     std::string shared_obj = config.prefix + getUniqueName("libGern") + ".so";
     std::string cmd = compiler +
                       " -std=c++11 " +

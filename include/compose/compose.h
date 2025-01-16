@@ -42,7 +42,7 @@ public:
     }
 
     Compose(Pipeline p);
-    Compose(std::vector<Compose> compose);
+    Compose(std::vector<Compose> compose, bool fuse);
 
     void concretize();
 
@@ -68,7 +68,7 @@ Compose Fuse(ToCompose... c) {
     // Static assertion to ensure all arguments are of type Compose
     static_assert((std::is_same_v<ToCompose, Compose> && ...), "All arguments must be of type Compose");
     std::vector<Compose> to_compose{c...};
-    return Compose(to_compose);
+    return Compose(to_compose, true);
 }
 
 // A FunctionSignature call has a name,

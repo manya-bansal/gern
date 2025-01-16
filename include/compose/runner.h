@@ -8,8 +8,8 @@ using GernGenFuncPtr = void (*)(void **);
 
 class Runner {
 public:
-    Runner(const Pipeline &p)
-        : p(p) {
+    Runner(Compose c)
+        : c(c) {
     }
     struct Options {
         std::string filename = "gern_file";
@@ -27,7 +27,7 @@ public:
     void evaluate(std::map<std::string, void *> args);
 
 private:
-    Pipeline p;
+    Compose c;
     GernGenFuncPtr fp;
     std::vector<std::string> argument_order;
     bool compiled = false;
