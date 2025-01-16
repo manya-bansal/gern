@@ -23,6 +23,22 @@ Or to run a single test:
 $ ctest --test-dir build/dev -R ExprNode.Literal
 ```
 
+### Testing Code Coverage
+
+To test with code coverage, build with preset `coverage`:
+
+```
+$ cmake -DGern_CUDA_ARCH=<89,90..,etc> --preset coverage 
+$ cmake --build build/coverage
+$ ctest --test-dir build/coverage
+```
+
+Then, generate an html for the code coverage results from `build/coverage`:
+
+```
+$ gcovr -r  ~/gern/src/ CMakeFiles/Gern_Gern.dir/src/ --exclude-unreachable-branches --html-details -o <location>
+```
+
 See the [CTest documentation] for more detail.
 
 [CTest documentation]: https://cmake.org/cmake/help/latest/manual/ctest.1.html
