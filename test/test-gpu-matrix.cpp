@@ -26,7 +26,7 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
         {"l_y", l_y},
     }](inputDS, outputDS)};
 
-    Pipeline p(c);
+    Compose p(c, true);
     p.callAtDevice();
     Runner run(p);
 
@@ -91,7 +91,7 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
         {"l_y", l_y},
     }](inputDS, outputDS)};
 
-    Pipeline p(c);
+    Compose p(c, true);
     p.callAtDevice();
     Runner run(p);
 
@@ -145,7 +145,7 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
             {"l_y", l_y},
         }](inputDS, outputDS)};
 
-    Pipeline p(c);
+    Compose p(c, true);
     p.callAtDevice();
     Runner run(p);
 

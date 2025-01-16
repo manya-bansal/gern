@@ -28,7 +28,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
         {"step", step},
     }](inputDS, outputDS)};
 
-    Pipeline p(c);
+    Compose p(c, true);
     p.callAtDevice();
     Runner run(p);
 
@@ -89,7 +89,7 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
         {"x", blk.bindToGrid(Grid::Property::BLOCK_ID_X)},
     }](inputDS, outputDS)};
 
-    Pipeline p(c);
+    Compose p(c, true);
     p.callAtDevice();
     Runner run(p);
 
@@ -129,7 +129,7 @@ TEST(LoweringGPU, SingleReduceNoBind) {
 
     std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
 
-    Pipeline p(c);
+    Compose p(c, true);
     p.callAtDevice();
     Runner run(p);
 
@@ -200,7 +200,7 @@ TEST(LoweringGPU, SingleReduceBind) {
         {"step", v2},
     }](inputDS, outputDS)};
 
-    Pipeline p(c);
+    Compose p(c, true);
     p.callAtDevice();
     Runner run(p);
 
@@ -256,7 +256,7 @@ TEST(LoweringGPU, MultiArray) {
             {"step", step.bindToInt64(5)},
         }](tempDS, outputDS)};
 
-    Pipeline p(c);
+    Compose p(c, true);
     p.callAtDevice();
     Runner run(p);
 
