@@ -31,6 +31,10 @@ Pipeline::Pipeline(std::vector<Compose> compose)
     init(compose);
 }
 
+Pipeline::Pipeline(Compose compose)
+    : Pipeline(std::vector<Compose>{compose}) {
+}
+
 Pipeline &Pipeline::at_device() {
     device = true;
     return *this;
@@ -73,11 +77,6 @@ ComputeFunctionCallPtr Pipeline::getProducerFunction(AbstractDataTypePtr ds) con
                                           }
                                       }));
     return func;
-}
-
-int Pipeline::numFuncs() {
-    ComposeCounter cc;
-    return cc.numFuncs(Compose(*this));
 }
 
 void Pipeline::lower() {
@@ -211,16 +210,16 @@ void Pipeline::init(std::vector<Compose> compose) {
             // Check whether the output has already been assigned to.
             if (intermediates.count(output) > 0 ||
                 all_nested_temps.count(output) > 0) {
-                throw error::UserError("Cannot assign to" + output.getName() + "twice");
+                throw error::UserError("Cannot assign to" + output.str() + " twice");
             }
             // Check if this output was ever used as an input.
             if (all_inputs.count(output) > 0) {
-                throw error::UserError("Assigning to a " + output.getName() + "that has already been read");
+                throw error::UserError("Assigning to a " + output.str() + " that has already been read");
             }
             // Check if we are trying to use an intermediate from a nested pipeline.
             for (const auto &in : func_inputs) {
                 if (all_nested_temps.count(in)) {
-                    throw error::UserError("Trying to read intermediate" + in.getName() + " from nested pipeline");
+                    throw error::UserError("Trying to read intermediate" + in.str() + " from nested pipeline");
                 }
             }
             intermediates.insert(output);
@@ -231,12 +230,13 @@ void Pipeline::init(std::vector<Compose> compose) {
         void visit(const PipelineNode *node) {
             // Add output to intermediates.
             AbstractDataTypePtr output = node->p.getOutput();
-            if (all_inputs.contains(output)) {
-                throw error::UserError("Assigning to a " + output.getName() + "that has already been read");
-            }
-
             std::set<AbstractDataTypePtr> nested_writes = node->p.getAllWriteDataStruct();
             std::set<AbstractDataTypePtr> nested_reads = node->p.getAllReadDataStruct();
+
+            all_inputs.insert(nested_reads.begin(), nested_reads.end());
+            if (all_inputs.contains(output)) {
+                throw error::UserError("Assigning to a " + output.getName() + " that has already been read");
+            }
 
             // Check pipeline is writing to one of our outputs.
             for (const auto &in : nested_writes) {
@@ -247,8 +247,6 @@ void Pipeline::init(std::vector<Compose> compose) {
 
             all_nested_temps.insert(nested_writes.begin(), nested_writes.end());
             all_nested_temps.erase(output);  // Remove the final output. We can see this.
-            all_inputs.insert(nested_reads.begin(), nested_reads.end());
-
             intermediates.insert(output);
             true_output = output;  // Update final output.
             outputs_in_order.push_back(output);
@@ -365,34 +363,6 @@ const QueryNode *Pipeline::constructQueryNode(AbstractDataTypePtr ds, std::vecto
         to_free.insert(queried);
     }
     return new QueryNode(ds, f);
-}
-
-FunctionSignature Pipeline::constructFunction(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const {
-    if (ref_md_fields.size() != true_md_fields.size()) {
-        throw error::InternalError("Incorrect number of fields passed!");
-    }
-    // Put all the fields in a map.
-    std::map<Variable, Variable> mappings;
-    for (size_t i = 0; i < ref_md_fields.size(); i++) {
-        mappings[ref_md_fields[i]] = true_md_fields[i];
-    }
-    // Now, set up the args.
-    std::vector<Parameter> new_args;
-    for (auto const &a : f.args) {
-        new_args.push_back(mappings[to<VarArg>(a)->getVar()]);
-    }
-    // set up the templated args.
-    std::vector<Variable> template_args;
-    for (auto const &a : f.template_args) {
-        template_args.push_back(mappings[a]);
-    }
-
-    FunctionSignature f_new{
-        .name = f.name,
-        .args = new_args,
-        .template_args = template_args,
-    };
-    return f_new;
 }
 
 FunctionCall Pipeline::constructFunctionCall(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const {

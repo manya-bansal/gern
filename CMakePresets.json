@@ -24,6 +24,13 @@
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -pedantic"
       }
+    },
+    {
+      "name": "coverage",
+      "inherits": "dev",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -pedantic --coverage"
+      }
     }
   ]
 }

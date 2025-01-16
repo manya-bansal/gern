@@ -38,15 +38,10 @@ public:
         : util::IntrusivePtr<const ExprNode>(n) {
     }
 
-    Expr(uint8_t);
-    Expr(uint16_t);
     Expr(uint32_t);
     Expr(uint64_t);
-    Expr(int8_t);
-    Expr(int16_t);
     Expr(int32_t);
     Expr(int64_t);
-    Expr(float);
     Expr(double);
 
     bool operator()(const Expr &e) {
@@ -54,6 +49,7 @@ public:
     }
 
     void accept(ExprVisitorStrict *v) const;
+    std::string str() const;
 };
 std::ostream &operator<<(std::ostream &os, const Expr &);
 
@@ -74,6 +70,7 @@ public:
         return Expr();
     }
 
+    std::string str() const;
     void accept(ConstraintVisitorStrict *v) const;
 };
 
@@ -224,7 +221,7 @@ public:
     bool freeQuery() const;
     bool insertQuery() const;
     bool freeAlloc() const;
-
+    std::string str() const;
     ADTMember operator[](std::string) const;
 };
 
@@ -311,6 +308,7 @@ public:
     Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
     Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
     void accept(StmtVisitorStrict *v) const;
+    std::string str() const;
 
 private:
     Stmt(const StmtNode *n, Constraint c)

@@ -5,23 +5,14 @@
 namespace gern {
 
 void ExprVisitorStrict::visit(Expr e) {
-    if (!e.defined()) {
-        return;
-    }
     e.accept(this);
 }
 
 void ConstraintVisitorStrict::visit(Constraint c) {
-    if (!c.defined()) {
-        return;
-    }
     c.accept(this);
 }
 
 void StmtVisitorStrict::visit(Stmt s) {
-    if (!s.defined()) {
-        return;
-    }
     s.accept(this);
 }
 
@@ -41,9 +32,6 @@ void Printer::visit(Consumes p) {
 }
 
 void Printer::visit(ConsumeMany many) {
-    if (!many.defined()) {
-        return;
-    }
     many.accept(this);
 }
 

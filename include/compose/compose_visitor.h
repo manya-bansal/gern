@@ -39,20 +39,6 @@ private:
     int ident = 0;
 };
 
-// Utility class to count how many distinct FunctionSignature calls
-// a compose object contains.
-class ComposeCounter : public CompositionVisitorStrict {
-public:
-    ComposeCounter() = default;
-    int numFuncs(Compose c);
-    using CompositionVisitorStrict::visit;
-    virtual void visit(const ComputeFunctionCall *) override;
-    virtual void visit(const PipelineNode *) override;
-
-private:
-    int num = 0;
-};
-
 #define PIPELINE_RULE(Rule)                                                     \
     std::function<void(const Rule *)> Rule##Func;                               \
     std::function<void(const Rule *, PipelineMatcher *)> Rule##CtxFunc;         \

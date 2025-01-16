@@ -43,18 +43,12 @@ class Pipeline : public CompositionVisitorStrict {
 
 public:
     Pipeline(std::vector<Compose> compose);
+    Pipeline(Compose compose);
 
     std::vector<Compose> getFuncs() const {
         return compose;
     }
 
-    /**
-     * @brief Returns the total number of functions
-     *        including those in nested pipelines.
-     *
-     * @return int
-     */
-    int numFuncs();
     Pipeline &at_device();
     Pipeline &at_host();
     bool is_at_device() const;
@@ -88,8 +82,7 @@ private:
     const FreeNode *constructFreeNode(AbstractDataTypePtr);                          // Constructs a free node for a data-structure, and tracks this relationship.
     const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
 
-    FunctionSignature constructFunction(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Variable> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
-    FunctionCall constructFunctionCall(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const;       // Constructs a call with the true meta data fields mapped in the correct place.
+    FunctionCall constructFunctionCall(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
 
     std::vector<LowerIR> generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;

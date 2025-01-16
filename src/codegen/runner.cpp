@@ -40,12 +40,12 @@ void Runner::compile(Options config) {
 
     void *handle = dlopen(shared_obj.data(), RTLD_LAZY);
     if (!handle) {
-        throw error::UserError("Error loading library: " + std::string(dlerror()));
+        throw error::UserError("Error loading library: " + std::string(dlerror()));  // LCOV_EXCL_LINE
     }
 
     void *func = dlsym(handle, cg.getHookName().data());
     if (!func) {
-        throw error::UserError("Error loading function: " + std::string(dlerror()));
+        throw error::UserError("Error loading function: " + std::string(dlerror()));  // LCOV_EXCL_LINE
     }
 
     fp = (GernGenFuncPtr)func;

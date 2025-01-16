@@ -30,6 +30,7 @@ TEST(Expr, BinaryNodes) {
     ASSERT_TRUE(test::getStrippedString((v + 4) / (v * 4)) == "((v+4)/(v*4))");
     ASSERT_TRUE(test::getStrippedString(v + 4 && v * 4) == "((v+4)&&(v*4))");
     ASSERT_TRUE(test::getStrippedString(v % 4 >= v * 4) == "((v%4)>=(v*4))");
+    ASSERT_TRUE(test::getStrippedString(Argument(v + v)) == "(v+v)");
 }
 
 TEST(StmtNode, Constraint) {
@@ -37,7 +38,13 @@ TEST(StmtNode, Constraint) {
     Expr e = 1 - v;
 
     Constraint test(e == e);
-    ASSERT_TRUE(test::getStrippedString(test) == "((1-v_)==(1-v_))");
+    ASSERT_TRUE(test::getStrippedString(e == e) == "((1-v_)==(1-v_))");
+    ASSERT_TRUE(test::getStrippedString(e <= e) == "((1-v_)<=(1-v_))");
+    ASSERT_TRUE(test::getStrippedString(e != e) == "((1-v_)!=(1-v_))");
+    ASSERT_TRUE(test::getStrippedString(e < e) == "((1-v_)<(1-v_))");
+    ASSERT_TRUE(test::getStrippedString(e > e) == "((1-v_)>(1-v_))");
+    ASSERT_TRUE(test::getStrippedString(e && e) == "((1-v_)&&(1-v_))");
+    ASSERT_TRUE(test::getStrippedString(e || e) == "((1-v_)||(1-v_))");
 
     auto TestDSCPU = AbstractDataTypePtr(new const annot::ArrayCPU());
     SubsetObj subset{TestDSCPU, {1 - v, v * 2}};
@@ -63,4 +70,23 @@ TEST(Annotations, ConstrainPatterns) {
                  error::UserError);
     ASSERT_NO_THROW(s.where(v == 1));
     ASSERT_THROW(s.where(v1 == 1), error::UserError);
+}
+
+TEST(Annotations, NullNode) {
+    // Make sure Gern doesn't explode when
+    // a null pointer is passed.
+    Expr().str();
+    Stmt().str();
+    Constraint().str();
+    AbstractDataTypePtr().str();
+    ASSERT_THROW(AbstractDataTypePtr().getInsertFunction(), error::InternalError);
+    ASSERT_THROW(AbstractDataTypePtr().getQueryFunction(), error::InternalError);
+    ASSERT_THROW(AbstractDataTypePtr().getName(), error::InternalError);
+    ASSERT_THROW(AbstractDataTypePtr().getType(), error::InternalError);
+    ASSERT_THROW(AbstractDataTypePtr().getFields(), error::InternalError);
+    ASSERT_THROW(AbstractDataTypePtr().getAllocateFunction(), error::InternalError);
+    ASSERT_THROW(AbstractDataTypePtr().freeQuery(), error::InternalError);
+    ASSERT_THROW(AbstractDataTypePtr().insertQuery(), error::InternalError);
+    ASSERT_THROW(AbstractDataTypePtr().freeAlloc(), error::InternalError);
+    Argument().str();
 }

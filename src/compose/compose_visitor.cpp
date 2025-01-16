@@ -6,9 +6,6 @@
 namespace gern {
 
 void CompositionVisitorStrict::visit(Compose c) {
-    if (!c.defined()) {
-        return;
-    }
     c.accept(this);
 }
 
@@ -56,23 +53,6 @@ void ComposePrinter::visit(const ComputeFunctionCall *f) {
 
 void ComposePrinter::visit(const PipelineNode *p) {
     this->visit(p->p);
-}
-
-int ComposeCounter::numFuncs(Compose c) {
-    if (!c.defined()) {
-        return 0;
-    }
-    c.accept(this);
-    return num;
-}
-
-void ComposeCounter::visit(const ComputeFunctionCall *f) {
-    (void)f;
-    num++;
-}
-
-void ComposeCounter::visit(const PipelineNode *v) {
-    this->visit(v->p);
 }
 
 }  // namespace gern

@@ -2,6 +2,7 @@
 
 namespace gern {
 
+// GCOVR_EXCL_START
 std::ostream &operator<<(std::ostream &os, const Grid::Property &p) {
     switch (p) {
 
@@ -40,6 +41,7 @@ std::ostream &operator<<(std::ostream &os, const Grid::Property &p) {
         return os;
     }
 }
+// GCOVR_EXCL_STOP
 
 bool isGridPropertySet(const Grid::Property &p) {
     return p != Grid::Property::UNDEFINED;

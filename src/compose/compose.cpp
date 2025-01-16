@@ -61,18 +61,6 @@ std::vector<Variable> ComputeFunctionCall::getProducesFields() const {
     return metaFields;
 }
 
-const ComputeFunctionCall *ComputeFunctionCall::withSymbolic(const std::map<std::string, Variable> &binding) {
-    std::map<Variable, Variable> var_bindings;
-    match(annotation, std::function<void(const VariableNode *)>(
-                          [&](const VariableNode *op) {
-                              if (binding.count(op->name) > 0) {
-                                  var_bindings[op] = binding.at(op->name);
-                              }
-                          }));
-    annotation = to<Pattern>(annotation.replaceVariables(var_bindings));
-    return this;
-}
-
 bool ComputeFunctionCall::isTemplateArg(Variable v) const {
     for (const auto &arg : getTemplateArguments()) {
         if (arg.ptr == v.ptr) {
@@ -108,11 +96,6 @@ void Compose::accept(CompositionVisitorStrict *v) const {
     ptr->accept(v);
 }
 
-int Compose::numFuncs() const {
-    ComposeCounter cc;
-    return cc.numFuncs(*this);
-}
-
 void ComputeFunctionCall::accept(CompositionVisitorStrict *v) const {
     v->visit(this);
 }
@@ -144,4 +127,22 @@ Compose Compose::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr>
                       }));
     return c;
 }
+
+// GCOVR_EXCL_START
+std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f) {
+
+    os << f.getName() << "(";
+    auto args = f.getArguments();
+    auto args_size = args.size();
+
+    for (size_t i = 0; i < args_size; i++) {
+        os << args[i];
+        os << ((i != args_size - 1) ? ", " : "");
+    }
+
+    os << ")";
+    return os;
+}
+// GCOVR_EXCL_STOP
+
 }  // namespace gern

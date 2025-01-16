@@ -22,6 +22,7 @@ set(TEST_SOURCES
     test-nodes.cpp
     test-pipeline.cpp
     # test-resolve-constraints.cpp
+    test-runner.cpp
     test-functions.cpp
     test-grid-property.cpp
     test-cpu-array.cpp

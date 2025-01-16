@@ -27,6 +27,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     std::vector<Compose> c = {add_f[{
         {"step", step},
     }](inputDS, outputDS)};
+
     Pipeline p(c);
     p.at_device();
     Runner run(p);

@@ -27,21 +27,6 @@ std::set<AbstractDataTypePtr> ComputeFunctionCall::getInputs() const {
     return inputs;
 }
 
-std::ostream &operator<<(std::ostream &os, const ComputeFunctionCall &f) {
-
-    os << f.getName() << "(";
-    auto args = f.getArguments();
-    auto args_size = args.size();
-
-    for (size_t i = 0; i < args_size; i++) {
-        os << args[i];
-        os << ((i != args_size - 1) ? ", " : "");
-    }
-
-    os << ")";
-    return os;
-}
-
 FunctionCall FunctionCall::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
 
     std::vector<Argument> new_args;
@@ -78,8 +63,8 @@ Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> conc
         auto conc_arg = concrete_arguments[i];
         auto abstract_arg = abstract_arguments[i];
 
-        if (!abstract_arg.defined()) {
-            throw error::UserError("Calling with an undefined argument");
+        if (!abstract_arg.isSameTypeAs(conc_arg)) {
+            throw error::UserError("Type of " + abstract_arg.str() + " and " + conc_arg.str() + " is not the same");
         }
 
         if (isa<DSArg>(abstract_arg)) {
@@ -122,11 +107,7 @@ Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> conc
 
     std::vector<Expr> template_args;
     for (const auto &v : f.template_args) {
-        if (fresh_names.contains(v)) {
-            template_args.push_back(fresh_names.at(v));
-        } else {
-            template_args.push_back(v);
-        }
+        template_args.push_back(fresh_names.at(v));
     }
 
     Pattern rw_annotation = to<Pattern>(annotation
@@ -159,12 +140,6 @@ void AbstractFunction::bindVariables(const std::map<std::string, Variable> &repl
 
     for (const auto &binding : replacements) {
         bool is_interval_var = names_interval_vars.count(binding.first) > 0;
-        // If the variable is already bound *in the annotation*,
-        // complain, and you are not binding to a grid property,
-        // complain.
-        if (names_defined_vars.count(binding.first) > 0 && !is_interval_var) {
-            throw error::UserError(binding.first + " is already bound in the annotation");
-        }
 
         if (binding.second.isBoundToGrid()) {
             Grid::Property gp = binding.second.getBoundProperty();
