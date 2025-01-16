@@ -230,12 +230,13 @@ void Pipeline::init(std::vector<Compose> compose) {
         void visit(const PipelineNode *node) {
             // Add output to intermediates.
             AbstractDataTypePtr output = node->p.getOutput();
-            if (all_inputs.contains(output)) {
-                throw error::UserError("Assigning to a " + output.getName() + "that has already been read");
-            }
-
             std::set<AbstractDataTypePtr> nested_writes = node->p.getAllWriteDataStruct();
             std::set<AbstractDataTypePtr> nested_reads = node->p.getAllReadDataStruct();
+
+            all_inputs.insert(nested_reads.begin(), nested_reads.end());
+            if (all_inputs.contains(output)) {
+                throw error::UserError("Assigning to a " + output.getName() + " that has already been read");
+            }
 
             // Check pipeline is writing to one of our outputs.
             for (const auto &in : nested_writes) {
@@ -246,8 +247,6 @@ void Pipeline::init(std::vector<Compose> compose) {
 
             all_nested_temps.insert(nested_writes.begin(), nested_writes.end());
             all_nested_temps.erase(output);  // Remove the final output. We can see this.
-            all_inputs.insert(nested_reads.begin(), nested_reads.end());
-
             intermediates.insert(output);
             true_output = output;  // Update final output.
             outputs_in_order.push_back(output);

@@ -7,7 +7,7 @@ endif ()
 
 ##
 # Find dependencies
-find_package(ginac 1.8.7 REQUIRED)
+# find_package(ginac 1.8.7 REQUIRED)
 
 
 ##
@@ -41,7 +41,7 @@ target_sources(
         src/codegen/codegen_ir.cpp
         src/codegen/codegen_printer.cpp
         src/codegen/runner.cpp
-        src/resolve_constraints/resolve_constraints.cpp
+        # src/resolve_constraints/resolve_constraints.cpp
         src/utils/name_generator.cpp
     PUBLIC
     FILE_SET HEADERS
@@ -56,7 +56,7 @@ target_sources(
         include/annotations/grid.h
         include/annotations/lang_nodes.h
         include/annotations/visitor.h
-        include/resolve_constraints/resolve_constraints.h
+        # include/resolve_constraints/resolve_constraints.h
         include/compose/compose.h
         include/compose/compose_visitor.h
         include/compose/pipeline.h
@@ -75,7 +75,7 @@ target_sources(
 
 target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
 target_compile_features(Gern_Gern PUBLIC cxx_std_20)
-target_link_libraries(Gern_Gern PRIVATE ginac::ginac)
+# target_link_libraries(Gern_Gern PRIVATE ginac::ginac)
 
 ##
 # Testing

@@ -35,7 +35,7 @@ TEST(PipelineTest, ReuseOutput) {
     ASSERT_THROW(Pipeline p({
                      add_f(inputDS, outputDS),
                      Pipeline{
-                         add_f(outputDS, outputDS),
+                         add_f(inputDS, outputDS),
                      },
                  }),
                  error::UserError);
@@ -56,6 +56,15 @@ TEST(PipelineTest, ReuseOutput) {
                      add_f(outputDS, inputDS),
                  }),
                  error::UserError);
+
+    // Assign to input that has been read by parent.
+    ASSERT_THROW(Pipeline p({
+                     add_f(inputDS, outputDS),
+                     Pipeline{
+                         add_f(outputDS, inputDS),
+                     },
+                 }),
+                 error::UserError);
 }
 
 TEST(PipelineTest, NoReuseOutput) {
@@ -72,7 +81,7 @@ TEST(PipelineTest, NoReuseOutput) {
 
     ASSERT_NO_THROW(Pipeline p({
         add_f(inputDS, outputDS),
-        {
+        Pipeline{
             add_f(outputDS, outputDS_new),
         },
     }));
@@ -81,7 +90,7 @@ TEST(PipelineTest, NoReuseOutput) {
 TEST(PipelineTest, IntermediateVisibility) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
-    auto outputDS_vis = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_new"));
+    auto outputDS_vis = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_vis"));
     auto outputDS_new = AbstractDataTypePtr(new const annot::ArrayCPU("output_con_new"));
 
     annot::add add_f;
