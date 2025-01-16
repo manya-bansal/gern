@@ -78,14 +78,7 @@ public:
     Argument(Variable v)
         : Argument(new const VarArg(v)) {
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
     std::string str() const;
-=======
->>>>>>> 96efb79 (fix conflicted)
-=======
-    std::string str() const;
->>>>>>> a900948 (tests)
     bool isSameTypeAs(Argument) const;
     void accept(ArgumentVisitorStrict *v) const;
 };

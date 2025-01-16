@@ -222,9 +222,7 @@ public:
     bool insertQuery() const;
     bool freeAlloc() const;
     std::string str() const;
-
     ADTMember operator[](std::string) const;
-    std::string str() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads);
