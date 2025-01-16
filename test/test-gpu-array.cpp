@@ -29,7 +29,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     }](inputDS, outputDS)};
 
     Pipeline p(c);
-    p.at_device();
+    p.callAtDevice();
     Runner run(p);
 
     run.compile(test::gpuRunner("array"));
@@ -90,7 +90,7 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     }](inputDS, outputDS)};
 
     Pipeline p(c);
-    p.at_device();
+    p.callAtDevice();
     Runner run(p);
 
     run.compile(test::gpuRunner("array"));
@@ -130,7 +130,7 @@ TEST(LoweringGPU, SingleReduceNoBind) {
     std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
 
     Pipeline p(c);
-    p.at_device();
+    p.callAtDevice();
     Runner run(p);
 
     run.compile(test::gpuRunner("array"));
@@ -201,7 +201,7 @@ TEST(LoweringGPU, SingleReduceBind) {
     }](inputDS, outputDS)};
 
     Pipeline p(c);
-    p.at_device();
+    p.callAtDevice();
     Runner run(p);
 
     run.compile(test::gpuRunner("array"));
@@ -257,7 +257,7 @@ TEST(LoweringGPU, MultiArray) {
         }](tempDS, outputDS)};
 
     Pipeline p(c);
-    p.at_device();
+    p.callAtDevice();
     Runner run(p);
 
     run.compile(test::gpuRunner("array"));

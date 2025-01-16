@@ -23,6 +23,7 @@ TEST(LoweringCPU, SingleElemFunction) {
     std::vector<Compose> c = {add_f[{
         {"step", step},
     }](inputDS, outputDS)};
+
     Pipeline p(c);
     Runner run(p);
 

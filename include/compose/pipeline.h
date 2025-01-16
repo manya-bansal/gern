@@ -17,14 +17,7 @@ public:
     Pipeline(std::vector<Compose> compose, bool fuse = true);
     Pipeline(Compose compose);
 
-    std::vector<Compose> getFuncs() const {
-        return compose;
-    }
-
-    Pipeline &at_device();
-    Pipeline &at_host();
-    bool is_at_device() const;
-
+    std::vector<Compose> getFuncs() const;
     // Returns the FunctionSignature call that produces a particular output.
     std::set<AbstractDataTypePtr> getInputs() const;
     AbstractDataTypePtr getOutput() const;

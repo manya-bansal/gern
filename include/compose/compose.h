@@ -44,15 +44,15 @@ public:
     Compose(Pipeline p);
     Compose(std::vector<Compose> compose, bool fuse);
 
-    void concretize();
+    Compose callAtDevice();
+    Compose callAtHost();
+    bool isDeviceCall();
 
     Compose replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacements) const;
-
     void accept(CompositionVisitorStrict *v) const;
 
 private:
-    bool device = false;
-    bool concrete = false;
+    bool is_device_call = false;
 };
 
 std::ostream &operator<<(std::ostream &os, const Compose &);

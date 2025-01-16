@@ -27,7 +27,7 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
     }](inputDS, outputDS)};
 
     Pipeline p(c);
-    p.at_device();
+    p.callAtDevice();
     Runner run(p);
 
     run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));
@@ -92,7 +92,7 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
     }](inputDS, outputDS)};
 
     Pipeline p(c);
-    p.at_device();
+    p.callAtDevice();
     Runner run(p);
 
     run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));
@@ -146,7 +146,7 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
         }](inputDS, outputDS)};
 
     Pipeline p(c);
-    p.at_device();
+    p.callAtDevice();
     Runner run(p);
 
     run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));

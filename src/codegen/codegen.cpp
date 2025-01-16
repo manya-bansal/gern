@@ -22,7 +22,7 @@ CGStmt CodeGenerator::generate_code(Compose c) {
     }
     code = Block::make(lowered_nodes);
 
-    bool is_device_launch = false;
+    bool is_device_launch = c.isDeviceCall();
 
     // Once we have visited the pipeline, we need to
     // wrap the body in a FunctionSignature interface.

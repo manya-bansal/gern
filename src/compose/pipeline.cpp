@@ -21,6 +21,10 @@ Pipeline::Pipeline(Compose compose)
     : Pipeline(std::vector<Compose>{compose}) {
 }
 
+std::vector<Compose> Pipeline::getFuncs() const {
+    return compose;
+}
+
 AbstractDataTypePtr Pipeline::getOutput() const {
     return true_output;
 }

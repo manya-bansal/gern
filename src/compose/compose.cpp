@@ -81,6 +81,20 @@ ComputeFunctionCall ComputeFunctionCall::replaceAllDS(std::map<AbstractDataTypeP
                                getHeader());
 }
 
+Compose Compose::callAtDevice() {
+    is_device_call = true;
+    return *this;
+}
+
+Compose Compose::callAtHost() {
+    is_device_call = false;
+    return *this;
+}
+
+bool Compose::isDeviceCall() {
+    return is_device_call;
+}
+
 Compose::Compose(std::vector<Compose> compose, bool fuse)
     : Compose(Pipeline(compose, fuse)) {
 }
