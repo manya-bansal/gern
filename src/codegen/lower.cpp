@@ -73,6 +73,7 @@ void ComposeLower::visit(const ComputeFunctionCall *c) {
 }
 
 void ComposeLower::visit(const PipelineNode *node) {
+    intermediates_set = node->p.getIntermediates();
     // Generate all the variable definitions
     // that the functions can then directly refer to.
     generateAllDefs(node);
@@ -88,12 +89,10 @@ void ComposeLower::visit(const PipelineNode *node) {
     }
     // Generate all the free nodes now.
     generateAllFrees(node);
-
     // If its a vec of vec...then, need to do something else.
     // right now, gern will complain if you try.
     // Now generate the outer loops.
-    lowered = generateOuterIntervals(
-        to<ComputeFunctionCall>(compose[compose.size() - 1].ptr), lowered);
+    lowered = generateOuterIntervals(node->p.getProducerFunction(node->p.getOutput()), lowered);
 }
 
 bool ComposeLower::isIntermediate(AbstractDataTypePtr d) const {

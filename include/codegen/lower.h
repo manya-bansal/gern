@@ -63,7 +63,6 @@ private:
     std::vector<LowerIR> generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
     std::vector<LowerIR> generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
 
-    std::vector<Compose> compose;
     std::vector<LowerIR> lowered;
     std::vector<Assign> variable_definitions;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;

@@ -16,6 +16,7 @@ CGStmt CodeGenerator::generate_code(const Pipeline &p) {
     Compose c(p);
     ComposeLower lower(c);
     std::vector<CGStmt> lowered_nodes;
+
     for (const auto &node : lower.lower()) {
         this->visit(node);
         lowered_nodes.push_back(code);
