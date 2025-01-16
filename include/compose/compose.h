@@ -37,7 +37,7 @@ public:
     Compose()
         : util::IntrusivePtr<const CompositionObject>(nullptr) {
     }
-    explicit Compose(const CompositionObject *n)
+    Compose(const CompositionObject *n)
         : util::IntrusivePtr<const CompositionObject>(n) {
     }
 
@@ -56,6 +56,20 @@ private:
 };
 
 std::ostream &operator<<(std::ostream &os, const Compose &);
+
+/**
+ * @brief Fuses takes 1 or more Compose objects and fuses them together.
+ *
+ * @param functions The list of functions to fuse
+ * @return Compose
+ */
+template<typename... ToCompose>
+Compose Fuse(ToCompose... c) {
+    // Static assertion to ensure all arguments are of type Compose
+    static_assert((std::is_same_v<ToCompose, Compose> && ...), "All arguments must be of type Compose");
+    std::vector<Compose> to_compose{c...};
+    return Compose(to_compose);
+}
 
 // A FunctionSignature call has a name,
 // a set of arguments, a set of

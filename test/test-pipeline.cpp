@@ -34,35 +34,28 @@ TEST(PipelineTest, ReuseOutput) {
     // each time. Should complain even if nested.
     ASSERT_THROW(Pipeline p({
                      add_f(inputDS, outputDS),
-                     Pipeline{
-                         add_f(inputDS, outputDS),
-                     },
+                     Fuse(
+                         add_f(inputDS, outputDS)),
                  }),
                  error::UserError);
 
     // A pipeline can only assign to fresh outputs
     // each time. Should complain even if nested.
-    ASSERT_THROW(Pipeline p({
-                     Compose(
+    ASSERT_THROW(Fuse(
+                     Fuse(
                          add_f(outputDS, outputDS)),
-                     add_f(inputDS, outputDS),
-                 }),
+                     add_f(inputDS, outputDS)),
                  error::UserError);
 
     // Try to assign to an output that has been read by the child.
-    ASSERT_THROW(Pipeline p({
-                     Pipeline(
-                         add_f(inputDS, outputDS)),
-                     add_f(outputDS, inputDS),
-                 }),
+    ASSERT_THROW(Fuse(
+                     Fuse(add_f(inputDS, outputDS)),
+                     add_f(outputDS, inputDS)),
                  error::UserError);
     // Assign to input that has been read by parent.
-    ASSERT_THROW(Pipeline p({
+    ASSERT_THROW(Fuse(
                      add_f(inputDS, outputDS),
-                     Pipeline{
-                         add_f(outputDS, inputDS),
-                     },
-                 }),
+                     Fuse(add_f(outputDS, inputDS))),
                  error::UserError);
 }
 
@@ -78,12 +71,9 @@ TEST(PipelineTest, NoReuseOutput) {
         add_f(outputDS, outputDS_new),
     }));
 
-    ASSERT_NO_THROW(Pipeline p({
+    ASSERT_NO_THROW(Fuse(
         add_f(inputDS, outputDS),
-        Pipeline{
-            add_f(outputDS, outputDS_new),
-        },
-    }));
+        Fuse(add_f(outputDS, outputDS_new))));
 }
 
 TEST(PipelineTest, IntermediateVisibility) {
@@ -96,19 +86,17 @@ TEST(PipelineTest, IntermediateVisibility) {
     annot::add add_f;
     // Try to read a child's intermediate.
     ASSERT_THROW(Pipeline({
-                     Pipeline({
+                     Fuse(
                          add_f(inputDS, outputDS),
-                         add_f(outputDS, outputDS_new),
-                     }),
+                         add_f(outputDS, outputDS_new)),
                      add_f(outputDS, outputDS_vis),
                  }),
                  error::UserError);
     // Try to write to a child's intermediate.
     ASSERT_THROW(Pipeline({
-                     Pipeline({
+                     Fuse(
                          add_f(inputDS, outputDS),
-                         add_f(outputDS, outputDS_new),
-                     }),
+                         add_f(outputDS, outputDS_new)),
                      add_f(outputDS_new, outputDS),
                  }),
                  error::UserError);
@@ -140,29 +128,24 @@ TEST(PipelineTest, ExtraOutput) {
     // Catch in nested pipeline too.
     ASSERT_THROW(Pipeline p({
                      add_f(inputDS, outputDS),
-                     {
-                         add_f(inputDS, outputDS_new),
-                     },
+                     Fuse(
+                         add_f(inputDS, outputDS_new)),
                  }),
                  error::UserError);
 
     // Catch in nested pipeline that appears first.
     ASSERT_THROW(Pipeline p({
-                     {
-                         add_f(inputDS, outputDS_new),
-                     },
+                     Fuse(
+                         add_f(inputDS, outputDS_new)),
                      add_f(inputDS, outputDS),
                  }),
                  error::UserError);
 
     ASSERT_THROW(Pipeline p({
-                     Pipeline({
-                         Pipeline({
-                             Pipeline(
-                                 add_f(inputDS, outputDS_new)),
-                         }),
-                     }),
-
+                     Fuse(
+                         Fuse(
+                             Fuse(
+                                 add_f(inputDS, outputDS_new)))),
                      add_f(inputDS, outputDS),
                  }),
                  error::UserError);
@@ -213,8 +196,11 @@ TEST(PipelineTest, getConsumerFuncs) {
     ASSERT_TRUE(funcs.size() == 0);
 
     Pipeline p_nested_2({
-        Pipeline({Pipeline({Pipeline(
-            add_1)})}),
+        Fuse(
+            Fuse(
+                Fuse(
+                    Fuse(
+                        add_1)))),
         add_2,
     });
 

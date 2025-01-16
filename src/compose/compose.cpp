@@ -100,12 +100,6 @@ void ComputeFunctionCall::accept(CompositionVisitorStrict *v) const {
     v->visit(this);
 }
 
-std::ostream &operator<<(std::ostream &os, const Compose &compose) {
-    ComposePrinter p{os, 0};
-    p.visit(compose);
-    return os;
-}
-
 Compose Compose::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacements) const {
     Compose c = *this;
     compose_match(Compose(*this),
@@ -126,6 +120,12 @@ Compose Compose::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr>
                           c = Compose(rw_compose);
                       }));
     return c;
+}
+
+std::ostream &operator<<(std::ostream &os, const Compose &compose) {
+    ComposePrinter p{os, 0};
+    p.visit(compose);
+    return os;
 }
 
 // GCOVR_EXCL_START
