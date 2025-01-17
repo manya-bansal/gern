@@ -17,6 +17,7 @@ public:
     ArgumentNode() = default;
     virtual ~ArgumentNode() = default;
     virtual void accept(ArgumentVisitorStrict *) const = 0;
+    virtual std::string getType() const = 0;
 };
 
 class DSArg : public ArgumentNode {
@@ -28,6 +29,7 @@ public:
         return dataStruct;
     }
     virtual void accept(ArgumentVisitorStrict *) const;
+    virtual std::string getType() const;
 
 private:
     AbstractDataTypePtr dataStruct;
@@ -42,6 +44,7 @@ public:
         return v;
     }
     virtual void accept(ArgumentVisitorStrict *) const;
+    virtual std::string getType() const;
 
 private:
     Variable v;
@@ -56,6 +59,7 @@ public:
         return e;
     }
     virtual void accept(ArgumentVisitorStrict *) const;
+    virtual std::string getType() const;
 
 private:
     Expr e;
@@ -80,6 +84,7 @@ public:
     }
     std::string str() const;
     bool isSameTypeAs(Argument) const;
+    std::string getType() const;
     void accept(ArgumentVisitorStrict *v) const;
 };
 

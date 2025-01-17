@@ -81,15 +81,15 @@ void CGPrinter::doIdent() {
 }
 
 void CGPrinter::visit(const VarDecl *op) {
-    if (op->is_const)
+    if (op->properties.is_const)
         os << "const ";
     os << op->type;
 
-    for (int i = 0; i < op->num_ref; i++) {
+    for (int i = 0; i < op->properties.num_ref; i++) {
         os << "&";
     }
 
-    for (int i = 0; i < op->num_ptr; i++) {
+    for (int i = 0; i < op->properties.num_ptr; i++) {
         os << "*";
     }
 

@@ -240,14 +240,21 @@ public:
         return to_free;
     }
 
-    static AbstractDataTypePtr make(const std::string &name, AbstractDataTypePtr ds) {
-        return AbstractDataTypePtr(new const PipelineDS(name, ds.ptr->getType(),
+    static AbstractDataTypePtr make(const std::string &name,
+                                    const std::string &type,
+                                    AbstractDataTypePtr ds) {
+        return AbstractDataTypePtr(new const PipelineDS(name, type,
                                                         ds.ptr->getFields(),
                                                         ds.ptr->getAllocateFunction(),
                                                         ds.ptr->getFreeFunction(),
                                                         ds.ptr->getInsertFunction(),
                                                         ds.ptr->getQueryFunction(),
                                                         ds.ptr->freeQuery()));
+    }
+
+    static AbstractDataTypePtr make(const std::string &name,
+                                    AbstractDataTypePtr ds) {
+        return make(name, ds.getType(), ds);
     }
 
 private:

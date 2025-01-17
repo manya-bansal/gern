@@ -22,6 +22,13 @@ bool Argument::isSameTypeAs(Argument arg) const {
     return false;
 }
 
+std::string Argument::getType() const {
+    if (!defined()) {
+        return "void";
+    }
+    return ptr->getType();
+}
+
 void Argument::accept(ArgumentVisitorStrict *v) const {
     if (!defined()) {
         return;
@@ -39,12 +46,24 @@ void DSArg::accept(ArgumentVisitorStrict *v) const {
     v->visit(this);
 }
 
+std::string DSArg::getType() const {
+    return getADTPtr().getType();
+}
+
 void VarArg::accept(ArgumentVisitorStrict *v) const {
     v->visit(this);
 }
 
+std::string VarArg::getType() const {
+    return getVar().getType().str();
+}
+
 void ExprArg::accept(ArgumentVisitorStrict *v) const {
     v->visit(this);
+}
+
+std::string ExprArg::getType() const {
+    return "auto";
 }
 
 }  // namespace gern

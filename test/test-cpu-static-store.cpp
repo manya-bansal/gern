@@ -47,7 +47,7 @@ TEST(StaticStore, Single) {
 
 TEST(StaticStore, Multi) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPUTemplate<10>("input_con"));
-    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPUTemplate<10>("temp"));
+    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPUTemplate<10>("temp", true));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPUTemplate<10>("output_con"));
 
     annot::addStaticStore add_f;

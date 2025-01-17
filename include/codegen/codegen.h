@@ -35,6 +35,7 @@ public:
     CGExpr gen(Constraint);
     CGExpr gen(AbstractDataTypePtr);
     CGStmt gen(FunctionCall f);
+    CGStmt gen(FunctionSignature f, CGStmt body);
 
     // Assign in used to track all the variables
     // that have been declared during lowering. The
@@ -54,7 +55,7 @@ public:
      * @param replacements Optional map to make replacements.
      * @return CGExpr
      */
-    CGExpr gen(Argument a, bool lhs = false);
+    CGExpr gen(Argument a);
 
     // To insert used variables.
     void insertInUsed(Variable);
@@ -63,14 +64,18 @@ public:
     // Little helper to make sure that
     // that once a var is declared, it's been
     // add to the declared set.
-    CGExpr declVar(Variable v, bool const_expr);
-    CGExpr declADT(AbstractDataTypePtr);
+    CGExpr declVar(Variable v, bool const_expr, bool track = true);
+    CGExpr declADT(AbstractDataTypePtr, bool track = true, DeclProperties = DeclProperties());
+    CGExpr declWithAuto(AbstractDataTypePtr ds, bool track);
+    CGExpr declParameter(Parameter a,
+                         bool track = true,
+                         DeclProperties = DeclProperties());
 
     std::string getName() const;
     std::string getHeaders() const;
     std::string getHookName() const;
     std::vector<std::string> getArgumentOrder() const;
-    FunctionCall getComputeFunction() const;
+    FunctionSignature getComputeFunctionSignature() const;
 
 private:
     CGStmt setGrid(const IntervalNode *op);
@@ -83,7 +88,8 @@ private:
     std::set<Variable> const_expr_vars;
     std::set<AbstractDataTypePtr> declared_adt;
     std::set<AbstractDataTypePtr> used_adt;
-    FunctionCall compute_func;
+    // The signature of the generated function.
+    FunctionSignature compute_func;
     CGStmt code;
 
     std::set<std::string> headers;

@@ -205,10 +205,10 @@ const AllocateNode *ComposeLower::constructAllocNode(AbstractDataTypePtr ds, std
 }
 
 const QueryNode *ComposeLower::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> query_args) {
-    AbstractDataTypePtr queried = PipelineDS::make(getUniqueName("_query_" + ds.getName()), ds);
+    AbstractDataTypePtr queried = PipelineDS::make(getUniqueName("_query_" + ds.getName()), "auto", ds);
     FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds.getFields(), query_args);
     f.name = ds.getName() + "." + f.name;
-    f.output = Argument(queried);
+    f.output = Parameter(queried);
     new_ds[ds] = queried;
     // If any of the queried data-structures need to be free, track that.
     if (ds.freeQuery()) {

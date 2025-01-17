@@ -16,6 +16,8 @@ CGStmt CodeGenerator::generate_code(Compose c) {
     ComposeLower lower(c);
     // Generate code the after lowering.
     return top_level_codegen(lower.lower(), c.isDeviceCall());
+
+    // Construct the hook function.
 }
 
 CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
@@ -35,8 +37,8 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
     std::vector<CGExpr> template_arg_vars;
     std::vector<CGExpr> call_template_vars;
     std::vector<CGStmt> hook_body;
-    std::vector<Argument> arguments;
-    std::vector<Expr> template_arguments;
+    std::vector<Parameter> parameters;
+    std::vector<Variable> template_arguments;
     // Declare all the variables that have been used, but have not been defined.
     for (const auto &v : used) {
         if (declared.contains(v)) {
@@ -69,7 +71,7 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
         hook_args.push_back(Var::make(ds.getName()));
         argument_order.push_back(ds.getName());
         num_args++;
-        arguments.push_back(ds);
+        parameters.push_back(Parameter(ds));
     }
 
     for (const auto &v : to_declare_vars) {
@@ -82,16 +84,19 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
         hook_args.push_back(gen(v));
         argument_order.push_back(v.getName());
         num_args++;
-        arguments.push_back(v);
+        parameters.push_back(Parameter(v));
     }
 
     // The return type is always void, the output
     // is modified by reference.
-    code = DeclFunc::make(name, Type::make("void"), args, code, is_device_launch, template_arg_vars);
 
     compute_func.name = name;
-    compute_func.args = arguments;
+    compute_func.args = parameters;
     compute_func.template_args = template_arguments;
+    compute_func.device = is_device_launch;
+
+    // This declares the function.
+    code = gen(compute_func, code);
 
     // Also make the FunctionSignature that is used as the entry point for
     // user code.
@@ -311,27 +316,54 @@ CGStmt CodeGenerator::gen(Assign a, bool const_expr) {
         gen(a.getB()));
 }
 
-CGExpr CodeGenerator::gen(Argument a, bool lhs) {
+CGExpr CodeGenerator::declParameter(Parameter a,
+                                    bool track,
+                                    DeclProperties properties) {
+    struct GenArgument : public ArgumentVisitorStrict {
+        GenArgument(CodeGenerator *cg, bool track,
+
+                    DeclProperties properties)
+            : cg(cg), track(track),
+              properties(properties) {
+        }
+
+        using ArgumentVisitorStrict::visit;
+        void visit(const DSArg *ds) {
+            gen_expr = cg->declADT(ds->getADTPtr(), track, properties);
+        }
+        void visit(const VarArg *v) {
+            gen_expr = cg->declVar(v->getVar(), properties.is_const, track);
+        }
+
+        void visit(const ExprArg *v) {
+            throw error::InternalError("unreachable");
+        }
+
+        CodeGenerator *cg;
+        bool track;
+        DeclProperties properties;
+        CGExpr gen_expr;
+    };
+
+    GenArgument generate(this, track, properties);
+    generate.visit(a);
+    return generate.gen_expr;
+}
+
+CGExpr CodeGenerator::gen(Argument a) {
 
     struct GenArgument : public ArgumentVisitorStrict {
-        GenArgument(CodeGenerator *cg, bool lhs)
-            : cg(cg), lhs(lhs) {
+        GenArgument(CodeGenerator *cg)
+            : cg(cg) {
         }
         using ArgumentVisitorStrict::visit;
         void visit(const DSArg *ds) {
             cg->used_adt.insert(ds->getADTPtr());
-            if (lhs) {
-                gen_expr = cg->declADT(ds->getADTPtr());
-            } else {
-                gen_expr = cg->gen(ds->getADTPtr());
-            }
+            gen_expr = cg->gen(ds->getADTPtr());
         }
+
         void visit(const VarArg *v) {
-            if (lhs) {
-                gen_expr = cg->declVar(v->getVar(), false);
-            } else {
-                gen_expr = cg->gen(v->getVar());
-            }
+            gen_expr = cg->gen(v->getVar());
         }
 
         void visit(const ExprArg *v) {
@@ -339,10 +371,10 @@ CGExpr CodeGenerator::gen(Argument a, bool lhs) {
         }
 
         CodeGenerator *cg;
-        bool lhs;
         CGExpr gen_expr;
     };
-    GenArgument generate(this, lhs);
+
+    GenArgument generate(this);
     generate.visit(a);
     return generate.gen_expr;
 }
@@ -359,9 +391,40 @@ CGStmt CodeGenerator::gen(FunctionCall f) {
 
     CGExpr call = Call::make(f.name, args, template_args);
     if (f.output.defined()) {
-        return VarAssign::make(gen(f.output, true), call);
+        return VarAssign::make(declParameter(f.output, true), call);
     }
     return VoidCall::make(call);
+}
+
+CGStmt CodeGenerator::gen(FunctionSignature f, CGStmt body) {
+    std::vector<CGExpr> template_args_cg;
+    std::vector<CGExpr> args_cg;
+    std::vector<Parameter> args = f.args;
+    std::vector<Variable> template_args = f.template_args;
+
+    DeclProperties properties{
+        .is_const = false,
+        .num_ref = !f.device,
+    };
+
+    std::transform(
+        args.begin(),
+        args.end(),
+        std::back_inserter(args_cg),
+        [this, properties](const Parameter &a) {
+            return declParameter(a, false, properties);
+        });
+
+    std::transform(
+        template_args.begin(),
+        template_args.end(),
+        std::back_inserter(template_args_cg),
+        [this, properties](const Parameter &a) {
+            return declParameter(a, false, properties);
+        });
+
+    CGExpr return_type = Type::make(f.output.getType());
+    return DeclFunc::make(f.name, return_type, args_cg, body, f.device, template_args_cg);
 }
 
 void CodeGenerator::insertInUsed(Variable v) {
@@ -388,21 +451,38 @@ std::vector<std::string> CodeGenerator::getArgumentOrder() const {
     return argument_order;
 }
 
-FunctionCall CodeGenerator::getComputeFunction() const {
+FunctionSignature CodeGenerator::getComputeFunctionSignature() const {
     return compute_func;
 }
 
-CGExpr CodeGenerator::declVar(Variable v, bool const_expr) {
-    declared.insert(v);
+CGExpr CodeGenerator::declVar(Variable v, bool const_expr, bool track) {
+    if (track) {
+        declared.insert(v);
+    }
     return VarDecl::make(Type::make((const_expr ? "constexpr " : "") +
                                     v.getType().str()),
                          v.getName());
 }
 
-CGExpr CodeGenerator::declADT(AbstractDataTypePtr ds) {
+CGExpr CodeGenerator::declWithAuto(AbstractDataTypePtr ds, bool track) {
     CGExpr decl = VarDecl::make(Type::make("auto"),
                                 ds.getName());
-    declared_adt.insert(ds);
+
+    if (track) {
+        declared_adt.insert(ds);
+    }
+    return decl;
+}
+
+CGExpr CodeGenerator::declADT(AbstractDataTypePtr ds,
+                              bool track,
+                              DeclProperties properties) {
+    CGExpr decl = VarDecl::make(Type::make(ds.getType()),
+                                ds.getName(), properties);
+
+    if (track) {
+        declared_adt.insert(ds);
+    }
     return decl;
 }
 
