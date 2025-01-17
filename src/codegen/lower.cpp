@@ -99,7 +99,7 @@ void ComposeLower::visit(const PipelineNode *node) {
         // ugly.
         if (isa<PipelineNode>(compose)) {
             ComposeLower child_lower(compose);
-            lowered.push_back(child_lower.lower());
+            lowered.push_back(new const FunctionBoundary(child_lower.lower()));
         } else {
             this->visit(compose);
             lowered.push_back(final_lower);
@@ -108,7 +108,7 @@ void ComposeLower::visit(const PipelineNode *node) {
     // Generate all the free nodes now.
     ir_nodes = generateAllFrees(node);
     lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
-    final_lower = new const FunctionBoundary(generateOuterIntervals(node->p.getProducerFunction(node->p.getOutput()), lowered));
+    final_lower = generateOuterIntervals(node->p.getProducerFunction(node->p.getOutput()), lowered);
 }
 
 bool ComposeLower::isIntermediate(AbstractDataTypePtr d) const {

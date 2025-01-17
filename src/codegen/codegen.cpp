@@ -16,7 +16,7 @@ CGStmt CodeGenerator::generate_code(Compose c) {
     ComposeLower lower(c);
     // Generate code the after lowering.
     bool is_device_call = c.isDeviceCall();
-    code = top_level_codegen(lower.lower(), c.isDeviceCall());
+    top_level_codegen(lower.lower(), c.isDeviceCall());
 
     // Generate the hook.
     std::vector<CGStmt> hook_body;
@@ -53,22 +53,21 @@ CGStmt CodeGenerator::generate_code(Compose c) {
 
     // Finally ready to generate the full file.
     std::vector<CGStmt> full_code;
-    // Now, add the children (compute functions that must be declared).
-    for (const auto &child : children) {
-        full_code.push_back(child);
-    }
-
     // Now, add the headers.
     for (const auto &h : headers) {
         full_code.push_back(EscapeCGStmt::make("#include \"" + h + "\""));
     }
 
+    full_code.push_back(BlankLine::make());
+    full_code.push_back(BlankLine::make());
+    // Now, add the children (compute functions that must be declared).
+    for (const auto &child : children) {
+        full_code.push_back(child);
+    }
+    full_code.push_back(code);
     CGStmt hook = DeclFunc::make(hook_name, Type::make("void"),
                                  {VarDecl::make(Type::make("void**"), "args")},
                                  Block::make(hook_body));
-    full_code.push_back(BlankLine::make());
-    full_code.push_back(BlankLine::make());
-    full_code.push_back(code);
     full_code.push_back(EscapeCGStmt::make("extern \"C\""));
     full_code.push_back(Scope::make(hook));
 
@@ -196,12 +195,12 @@ void CodeGenerator::visit(const BlockNode *op) {
 }
 
 void CodeGenerator::visit(const FunctionBoundary *op) {
-    this->visit(op->nodes);
-    // CodeGenerator cg;
-    // bool is_device = false;
+    CodeGenerator cg;
+    bool is_device = false;
     // Push this back, so that we can declare it.
-    // children.push_back(top_level_codegen(op->nodes, is_device));
-    // code = gen(cg.getComputeFunction());
+    children.push_back(cg.top_level_codegen(op->nodes, is_device));
+    // Call the generated compute function.
+    code = gen(cg.getComputeFunctionSignature().constructCall());
 }
 
 #define VISIT_AND_DECLARE(op)          \
