@@ -7,13 +7,18 @@
 
 namespace gern {
 
-std::ostream &operator<<(std::ostream &os, const FunctionSignature &f) {
+FunctionCall FunctionSignature::constructCall() const {
     FunctionCall f_call{
-        .name = f.name,
-        .args = std::vector<Argument>(f.args.begin(), f.args.end()),
-        .template_args = std::vector<Expr>(f.template_args.begin(), f.template_args.end()),
-        .output = f.output,
+        .name = name,
+        .args = std::vector<Argument>(args.begin(), args.end()),
+        .template_args = std::vector<Expr>(template_args.begin(), template_args.end()),
+        .output = output,
     };
+    return f_call;
+}
+
+std::ostream &operator<<(std::ostream &os, const FunctionSignature &f) {
+    FunctionCall f_call = f.constructCall();
     os << f_call << std::endl;
     return os;
 }

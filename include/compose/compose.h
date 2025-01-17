@@ -71,19 +71,6 @@ Compose Fuse(ToCompose... c) {
     return Compose(to_compose, true);
 }
 
-// A FunctionSignature call has a name,
-// a set of arguments, a set of
-// templated arguments, and a return type.
-struct FunctionSignature {
-    std::string name;
-    std::vector<Parameter> args = {};
-    // Only int64_t args allowed rn.
-    std::vector<Variable> template_args = {};
-    // To model an explict return. Currently, no compute FunctionSignature can return.
-    Parameter output = Parameter();
-    bool device = false;
-};
-
 // For making an actual function call.
 struct FunctionCall {
     std::string name;
@@ -98,6 +85,20 @@ struct FunctionCall {
      * @return * Function
      */
     FunctionCall replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
+};
+
+// A FunctionSignature call has a name,
+// a set of arguments, a set of
+// templated arguments, and a return type.
+struct FunctionSignature {
+    std::string name;
+    std::vector<Parameter> args = {};
+    // Only int64_t args allowed rn.
+    std::vector<Variable> template_args = {};
+    // To model an explict return. Currently, no compute FunctionSignature can return.
+    Parameter output = Parameter();
+    bool device = false;
+    FunctionCall constructCall() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const FunctionSignature &f);

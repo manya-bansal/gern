@@ -15,9 +15,64 @@ CGStmt CodeGenerator::generate_code(Compose c) {
     // Lower each IR node one by one.
     ComposeLower lower(c);
     // Generate code the after lowering.
-    return top_level_codegen(lower.lower(), c.isDeviceCall());
+    bool is_device_call = c.isDeviceCall();
+    code = top_level_codegen(lower.lower(), c.isDeviceCall());
 
-    // Construct the hook function.
+    // Generate the hook.
+    std::vector<CGStmt> hook_body;
+    // Emit the const expr definitions.
+    for (const auto &const_v : compute_func.template_args) {
+        hook_body.push_back(gen(const_v = Expr(const_v.getInt64Val()), true));
+    }
+
+    DeclProperties properties{
+        .is_const = false,
+        .num_ref = 1,
+        .num_ptr = 0,
+    };
+    // Get all the arguments out of a void**.
+    for (int i = 0; i < compute_func.args.size(); i++) {
+        Parameter param = compute_func.args[i];
+        hook_body.push_back(
+            VarAssign::make(declParameter(param, false, properties),
+                            Deref::make(
+                                Cast::make(Type::make(param.getType() + "*"),
+                                           Var::make("args[" + std::to_string(i) + "]")))));
+    }
+    // Now, call the compute function.
+    CGStmt hook_call = gen(compute_func.constructCall());
+    if (is_device_call) {
+        // Declare the grid and block dimensions.
+        // hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
+        // hook_body.push_back(EscapeCGStmt::make("dim3 __block_dim__(" + block_dim.str() + ");"));
+        // hook_call = KernelLaunch::make(name, hook_args, call_template_vars, Var::make("__grid_dim__"), Var::make("__block_dim__"));
+        // full_code.push_back(EscapeCGStmt::make("#include <cuda_runtime.h>"));
+        throw error::InternalError("Unimplemented");
+    }
+    hook_body.push_back(hook_call);
+
+    // Finally ready to generate the full file.
+    std::vector<CGStmt> full_code;
+    // Now, add the children (compute functions that must be declared).
+    for (const auto &child : children) {
+        full_code.push_back(child);
+    }
+
+    // Now, add the headers.
+    for (const auto &h : headers) {
+        full_code.push_back(EscapeCGStmt::make("#include \"" + h + "\""));
+    }
+
+    CGStmt hook = DeclFunc::make(hook_name, Type::make("void"),
+                                 {VarDecl::make(Type::make("void**"), "args")},
+                                 Block::make(hook_body));
+    full_code.push_back(BlankLine::make());
+    full_code.push_back(BlankLine::make());
+    full_code.push_back(code);
+    full_code.push_back(EscapeCGStmt::make("extern \"C\""));
+    full_code.push_back(Scope::make(hook));
+
+    return Block::make(full_code);
 }
 
 CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
@@ -45,94 +100,36 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
             continue;
         }
         if (const_expr_vars.contains(v)) {
-            template_arg_vars.push_back(VarDecl::make(Type::make(v.getType().str()), v.getName()));
-            call_template_vars.push_back(Var::make(v.getName()));
             template_arguments.push_back(v);
             if (!v.isBoundToInt64()) {
                 throw error::UserError(v.getName() + " must be bound to an int64_t, it is a template parameter");
             }
-            hook_body.push_back(gen(v = Expr(v.getInt64Val()), true));
             continue;
         }
         to_declare_vars.push_back(v);
     }
 
-    std::vector<CGExpr> args;
-    std::vector<CGExpr> hook_args;
-
-    int num_args = 0;
     for (const auto &ds : to_declare_adts) {
-        args.push_back(VarDecl::make(Type::make(ds.getType()), ds.getName(), false, !is_device_launch));
-        hook_body.push_back(
-            VarAssign::make(VarDecl::make(Type::make(ds.getType()), ds.getName(), false, !is_device_launch),
-                            Deref::make(
-                                Cast::make(Type::make(ds.getType() + "*"),
-                                           Var::make("args[" + std::to_string(num_args) + "]")))));
-        hook_args.push_back(Var::make(ds.getName()));
         argument_order.push_back(ds.getName());
-        num_args++;
         parameters.push_back(Parameter(ds));
     }
 
     for (const auto &v : to_declare_vars) {
-        args.push_back(VarDecl::make(Type::make(v.getType().str()), v.getName()));
-        hook_body.push_back(
-            VarAssign::make(VarDecl::make(Type::make(v.getType().str()), v.getName()),
-                            Deref::make(
-                                Cast::make(Type::make(v.getType().str() + "*"),
-                                           Var::make("args[" + std::to_string(num_args) + "]")))));
-        hook_args.push_back(gen(v));
         argument_order.push_back(v.getName());
-        num_args++;
         parameters.push_back(Parameter(v));
     }
 
     // The return type is always void, the output
     // is modified by reference.
-
     compute_func.name = name;
     compute_func.args = parameters;
     compute_func.template_args = template_arguments;
     compute_func.device = is_device_launch;
 
-    // This declares the function.
+    // This generate the function declaration with the body.
     code = gen(compute_func, code);
 
-    // Also make the FunctionSignature that is used as the entry point for
-    // user code.
-    std::vector<CGStmt> full_code;
-    CGStmt hook_call = VoidCall::make(Call::make(name, hook_args, call_template_vars));
-    if (is_device_launch) {
-        // Declare the grid and block dimensions.
-        hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
-        hook_body.push_back(EscapeCGStmt::make("dim3 __block_dim__(" + block_dim.str() + ");"));
-        hook_call = KernelLaunch::make(name, hook_args, call_template_vars, Var::make("__grid_dim__"), Var::make("__block_dim__"));
-        full_code.push_back(EscapeCGStmt::make("#include <cuda_runtime.h>"));
-    }
-
-    hook_body.push_back(hook_call);
-
-    CGStmt hook = DeclFunc::make(hook_name, Type::make("void"),
-                                 {VarDecl::make(Type::make("void**"), "args")},
-                                 Block::make(hook_body));
-
-    // Now, add the children.
-    for (const auto &child : children) {
-        full_code.push_back(child);
-    }
-
-    // Now, add the headers.
-    for (const auto &h : headers) {
-        full_code.push_back(EscapeCGStmt::make("#include \"" + h + "\""));
-    }
-
-    full_code.push_back(BlankLine::make());
-    full_code.push_back(BlankLine::make());
-    full_code.push_back(code);
-    full_code.push_back(EscapeCGStmt::make("extern \"C\""));
-    full_code.push_back(Scope::make(hook));
-
-    return Block::make(full_code);
+    return code;
 }
 
 void CodeGenerator::visit(const AllocateNode *op) {
