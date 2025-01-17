@@ -31,8 +31,27 @@ TEST(LoweringCPU, SimpleNested) {
     Runner run(functions);
     run.compile(test::cpuRunner("array"));
 
-    // int64_t step 4;
-    // run.evaluate({
-    //     v.getName(),
-    // })
+    int64_t inner_step = 1;
+    int64_t outer_step = 5;
+
+    impl::ArrayCPU a(10);
+    a.ascending();
+    impl::ArrayCPU b(10);
+
+    run.evaluate({
+        {v1.getName(), &inner_step},
+        {v2.getName(), &outer_step},
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+    });
+
+    std::cout << a << std::endl;
+    std::cout << b << std::endl;
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(b.data[i] == (a.data[i] + 2));
+    }
+
+    a.destroy();
+    b.destroy();
 }

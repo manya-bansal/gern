@@ -100,6 +100,9 @@ void ComposeLower::visit(const PipelineNode *node) {
         if (isa<PipelineNode>(compose)) {
             ComposeLower child_lower(compose);
             LowerIR child_ir = child_lower.lower();
+            // Generate the queries
+            ir_nodes = generateAllChildQueries(node, to<PipelineNode>(compose));
+            lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
             lowered.push_back(new const FunctionBoundary(child_ir));
         } else {
             this->visit(compose);
@@ -182,6 +185,10 @@ std::vector<Compose> ComposeLower::rewriteCalls(const PipelineNode *node) const 
         new_funcs.push_back(c.replaceAllDS(new_ds));
     }
     return new_funcs;
+}
+
+std::vector<LowerIR> ComposeLower::generateAllQueries(const PipelineNode *node) {
+    std::set<AbstractDataTypePtr> child_inputs = node->p.getInputs();
 }
 
 std::vector<LowerIR> ComposeLower::generateAllFrees(const PipelineNode *) {

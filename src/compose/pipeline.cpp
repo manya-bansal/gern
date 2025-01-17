@@ -25,6 +25,10 @@ std::vector<Compose> Pipeline::getFuncs() const {
     return compose;
 }
 
+std::set<AbstractDataTypePtr> Pipeline::getInputs() const {
+    return inputs;
+}
+
 AbstractDataTypePtr Pipeline::getOutput() const {
     return true_output;
 }
@@ -112,6 +116,7 @@ void Pipeline::init(std::vector<Compose> compose) {
             AbstractDataTypePtr output = node->getOutput();
             std::set<AbstractDataTypePtr> func_inputs = node->getInputs();
             all_inputs.insert(func_inputs.begin(), func_inputs.end());
+            inputs.insert(func_inputs.begin(), func_inputs.end());
 
             // Check whether the output has already been assigned to.
             if (intermediates_set.count(output) > 0 ||
@@ -140,6 +145,9 @@ void Pipeline::init(std::vector<Compose> compose) {
             std::set<AbstractDataTypePtr> nested_reads = node->p.getAllReadDataStruct();
 
             all_inputs.insert(nested_reads.begin(), nested_reads.end());
+            std::set<AbstractDataTypePtr> child_inputs = node->p.getInputs();
+            inputs.insert(child_inputs.begin(), child_inputs.end());
+
             if (all_inputs.contains(output)) {
                 throw error::UserError("Assigning to a " + output.getName() + " that has already been read");
             }
@@ -161,6 +169,7 @@ void Pipeline::init(std::vector<Compose> compose) {
         }
 
         std::vector<Compose> compose;
+        std::set<AbstractDataTypePtr> inputs;
         std::set<AbstractDataTypePtr> intermediates_set;
         std::set<AbstractDataTypePtr> all_inputs;
         std::set<AbstractDataTypePtr> all_nested_temps;
@@ -175,6 +184,9 @@ void Pipeline::init(std::vector<Compose> compose) {
     all_outputs = df.outputs_in_order;
     true_output = df.true_output;
     fresh_calls = df.fresh_calls;
+    std::set_difference(df.inputs.begin(), df.inputs.end(),
+                        intermediates_set.begin(), intermediates_set.end(),
+                        std::inserter(inputs, inputs.end()));
 }
 
 std::set<AbstractDataTypePtr> Pipeline::getAllWriteDataStruct() const {

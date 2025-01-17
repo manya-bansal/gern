@@ -37,6 +37,7 @@ private:
     AbstractDataTypePtr true_output;
     std::vector<AbstractDataTypePtr> all_outputs;
     std::set<AbstractDataTypePtr> intermediates_set;
+    std::set<AbstractDataTypePtr> inputs;
     // The last function of a child's pipeline, needs to be refreshed.
     // The parent pipeline and the child pipeline should refer to different
     // fields.

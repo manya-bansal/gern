@@ -50,9 +50,10 @@ public:
 private:
     bool isIntermediate(AbstractDataTypePtr d) const;
 
-    std::vector<LowerIR> generateAllDefs(const PipelineNode *node);    // Helper method to define all the variable definitions.
-    std::vector<LowerIR> generateAllAllocs(const PipelineNode *node);  // Helper method to declare all the allocate node.
-    std::vector<LowerIR> generateAllFrees(const PipelineNode *node);   // Helper method to declare all the frees.
+    std::vector<LowerIR> generateAllDefs(const PipelineNode *node);       // Helper method to define all the variable definitions.
+    std::vector<LowerIR> generateAllAllocs(const PipelineNode *node);     // Helper method to declare all the allocate node.
+    std::vector<LowerIR> generateAllFrees(const PipelineNode *node);      // Helper method to declare all the frees.
+    std::vector<LowerIR> generateAllQueries(const PipelineNode *parent);  // Helper method to declare all the frees.
 
     const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
     const FreeNode *constructFreeNode(AbstractDataTypePtr);                          // Constructs a free node for a data-structure, and tracks this relationship.

@@ -42,6 +42,12 @@ public:
         }
     }
 
+    void ascending() {
+        for (int64_t i = 0; i < size; i++) {
+            data[i] = (float)i;
+        }
+    }
+
     float *data;
     int64_t size;
 };
