@@ -16,6 +16,7 @@ public:
     }
 
     CGStmt generate_code(Compose);
+    CGStmt top_level_codegen(LowerIR, bool is_device_launch);
 
     using LowerIRVisitor::visit;
 
@@ -66,11 +67,14 @@ public:
     CGExpr declADT(AbstractDataTypePtr);
 
     std::string getName() const;
+    std::string getHeaders() const;
     std::string getHookName() const;
     std::vector<std::string> getArgumentOrder() const;
+    FunctionCall getComputeFunction() const;
 
 private:
     CGStmt setGrid(const IntervalNode *op);
+    std::vector<CGStmt> children;  // code generated for children.
 
     std::string name;
     std::string hook_name;
@@ -79,6 +83,7 @@ private:
     std::set<Variable> const_expr_vars;
     std::set<AbstractDataTypePtr> declared_adt;
     std::set<AbstractDataTypePtr> used_adt;
+    FunctionCall compute_func;
     CGStmt code;
 
     std::set<std::string> headers;

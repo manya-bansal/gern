@@ -185,7 +185,7 @@ struct BlankNode : public LowerIRNode {
 // Function boundary indicates that the corresponding
 // lowered nodes are called in a separate function body.
 // These may, or may not be, fused with the rest of the code.
-struct FunctionBoundary {
+struct FunctionBoundary : public LowerIRNode {
     FunctionBoundary(LowerIR nodes)
         : nodes(nodes) {
     }
@@ -261,4 +261,4 @@ private:
     bool to_free;
 };
 
-}
+}  // namespace gern

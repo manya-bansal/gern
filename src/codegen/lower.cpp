@@ -108,7 +108,7 @@ void ComposeLower::visit(const PipelineNode *node) {
     // Generate all the free nodes now.
     ir_nodes = generateAllFrees(node);
     lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
-    final_lower = generateOuterIntervals(node->p.getProducerFunction(node->p.getOutput()), lowered);
+    final_lower = new const FunctionBoundary(generateOuterIntervals(node->p.getProducerFunction(node->p.getOutput()), lowered));
 }
 
 bool ComposeLower::isIntermediate(AbstractDataTypePtr d) const {

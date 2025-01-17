@@ -14,10 +14,12 @@ namespace codegen {
 CGStmt CodeGenerator::generate_code(Compose c) {
     // Lower each IR node one by one.
     ComposeLower lower(c);
-    // Generate the lowered code.
-    this->visit(lower.lower());
+    // Generate code the after lowering.
+    return top_level_codegen(lower.lower(), c.isDeviceCall());
+}
 
-    bool is_device_launch = c.isDeviceCall();
+CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
+    this->visit(ir);  // code should contain the lowered IR.
     // Once we have visited the pipeline, we need to
     // wrap the body in a FunctionSignature interface.
 
@@ -33,6 +35,8 @@ CGStmt CodeGenerator::generate_code(Compose c) {
     std::vector<CGExpr> template_arg_vars;
     std::vector<CGExpr> call_template_vars;
     std::vector<CGStmt> hook_body;
+    std::vector<Argument> arguments;
+    std::vector<Expr> template_arguments;
     // Declare all the variables that have been used, but have not been defined.
     for (const auto &v : used) {
         if (declared.contains(v)) {
@@ -41,6 +45,7 @@ CGStmt CodeGenerator::generate_code(Compose c) {
         if (const_expr_vars.contains(v)) {
             template_arg_vars.push_back(VarDecl::make(Type::make(v.getType().str()), v.getName()));
             call_template_vars.push_back(Var::make(v.getName()));
+            template_arguments.push_back(v);
             if (!v.isBoundToInt64()) {
                 throw error::UserError(v.getName() + " must be bound to an int64_t, it is a template parameter");
             }
@@ -64,6 +69,7 @@ CGStmt CodeGenerator::generate_code(Compose c) {
         hook_args.push_back(Var::make(ds.getName()));
         argument_order.push_back(ds.getName());
         num_args++;
+        arguments.push_back(ds);
     }
 
     for (const auto &v : to_declare_vars) {
@@ -76,11 +82,16 @@ CGStmt CodeGenerator::generate_code(Compose c) {
         hook_args.push_back(gen(v));
         argument_order.push_back(v.getName());
         num_args++;
+        arguments.push_back(v);
     }
 
     // The return type is always void, the output
     // is modified by reference.
     code = DeclFunc::make(name, Type::make("void"), args, code, is_device_launch, template_arg_vars);
+
+    compute_func.name = name;
+    compute_func.args = arguments;
+    compute_func.template_args = template_arguments;
 
     // Also make the FunctionSignature that is used as the entry point for
     // user code.
@@ -99,6 +110,11 @@ CGStmt CodeGenerator::generate_code(Compose c) {
     CGStmt hook = DeclFunc::make(hook_name, Type::make("void"),
                                  {VarDecl::make(Type::make("void**"), "args")},
                                  Block::make(hook_body));
+
+    // Now, add the children.
+    for (const auto &child : children) {
+        full_code.push_back(child);
+    }
 
     // Now, add the headers.
     for (const auto &h : headers) {
@@ -186,7 +202,12 @@ void CodeGenerator::visit(const BlockNode *op) {
 }
 
 void CodeGenerator::visit(const FunctionBoundary *op) {
-    throw error::InternalError("Unimpl");
+    this->visit(op->nodes);
+    // CodeGenerator cg;
+    // bool is_device = false;
+    // Push this back, so that we can declare it.
+    // children.push_back(top_level_codegen(op->nodes, is_device));
+    // code = gen(cg.getComputeFunction());
 }
 
 #define VISIT_AND_DECLARE(op)          \
@@ -355,12 +376,20 @@ std::string CodeGenerator::getName() const {
     return name;
 }
 
+std::string CodeGenerator::getHeaders() const {
+    return name;
+}
+
 std::string CodeGenerator::getHookName() const {
     return hook_name;
 }
 
 std::vector<std::string> CodeGenerator::getArgumentOrder() const {
     return argument_order;
+}
+
+FunctionCall CodeGenerator::getComputeFunction() const {
+    return compute_func;
 }
 
 CGExpr CodeGenerator::declVar(Variable v, bool const_expr) {
