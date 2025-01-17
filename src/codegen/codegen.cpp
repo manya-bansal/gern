@@ -119,7 +119,6 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
 
     // This generate the function declaration with the body.
     code = gen(compute_func, code);
-
     return code;
 }
 

@@ -17,12 +17,22 @@ TEST(LoweringCPU, SimpleNested) {
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
     auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
 
-    annot::add add_f;
-    Variable v("v");
+    annot::add_1 add_1;
+    Variable v1("v1");
+    Variable v2("v2");
     Variable step("step");
 
-    Compose functions({Fuse(add_f(inputDS, tempDS),
-                            Fuse(add_f(tempDS, outputDS)))});
+    Compose functions({
+        Fuse(
+            Fuse(add_1[{{"step", v1}}](inputDS, tempDS)),
+            add_1[{{"step", v2}}](tempDS, outputDS)),
+    });
+
     Runner run(functions);
     run.compile(test::cpuRunner("array"));
+
+    // int64_t step 4;
+    // run.evaluate({
+    //     v.getName(),
+    // })
 }

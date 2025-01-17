@@ -36,7 +36,11 @@ std::set<ComputeFunctionCallPtr> Pipeline::getConsumerFunctions(AbstractDataType
     compose_match(Compose(*this), std::function<void(const ComputeFunctionCall *)>(
                                       [&](const ComputeFunctionCall *op) {
                                           if (op->getInputs().contains(ds)) {
-                                              funcs.insert(op);
+                                              if (fresh_calls.contains(op)) {
+                                                  funcs.insert(to<ComputeFunctionCall>(fresh_calls.at(op)));
+                                              } else {
+                                                  funcs.insert(op);
+                                              }
                                           }
                                       }));
     return funcs;
@@ -49,7 +53,11 @@ ComputeFunctionCallPtr Pipeline::getProducerFunction(AbstractDataTypePtr ds) con
     compose_match(Compose(*this), std::function<void(const ComputeFunctionCall *)>(
                                       [&](const ComputeFunctionCall *op) {
                                           if (op->getOutput() == ds) {
-                                              func = op;
+                                              if (fresh_calls.contains(op)) {
+                                                  func = to<ComputeFunctionCall>(fresh_calls.at(op));
+                                              } else {
+                                                  func = op;
+                                              }
                                           }
                                       }));
     return func;
@@ -148,6 +156,8 @@ void Pipeline::init(std::vector<Compose> compose) {
             intermediates_set.insert(output);
             true_output = output;  // Update final output.
             outputs_in_order.push_back(output);
+            ComputeFunctionCallPtr last_func = node->p.getProducerFunction(output);
+            fresh_calls[last_func] = last_func->refreshVariable();
         }
 
         std::vector<Compose> compose;
@@ -156,6 +166,7 @@ void Pipeline::init(std::vector<Compose> compose) {
         std::set<AbstractDataTypePtr> all_nested_temps;
         std::vector<AbstractDataTypePtr> outputs_in_order;
         AbstractDataTypePtr true_output;
+        std::map<ComputeFunctionCallPtr, Compose> fresh_calls;
     };
 
     DataFlowConstructor df(compose);
@@ -163,6 +174,7 @@ void Pipeline::init(std::vector<Compose> compose) {
     intermediates_set = df.intermediates_set;
     all_outputs = df.outputs_in_order;
     true_output = df.true_output;
+    fresh_calls = df.fresh_calls;
 }
 
 std::set<AbstractDataTypePtr> Pipeline::getAllWriteDataStruct() const {

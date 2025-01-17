@@ -48,6 +48,7 @@ void ComposePrinter::visit(Pipeline p) {
 
 void ComposePrinter::visit(const ComputeFunctionCall *f) {
     util::printIdent(os, ident);
+    os << f->getAnnotation() << std::endl;
     os << *f;
 }
 

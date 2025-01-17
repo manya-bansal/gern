@@ -37,6 +37,10 @@ private:
     AbstractDataTypePtr true_output;
     std::vector<AbstractDataTypePtr> all_outputs;
     std::set<AbstractDataTypePtr> intermediates_set;
+    // The last function of a child's pipeline, needs to be refreshed.
+    // The parent pipeline and the child pipeline should refer to different
+    // fields.
+    std::map<ComputeFunctionCallPtr, Compose> fresh_calls;
     bool fuse = false;
 };
 

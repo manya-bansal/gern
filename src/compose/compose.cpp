@@ -86,6 +86,34 @@ ComputeFunctionCall ComputeFunctionCall::replaceAllDS(std::map<AbstractDataTypeP
                                getHeader());
 }
 
+ComputeFunctionCallPtr ComputeFunctionCall::refreshVariable() const {
+    std::set<Variable> arg_variables;
+    for (const auto &arg : call.args) {
+        if (isa<VarArg>(arg)) {
+            arg_variables.insert(to<VarArg>(arg)->getVar());
+        }
+    }
+    for (const auto &arg : call.template_args) {
+        if (isa<Variable>(arg)) {
+            arg_variables.insert(to<Variable>(arg));
+        }
+    }
+    std::set<Variable> old_vars = getVariables(annotation);
+    // Generate fresh names for all old variables, except the
+    // variables that are being used as arguments.
+    std::map<Variable, Variable> fresh_names;
+    for (const auto &v : old_vars) {
+        if (arg_variables.contains(v)) {
+            continue;
+        }
+        // Otherwise, generate a new name.
+        fresh_names[v] = getUniqueName("_gern_" + v.getName());
+    }
+    Pattern rw_annotation = to<Pattern>(annotation
+                                            .replaceVariables(fresh_names));
+    return new const ComputeFunctionCall(getCall(), rw_annotation, header);
+}
+
 Compose Compose::callAtDevice() {
     is_device_call = true;
     return *this;

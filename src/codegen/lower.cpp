@@ -99,7 +99,8 @@ void ComposeLower::visit(const PipelineNode *node) {
         // ugly.
         if (isa<PipelineNode>(compose)) {
             ComposeLower child_lower(compose);
-            lowered.push_back(new const FunctionBoundary(child_lower.lower()));
+            LowerIR child_ir = child_lower.lower();
+            lowered.push_back(new const FunctionBoundary(child_ir));
         } else {
             this->visit(compose);
             lowered.push_back(final_lower);

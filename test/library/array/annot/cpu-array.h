@@ -93,6 +93,41 @@ protected:
     Variable step{"step"};
 };
 
+class add_1 : public AbstractFunction {
+public:
+    add_1()
+        : input(new const ArrayCPU("input")),
+          output(new const ArrayCPU("output")) {
+    }
+
+    Pattern getAnnotation() override {
+        Variable x("x");
+
+        return For(x = Expr(0), output["size"], step,
+                   Produces::Subset(output, {x, step}),
+                   Consumes::Subset(input, {x, step}));
+    }
+
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::add_1";
+        f.args = {Parameter(input), Parameter(output)};
+        return f;
+    }
+
+    std::vector<std::string> getHeader() override {
+        return {
+            "cpu-array.h",
+        };
+    }
+
+protected:
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
+    Variable end{"end"};
+    Variable step{"step"};
+};
+
 class addTemplate : public add {
 public:
     addTemplate()

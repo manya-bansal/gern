@@ -179,6 +179,8 @@ public:
     bool isTemplateArg(Variable v) const;
 
     ComputeFunctionCall replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
+    // Generate new variables for everything except variables passed as argument.
+    const ComputeFunctionCall *refreshVariable() const;
 
     void accept(CompositionVisitorStrict *v) const;
 
