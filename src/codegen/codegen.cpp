@@ -77,9 +77,11 @@ CGStmt CodeGenerator::generate_code(Compose c) {
 
 CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
     this->visit(ir);  // code should contain the lowered IR.
+
     // Once we have visited the pipeline, we need to
     // wrap the body in a FunctionSignature interface.
-
+    std::vector<Parameter> parameters;
+    std::vector<Variable> template_arguments;
     // Add all the data-structures that haven't been declared
     // or allocated to the FunctionSignature arguments. These are the
     // true inputs, or the true outputs.
@@ -88,12 +90,11 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
                         declared_adt.begin(), declared_adt.end(),
                         std::back_inserter(to_declare_adts));
 
-    std::vector<Variable> to_declare_vars;
-    std::vector<CGExpr> template_arg_vars;
-    std::vector<CGExpr> call_template_vars;
-    std::vector<CGStmt> hook_body;
-    std::vector<Parameter> parameters;
-    std::vector<Variable> template_arguments;
+    for (const auto &ds : to_declare_adts) {
+        argument_order.push_back(ds.getName());
+        parameters.push_back(Parameter(ds));
+    }
+
     // Declare all the variables that have been used, but have not been defined.
     for (const auto &v : used) {
         if (declared.contains(v)) {
@@ -106,15 +107,6 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
             }
             continue;
         }
-        to_declare_vars.push_back(v);
-    }
-
-    for (const auto &ds : to_declare_adts) {
-        argument_order.push_back(ds.getName());
-        parameters.push_back(Parameter(ds));
-    }
-
-    for (const auto &v : to_declare_vars) {
         argument_order.push_back(v.getName());
         parameters.push_back(Parameter(v));
     }
