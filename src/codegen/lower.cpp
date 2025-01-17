@@ -1,8 +1,8 @@
 #include "codegen/lower.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
+#include "codegen/lower_visitor.h"
 #include "compose/pipeline.h"
-#include "compose/pipeline_visitor.h"
 
 namespace gern {
 
@@ -14,18 +14,18 @@ void LowerIR::accept(LowerIRVisitor *v) const {
 }
 
 std::ostream &operator<<(std::ostream &os, const LowerIR &n) {
-    PipelinePrinter print(os, 0);
+    LowerPrinter print(os, 0);
     print.visit(n);
     return os;
 }
 
-std::vector<LowerIR> ComposeLower::lower() {
+LowerIR ComposeLower::lower() {
     if (has_been_lowered) {
-        return lowered;
+        return final_lower;
     }
     visit(c);
     has_been_lowered = true;
-    return lowered;
+    return final_lower;
 }
 
 void ComposeLower::visit(const ComputeFunctionCall *c) {
@@ -33,11 +33,13 @@ void ComposeLower::visit(const ComputeFunctionCall *c) {
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> queries;
     AbstractDataTypePtr output = c->getOutput();
     Argument queried;
+
+    std::vector<LowerIR> lowered_func;
     if (!isIntermediate(output)) {
         const QueryNode *q = constructQueryNode(output,
                                                 c->getMetaDataFields(output));
         queried = q->f.output;
-        lowered.push_back(q);
+        lowered_func.push_back(q);
     }
 
     // Generate the queries for the true inputs.
@@ -59,8 +61,8 @@ void ComposeLower::visit(const ComputeFunctionCall *c) {
     temp.push_back(new const ComputeNode(new_call, c->getHeader()));
 
     // Now generate all the consumer intervals if any!
-    std::vector<LowerIR> intervals = generateConsumesIntervals(c, temp);
-    lowered.insert(lowered.end(), intervals.begin(), intervals.end());
+    LowerIR intervals = generateConsumesIntervals(c, temp);
+    lowered_func.push_back(intervals);
 
     // Insert the computed output if necessary.
     if (!isIntermediate(output) && output.insertQuery()) {
@@ -68,42 +70,57 @@ void ComposeLower::visit(const ComputeFunctionCall *c) {
                                                output.getFields(), c->getMetaDataFields(output));
         f.name = output.getName() + "." + f.name;
         f.args.push_back(Argument(queried));
-        lowered.push_back(new InsertNode(output, f));
+        lowered_func.push_back(new InsertNode(output, f));
     }
+
+    final_lower = new const BlockNode(lowered_func);
 }
 
 void ComposeLower::visit(const PipelineNode *node) {
+    // Set up the intermediates.
     intermediates_set = node->p.getIntermediates();
+    std::vector<LowerIR> lowered;
     // Generate all the variable definitions
     // that the functions can then directly refer to.
-    generateAllDefs(node);
+    std::vector<LowerIR> ir_nodes = generateAllDefs(node);
+    lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
     // Generate all the allocations.
     // For nested pipelines, this should
     // generated nested allocations for
     // temps as well.
-    std::vector<Compose> compose_w_allocs = generateAllAllocs(node);
+    ir_nodes = generateAllAllocs(node);
+    lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
+    // Rewrite functions to use the allocated data-structures.
+    std::vector<Compose> compose_w_allocs = rewriteCalls(node);
     // Generates all the queries and the compute node.
     // by visiting all the functions.
-    for (const auto &funcs : compose_w_allocs) {
-        this->visit(funcs);
+    for (const auto &compose : compose_w_allocs) {
+        // There HAS to be a better way, this is so
+        // ugly.
+        if (isa<PipelineNode>(compose)) {
+            ComposeLower child_lower(compose);
+            lowered.push_back(child_lower.lower());
+        } else {
+            this->visit(compose);
+            lowered.push_back(final_lower);
+        }
     }
     // Generate all the free nodes now.
-    generateAllFrees(node);
-    // If its a vec of vec...then, need to do something else.
-    // right now, gern will complain if you try.
-    // Now generate the outer loops.
-    lowered = generateOuterIntervals(node->p.getProducerFunction(node->p.getOutput()), lowered);
+    ir_nodes = generateAllFrees(node);
+    lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
+    final_lower = generateOuterIntervals(node->p.getProducerFunction(node->p.getOutput()), lowered);
 }
 
 bool ComposeLower::isIntermediate(AbstractDataTypePtr d) const {
     return intermediates_set.contains(d);
 }
 
-void ComposeLower::generateAllDefs(const PipelineNode *node) {
+std::vector<LowerIR> ComposeLower::generateAllDefs(const PipelineNode *node) {
+    std::vector<LowerIR> lowered;
     std::vector<AbstractDataTypePtr> intermediates = node->p.getAllOutputs();
     if (intermediates.size() <= 1) {
         // Do nothing.
-        return;
+        return {};
     }
     auto it = intermediates.rbegin();
     it++;  // Skip the last one.
@@ -140,11 +157,13 @@ void ComposeLower::generateAllDefs(const PipelineNode *node) {
             break;
         }
     }
+    return lowered;
 }
 
-std::vector<Compose> ComposeLower::generateAllAllocs(const PipelineNode *node) {
+std::vector<LowerIR> ComposeLower::generateAllAllocs(const PipelineNode *node) {
     // We need to define an allocation for all the
     // intermediates.
+    std::vector<LowerIR> lowered;
     std::vector<AbstractDataTypePtr> intermediates = node->p.getAllOutputs();
     for (size_t i = 0; i < intermediates.size() - 1; i++) {
         AbstractDataTypePtr temp = intermediates[i];
@@ -153,8 +172,10 @@ std::vector<Compose> ComposeLower::generateAllAllocs(const PipelineNode *node) {
             temp,
             node->p.getProducerFunction(temp)->getMetaDataFields(temp)));
     }
+    return lowered;
+}
 
-    // Change references to the allocated data-structures now.
+std::vector<Compose> ComposeLower::rewriteCalls(const PipelineNode *node) const {
     std::vector<Compose> new_funcs;
     for (const auto &c : node->p.getFuncs()) {
         new_funcs.push_back(c.replaceAllDS(new_ds));
@@ -162,10 +183,12 @@ std::vector<Compose> ComposeLower::generateAllAllocs(const PipelineNode *node) {
     return new_funcs;
 }
 
-void ComposeLower::generateAllFrees(const PipelineNode *) {
+std::vector<LowerIR> ComposeLower::generateAllFrees(const PipelineNode *) {
+    std::vector<LowerIR> lowered;
     for (const auto &ds : to_free) {
         lowered.push_back(constructFreeNode(ds));
     }
+    return lowered;
 }
 
 const FreeNode *ComposeLower::constructFreeNode(AbstractDataTypePtr ds) {
@@ -224,8 +247,8 @@ FunctionCall ComposeLower::constructFunctionCall(FunctionSignature f, std::vecto
     return f_new;
 }
 
-std::vector<LowerIR> ComposeLower::generateConsumesIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
-    std::vector<LowerIR> current = body;
+LowerIR ComposeLower::generateConsumesIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
+    LowerIR current = new const BlockNode(body);
     match(f->getAnnotation(), std::function<void(const ConsumesForNode *, Matcher *)>(
                                   [&](const ConsumesForNode *op, Matcher *ctx) {
                                       ctx->match(op->body);
@@ -234,8 +257,8 @@ std::vector<LowerIR> ComposeLower::generateConsumesIntervals(ComputeFunctionCall
     return current;
 }
 
-std::vector<LowerIR> ComposeLower::generateOuterIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
-    std::vector<LowerIR> current = body;
+LowerIR ComposeLower::generateOuterIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
+    LowerIR current = new const BlockNode(body);
     match(f->getAnnotation(), std::function<void(const ComputesForNode *, Matcher *)>(
                                   [&](const ComputesForNode *op, Matcher *ctx) {
                                       ctx->match(op->body);
@@ -282,6 +305,14 @@ Variable IntervalNode::getIntervalVariable() const {
 }
 
 void BlankNode::accept(LowerIRVisitor *v) const {
+    v->visit(this);
+}
+
+void FunctionBoundary::accept(LowerIRVisitor *v) const {
+    v->visit(this);
+}
+
+void BlockNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 

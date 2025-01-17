@@ -43,27 +43,27 @@ public:
     }
 
     using CompositionVisitorStrict::visit;
-    std::vector<LowerIR> lower();
+    LowerIR lower();
     void visit(const ComputeFunctionCall *c);
     void visit(const PipelineNode *c);
 
 private:
     bool isIntermediate(AbstractDataTypePtr d) const;
 
-    void generateAllDefs(const PipelineNode *node);                    // Helper method to define all the variable definitions.
-    std::vector<Compose> generateAllAllocs(const PipelineNode *node);  // Helper method to declare all the allocate node.
-    void generateAllFrees(const PipelineNode *node);                   // Helper method to declare all the frees.
+    std::vector<LowerIR> generateAllDefs(const PipelineNode *node);    // Helper method to define all the variable definitions.
+    std::vector<LowerIR> generateAllAllocs(const PipelineNode *node);  // Helper method to declare all the allocate node.
+    std::vector<LowerIR> generateAllFrees(const PipelineNode *node);   // Helper method to declare all the frees.
 
     const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
     const FreeNode *constructFreeNode(AbstractDataTypePtr);                          // Constructs a free node for a data-structure, and tracks this relationship.
     const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
+    std::vector<Compose> rewriteCalls(const PipelineNode *node) const;
 
     FunctionCall constructFunctionCall(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
 
-    std::vector<LowerIR> generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
-    std::vector<LowerIR> generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
+    LowerIR generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
+    LowerIR generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
 
-    std::vector<LowerIR> lowered;
     std::vector<Assign> variable_definitions;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
 
@@ -130,11 +130,20 @@ struct ComputeNode : public LowerIRNode {
     std::vector<std::string> headers;
 };
 
+// Block Nodes can hold a list of IR nodes.
+struct BlockNode : public LowerIRNode {
+    BlockNode(std::vector<LowerIR> ir_nodes)
+        : ir_nodes(ir_nodes) {
+    }
+    void accept(LowerIRVisitor *) const;
+    std::vector<LowerIR> ir_nodes;
+};
+
 // To track the interval nodes that need to be generated
 // for the pipeline.
 struct IntervalNode : public LowerIRNode {
 public:
-    IntervalNode(Assign start, Expr end, Expr step, std::vector<LowerIR> body)
+    IntervalNode(Assign start, Expr end, Expr step, LowerIR body)
         : start(start), end(end), step(step), body(body) {
     }
     void accept(LowerIRVisitor *) const;
@@ -152,7 +161,7 @@ public:
     Assign start;
     Expr end;
     Expr step;
-    std::vector<LowerIR> body;
+    LowerIR body;
 };
 
 // Node to declare definitions of variables.
@@ -171,6 +180,17 @@ struct DefNode : public LowerIRNode {
 struct BlankNode : public LowerIRNode {
     BlankNode() = default;
     void accept(LowerIRVisitor *) const;
+};
+
+// Function boundary indicates that the corresponding
+// lowered nodes are called in a separate function body.
+// These may, or may not be, fused with the rest of the code.
+struct FunctionBoundary {
+    FunctionBoundary(LowerIR nodes)
+        : nodes(nodes) {
+    }
+    void accept(LowerIRVisitor *) const;
+    LowerIR nodes;
 };
 
 // Defining an abstract data class that we can use to define query and free node.
@@ -241,4 +261,4 @@ private:
     bool to_free;
 };
 
-}  // namespace gern
+}

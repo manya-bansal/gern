@@ -1,8 +1,8 @@
 #pragma once
 
 #include "codegen/codegen_ir.h"
+#include "codegen/lower_visitor.h"
 #include "compose/pipeline.h"
-#include "compose/pipeline_visitor.h"
 #include "utils/name_generator.h"
 
 namespace gern {
@@ -27,6 +27,8 @@ public:
     void visit(const IntervalNode *);
     void visit(const BlankNode *);
     void visit(const DefNode *);
+    void visit(const BlockNode *);
+    void visit(const FunctionBoundary *);
 
     CGExpr gen(Expr, bool const_expr = false);  // Is this part of the LHS of a const_expr?
     CGExpr gen(Constraint);

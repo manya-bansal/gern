@@ -36,11 +36,11 @@ target_sources(
         src/compose/compose.cpp
         src/compose/compose_visitor.cpp
         src/compose/pipeline.cpp
-        src/compose/pipeline_visitor.cpp
         src/codegen/codegen.cpp
         src/codegen/codegen_ir.cpp
         src/codegen/codegen_printer.cpp
         src/codegen/lower.cpp
+        src/codegen/lower_visitor.cpp
         src/codegen/runner.cpp
         # src/resolve_constraints/resolve_constraints.cpp
         src/utils/name_generator.cpp
@@ -61,13 +61,13 @@ target_sources(
         include/compose/compose.h
         include/compose/compose_visitor.h
         include/compose/pipeline.h
-        include/compose/pipeline_visitor.h
         include/compose/runner.h
         include/codegen/codegen.h
         include/codegen/codegen_ir.h
         include/codegen/codegen_visitor.h
         include/codegen/codegen_printer.h
         include/codegen/lower.h
+        include/codegen/lower_visitor.h
         include/utils/debug.h
         include/utils/error.h
         include/utils/name_generator.h

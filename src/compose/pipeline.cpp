@@ -1,8 +1,8 @@
 #include "compose/pipeline.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
+#include "codegen/lower_visitor.h"
 #include "compose/compose.h"
-#include "compose/pipeline_visitor.h"
 #include "utils/debug.h"
 #include "utils/error.h"
 

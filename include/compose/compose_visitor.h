@@ -39,28 +39,28 @@ private:
     int ident = 0;
 };
 
-#define PIPELINE_RULE(Rule)                                                     \
-    std::function<void(const Rule *)> Rule##Func;                               \
-    std::function<void(const Rule *, PipelineMatcher *)> Rule##CtxFunc;         \
-    void unpack(std::function<void(const Rule *)> pattern) {                    \
-        assert(!Rule##CtxFunc && !Rule##Func);                                  \
-        Rule##Func = pattern;                                                   \
-    }                                                                           \
-    void unpack(std::function<void(const Rule *, PipelineMatcher *)> pattern) { \
-        assert(!Rule##CtxFunc && !Rule##Func);                                  \
-        Rule##CtxFunc = pattern;                                                \
-    }                                                                           \
-    void visit(const Rule *op) {                                                \
-        if (Rule##Func) {                                                       \
-            Rule##Func(op);                                                     \
-        } else if (Rule##CtxFunc) {                                             \
-            Rule##CtxFunc(op, this);                                            \
-            return;                                                             \
-        }                                                                       \
-        CompositionVisitor::visit(op);                                          \
+#define COMPOSE_RULE(Rule)                                                     \
+    std::function<void(const Rule *)> Rule##Func;                              \
+    std::function<void(const Rule *, ComposeMatcher *)> Rule##CtxFunc;         \
+    void unpack(std::function<void(const Rule *)> pattern) {                   \
+        assert(!Rule##CtxFunc && !Rule##Func);                                 \
+        Rule##Func = pattern;                                                  \
+    }                                                                          \
+    void unpack(std::function<void(const Rule *, ComposeMatcher *)> pattern) { \
+        assert(!Rule##CtxFunc && !Rule##Func);                                 \
+        Rule##CtxFunc = pattern;                                               \
+    }                                                                          \
+    void visit(const Rule *op) {                                               \
+        if (Rule##Func) {                                                      \
+            Rule##Func(op);                                                    \
+        } else if (Rule##CtxFunc) {                                            \
+            Rule##CtxFunc(op, this);                                           \
+            return;                                                            \
+        }                                                                      \
+        CompositionVisitor::visit(op);                                         \
     }
 
-class PipelineMatcher : public CompositionVisitor {
+class ComposeMatcher : public CompositionVisitor {
 
 public:
     template<class T>
@@ -86,8 +86,8 @@ private:
 
     using CompositionVisitor::visit;
 
-    PIPELINE_RULE(ComputeFunctionCall);
-    PIPELINE_RULE(PipelineNode);
+    COMPOSE_RULE(ComputeFunctionCall);
+    COMPOSE_RULE(PipelineNode);
 };
 
 template<class T, class... Patterns>
@@ -95,7 +95,7 @@ void compose_match(T stmt, Patterns... patterns) {
     if (!stmt.defined()) {
         return;
     }
-    PipelineMatcher().process(stmt, patterns...);
+    ComposeMatcher().process(stmt, patterns...);
 }
 
 }  // namespace gern

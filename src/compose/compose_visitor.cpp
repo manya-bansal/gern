@@ -1,6 +1,6 @@
 #include "compose/compose_visitor.h"
+#include "codegen/lower_visitor.h"
 #include "compose/pipeline.h"
-#include "compose/pipeline_visitor.h"
 #include "utils/printer.h"
 
 namespace gern {

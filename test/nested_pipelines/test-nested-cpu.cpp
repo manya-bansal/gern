@@ -21,6 +21,8 @@ TEST(LoweringCPU, SimpleNested) {
     Variable v("v");
     Variable step("step");
 
-    Pipeline p({Fuse(add_f(inputDS, tempDS),
-                     Fuse(add_f(tempDS, outputDS)))});
+    Compose functions({Fuse(add_f(inputDS, tempDS),
+                            Fuse(add_f(tempDS, outputDS)))});
+    Runner run(functions);
+    run.compile(test::cpuRunner("array"));
 }

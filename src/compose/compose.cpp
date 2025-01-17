@@ -117,15 +117,15 @@ void ComputeFunctionCall::accept(CompositionVisitorStrict *v) const {
 Compose Compose::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacements) const {
     Compose c = *this;
     compose_match(Compose(*this),
-                  std::function<void(const ComputeFunctionCall *, PipelineMatcher *)>(
-                      [&](const ComputeFunctionCall *op, PipelineMatcher *) {
+                  std::function<void(const ComputeFunctionCall *, ComposeMatcher *)>(
+                      [&](const ComputeFunctionCall *op, ComposeMatcher *) {
                           auto rw_call = op->replaceAllDS(replacements);
                           c = Compose(new const ComputeFunctionCall(rw_call.getCall(),
                                                                     rw_call.getAnnotation(),
                                                                     rw_call.getHeader()));
                       }),
-                  std::function<void(const PipelineNode *, PipelineMatcher *)>(
-                      [&](const PipelineNode *op, PipelineMatcher *ctx) {
+                  std::function<void(const PipelineNode *, ComposeMatcher *)>(
+                      [&](const PipelineNode *op, ComposeMatcher *ctx) {
                           std::vector<Compose> rw_compose;
                           for (const auto &func : op->p.getFuncs()) {
                               ctx->match(func);

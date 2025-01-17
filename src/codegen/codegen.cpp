@@ -14,16 +14,10 @@ namespace codegen {
 CGStmt CodeGenerator::generate_code(Compose c) {
     // Lower each IR node one by one.
     ComposeLower lower(c);
-    std::vector<CGStmt> lowered_nodes;
-
-    for (const auto &node : lower.lower()) {
-        this->visit(node);
-        lowered_nodes.push_back(code);
-    }
-    code = Block::make(lowered_nodes);
+    // Generate the lowered code.
+    this->visit(lower.lower());
 
     bool is_device_launch = c.isDeviceCall();
-
     // Once we have visited the pipeline, we need to
     // wrap the body in a FunctionSignature interface.
 
@@ -159,10 +153,8 @@ void CodeGenerator::visit(const IntervalNode *op) {
     // variable, set it up.
     body.push_back(setGrid(op));
     // Continue lowering the body now.
-    for (const auto &node : op->body) {
-        this->visit(node);
-        body.push_back(code);
-    }
+    this->visit(op->body);
+    body.push_back(code);
     code = Block::make(body);
 
     // If the variable is not mapped to the grid, we need to actually
@@ -182,6 +174,19 @@ void CodeGenerator::visit(const DefNode *op) {
 
 void CodeGenerator::visit(const BlankNode *) {
     code = CGStmt();
+}
+
+void CodeGenerator::visit(const BlockNode *op) {
+    std::vector<CGStmt> block;
+    for (const auto &node : op->ir_nodes) {
+        this->visit(node);
+        block.push_back(code);
+    }
+    code = Block::make(block);
+}
+
+void CodeGenerator::visit(const FunctionBoundary *op) {
+    throw error::InternalError("Unimpl");
 }
 
 #define VISIT_AND_DECLARE(op)          \
