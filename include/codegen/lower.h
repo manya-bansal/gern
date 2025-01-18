@@ -62,8 +62,8 @@ private:
 
     FunctionCall constructFunctionCall(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
 
-    LowerIR generateConsumesIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
-    LowerIR generateOuterIntervals(ComputeFunctionCallPtr, std::vector<LowerIR> body) const;
+    LowerIR generateConsumesIntervals(Pattern, std::vector<LowerIR> body) const;
+    LowerIR generateOuterIntervals(Pattern, std::vector<LowerIR> body) const;
 
     std::vector<Assign> variable_definitions;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;

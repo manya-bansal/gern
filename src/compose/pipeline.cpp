@@ -302,7 +302,7 @@ Pattern Pipeline::generateProducesIntervals(Compose c, Computes computes) const 
     match(c.getAnnotation(), std::function<void(const ComputesForNode *, Matcher *)>(
                                  [&](const ComputesForNode *op, Matcher *ctx) {
                                      ctx->match(op->body);
-                                     pattern = For(op->start, op->end, op->step, computes);
+                                     pattern = For(op->start, op->end, op->step, pattern);
                                  }));
     return pattern;
 }

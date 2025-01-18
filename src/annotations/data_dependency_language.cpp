@@ -423,6 +423,15 @@ std::vector<SubsetObj> Pattern::getAllConsumesSubsets() const {
     return subset;
 }
 
+SubsetObj Pattern::getOutput() const {
+    SubsetObj subset;
+    match(*this, std::function<void(const ProducesNode *)>(
+                     [&](const ProducesNode *op) {
+                         subset = op->output;
+                     }));
+    return subset;
+}
+
 Pattern For(Assign start, Expr end, Expr step, Pattern body,
             bool parallel) {
     return Pattern(

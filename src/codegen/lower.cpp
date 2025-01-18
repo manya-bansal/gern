@@ -35,14 +35,6 @@ void ComposeLower::visit(const ComputeFunctionCall *c) {
     Argument queried;
 
     std::vector<LowerIR> lowered_func;
-    if (!isIntermediate(output)) {
-        const QueryNode *q = constructQueryNode(output,
-                                                c->getMetaDataFields(output));
-        queried = q->f.output;
-        lowered_func.push_back(q);
-    }
-
-    // Generate the queries for the true inputs.
     // since intermediates should have been allocated,
     // Putting these in temp because it may need to wrapped
     // in an interval node.
@@ -61,16 +53,11 @@ void ComposeLower::visit(const ComputeFunctionCall *c) {
     temp.push_back(new const ComputeNode(new_call, c->getHeader()));
 
     // Now generate all the consumer intervals if any!
-    LowerIR intervals = generateConsumesIntervals(c, temp);
-    lowered_func.push_back(intervals);
-
-    // Insert the computed output if necessary.
-    if (!isIntermediate(output) && output.insertQuery()) {
-        FunctionCall f = constructFunctionCall(output.getInsertFunction(),
-                                               output.getFields(), c->getMetaDataFields(output));
-        f.name = output.getName() + "." + f.name;
-        f.args.push_back(Argument(queried));
-        lowered_func.push_back(new InsertNode(output, f));
+    if (isIntermediate(output)) {
+        LowerIR intervals = generateConsumesIntervals(c->getAnnotation(), temp);
+        lowered_func.push_back(intervals);
+    } else {
+        lowered_func.push_back(new BlockNode(temp));
     }
 
     final_lower = new const BlockNode(lowered_func);
@@ -93,6 +80,10 @@ void ComposeLower::visit(const PipelineNode *node) {
     // temps as well.
     ir_nodes = generateAllAllocs(node);
     lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
+
+    SubsetObj output_subset = node->getAnnotation().getOutput();
+    AbstractDataTypePtr output = output_subset.getDS();
+    const QueryNode *output_query = constructQueryNode(output, output_subset.getFields());
     // Rewrite functions to use the allocated data-structures.
     std::vector<Compose> compose_w_allocs = rewriteCalls(node);
     // Generates all the queries and the compute node.
@@ -101,12 +92,12 @@ void ComposeLower::visit(const PipelineNode *node) {
         // There HAS to be a better way, this is so
         // ugly.
         if (isa<PipelineNode>(compose)) {
-            ComposeLower child_lower(compose);
-            LowerIR child_ir = child_lower.lower();
-            // Generate the queries
-            // ir_nodes = generateAllChildQueries(node, to<PipelineNode>(compose));
-            // lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
-            lowered.push_back(new const FunctionBoundary(child_ir));
+            // ComposeLower child_lower(compose);
+            // LowerIR child_ir = child_lower.lower();
+            // // Generate the queries
+            // // ir_nodes = generateAllChildQueries(node, to<PipelineNode>(compose));
+            // // lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
+            // lowered.push_back(new const FunctionBoundary(child_ir));
         } else {
             this->visit(compose);
             lowered.push_back(final_lower);
@@ -115,7 +106,19 @@ void ComposeLower::visit(const PipelineNode *node) {
     // Generate all the free nodes now.
     ir_nodes = generateAllFrees(node);
     lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
-    final_lower = generateOuterIntervals(node->p.getProducerFunction(node->p.getOutput()), lowered);
+    LowerIR with_consumes_intervals = generateConsumesIntervals(node->getAnnotation(), lowered);
+    // Insert the computed output if necessary.
+    std::vector<LowerIR> after_compute = {output_query, with_consumes_intervals};
+    if (output.insertQuery()) {
+        FunctionCall f = constructFunctionCall(output.getInsertFunction(),
+                                               output.getFields(),
+                                               output_subset.getFields());
+        f.name = output.getName() + "." + f.name;
+        f.args.push_back(Argument(output_query->f.output));
+        after_compute.push_back(new const InsertNode(output, f));
+    }
+
+    final_lower = generateOuterIntervals(node->getAnnotation(), after_compute);
 }
 
 std::vector<LowerIR> ComposeLower::generateAllDefs(const PipelineNode *node) {
@@ -224,23 +227,23 @@ FunctionCall ComposeLower::constructFunctionCall(FunctionSignature f, std::vecto
     return f_new;
 }
 
-LowerIR ComposeLower::generateConsumesIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
+LowerIR ComposeLower::generateConsumesIntervals(Pattern p, std::vector<LowerIR> body) const {
     LowerIR current = new const BlockNode(body);
-    match(f->getAnnotation(), std::function<void(const ConsumesForNode *, Matcher *)>(
-                                  [&](const ConsumesForNode *op, Matcher *ctx) {
-                                      ctx->match(op->body);
-                                      current = {new IntervalNode(op->start, op->end, op->step, current)};
-                                  }));
+    match(p, std::function<void(const ConsumesForNode *, Matcher *)>(
+                 [&](const ConsumesForNode *op, Matcher *ctx) {
+                     ctx->match(op->body);
+                     current = {new IntervalNode(op->start, op->end, op->step, current)};
+                 }));
     return current;
 }
 
-LowerIR ComposeLower::generateOuterIntervals(ComputeFunctionCallPtr f, std::vector<LowerIR> body) const {
+LowerIR ComposeLower::generateOuterIntervals(Pattern p, std::vector<LowerIR> body) const {
     LowerIR current = new const BlockNode(body);
-    match(f->getAnnotation(), std::function<void(const ComputesForNode *, Matcher *)>(
-                                  [&](const ComputesForNode *op, Matcher *ctx) {
-                                      ctx->match(op->body);
-                                      current = {new IntervalNode(op->start, op->end, op->step, current)};
-                                  }));
+    match(p, std::function<void(const ComputesForNode *, Matcher *)>(
+                 [&](const ComputesForNode *op, Matcher *ctx) {
+                     ctx->match(op->body);
+                     current = {new IntervalNode(op->start, op->end, op->step, current)};
+                 }));
     return current;
 }
 
