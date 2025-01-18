@@ -43,17 +43,35 @@ void ComposePrinter::visit(Pipeline p) {
     }
 
     ident--;
-    os << "}";
+    os << "\n"
+       << "}";
 }
 
 void ComposePrinter::visit(const ComputeFunctionCall *f) {
     util::printIdent(os, ident);
-    os << f->getAnnotation() << std::endl;
+    // os << f->getAnnotation() << std::endl;
     os << *f;
 }
 
 void ComposePrinter::visit(const PipelineNode *p) {
+    util::printIdent(os, ident);
+    os << p->getAnnotation() << "\n";
+    util::printIdent(os, ident);
+    os << "where (" << "\n";
+    ident++;
+    std::vector<Assign> definitions = p->p.getDefinitions();
+    size_t size = definitions.size();
+    for (size_t i = 0; i < size; i++) {
+        util::printIdent(os, ident);
+        os << definitions[i] << ((i != size - 1) ? "," : "")
+           << "\n";
+    }
+    ident--;
+    util::printIdent(os, ident);
+    os << ")" << "\n";
+    ident++;
     this->visit(p->p);
+    ident--;
 }
 
 }  // namespace gern

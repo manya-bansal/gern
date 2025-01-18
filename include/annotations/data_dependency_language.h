@@ -411,6 +411,9 @@ public:
 struct PatternNode;
 class Pattern : public Stmt {
 public:
+    Pattern()
+        : Stmt() {
+    }
     explicit Pattern(const PatternNode *);
     Pattern where(Constraint);
     typedef PatternNode Node;

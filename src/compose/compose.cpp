@@ -136,6 +136,59 @@ Compose::Compose(Pipeline p)
     : Compose(new const PipelineNode(p)) {
 }
 
+Pattern Compose::getAnnotation() const {
+    return ptr->getAnnotation();
+}
+
+AbstractDataTypePtr Compose::getOutput() const {
+    AbstractDataTypePtr ds;
+    match(getAnnotation(), std::function<void(const ProducesNode *)>(
+                               [&](const ProducesNode *op) { ds = op->output.getDS(); }));
+    return ds;
+}
+
+std::set<AbstractDataTypePtr> Compose::getInputs() const {
+    std::set<AbstractDataTypePtr> inputs;
+    // Only the consumes part of the annotation has
+    // multiple subsets, so, we will only ever get the inputs.
+    match(getAnnotation(), std::function<void(const SubsetObjManyNode *)>(
+                               [&](const SubsetObjManyNode *op) {
+                                   for (const auto &s : op->subsets) {
+                                       inputs.insert(s.getDS());
+                                   }
+                               }));
+    return inputs;
+}
+
+std::vector<Variable> Compose::getProducesFields() const {
+    std::vector<Variable> metaFields;
+    match(getAnnotation(), std::function<void(const ProducesNode *)>(
+                               [&](const ProducesNode *op) {
+                                   metaFields = Produces(op).getFieldsAsVars();
+                               }));
+    return metaFields;
+}
+
+std::vector<Expr> Compose::getMetaDataFields(AbstractDataTypePtr d) const {
+    std::vector<Expr> metaFields;
+    match(getAnnotation(), std::function<void(const SubsetNode *)>(
+                               [&](const SubsetNode *op) {
+                                   if (op->data == d) {
+                                       metaFields = op->mdFields;
+                                   }
+                               }));
+    return metaFields;
+}
+
+std::vector<SubsetObj> Compose::getAllConsumesSubsets() const {
+    std::vector<SubsetObj> subset;
+    match(getAnnotation(), std::function<void(const SubsetObjManyNode *)>(
+                               [&](const SubsetObjManyNode *op) {
+                                   subset = op->subsets;
+                               }));
+    return subset;
+}
+
 void Compose::accept(CompositionVisitorStrict *v) const {
     if (!defined()) {
         return;

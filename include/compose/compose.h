@@ -25,6 +25,7 @@ public:
     CompositionObject() = default;
     virtual ~CompositionObject() = default;
     virtual void accept(CompositionVisitorStrict *) const = 0;
+    virtual Pattern getAnnotation() const = 0;
 };
 
 /**
@@ -47,6 +48,24 @@ public:
     Compose callAtDevice();
     Compose callAtHost();
     bool isDeviceCall();
+
+    Pattern getAnnotation() const;
+    /**
+     * @brief Returns the data structure that the FunctionSignature computes as output.
+     *
+     * @return Pointer to the data structure.
+     */
+    AbstractDataTypePtr getOutput() const;
+
+    /**
+     * @brief Returns the data structures that the FunctionSignature treats as inputs.
+     *
+     * @return std::set<AbstractDataTypePtr>=
+     */
+    std::set<AbstractDataTypePtr> getInputs() const;
+    std::vector<Variable> getProducesFields() const;
+    std::vector<Expr> getMetaDataFields(AbstractDataTypePtr d) const;
+    std::vector<SubsetObj> getAllConsumesSubsets() const;
 
     Compose replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacements) const;
     void accept(CompositionVisitorStrict *v) const;
@@ -120,9 +139,11 @@ public:
     const std::string &getName() const {
         return call.name;
     }
-    const Pattern &getAnnotation() const {
+
+    Pattern getAnnotation() const {
         return annotation;
     }
+
     const std::vector<Argument> &getArguments() const {
         return call.args;
     }

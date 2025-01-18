@@ -28,6 +28,8 @@ TEST(LoweringCPU, SimpleNested) {
             add_1[{{"step", v2}}](tempDS, outputDS)),
     });
 
+    std::cout << functions << std::endl;
+
     Runner run(functions);
     run.compile(test::cpuRunner("array"));
 
