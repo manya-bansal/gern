@@ -99,6 +99,10 @@ std::set<AbstractDataTypePtr> Pipeline::getIntermediates() const {
     return intermediates_set;
 }
 
+bool Pipeline::isTemplateArg(Variable v) const {
+    return const_exprs.contains(v);
+}
+
 bool Pipeline::isIntermediate(AbstractDataTypePtr d) const {
     return intermediates_set.contains(d);
 }
@@ -255,8 +259,12 @@ void Pipeline::constructAnnotation() {
             }
 
             for (size_t i = 0; i < output_annot.size(); i++) {
+                if (func.isTemplateArg(output_annot[i])) {
+                    const_exprs.insert(output_annot[i]);
+                }
                 definitions.push_back(output_annot[i] = bound_fields[i]);
             }
+            break;  // Can only handle one for right now.
         }
     }
 
@@ -268,7 +276,6 @@ void Pipeline::constructAnnotation() {
         // Now handle all the inputs.
         for (const auto &in : func.getInputs()) {
             if (!isIntermediate(in)) {
-                AbstractDataTypePtr queried = PipelineDS::make("_query_" + in.getName(), "auto", in);
                 input_subsets.push_back(SubsetObj(queried, func.getMetaDataFields(in)));
                 new_ds[in] = queried;
             }
@@ -325,6 +332,10 @@ void PipelineNode::accept(CompositionVisitorStrict *v) const {
 
 Pattern PipelineNode::getAnnotation() const {
     return p.getAnnotation();
+}
+
+bool PipelineNode::isTemplateArg(Variable v) const {
+    return p.isTemplateArg(v);
 }
 
 }  // namespace gern

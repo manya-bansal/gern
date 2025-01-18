@@ -76,8 +76,11 @@ void ComposeLower::visit(const ComputeFunctionCall *c) {
     final_lower = new const BlockNode(lowered_func);
 }
 
+bool ComposeLower::isIntermediate(AbstractDataTypePtr d) const {
+    return intermediates_set.contains(d);
+}
+
 void ComposeLower::visit(const PipelineNode *node) {
-    // Set up the intermediates.
     intermediates_set = node->p.getIntermediates();
     std::vector<LowerIR> lowered;
     // Generate all the variable definitions
@@ -115,51 +118,16 @@ void ComposeLower::visit(const PipelineNode *node) {
     final_lower = generateOuterIntervals(node->p.getProducerFunction(node->p.getOutput()), lowered);
 }
 
-bool ComposeLower::isIntermediate(AbstractDataTypePtr d) const {
-    return intermediates_set.contains(d);
-}
-
 std::vector<LowerIR> ComposeLower::generateAllDefs(const PipelineNode *node) {
     std::vector<LowerIR> lowered;
-    std::vector<AbstractDataTypePtr> intermediates = node->p.getAllOutputs();
-    if (intermediates.size() <= 1) {
-        // Do nothing.
-        return {};
-    }
-    auto it = intermediates.rbegin();
-    it++;  // Skip the last one.
-    // Go in reverse order, and define all the variables.
-    for (; it < intermediates.rend(); ++it) {
-        // Define the variables assosciated with the producer func.
-        // For all functions that consume this data-structure, figure out the relationships for
-        // this input.
-        AbstractDataTypePtr temp = *it;
-        ComputeFunctionCallPtr producer_func = node->p.getProducerFunction(temp);
-        std::set<ComputeFunctionCallPtr> consumer_funcs = node->p.getConsumerFunctions(temp);
-        // No forks allowed, as is. Come back and change!
-        if (consumer_funcs.size() != 1) {
-            std::cout << "WARNING::FORKS ARE NOT IMPL, ASSUMING EQUAL CONSUMPTION!" << std::endl;
+    std::vector<Assign> definitions = node->p.getDefinitions();
+    for (const auto &def : definitions) {
+        Variable v = to<Variable>(def.getA());
+        if (v.isBound()) {
+            throw error::UserError("Trying to bind a variable that has already been bound");
         }
-        // Writing as a for loop, will eventually change!
-        // Only one allowed for right now...
-        std::vector<Variable> var_fields = producer_func->getProducesFields();
-        for (const auto &cf : consumer_funcs) {
-            std::vector<Expr> consumer_fields = cf->getMetaDataFields(temp);
-            if (consumer_fields.size() != var_fields.size()) {
-                throw error::InternalError("Annotations for " + cf->getName() + " and " + producer_func->getName() +
-                                           " do not have the same size for " + temp.getName());
-            }
-            for (size_t i = 0; i < consumer_fields.size(); i++) {
-                if (var_fields[i].isBound()) {
-                    throw error::UserError(var_fields[i].getName() +
-                                           " while producing " + temp.getName() +
-                                           " is completely bound, but is being set.");
-                }
-                lowered.push_back(new DefNode(var_fields[i] = consumer_fields[i],
-                                              producer_func->isTemplateArg(var_fields[i])));
-            }
-            break;
-        }
+        lowered.push_back(new const DefNode(def,
+                                            node->isTemplateArg(v)));
     }
     return lowered;
 }
@@ -168,13 +136,14 @@ std::vector<LowerIR> ComposeLower::generateAllAllocs(const PipelineNode *node) {
     // We need to define an allocation for all the
     // intermediates.
     std::vector<LowerIR> lowered;
-    std::vector<AbstractDataTypePtr> intermediates = node->p.getAllOutputs();
-    for (size_t i = 0; i < intermediates.size() - 1; i++) {
-        AbstractDataTypePtr temp = intermediates[i];
-        // Finally make the allocation.
-        lowered.push_back(constructAllocNode(
-            temp,
-            node->p.getProducerFunction(temp)->getMetaDataFields(temp)));
+    std::vector<SubsetObj> all_input_subsets = node->getAnnotation().getAllConsumesSubsets();
+    for (const auto &subset : all_input_subsets) {
+        if (node->p.isIntermediate(subset.getDS())) {
+            AbstractDataTypePtr adt = subset.getDS();
+            lowered.push_back(constructAllocNode(
+                adt,
+                subset.getFields()));
+        }
     }
     return lowered;
 }

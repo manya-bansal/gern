@@ -189,6 +189,13 @@ std::vector<SubsetObj> Compose::getAllConsumesSubsets() const {
     return subset;
 }
 
+bool Compose::isTemplateArg(Variable v) const {
+    if (!defined()) {
+        return false;
+    }
+    return ptr->isTemplateArg(v);
+}
+
 void Compose::accept(CompositionVisitorStrict *v) const {
     if (!defined()) {
         return;

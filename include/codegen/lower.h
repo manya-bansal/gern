@@ -191,6 +191,7 @@ struct FunctionBoundary : public LowerIRNode {
         : nodes(nodes) {
     }
     void accept(LowerIRVisitor *) const;
+    std::map<AbstractDataTypePtr, AbstractDataTypePtr> queried_names;
     LowerIR nodes;
 };
 

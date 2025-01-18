@@ -26,6 +26,7 @@ public:
     virtual ~CompositionObject() = default;
     virtual void accept(CompositionVisitorStrict *) const = 0;
     virtual Pattern getAnnotation() const = 0;
+    virtual bool isTemplateArg(Variable v) const = 0;
 };
 
 /**
@@ -66,6 +67,7 @@ public:
     std::vector<Variable> getProducesFields() const;
     std::vector<Expr> getMetaDataFields(AbstractDataTypePtr d) const;
     std::vector<SubsetObj> getAllConsumesSubsets() const;
+    bool isTemplateArg(Variable v) const;
 
     Compose replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacements) const;
     void accept(CompositionVisitorStrict *v) const;

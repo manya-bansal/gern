@@ -24,6 +24,7 @@ public:
     ComputeFunctionCallPtr getProducerFunction(AbstractDataTypePtr ds) const;
     std::vector<AbstractDataTypePtr> getAllOutputs() const;
     std::set<AbstractDataTypePtr> getIntermediates() const;
+    bool isTemplateArg(Variable v) const;
     bool isIntermediate(AbstractDataTypePtr d) const;
 
     Pattern getAnnotation() const;
@@ -46,6 +47,7 @@ private:
     std::vector<AbstractDataTypePtr> all_outputs;
     std::set<AbstractDataTypePtr> intermediates_set;
     std::set<AbstractDataTypePtr> inputs;
+    std::set<Variable> const_exprs;
     std::vector<Assign> definitions;
     Pattern annotation;
     // The last function of a child's pipeline, needs to be refreshed.
@@ -64,6 +66,7 @@ struct PipelineNode : public CompositionObject {
 
     void accept(CompositionVisitorStrict *) const;
     Pattern getAnnotation() const;
+    bool isTemplateArg(Variable v) const;
     Pipeline p;
 };
 

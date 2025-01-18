@@ -325,7 +325,7 @@ SubsetObj::SubsetObj(AbstractDataTypePtr data,
     : Stmt(new const SubsetNode(data, mdFields)) {
 }
 
-std::vector<Expr> SubsetObj::getFields() {
+std::vector<Expr> SubsetObj::getFields() const {
     return getNode(*this)->mdFields;
 }
 
@@ -412,6 +412,15 @@ Computes::Computes(Produces p, Consumes c, Allocates a)
 
 Pattern::Pattern(const PatternNode *p)
     : Stmt(p) {
+}
+
+std::vector<SubsetObj> Pattern::getAllConsumesSubsets() const {
+    std::vector<SubsetObj> subset;
+    match(*this, std::function<void(const SubsetObjManyNode *)>(
+                     [&](const SubsetObjManyNode *op) {
+                         subset = op->subsets;
+                     }));
+    return subset;
 }
 
 Pattern For(Assign start, Expr end, Expr step, Pattern body,

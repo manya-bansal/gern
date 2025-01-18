@@ -338,7 +338,7 @@ public:
     explicit SubsetObj(const SubsetNode *);
     SubsetObj(AbstractDataTypePtr data,
               std::vector<Expr> mdFields);
-    std::vector<Expr> getFields();
+    std::vector<Expr> getFields() const;
     SubsetObj where(Constraint);
     AbstractDataTypePtr getDS() const;
     typedef SubsetNode Node;
@@ -416,6 +416,7 @@ public:
     }
     explicit Pattern(const PatternNode *);
     Pattern where(Constraint);
+    std::vector<SubsetObj> getAllConsumesSubsets() const;
     typedef PatternNode Node;
 };
 
