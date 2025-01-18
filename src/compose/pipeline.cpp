@@ -276,8 +276,7 @@ void Pipeline::constructAnnotation() {
         // Now handle all the inputs.
         for (const auto &in : func.getInputs()) {
             if (!isIntermediate(in)) {
-                input_subsets.push_back(SubsetObj(queried, func.getMetaDataFields(in)));
-                new_ds[in] = queried;
+                input_subsets.push_back(SubsetObj(in, func.getMetaDataFields(in)));
             }
         }
         rw_compose.push_back(last_func.replaceAllDS(new_ds));

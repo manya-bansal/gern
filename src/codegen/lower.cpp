@@ -91,22 +91,24 @@ void ComposeLower::visit(const PipelineNode *node) {
     for (const auto &compose : compose_w_allocs) {
         // There HAS to be a better way, this is so
         // ugly.
+        std::set<AbstractDataTypePtr> func_inputs = compose.getInputs();
+        std::vector<LowerIR> temp;
+
         if (isa<PipelineNode>(compose)) {
-            // ComposeLower child_lower(compose);
-            // LowerIR child_ir = child_lower.lower();
-            // // Generate the queries
-            // // ir_nodes = generateAllChildQueries(node, to<PipelineNode>(compose));
-            // // lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
-            // lowered.push_back(new const FunctionBoundary(child_ir));
+            ComposeLower child_lower(compose);
+            LowerIR child_ir = child_lower.lower();
+            lowered.push_back(new const FunctionBoundary(child_ir));
         } else {
             this->visit(compose);
             lowered.push_back(final_lower);
         }
     }
+
     // Generate all the free nodes now.
     ir_nodes = generateAllFrees(node);
     lowered.insert(lowered.end(), ir_nodes.begin(), ir_nodes.end());
     LowerIR with_consumes_intervals = generateConsumesIntervals(node->getAnnotation(), lowered);
+
     // Insert the computed output if necessary.
     std::vector<LowerIR> after_compute = {output_query, with_consumes_intervals};
     if (output.insertQuery()) {
@@ -158,10 +160,6 @@ std::vector<Compose> ComposeLower::rewriteCalls(const PipelineNode *node) const 
     }
     return new_funcs;
 }
-
-// std::vector<LowerIR> ComposeLower::generateAllQueries(const PipelineNode *node) {
-//     std::set<AbstractDataTypePtr> child_inputs = node->p.getInputs();
-// }
 
 std::vector<LowerIR> ComposeLower::generateAllFrees(const PipelineNode *) {
     std::vector<LowerIR> lowered;

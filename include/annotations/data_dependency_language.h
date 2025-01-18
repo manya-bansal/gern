@@ -416,6 +416,7 @@ public:
     }
     explicit Pattern(const PatternNode *);
     Pattern where(Constraint);
+    Pattern refreshVariables() const;
     std::vector<SubsetObj> getAllConsumesSubsets() const;
     SubsetObj getOutput() const;
     typedef PatternNode Node;

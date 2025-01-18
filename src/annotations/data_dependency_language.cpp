@@ -414,6 +414,18 @@ Pattern::Pattern(const PatternNode *p)
     : Stmt(p) {
 }
 
+Pattern Pattern::refreshVariables() const {
+    std::set<Variable> old_vars = getVariables(*this);
+    // Generate fresh names for all old variables, except the
+    std::map<Variable, Variable> fresh_names;
+    for (const auto &v : old_vars) {
+        // Otherwise, generate a new name.
+        fresh_names[v] = getUniqueName("_gern_" + v.getName());
+    }
+    Pattern rw_annotation = to<Pattern>(this->replaceVariables(fresh_names));
+    return rw_annotation;
+}
+
 std::vector<SubsetObj> Pattern::getAllConsumesSubsets() const {
     std::vector<SubsetObj> subset;
     match(*this, std::function<void(const SubsetObjManyNode *)>(
