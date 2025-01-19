@@ -68,15 +68,20 @@ public:
     std::vector<Expr> getMetaDataFields(AbstractDataTypePtr d) const;
     std::vector<SubsetObj> getAllConsumesSubsets() const;
     bool isTemplateArg(Variable v) const;
+    Compose Tile(ADTMember, Variable);
+    std::vector<Assign> getBindings() const;
+    Compose setBindings(std::vector<Assign>);
 
     Compose replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacements) const;
     void accept(CompositionVisitorStrict *v) const;
 
 private:
+    std::vector<Assign> bindings;
     bool is_device_call = false;
 };
 
 std::ostream &operator<<(std::ostream &os, const Compose &);
+Compose For(ADTMember, Variable, Compose);
 
 /**
  * @brief Fuses takes 1 or more Compose objects and fuses them together.

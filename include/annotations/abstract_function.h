@@ -61,7 +61,7 @@ private:
      *        the following conditions:
      *
      *        1. Interval variables can only be bound to ID property.
-     *        2. Non-interval varaibles cannot be bound to ID property.
+     *        2. Non-interval variables cannot be bound to ID property.
      *        3. If a variable is already completely determined, then it
      *           cannot be bound.
      *

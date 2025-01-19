@@ -23,12 +23,14 @@ TEST(LoweringCPU, SimpleNested) {
     Variable step("step");
 
     Compose functions({
-        Fuse(
-            Fuse(add_1[{{"step", v1}}](inputDS, tempDS)),
-            add_1[{{"step", v2}}](tempDS, outputDS)),
+        For(outputDS["x"], v2,
+            Fuse(
+                For(tempDS["x"], v1,
+                    Fuse(add_1(inputDS, tempDS))),
+                add_1(tempDS, outputDS))),
     });
 
-    std::cout << functions << std::endl;
+    // std::cout << functions << std::endl;
 
     Runner run(functions);
     run.compile(test::cpuRunner("array"));

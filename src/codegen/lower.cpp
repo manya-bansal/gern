@@ -23,8 +23,12 @@ LowerIR ComposeLower::lower() {
     if (has_been_lowered) {
         return final_lower;
     }
+    std::cout << "here **** " << std::endl;
+    LowerIR bindings = generateBindings(c);
+    std::cout << bindings << std::endl;
     visit(c);
     has_been_lowered = true;
+    final_lower = new const BlockNode(std::vector<LowerIR>{bindings, final_lower});
     return final_lower;
 }
 
@@ -243,6 +247,17 @@ LowerIR ComposeLower::generateOuterIntervals(Pattern p, std::vector<LowerIR> bod
                      current = {new IntervalNode(op->start, op->end, op->step, current)};
                  }));
     return current;
+}
+
+LowerIR ComposeLower::generateBindings(Compose c) const {
+    std::vector<LowerIR> definitons;
+    std::vector<Assign> bindings = c.getBindings();
+    for (const auto &binding : bindings) {
+        Variable v = to<Variable>(binding.getA());
+        std::cout << " here " << binding << std::endl;
+        definitons.push_back(new const DefNode(binding, c.isTemplateArg(v)));
+    }
+    return new const BlockNode(definitons);
 }
 
 void AllocateNode::accept(LowerIRVisitor *v) const {

@@ -196,6 +196,57 @@ bool Compose::isTemplateArg(Variable v) const {
     return ptr->isTemplateArg(v);
 }
 
+Compose Compose::Tile(ADTMember adt, Variable v) {
+    if (!defined()) {
+        return *this;
+    }
+
+    if (adt.getDS() != getOutput()) {
+        throw error::UserError("Can only tile the output " + adt.str());
+    }
+
+    // Find whether the meta-data field that they are
+    // referring is actually possible to tile i.e.
+    // it is an interval variable.
+
+    // 1. Find the index at which the meta-data field actually
+    //     is set.
+    int index = -1;
+    std::string field_to_find = adt.getMember();
+    std::vector<Variable> mf_fields = adt.getDS().getFields();
+    size_t size = mf_fields.size();
+    for (int i = 0; i < size; i++) {
+        if (mf_fields[i].getName() == field_to_find) {
+            index = i;
+        }
+    }
+
+    if (index < 0) {
+        throw error::UserError("Could not find " + field_to_find + " in " + adt.str());
+    }
+
+    // Now that we have the index, make sure it is an index variable.
+    Variable var_to_bind = getProducesFields()[index];
+    std::set<Variable> interval_vars = getAnnotation().getIntervalVariables();
+    if (!interval_vars.contains(var_to_bind)) {
+        throw error::UserError("Cannot tile a non-interval var");
+    }
+
+    // All is ok, add to bindings now.
+    bindings.push_back(v = Expr(var_to_bind));
+    std::cout << (var_to_bind = Expr(v)) << std::endl;
+    return *this;
+}
+
+std::vector<Assign> Compose::getBindings() const {
+    return bindings;
+}
+
+Compose Compose::setBindings(std::vector<Assign> bindings_new) {
+    bindings = bindings_new;
+    return *this;
+}
+
 void Compose::accept(CompositionVisitorStrict *v) const {
     if (!defined()) {
         return;
@@ -222,11 +273,15 @@ Compose Compose::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr>
                           std::vector<Compose> rw_compose;
                           for (const auto &func : op->p.getFuncs()) {
                               ctx->match(func);
-                              rw_compose.push_back(c);
+                              rw_compose.push_back(c.setBindings(func.getBindings()));
                           }
                           c = Compose(rw_compose);
                       }));
-    return c;
+    return c.setBindings(getBindings());
+}
+
+Compose For(ADTMember adt, Variable v, Compose c) {
+    return c.Tile(adt, v);
 }
 
 std::ostream &operator<<(std::ostream &os, const Compose &compose) {

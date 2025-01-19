@@ -64,6 +64,7 @@ private:
 
     LowerIR generateConsumesIntervals(Pattern, std::vector<LowerIR> body) const;
     LowerIR generateOuterIntervals(Pattern, std::vector<LowerIR> body) const;
+    LowerIR generateBindings(Compose c) const;
 
     std::vector<Assign> variable_definitions;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
