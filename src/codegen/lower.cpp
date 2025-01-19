@@ -23,7 +23,7 @@ LowerIR ComposeLower::lower() {
     if (has_been_lowered) {
         return final_lower;
     }
-    std::cout << "here **** " << std::endl;
+
     LowerIR bindings = generateBindings(c);
     std::cout << bindings << std::endl;
     visit(c);
@@ -97,7 +97,6 @@ void ComposeLower::visit(const PipelineNode *node) {
         // ugly.
         std::set<AbstractDataTypePtr> func_inputs = compose.getInputs();
         std::vector<LowerIR> temp;
-
         if (isa<PipelineNode>(compose)) {
             ComposeLower child_lower(compose);
             LowerIR child_ir = child_lower.lower();

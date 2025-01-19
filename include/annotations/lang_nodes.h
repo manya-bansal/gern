@@ -117,7 +117,7 @@ struct ConsumesNode : public StmtNode {
 };
 
 struct ConsumesForNode : public ConsumesNode {
-    ConsumesForNode(Assign start, Expr end, Expr step, ConsumeMany body,
+    ConsumesForNode(Assign start, Expr end, Variable step, ConsumeMany body,
                     bool parallel = false)
         : start(start), end(end), step(step), body(body),
           parallel(parallel) {
@@ -127,7 +127,7 @@ struct ConsumesForNode : public ConsumesNode {
     }
     Assign start;
     Expr end;
-    Expr step;
+    Variable step;
     ConsumeMany body;
     bool parallel;
 };
@@ -150,7 +150,7 @@ struct PatternNode : public StmtNode {
 };
 
 struct ComputesForNode : public PatternNode {
-    ComputesForNode(Assign start, Expr end, Expr step, Pattern body,
+    ComputesForNode(Assign start, Expr end, Variable step, Pattern body,
                     bool parallel = false)
         : start(start), end(end), step(step), body(body),
           parallel(parallel) {
@@ -160,7 +160,7 @@ struct ComputesForNode : public PatternNode {
     }
     Assign start;
     Expr end;
-    Expr step;
+    Variable step;
     Pattern body;
     bool parallel;
 };

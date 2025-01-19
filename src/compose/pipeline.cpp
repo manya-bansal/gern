@@ -28,6 +28,10 @@ std::vector<Compose> Pipeline::getFuncs() const {
     return compose;
 }
 
+std::vector<Compose> Pipeline::getRWFuncs() const {
+    return rw_compose;
+}
+
 std::set<AbstractDataTypePtr> Pipeline::getInputs() const {
     return inputs;
 }
@@ -227,7 +231,6 @@ void Pipeline::constructAnnotation() {
     // To construct the annotation, loop through the functions in reverse order.
     auto it = compose.rbegin();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
-    std::vector<Compose> rw_compose;
     std::vector<SubsetObj> input_subsets;
     // The last function produces the output, so this forms the
     // produces part of the pipeline's annotation.
@@ -276,7 +279,9 @@ void Pipeline::constructAnnotation() {
         // Now handle all the inputs.
         for (const auto &in : func.getInputs()) {
             if (!isIntermediate(in)) {
-                input_subsets.push_back(SubsetObj(in, func.getMetaDataFields(in)));
+                AbstractDataTypePtr queried = PipelineDS::make(getUniqueName("_query_" + in.getName()), "auto", in);
+                input_subsets.push_back(SubsetObj(queried, func.getMetaDataFields(in)));
+                new_ds[last_output] = queried;
             }
         }
         rw_compose.push_back(last_func.replaceAllDS(new_ds));

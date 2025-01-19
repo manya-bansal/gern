@@ -305,6 +305,7 @@ public:
 
     std::set<Variable> getDefinedVariables() const;
     std::set<Variable> getIntervalVariables() const;
+    std::map<Variable, Variable> getIntervalAndStepVars() const;
     Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
     Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
     void accept(StmtVisitorStrict *v) const;
@@ -390,11 +391,11 @@ public:
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
-ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
+ConsumeMany For(Assign start, Expr end, Variable step, ConsumeMany body,
                 bool parallel = false);
-ConsumeMany For(Assign start, Expr end, Expr step, std::vector<SubsetObj> body,
+ConsumeMany For(Assign start, Expr end, Variable step, std::vector<SubsetObj> body,
                 bool parallel = false);
-ConsumeMany For(Assign start, Expr end, Expr step, SubsetObj body,
+ConsumeMany For(Assign start, Expr end, Variable step, SubsetObj body,
                 bool parallel = false);
 
 class Allocates : public Stmt {
@@ -433,10 +434,10 @@ public:
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.
-Pattern For(Assign start, Expr end, Expr step, Pattern body,
+Pattern For(Assign start, Expr end, Variable step, Pattern body,
             bool parallel = false);
 // FunctionSignature so that users do need an explicit compute initialization.
-Pattern For(Assign start, Expr end, Expr step,
+Pattern For(Assign start, Expr end, Variable step,
             Produces produces, Consumes consumes,
             bool parallel = false);
 

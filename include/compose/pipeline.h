@@ -18,6 +18,7 @@ public:
     Pipeline(Compose compose);
 
     std::vector<Compose> getFuncs() const;
+    std::vector<Compose> getRWFuncs() const;
     // Returns the FunctionSignature call that produces a particular output.
     std::set<AbstractDataTypePtr> getInputs() const;
     std::set<ComputeFunctionCallPtr> getConsumerFunctions(AbstractDataTypePtr) const;
@@ -43,6 +44,7 @@ private:
     Consumes generateConsumesIntervals(Compose c, std::vector<SubsetObj> input_subsets) const;
     Pattern generateProducesIntervals(Compose, Computes) const;
     std::vector<Compose> compose;
+    std::vector<Compose> rw_compose;
     AbstractDataTypePtr true_output;
     std::vector<AbstractDataTypePtr> all_outputs;
     std::set<AbstractDataTypePtr> intermediates_set;

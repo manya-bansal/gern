@@ -227,14 +227,13 @@ Compose Compose::Tile(ADTMember adt, Variable v) {
 
     // Now that we have the index, make sure it is an index variable.
     Variable var_to_bind = getProducesFields()[index];
-    std::set<Variable> interval_vars = getAnnotation().getIntervalVariables();
+    std::map<Variable, Variable> interval_vars = getAnnotation().getIntervalAndStepVars();
     if (!interval_vars.contains(var_to_bind)) {
         throw error::UserError("Cannot tile a non-interval var");
     }
 
     // All is ok, add to bindings now.
-    bindings.push_back(v = Expr(var_to_bind));
-    std::cout << (var_to_bind = Expr(v)) << std::endl;
+    bindings.push_back(interval_vars.at(var_to_bind) = Expr(v));
     return *this;
 }
 

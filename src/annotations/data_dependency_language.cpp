@@ -218,6 +218,22 @@ std::set<Variable> Stmt::getIntervalVariables() const {
     return vars;
 }
 
+std::map<Variable, Variable> Stmt::getIntervalAndStepVars() const {
+    std::map<Variable, Variable> vars;
+    match(*this,
+          std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
+                                                                           Matcher *ctx) {
+              vars[to<Variable>(op->start.getA())] = op->step;
+              ctx->match(op->body);
+          }),
+          std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
+                                                                           Matcher *ctx) {
+              vars[to<Variable>(op->start.getA())] = op->step;
+              ctx->match(op->body);
+          }));
+    return vars;
+}
+
 #define DEFINE_WHERE_METHOD(Type)            \
     Type Type::where(Constraint c) {         \
         return to<Type>(this->whereStmt(c)); \
@@ -378,18 +394,18 @@ Consumes Consumes::Subsets(ConsumeMany many) {
     return Consumes(getNode(many));
 }
 
-ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
+ConsumeMany For(Assign start, Expr end, Variable step, ConsumeMany body,
                 bool parallel) {
     return ConsumeMany(
         new const ConsumesForNode(start, end, step, body, parallel));
 }
 
-ConsumeMany For(Assign start, Expr end, Expr step, std::vector<SubsetObj> body,
+ConsumeMany For(Assign start, Expr end, Variable step, std::vector<SubsetObj> body,
                 bool parallel) {
     return For(start, end, step, SubsetObjMany(body), parallel);
 }
 
-ConsumeMany For(Assign start, Expr end, Expr step, SubsetObj body,
+ConsumeMany For(Assign start, Expr end, Variable step, SubsetObj body,
                 bool parallel) {
     return For(start, end, step, std::vector<SubsetObj>{body}, parallel);
 }
@@ -444,13 +460,13 @@ SubsetObj Pattern::getOutput() const {
     return subset;
 }
 
-Pattern For(Assign start, Expr end, Expr step, Pattern body,
+Pattern For(Assign start, Expr end, Variable step, Pattern body,
             bool parallel) {
     return Pattern(
         new const ComputesForNode(start, end, step, body, parallel));
 }
 
-Pattern For(Assign start, Expr end, Expr step,
+Pattern For(Assign start, Expr end, Variable step,
             Produces produces, Consumes consumes,
             bool parallel) {
     return For(start, end, step, Computes(produces, consumes), parallel);

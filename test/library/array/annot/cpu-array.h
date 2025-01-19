@@ -177,14 +177,15 @@ public:
         Variable r("r");
         Variable step("step");
         Variable end("end");
+        Variable extra("extra");
 
         return For(x = Expr(0), output["size"], step,
                    Computes(
                        Produces::Subset(output, {x, step}),
                        Consumes::Subsets(
-                           For(r = Expr(0), end, 1,
+                           For(r = Expr(0), end, end,
                                SubsetObjMany{
-                                   SubsetObj(input, {r, 1})}))));
+                                   SubsetObj(input, {r, end})}))));
     }
 
     std::vector<std::string> getHeader() override {

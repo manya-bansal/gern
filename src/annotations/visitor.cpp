@@ -341,7 +341,7 @@ void Rewriter::visit(const AllocatesNode *op) {
 void Rewriter::visit(const ConsumesForNode *op) {
     Assign rw_start = to<Assign>(this->rewrite(op->start));
     Expr rw_end = this->rewrite(op->end);
-    Expr rw_step = this->rewrite(op->step);
+    Variable rw_step = to<Variable>(this->rewrite(op->step));
     ConsumeMany rw_body = to<ConsumeMany>(this->rewrite(op->body));
     stmt = Consumes(new const ConsumesForNode(rw_start,
                                               rw_end, rw_step,
@@ -351,7 +351,7 @@ void Rewriter::visit(const ConsumesForNode *op) {
 void Rewriter::visit(const ComputesForNode *op) {
     Assign rw_start = to<Assign>(this->rewrite(op->start));
     Expr rw_end = this->rewrite(op->end);
-    Expr rw_step = this->rewrite(op->step);
+    Variable rw_step = to<Variable>(this->rewrite(op->step));
     Pattern rw_body = to<Pattern>(this->rewrite(op->body));
     stmt = Pattern(new const ComputesForNode(rw_start,
                                              rw_end, rw_step,

@@ -81,11 +81,12 @@ public:
         Variable r("r");
         Variable step("step");
         Variable end("end");
+        Variable extra("extra");
 
         return For(x = Expr(0), output["size"], step,
                    Produces::Subset(output, {x, step}),
                    Consumes::Subsets(
-                       For(r = Expr(0), end, 1,
+                       For(r = Expr(0), end, end,
                            {input, {r, 1}})));
     }
 
