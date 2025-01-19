@@ -84,13 +84,13 @@ std::ostream &operator<<(std::ostream &os, const Compose &);
 Compose For(ADTMember, Variable, Compose);
 
 /**
- * @brief Fuses takes 1 or more Compose objects and fuses them together.
+ * @brief Tiles takes 1 or more Compose objects and fuses them together.
  *
  * @param functions The list of functions to fuse
  * @return Compose
  */
 template<typename... ToCompose>
-Compose Fuse(ToCompose... c) {
+Compose Tile(ToCompose... c) {
     // Static assertion to ensure all arguments are of type Compose
     static_assert((std::is_same_v<ToCompose, Compose> && ...), "All arguments must be of type Compose");
     std::vector<Compose> to_compose{c...};

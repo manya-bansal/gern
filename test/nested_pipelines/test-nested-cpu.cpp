@@ -24,9 +24,9 @@ TEST(LoweringCPU, SimpleNested) {
 
     Compose functions({
         For(outputDS["x"], v2,
-            Fuse(
+            Tile(
                 For(tempDS["x"], v1,
-                    Fuse(add_1(inputDS, tempDS))),
+                    Tile(add_1(inputDS, tempDS))),
                 add_1(tempDS, outputDS))),
     });
 
