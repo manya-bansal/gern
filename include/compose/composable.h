@@ -20,6 +20,7 @@ public:
     ComposableNode() = default;
     virtual ~ComposableNode() = default;
     virtual void accept(ComposableVisitorStrict *) const = 0;
+    virtual std::set<Variable> getVariableArgs() const = 0;
 };
 
 /**
@@ -34,6 +35,8 @@ public:
     Composable(const ComposableNode *n)
         : util::IntrusivePtr<const ComposableNode>(n) {
     }
+
+    std::set<Variable> getVariableArgs() const;
     void accept(ComposableVisitorStrict *v) const;
 };
 
@@ -43,12 +46,18 @@ public:
  */
 class Computation : public ComposableNode {
 public:
+    Computation(std::vector<Composable> composed);
+    std::set<Variable> getVariableArgs() const;
     void accept(ComposableVisitorStrict *) const;
+
+    void init_args();
     std::vector<Composable> composed;
+    std::set<Variable> variable_args;
 };
 
 class TiledComputation : public ComposableNode {
 public:
+    std::set<Variable> getVariableArgs() const;
     void accept(ComposableVisitorStrict *) const;
     ADTMember field_to_tile;  // The field that the user wants to tile.
     Variable v;               // The variable that the user will set to concretize the tile

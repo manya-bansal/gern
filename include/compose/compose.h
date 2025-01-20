@@ -212,6 +212,7 @@ public:
     ComputeFunctionCall replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
     // Generate new variables for everything except variables passed as argument.
     const ComputeFunctionCall *refreshVariable() const;
+    std::set<Variable> getVariableArgs() const;
 
     void accept(CompositionVisitorStrict *v) const;
     void accept(ComposableVisitorStrict *) const;

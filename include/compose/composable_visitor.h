@@ -10,8 +10,8 @@ class TiledComputationNode;
 class ComposableVisitorStrict {
 public:
     virtual void visit(Composable);
-    virtual void visit(const ComputationNode *);
-    virtual void visit(const TiledComputationNode *);
+    virtual void visit(const ComputationNode *) = 0;
+    virtual void visit(const TiledComputationNode *) = 0;
 };
 
 }  // namespace gern

@@ -87,6 +87,21 @@ ComputeFunctionCall ComputeFunctionCall::replaceAllDS(std::map<AbstractDataTypeP
                                getHeader());
 }
 
+std::set<Variable> ComputeFunctionCall::getVariableArgs() const {
+    std::set<Variable> arg_variables;
+    for (const auto &arg : call.args) {
+        if (isa<VarArg>(arg)) {
+            arg_variables.insert(to<VarArg>(arg)->getVar());
+        }
+    }
+    for (const auto &arg : call.template_args) {
+        if (isa<Variable>(arg)) {
+            arg_variables.insert(to<Variable>(arg));
+        }
+    }
+    return arg_variables;
+}
+
 ComputeFunctionCallPtr ComputeFunctionCall::refreshVariable() const {
     std::set<Variable> arg_variables;
     for (const auto &arg : call.args) {
