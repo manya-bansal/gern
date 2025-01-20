@@ -2,6 +2,7 @@
 
 #include "annotations/argument.h"
 #include "annotations/data_dependency_language.h"
+#include "compose/composable.h"
 #include "compose/compose.h"
 #include "utils/error.h"
 #include "utils/uncopyable.h"
@@ -54,8 +55,16 @@ public:
         return generateComputeFunctionCall({});
     }
 
+    template<typename FirstT, typename... Next>
+    Composable construct(FirstT first, Next... remaining) {
+        std::vector<Argument> arguments;
+        addArguments(arguments, first, remaining...);
+        return constructComposableObject(arguments);
+    }
+
 private:
     Compose generateComputeFunctionCall(std::vector<Argument> concrete_arguments);
+    Composable constructComposableObject(std::vector<Argument> concrete_arguments);
     /**
      * @brief This FunctionSignature actually performs the binding, and checks
      *        the following conditions:

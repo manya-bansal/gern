@@ -34,7 +34,9 @@ target_sources(
         src/annotations/lang_nodes.cpp
         src/annotations/visitor.cpp
         src/compose/compose.cpp
+        src/compose/composable.cpp
         src/compose/compose_visitor.cpp
+        src/compose/composable_visitor.cpp
         src/compose/pipeline.cpp
         src/codegen/codegen.cpp
         src/codegen/codegen_ir.cpp
@@ -59,7 +61,9 @@ target_sources(
         include/annotations/visitor.h
         # include/resolve_constraints/resolve_constraints.h
         include/compose/compose.h
+        include/compose/composable.h
         include/compose/compose_visitor.h
+        include/compose/composable_visitor.h
         include/compose/pipeline.h
         include/compose/runner.h
         include/codegen/codegen.h

@@ -2,6 +2,7 @@
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
+#include "compose/composable_visitor.h"
 #include "compose/compose_visitor.h"
 #include "compose/pipeline.h"
 
@@ -254,6 +255,10 @@ void Compose::accept(CompositionVisitorStrict *v) const {
 }
 
 void ComputeFunctionCall::accept(CompositionVisitorStrict *v) const {
+    v->visit(this);
+}
+
+void ComputeFunctionCall::accept(ComposableVisitorStrict *v) const {
     v->visit(this);
 }
 

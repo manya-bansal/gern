@@ -28,6 +28,7 @@ set(TEST_SOURCES
     test-cpu-array.cpp
     test-cpu-matrix.cpp
     test-cpu-static-store.cpp
+    test-composable.cpp
 
     nested_pipelines/test-nested-cpu.cpp
 )

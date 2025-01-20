@@ -2,6 +2,7 @@
 
 #include "annotations/argument.h"
 #include "annotations/data_dependency_language.h"
+#include "compose/composable.h"
 #include "utils/uncopyable.h"
 #include <vector>
 
@@ -10,6 +11,7 @@ namespace gern {
 class Pipeline;
 
 class CompositionVisitorStrict;
+class ComposableVisitorStrict;
 /**
  * @brief This class tracks the objects that Gern
  *        can compose together in a pipeline. Currently,
@@ -130,7 +132,8 @@ struct FunctionSignature {
 std::ostream &operator<<(std::ostream &os, const FunctionSignature &f);
 std::ostream &operator<<(std::ostream &os, const FunctionCall &f);
 
-class ComputeFunctionCall : public CompositionObject {
+class ComputeFunctionCall : public CompositionObject,
+                            public ComposableNode {
 public:
     ComputeFunctionCall() = delete;
     ComputeFunctionCall(FunctionCall call,
@@ -211,6 +214,7 @@ public:
     const ComputeFunctionCall *refreshVariable() const;
 
     void accept(CompositionVisitorStrict *v) const;
+    void accept(ComposableVisitorStrict *) const;
 
 private:
     FunctionCall call;
