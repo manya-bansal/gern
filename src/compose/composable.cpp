@@ -119,6 +119,11 @@ void TiledComputation::accept(ComposableVisitorStrict *v) const {
     v->visit(this);
 }
 
+TiledComputation::TiledComputation(ADTMember field_to_tile, Variable v, Composable tiled)
+    : field_to_tile(field_to_tile), v(v), tiled(tiled) {
+    init_binding();
+}
+
 std::set<Variable> TiledComputation::getVariableArgs() const {
     return tiled.getVariableArgs();
 }
@@ -129,6 +134,45 @@ std::set<Variable> TiledComputation::getTemplateArgs() const {
 
 Pattern TiledComputation::getAnnotation() const {
     return tiled.getAnnotation();
+}
+
+void TiledComputation::init_binding() {
+    Pattern annotation = getAnnotation();
+    SubsetObj output_subset = annotation.getOutput();
+    AbstractDataTypePtr adt = output_subset.getDS();
+
+    if (field_to_tile.getDS() != output_subset.getDS()) {
+        throw error::UserError("Can only tile the output " + adt.str());
+    }
+    // Find whether the meta-data field that they are
+    // referring is actually possible to tile i.e.
+    // it is an interval variable.
+
+    // 1. Find the index at which the meta-data field actually
+    //     is set.
+    int index = -1;
+    std::string field_to_find = field_to_tile.getMember();
+    std::vector<Variable> mf_fields = field_to_tile.getDS().getFields();
+    size_t size = mf_fields.size();
+    for (int i = 0; i < size; i++) {
+        if (mf_fields[i].getName() == field_to_find) {
+            index = i;
+        }
+    }
+
+    if (index < 0) {
+        throw error::UserError("Could not find " + field_to_find + " in " + adt.str());
+    }
+
+    // Now that we have the index, make sure it is an index variable.
+    Variable var_to_bind = annotation.getProducesField()[index];
+    std::map<Variable, Variable> interval_vars = getAnnotation().getIntervalAndStepVars();
+    if (!interval_vars.contains(var_to_bind)) {
+        throw error::UserError("Cannot tile a non-interval var");
+    }
+
+    // All is ok, add to bindings now.
+    captured = var_to_bind;
 }
 
 std::set<Variable> Composable::getVariableArgs() const {
@@ -157,6 +201,16 @@ void Composable::accept(ComposableVisitorStrict *v) const {
         return;
     }
     ptr->accept(v);
+}
+
+TileDummy For(ADTMember member, Variable v) {
+    return TileDummy(member, v);
+}
+
+std::ostream &operator<<(std::ostream &os, const Composable &f) {
+    ComposablePrinter print(os, 0);
+    print.visit(f);
+    return os;
 }
 
 }  // namespace gern

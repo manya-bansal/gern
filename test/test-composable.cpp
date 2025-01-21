@@ -14,10 +14,19 @@ TEST(ComposableTest, Simple) {
     auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
 
     annot::add_1 add_1;
+    Variable v("v");
 
     auto call = Call(
         add_1.construct(inputDS, tempDS),
         add_1.construct(tempDS, outputDS));
 
     std::cout << call.getAnnotation() << std::endl;
+
+    call = For(inputDS["x"], v)(
+        add_1.construct(inputDS, tempDS),
+        add_1.construct(tempDS, outputDS)
+
+    );
+
+    std::cout << call << std::endl;
 }

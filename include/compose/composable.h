@@ -44,6 +44,8 @@ public:
     void accept(ComposableVisitorStrict *v) const;
 };
 
+std::ostream &operator<<(std::ostream &os, const Composable &f);
+
 /**
  * @brief Computation contains a vector of composable objects.
  *
@@ -68,28 +70,55 @@ public:
     AbstractDataTypePtr output;
     std::vector<Composable> composed;
     std::vector<Assign> declarations;
+
     std::set<Variable> variable_args;
     std::set<Variable> template_args;
+
     std::map<AbstractDataTypePtr, std::set<Composable>> consumer_functions;
     Pattern _annotation;
 };
 
 class TiledComputation : public ComposableNode {
 public:
+    TiledComputation(ADTMember, Variable, Composable);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
-
-    void accept(ComposableVisitorStrict *) const;
     Pattern getAnnotation() const;
+    void accept(ComposableVisitorStrict *) const;
+
+    void init_binding();
 
     ADTMember field_to_tile;  // The field that the user wants to tile.
     Variable v;               // The variable that the user will set to concretize the tile
                               // parameter for the computation.
     Composable tiled;
+    Variable captured;
 };
 
+// This class only exists for the overload.
+struct TileDummy {
+    TileDummy(ADTMember member, Variable v)
+        : member(member), v(v) {
+    }
+
+    template<typename... ToCompose>
+    Composable operator()(ToCompose... c) {
+        // Static assertion to ensure all arguments are of type Compose
+        static_assert((std::is_same_v<ToCompose, Composable> && ...),
+                      "All arguments must be of type Composable");
+        std::vector<Composable> to_compose{c...};
+        return new const TiledComputation(member, v,
+                                          Composable(new const Computation(to_compose)));
+    }
+
+    ADTMember member;
+    Variable v;
+};
+
+TileDummy For(ADTMember member, Variable v);
+
 /**
- * @brief Tiles takes 1 or more Compose objects and fuses them together.
+ * @brief Calls takes 1 or more Compose objects and fuses them together.
  *
  * @param functions The list of functions to fuse
  * @return Compose

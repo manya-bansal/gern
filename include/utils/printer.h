@@ -11,5 +11,16 @@ static void printIdent(std::ostream &os, int ident) {
     }
 }
 
+template<typename T>
+static void iterable_printer(std::ostream &os, std::vector<T> v, int ident, std::string end = "") {
+    int len = v.size();
+    for (int i = 0; i < len; i++) {
+        printIdent(os, ident);
+        os << v[i];
+        os << ((i != len - 1) ? "," : "");
+        os << end;
+    }
+}
+
 }  // namespace util
 }  // namespace gern

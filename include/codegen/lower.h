@@ -1,8 +1,11 @@
 #pragma once
 
 #include "annotations/abstract_function.h"
+#include "compose/composable.h"
+#include "compose/composable_visitor.h"
 #include "compose/compose.h"
 #include "compose/compose_visitor.h"
+#include "utils/scoped_map.h"
 #include "utils/uncopyable.h"
 
 namespace gern {
@@ -35,6 +38,30 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &os, const LowerIR &n);
+
+class ComposableLower : public ComposableVisitorStrict {
+public:
+    LowerIR Lower(Composable composable);
+    using ComposableVisitorStrict::visit;
+    void visit(const Computation *);
+    void visit(const TiledComputation *);
+    void visit(const ComputeFunctionCall *);
+
+private:
+    void common(Composable);
+    FunctionCall constructFunctionCall(FunctionSignature f,
+                                       std::vector<Variable> ref_md_fields,
+                                       std::vector<Expr> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
+
+    const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
+    const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
+
+    AbstractDataTypePtr getCurrent(AbstractDataTypePtr) const;
+
+    util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
+    std::map<Variable, Expr> tiled_vars;
+    LowerIR lowerIR;
+};
 
 class ComposeLower : public CompositionVisitorStrict {
 public:

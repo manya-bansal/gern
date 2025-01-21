@@ -75,6 +75,7 @@ target_sources(
         include/utils/debug.h
         include/utils/error.h
         include/utils/name_generator.h
+        include/utils/scoped_map.h
         include/utils/printer.h
         include/utils/uncopyable.h
 )

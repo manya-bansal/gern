@@ -3,6 +3,7 @@
 #include "annotations/visitor.h"
 #include "codegen/lower_visitor.h"
 #include "compose/pipeline.h"
+#include "utils/name_generator.h"
 
 namespace gern {
 
@@ -306,6 +307,119 @@ void FunctionBoundary::accept(LowerIRVisitor *v) const {
 
 void BlockNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
+}
+
+LowerIR ComposableLower::Lower(Composable composable) {
+    this->visit(composable);
+    return lowerIR;
+}
+
+void ComposableLower::common(Composable node) {
+}
+
+void ComposableLower::visit(const Computation *node) {
+
+    std::vector<LowerIR> lowered;
+    SubsetObj output = node->getAnnotation().getOutput();
+    lowered.push_back(constructQueryNode(output.getDS(), output.getFields()));
+
+    // Also construct the allocations.
+    std::vector<Composable> composed = node->composed;
+    size_t size_funcs = composed.size();
+
+    for (int i = 0; i < size_funcs - 1; i++) {
+        SubsetObj temp = composed[i].getAnnotation().getOutput();
+        lowered.push_back(constructAllocNode(temp.getDS(), temp.getFields()));
+    }
+
+    // Now, construct all the queries.
+    // common(node);
+}
+
+void ComposableLower::visit(const TiledComputation *node) {
+    std::vector<LowerIR> lowered;
+    // First, add the value of the captured value.
+    Variable captured = node->captured;
+    Variable loop_index(getUniqueName("_i_"));
+
+    // Track the fact that this field is being tiled.
+    if (tiled_vars.contains(captured)) {
+        tiled_vars[captured] = (tiled_vars[captured] + loop_index);
+    } else {
+        tiled_vars[captured] = loop_index;
+    }
+
+    // Next, lower the composable object.
+    current_ds.scope();
+    common(node->tiled);
+    current_ds.unscope();
+}
+
+AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
+    if (current_ds.contains(ds)) {
+        return current_ds.at(ds);
+    }
+    return ds;
+}
+// Constructs a query node for a data-structure, and tracks this relationship.
+const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> args) {
+
+    AbstractDataTypePtr ds_in_scope = getCurrent(ds);
+    AbstractDataTypePtr queried = PipelineDS::make(getUniqueName("_query_" + ds_in_scope.getName()), "auto", ds);
+    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds_in_scope.getFields(), args);
+    f.name = ds_in_scope.getName() + "." + f.name;
+    f.output = Parameter(queried);
+    current_ds.insert(ds, queried);
+    // If any of the queried data-structures need to be free, track that.
+    // if (ds.freeQuery()) {
+    //     to_free.insert(queried);
+    // }
+
+    return new QueryNode(ds, f);
+}
+
+const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
+    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds.getFields(), alloc_args);
+    alloc_func.output = Parameter(ds);
+    if (ds.freeAlloc()) {
+        // to_free.insert(ds);
+    }
+    return new AllocateNode(alloc_func);
+}
+
+FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
+                                                    std::vector<Variable> ref_md_fields,
+                                                    std::vector<Expr> true_md_fields) const {
+
+    if (ref_md_fields.size() != true_md_fields.size()) {
+        throw error::InternalError("Incorrect number of fields passed!");
+    }
+    // Put all the fields in a map.
+    std::map<Variable, Expr> mappings;
+    for (size_t i = 0; i < ref_md_fields.size(); i++) {
+        mappings[ref_md_fields[i]] = true_md_fields[i];
+    }
+    // Now, set up the args.
+    std::vector<Argument> new_args;
+    for (auto const &a : f.args) {
+        new_args.push_back(Argument(mappings[to<VarArg>(a)->getVar()]));
+    }
+    // set up the templated args.
+    std::vector<Expr> template_args;
+    for (auto const &a : f.template_args) {
+        template_args.push_back(mappings[a]);
+    }
+
+    FunctionCall f_new{
+        .name = f.name,
+        .args = new_args,
+        .template_args = template_args,
+    };
+
+    return f_new;
+}
+
+void ComposableLower::visit(const ComputeFunctionCall *node) {
 }
 
 }  // namespace gern
