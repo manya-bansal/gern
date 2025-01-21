@@ -4,6 +4,7 @@
 #include "test-utils.h"
 
 #include <gtest/gtest.h>
+#include <iostream>
 
 using namespace gern;
 
@@ -14,5 +15,9 @@ TEST(ComposableTest, Simple) {
 
     annot::add_1 add_1;
 
-    add_1.construct(inputDS, outputDS);
+    auto call = Call(
+        add_1.construct(inputDS, tempDS),
+        add_1.construct(tempDS, outputDS));
+
+    std::cout << call.getAnnotation() << std::endl;
 }

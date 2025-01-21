@@ -22,7 +22,6 @@ public:
     virtual void accept(ComposableVisitorStrict *) const = 0;
     virtual std::set<Variable> getVariableArgs() const = 0;
     virtual std::set<Variable> getTemplateArgs() const = 0;
-    virtual std::set<AbstractDataTypePtr> getInputs() const = 0;
     virtual Pattern getAnnotation() const = 0;
 };
 
@@ -88,5 +87,20 @@ public:
                               // parameter for the computation.
     Composable tiled;
 };
+
+/**
+ * @brief Tiles takes 1 or more Compose objects and fuses them together.
+ *
+ * @param functions The list of functions to fuse
+ * @return Compose
+ */
+template<typename... ToCompose>
+Composable Call(ToCompose... c) {
+    // Static assertion to ensure all arguments are of type Compose
+    static_assert((std::is_same_v<ToCompose, Composable> && ...),
+                  "All arguments must be of type Composable");
+    std::vector<Composable> to_compose{c...};
+    return new const Computation(to_compose);
+}
 
 }  // namespace gern

@@ -23,6 +23,14 @@ Computation::Computation(std::vector<Composable> composed)
     }
 }
 
+std::set<Variable> Computation::getVariableArgs() const {
+    return variable_args;
+}
+
+std::set<Variable> Computation::getTemplateArgs() const {
+    return template_args;
+}
+
 Pattern Computation::getAnnotation() const {
     return _annotation;
 }
@@ -91,7 +99,10 @@ void Computation::init_annotation() {
         infer_relationships(intermediate, c_annotation.getProducesField());
         intermediates.insert(intermediate);
         // Now add the consumes for the pure inputs.
-        std::vector<SubsetObj> inputs = c_annotation.getAllConsumesSubsets();
+    }
+
+    for (const auto &c : composed) {
+        std::vector<SubsetObj> inputs = c.getAnnotation().getAllConsumesSubsets();
         for (const auto &input : inputs) {
             // The the input is not an intermediate, add.
             if (!intermediates.contains(input.getDS())) {
@@ -99,6 +110,7 @@ void Computation::init_annotation() {
             }
         }
     }
+
     Consumes consumes = mimicConsumes(last_annotation, input_subsets);
     _annotation = mimicComputes(last_annotation, Computes(produces, consumes));
 }
@@ -109,6 +121,10 @@ void TiledComputation::accept(ComposableVisitorStrict *v) const {
 
 std::set<Variable> TiledComputation::getVariableArgs() const {
     return tiled.getVariableArgs();
+}
+
+std::set<Variable> TiledComputation::getTemplateArgs() const {
+    return tiled.getTemplateArgs();
 }
 
 Pattern TiledComputation::getAnnotation() const {
