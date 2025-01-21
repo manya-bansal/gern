@@ -358,12 +358,7 @@ Produces Produces::Subset(AbstractDataTypePtr ds, std::vector<Variable> v) {
 }
 
 std::vector<Variable> Produces::getFieldsAsVars() const {
-    std::vector<Variable> vars;
-    std::vector<Expr> expr_vars = getSubset().getFields();
-    for (const auto &e : expr_vars) {
-        vars.push_back(to<Variable>(e));
-    }
-    return vars;
+    return getNode(*this)->getFieldsAsVars();
 }
 
 SubsetObj Produces::getSubset() const {
@@ -449,6 +444,26 @@ std::vector<SubsetObj> Pattern::getAllConsumesSubsets() const {
                          subset = op->subsets;
                      }));
     return subset;
+}
+
+std::vector<Variable> Pattern::getProducesField() const {
+    std::vector<Variable> fields;
+    match(*this, std::function<void(const ProducesNode *)>(
+                     [&](const ProducesNode *op) {
+                         fields = op->getFieldsAsVars();
+                     }));
+    return fields;
+}
+
+std::vector<Expr> Pattern::getRequirement(AbstractDataTypePtr d) const {
+    std::vector<Expr> metaFields;
+    match(*this, std::function<void(const SubsetNode *)>(
+                     [&](const SubsetNode *op) {
+                         if (op->data == d) {
+                             metaFields = op->mdFields;
+                         }
+                     }));
+    return metaFields;
 }
 
 SubsetObj Pattern::getOutput() const {

@@ -106,6 +106,7 @@ struct ProducesNode : public StmtNode {
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
+    std::vector<Variable> getFieldsAsVars() const;
     SubsetObj output;
 };
 

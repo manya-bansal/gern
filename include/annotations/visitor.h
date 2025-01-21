@@ -337,4 +337,7 @@ inline std::set<Variable> getVariables(T annot) {
     return vars;
 }
 
+Consumes mimicConsumes(Pattern p, std::vector<SubsetObj>);
+Pattern mimicComputes(Pattern p, Computes);
+
 }  // namespace gern

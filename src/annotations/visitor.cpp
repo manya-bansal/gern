@@ -393,4 +393,24 @@ DEFINE_BINARY_REWRITER_METHOD(GreaterNode, Constraint, where)
 
 DEFINE_BINARY_REWRITER_METHOD(AssignNode, Stmt, stmt)
 
+Consumes mimicConsumes(Pattern p, std::vector<SubsetObj> input_subsets) {
+    ConsumeMany consumes = SubsetObjMany(input_subsets);
+    match(p, std::function<void(const ConsumesForNode *, Matcher *)>(
+                 [&](const ConsumesForNode *op, Matcher *ctx) {
+                     ctx->match(op->body);
+                     consumes = For(op->start, op->end, op->step, consumes);
+                 }));
+    return consumes;
+}
+
+Pattern mimicComputes(Pattern p, Computes computes) {
+    Pattern pattern = computes;
+    match(p, std::function<void(const ComputesForNode *, Matcher *)>(
+                 [&](const ComputesForNode *op, Matcher *ctx) {
+                     ctx->match(op->body);
+                     pattern = For(op->start, op->end, op->step, pattern);
+                 }));
+    return pattern;
+}
+
 }  // namespace gern

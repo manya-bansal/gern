@@ -21,6 +21,9 @@ public:
     virtual ~ComposableNode() = default;
     virtual void accept(ComposableVisitorStrict *) const = 0;
     virtual std::set<Variable> getVariableArgs() const = 0;
+    virtual std::set<Variable> getTemplateArgs() const = 0;
+    virtual std::set<AbstractDataTypePtr> getInputs() const = 0;
+    virtual Pattern getAnnotation() const = 0;
 };
 
 /**
@@ -37,6 +40,8 @@ public:
     }
 
     std::set<Variable> getVariableArgs() const;
+    std::set<Variable> getTemplateArgs() const;
+    Pattern getAnnotation() const;
     void accept(ComposableVisitorStrict *v) const;
 };
 
@@ -47,18 +52,37 @@ public:
 class Computation : public ComposableNode {
 public:
     Computation(std::vector<Composable> composed);
+
     std::set<Variable> getVariableArgs() const;
+    std::set<Variable> getTemplateArgs() const;
+
+    Pattern getAnnotation() const;
     void accept(ComposableVisitorStrict *) const;
 
+    void check_legal();
     void init_args();
+    void init_annotation();
+    void init_template_args();
+    void infer_relationships(AbstractDataTypePtr output,
+                             std::vector<Variable> output_fields);
+
+    AbstractDataTypePtr output;
     std::vector<Composable> composed;
+    std::vector<Assign> declarations;
     std::set<Variable> variable_args;
+    std::set<Variable> template_args;
+    std::map<AbstractDataTypePtr, std::set<Composable>> consumer_functions;
+    Pattern _annotation;
 };
 
 class TiledComputation : public ComposableNode {
 public:
     std::set<Variable> getVariableArgs() const;
+    std::set<Variable> getTemplateArgs() const;
+
     void accept(ComposableVisitorStrict *) const;
+    Pattern getAnnotation() const;
+
     ADTMember field_to_tile;  // The field that the user wants to tile.
     Variable v;               // The variable that the user will set to concretize the tile
                               // parameter for the computation.
