@@ -43,6 +43,14 @@ public:
         }
     }
 
+    bool contains_in_current(const Key &key) const {
+        std::map<Key, Value> current_scope = scopes.front();
+        if (current_scope.find(key) != current_scope.end()) {
+            return true;
+        }
+        return false;
+    }
+
     bool contains(const Key &key) const {
         for (auto &scope : scopes) {
             if (scope.find(key) != scope.end()) {

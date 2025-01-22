@@ -48,7 +48,12 @@ public:
     void visit(const ComputeFunctionCall *);
 
 private:
-    void common(Composable);
+    void common(Composable, std::set<AbstractDataTypePtr>);
+    LowerIR define_loop_var(Assign start, Expr end, Variable step) const;
+    LowerIR generate_definitions(Assign definition) const;
+    LowerIR declare_consumes(Pattern annotation, LowerIR body);
+    LowerIR wrap_computes(Pattern annotation, LowerIR body);
+
     FunctionCall constructFunctionCall(FunctionSignature f,
                                        std::vector<Variable> ref_md_fields,
                                        std::vector<Expr> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.

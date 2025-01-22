@@ -314,26 +314,106 @@ LowerIR ComposableLower::Lower(Composable composable) {
     return lowerIR;
 }
 
-void ComposableLower::common(Composable node) {
+void ComposableLower::common(Composable node, std::set<AbstractDataTypePtr> intermediates) {
+    std::vector<LowerIR> lowered;
+    std::vector<SubsetObj> inputs = node.getAnnotation().getAllConsumesSubsets();
+    // Declare all the outer variables.
+    // Query the inputs if they are not an intermediate of the current pipeline.
+    for (auto const &input : inputs) {
+        // If the current DS is not in scope
+        // (at this point we are already declared
+        // all the intermediates), generate a query.
+        AbstractDataTypePtr input_ds = input.getDS();
+        if (!intermediates.contains(input_ds)) {
+            // Generate a query.
+            lowered.push_back(constructQueryNode(input_ds,
+                                                 input.getFields()));
+        }
+    }
+    // Now, visit the node.
+    this->visit(node);
+    lowered.push_back(lowerIR);
+    lowerIR = new const BlockNode(lowered);
+}
+
+// LowerIR ComposableLower::define_loop_start(Variable v,
+//                                            Variable start,
+// ) const {
+//     std::vector<LowerIR> lowered;
+//     Variable v = to<Variable>(start.getA());
+//     if (tiled_vars.contains(v)) {
+//         lowered.push_back(generate_definitions(v = tiled_vars.at(v)));
+//     } else {
+//         // The variable has not been tiled.
+//         lowered.push_back(generate_definitions(start));
+//         lowered.push_back(generate_definitions(step = start));
+//         return new const BlockNode(lowered);
+//     }
+// }
+
+LowerIR ComposableLower::generate_definitions(Assign definition) const {
+    Variable v = to<Variable>(definition.getA());
+    // if (v.isBound()) {
+    //     throw error::UserError("Trying to bind a variable that has already been bound");
+    // }
+
+    return new const DefNode(definition, false);
 }
 
 void ComposableLower::visit(const Computation *node) {
 
     std::vector<LowerIR> lowered;
+    std::set<AbstractDataTypePtr> intermediates;
+
+    // First declare all the variable relationships.
+    for (const auto &decl : node->declarations) {
+        lowered.push_back(generate_definitions(decl));
+    }
+
+    // Query the output.
     SubsetObj output = node->getAnnotation().getOutput();
     lowered.push_back(constructQueryNode(output.getDS(), output.getFields()));
 
-    // Also construct the allocations.
+    // Construct the allocations.
     std::vector<Composable> composed = node->composed;
     size_t size_funcs = composed.size();
-
     for (int i = 0; i < size_funcs - 1; i++) {
         SubsetObj temp = composed[i].getAnnotation().getOutput();
         lowered.push_back(constructAllocNode(temp.getDS(), temp.getFields()));
+        intermediates.insert(temp.getDS());
     }
 
-    // Now, construct all the queries.
-    // common(node);
+    std::vector<LowerIR> body;
+    // Now, we are ready to lower the  body individually.
+    for (const auto &function : node->composed) {
+        common(function, intermediates);
+        body.push_back(lowerIR);
+    }
+
+    // Wrap the body in a consumes loop if it exists.
+    // lowerIR = new const IntervalNode()
+    // wrap_produces(node->getAnnotation(), body);
+    lowerIR = declare_consumes(node->getAnnotation(), new const BlockNode(body));
+    std::cout << lowerIR << std::endl;
+}
+
+LowerIR ComposableLower::declare_consumes(Pattern annotation, LowerIR body) {
+    std::vector<LowerIR> lowered{body};
+    match(annotation, std::function<void(const ConsumesForNode *, Matcher *)>(
+                          [&](const ConsumesForNode *op, Matcher *ctx) {
+                              ctx->match(op->body);
+                              Variable v = to<Variable>(op->start.getA());
+                              if (tiled_vars.contains(v)) {
+                                  lowered.insert(lowered.begin(),
+                                                 generate_definitions(v = tiled_vars[v]));
+                                  //   lowered.insert(lowered.begin(),
+                                  //                  generate_definitions(op->steo = tiled_vars[v]));
+                              } else {
+                                  lowered.insert(lowered.begin(),
+                                                 generate_definitions(op->start));
+                              }
+                          }));
+    return new const BlockNode(lowered);
 }
 
 void ComposableLower::visit(const TiledComputation *node) {
@@ -351,8 +431,12 @@ void ComposableLower::visit(const TiledComputation *node) {
 
     // Next, lower the composable object.
     current_ds.scope();
-    common(node->tiled);
+    this->visit(node->tiled);
     current_ds.unscope();
+
+    // The defintion of the captured variable is no longer
+    // visible to the body.
+    tiled_vars.erase(captured);
 }
 
 AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {

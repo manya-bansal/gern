@@ -305,6 +305,8 @@ public:
 
     std::set<Variable> getDefinedVariables() const;
     std::set<Variable> getIntervalVariables() const;
+    std::map<Variable, Variable> getConsumesIntervalAndStepVars() const;
+    std::map<Variable, Variable> getComputesIntervalAndStepVars() const;
     std::map<Variable, Variable> getIntervalAndStepVars() const;
     Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
     Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;

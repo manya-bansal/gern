@@ -1,3 +1,4 @@
+#include "codegen/lower.h"
 #include "compose/composable.h"
 #include "library/array/annot/cpu-array.h"
 #include "library/array/impl/cpu-array.h"
@@ -22,11 +23,13 @@ TEST(ComposableTest, Simple) {
 
     std::cout << call.getAnnotation() << std::endl;
 
-    call = For(inputDS["x"], v)(
+    call = For(outputDS["x"], v)(
         add_1.construct(inputDS, tempDS),
         add_1.construct(tempDS, outputDS)
 
     );
 
-    std::cout << call << std::endl;
+    ComposableLower l;
+    l.Lower(call);
+    // std::cout << call << std::endl;
 }

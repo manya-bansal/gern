@@ -218,6 +218,28 @@ std::set<Variable> Stmt::getIntervalVariables() const {
     return vars;
 }
 
+std::map<Variable, Variable> Stmt::getConsumesIntervalAndStepVars() const {
+    std::map<Variable, Variable> vars;
+    match(*this,
+          std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
+                                                                           Matcher *ctx) {
+              vars[to<Variable>(op->start.getA())] = op->step;
+              ctx->match(op->body);
+          }));
+    return vars;
+}
+
+std::map<Variable, Variable> Stmt::getComputesIntervalAndStepVars() const {
+    std::map<Variable, Variable> vars;
+    match(*this,
+          std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
+                                                                           Matcher *ctx) {
+              vars[to<Variable>(op->start.getA())] = op->step;
+              ctx->match(op->body);
+          }));
+    return vars;
+}
+
 std::map<Variable, Variable> Stmt::getIntervalAndStepVars() const {
     std::map<Variable, Variable> vars;
     match(*this,
