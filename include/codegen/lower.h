@@ -6,6 +6,7 @@
 #include "compose/compose.h"
 #include "compose/compose_visitor.h"
 #include "utils/scoped_map.h"
+#include "utils/scoped_set.h"
 #include "utils/uncopyable.h"
 
 namespace gern {
@@ -65,6 +66,8 @@ private:
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
     util::ScopedMap<Variable, Expr> tiled_vars;
     util::ScopedMap<Variable, Variable> parents;  // Used for splits.
+    util::ScopedSet<AbstractDataTypePtr> to_free;
+
     LowerIR lowerIR;
 };
 

@@ -16,6 +16,7 @@ TEST(ComposableTest, Simple) {
 
     annot::add_1 add_1;
     Variable v("v");
+    Variable v1("v1");
 
     auto call = Call(
         add_1.construct(inputDS, tempDS),
@@ -34,4 +35,15 @@ TEST(ComposableTest, Simple) {
     ComposableLower l;
     l.Lower(call);
     std::cout << l.Lower(call) << std::endl;
+
+    call =
+        For(outputDS["x"], v)(
+            For(outputDS["x"], v1)(
+                add_1.construct(inputDS, tempDS),
+                add_1.construct(tempDS, outputDS)
+
+                    ));
+    std::cout << call << std::endl;
+    ComposableLower l2;
+    std::cout << l2.Lower(call) << std::endl;
 }

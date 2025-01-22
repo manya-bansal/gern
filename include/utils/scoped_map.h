@@ -61,7 +61,7 @@ public:
     }
 
     Value at(const Key &key) const {
-        for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
+        for (auto it = scopes.begin(); it != scopes.end(); ++it) {
             const auto found = it->find(key);
             if (found != it->end()) {
                 return found->second;

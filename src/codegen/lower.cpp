@@ -421,13 +421,10 @@ void ComposableLower::visit(const TiledComputation *node) {
 
     bool has_parent = parents.contains(captured);
     lowerIR = new const IntervalNode(
-        has_parent ? (node->v = Expr(0)) : (loop_index = node->start),
+        has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
         has_parent ? parents.at(captured) : node->end,
         node->v,
         lowerIR);
-
-    // The defintion of the captured variable is no longer
-    // visible to the body.
 }
 
 AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
@@ -445,10 +442,11 @@ const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std
     f.name = ds_in_scope.getName() + "." + f.name;
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
+
     // If any of the queried data-structures need to be free, track that.
-    // if (ds.freeQuery()) {
-    //     to_free.insert(queried);
-    // }
+    if (ds.freeQuery()) {
+        to_free.insert(queried);
+    }
 
     return new QueryNode(ds, f);
 }
@@ -456,9 +454,11 @@ const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std
 const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
     FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds.getFields(), alloc_args);
     alloc_func.output = Parameter(ds);
+
     if (ds.freeAlloc()) {
-        // to_free.insert(ds);
+        to_free.insert(ds);
     }
+
     return new AllocateNode(alloc_func);
 }
 
