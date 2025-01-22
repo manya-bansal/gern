@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <set>
+#include <tuple>
 
 namespace gern {
 
@@ -240,17 +241,17 @@ std::map<Variable, Variable> Stmt::getComputesIntervalAndStepVars() const {
     return vars;
 }
 
-std::map<Variable, Variable> Stmt::getIntervalAndStepVars() const {
-    std::map<Variable, Variable> vars;
+std::map<Variable, std::tuple<Expr, Expr, Variable>> Stmt::getIntervalAndStepVars() const {
+    std::map<Variable, std::tuple<Expr, Expr, Variable>> vars;
     match(*this,
           std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
                                                                            Matcher *ctx) {
-              vars[to<Variable>(op->start.getA())] = op->step;
+              vars[to<Variable>(op->start.getA())] = std::make_tuple(op->start.getB(), op->end, op->step);
               ctx->match(op->body);
           }),
           std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
                                                                            Matcher *ctx) {
-              vars[to<Variable>(op->start.getA())] = op->step;
+              vars[to<Variable>(op->start.getA())] = std::make_tuple(op->start.getB(), op->end, op->step);
               ctx->match(op->body);
           }));
     return vars;

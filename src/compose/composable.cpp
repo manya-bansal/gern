@@ -166,13 +166,17 @@ void TiledComputation::init_binding() {
 
     // Now that we have the index, make sure it is an index variable.
     Variable var_to_bind = annotation.getProducesField()[index];
-    std::map<Variable, Variable> interval_vars = getAnnotation().getIntervalAndStepVars();
+    std::map<Variable, std::tuple<Expr, Expr, Variable>> interval_vars = getAnnotation().getIntervalAndStepVars();
     if (!interval_vars.contains(var_to_bind)) {
         throw error::UserError("Cannot tile a non-interval var");
     }
 
     // All is ok, add to bindings now.
     captured = var_to_bind;
+    auto interval_vals = interval_vars.at(var_to_bind);
+    start = std::get<0>(interval_vals);
+    end = std::get<1>(interval_vals);
+    step = std::get<2>(interval_vals);
 }
 
 std::set<Variable> Composable::getVariableArgs() const {

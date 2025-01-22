@@ -51,8 +51,7 @@ private:
     void common(Composable, std::set<AbstractDataTypePtr>);
     LowerIR define_loop_var(Assign start, Expr end, Variable step) const;
     LowerIR generate_definitions(Assign definition) const;
-    LowerIR declare_consumes(Pattern annotation, LowerIR body);
-    LowerIR wrap_computes(Pattern annotation, LowerIR body);
+    LowerIR declare_computes(Pattern annotation) const;
 
     FunctionCall constructFunctionCall(FunctionSignature f,
                                        std::vector<Variable> ref_md_fields,
@@ -64,7 +63,8 @@ private:
     AbstractDataTypePtr getCurrent(AbstractDataTypePtr) const;
 
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
-    std::map<Variable, Expr> tiled_vars;
+    util::ScopedMap<Variable, Expr> tiled_vars;
+    util::ScopedMap<Variable, Variable> parents;  // Used for splits.
     LowerIR lowerIR;
 };
 

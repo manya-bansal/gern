@@ -93,6 +93,10 @@ public:
                               // parameter for the computation.
     Composable tiled;
     Variable captured;
+
+    Expr start;
+    Expr end;
+    Variable step;
 };
 
 // This class only exists for the overload.
@@ -101,14 +105,26 @@ struct TileDummy {
         : member(member), v(v) {
     }
 
-    template<typename... ToCompose>
-    Composable operator()(ToCompose... c) {
+    template<typename First, typename Second, typename... ToCompose>
+    Composable operator()(First first, Second second, ToCompose... c) {
         // Static assertion to ensure all arguments are of type Compose
         static_assert((std::is_same_v<ToCompose, Composable> && ...),
                       "All arguments must be of type Composable");
-        std::vector<Composable> to_compose{c...};
+        static_assert((std::is_same_v<First, Composable>),
+                      "All arguments must be of type Composable");
+        static_assert((std::is_same_v<Second, Composable>),
+                      "All arguments must be of type Composable");
+        std::vector<Composable> to_compose{first, second, c...};
         return new const TiledComputation(member, v,
                                           Composable(new const Computation(to_compose)));
+    }
+
+    template<typename ToCompose>
+    Composable operator()(ToCompose c) {
+        // Static assertion to ensure all arguments are of type Compose
+        static_assert((std::is_same_v<ToCompose, Composable>),
+                      "All arguments must be of type Composable");
+        return new const TiledComputation(member, v, c);
     }
 
     ADTMember member;

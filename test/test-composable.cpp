@@ -29,7 +29,9 @@ TEST(ComposableTest, Simple) {
 
     );
 
+    std::cout << call << std::endl;
+
     ComposableLower l;
     l.Lower(call);
-    // std::cout << call << std::endl;
+    std::cout << l.Lower(call) << std::endl;
 }
