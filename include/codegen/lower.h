@@ -62,8 +62,9 @@ private:
                                        std::vector<Variable> ref_md_fields,
                                        std::vector<Expr> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
 
-    const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
-    const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
+    const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);                               // Constructs a query node for a data-structure, and tracks this relationship.
+    const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);                            // Constructs a allocate for a data-structure, and tracks this relationship.
+    const InsertNode *constructInsertNode(AbstractDataTypePtr, AbstractDataTypePtr, std::vector<Expr>) const;  // Constructs a allocate for a data-structure, and tracks this relationship.
 
     AbstractDataTypePtr getCurrent(AbstractDataTypePtr) const;
 

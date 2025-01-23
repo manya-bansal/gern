@@ -356,8 +356,12 @@ void ComposableLower::visit(const Computation *node) {
     }
 
     // Query the output.
-    SubsetObj output = node->getAnnotation().getOutput();
-    lowered.push_back(constructQueryNode(output.getDS(), output.getFields()));
+    SubsetObj output_subset = node->getAnnotation().getOutput();
+    AbstractDataTypePtr output = output_subset.getDS();
+    std::vector<Expr> fields = output_subset.getFields();
+    // Get the current parent before query over-writes it.
+    AbstractDataTypePtr parent = getCurrent(output);
+    lowered.push_back(constructQueryNode(output, output_subset.getFields()));
 
     // Construct the allocations.
     std::vector<Composable> composed = node->composed;
@@ -373,6 +377,11 @@ void ComposableLower::visit(const Computation *node) {
     for (const auto &function : node->composed) {
         common(function.ptr);
         lowered.push_back(lowerIR);
+    }
+
+    // We may need to insert the final output.
+    if (output.insertQuery()) {
+        lowered.push_back(constructInsertNode(parent, getCurrent(output), fields));
     }
 
     // Wrap the lowered body in the loops.
@@ -456,7 +465,18 @@ const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std
         to_free.insert(queried);
     }
 
-    return new QueryNode(ds, f);
+    return new const QueryNode(ds, f);
+}
+
+const InsertNode *ComposableLower::constructInsertNode(AbstractDataTypePtr parent,
+                                                       AbstractDataTypePtr child,
+                                                       std::vector<Expr> insert_args) const {
+    FunctionCall f = constructFunctionCall(parent.getInsertFunction(),
+                                           parent.getFields(),
+                                           insert_args);
+    f.name = parent.getName() + "." + f.name;
+    f.args.push_back(child);
+    return new const InsertNode(parent, f);
 }
 
 const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
@@ -467,7 +487,7 @@ const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, 
         to_free.insert(ds);
     }
 
-    return new AllocateNode(alloc_func);
+    return new const AllocateNode(alloc_func);
 }
 
 FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
