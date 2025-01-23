@@ -121,10 +121,11 @@ void TiledComputation::accept(ComposableVisitorStrict *v) const {
 
 TiledComputation::TiledComputation(ADTMember field_to_tile,
                                    Variable v,
-                                   Composable tiled)
+                                   Composable tiled,
+                                   Grid::Property property)
     //    Grid::Property property)
     : field_to_tile(field_to_tile),
-      v(v), tiled(tiled) {
+      v(v), tiled(tiled), property(property) {
     init_binding();
 }
 
@@ -232,17 +233,16 @@ TileDummy TileDummy::operator||(Grid::Property p) {
 
 Composable TileDummy::operator()(Composable c) {
     if (isa<ComputeFunctionCall>(c.ptr)) {
-        return new const TiledComputation(member, v,
-                                          Composable(
-                                              new const Computation({c})));
         // return new const TiledComputation(member, v,
         //                                   Composable(
-        //                                       new const Computation({c})),
-        //                                   property);
-        //   property);
+        //                                       new const Computation({c})));
+        return new const TiledComputation(member, v,
+                                          Composable(
+                                              new const Computation({c})),
+                                          property);
     }
-    return new const TiledComputation(member, v, c);
-    // return new const TiledComputation(member, v, c, property);
+    // return new const TiledComputation(member, v, c);
+    return new const TiledComputation(member, v, c, property);
 }
 
 }  // namespace gern

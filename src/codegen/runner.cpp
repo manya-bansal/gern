@@ -14,7 +14,7 @@ void Runner::compile(Options config) {
     codegen::CGStmt code = cg.generate_code(c);
 
     config.prefix += "/";
-    bool at_device = false;
+    bool at_device = c.isDeviceLaunch();
     std::string suffix = at_device ? ".cu" : ".cpp";
     std::string file = config.prefix + config.filename + suffix;
     std::ofstream outFile(file);

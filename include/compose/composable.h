@@ -42,6 +42,15 @@ public:
     std::set<Variable> getTemplateArgs() const;
     Pattern getAnnotation() const;
     void accept(ComposableVisitorStrict *v) const;
+    bool isDeviceLaunch() const {
+        return call_at_device;
+    }
+    void callAtDevice() {
+        call_at_device = true;
+    }
+
+private:
+    bool call_at_device = false;
 };
 
 std::ostream &operator<<(std::ostream &os, const Composable &f);
@@ -82,7 +91,8 @@ class TiledComputation : public ComposableNode {
 public:
     TiledComputation(ADTMember member,
                      Variable v,
-                     Composable body);
+                     Composable body,
+                     Grid::Property property);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
     Pattern getAnnotation() const;
@@ -119,11 +129,11 @@ struct TileDummy {
         static_assert((std::is_same_v<Second, Composable>),
                       "All arguments must be of type Composable");
         std::vector<Composable> to_compose{first, second, c...};
-        return Composable(new const TiledComputation(member, v,
-                                                     Composable(new const Computation(to_compose))));
-        // return new const TiledComputation(member, v,
-        //                                   Composable(new const Computation(to_compose)),
-        //                                   property);
+        // return Composable(new const TiledComputation(member, v,
+        //                                              Composable(new const Computation(to_compose))));
+        return new const TiledComputation(member, v,
+                                          Composable(new const Computation(to_compose)),
+                                          property);
     }
 
     TileDummy operator||(Grid::Property p);

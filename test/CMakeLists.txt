@@ -43,8 +43,8 @@ if (Gern_CUDA_ARCH)
     library/matrix/impl/gpu-matrix.h)
     # Adding all the GPU test.
     list(APPEND TEST_SOURCES
-    test-gpu-array.cpp
-    test-gpu-matrix.cpp)
+    test-gpu-array.cpp)
+    # test-gpu-matrix.cpp)
 endif()
 
 

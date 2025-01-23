@@ -62,6 +62,13 @@ public:
         tmp.destroy();
     }
 
+    void ascending() {
+        ArrayCPU tmp(size);
+        tmp.ascending();
+        cudaMemcpy(data, tmp.data, size * sizeof(float), cudaMemcpyHostToDevice);
+        tmp.destroy();
+    }
+
     ArrayCPU get() {
         ArrayCPU cpu(size);
         cudaMemcpy(cpu.data, data, size * sizeof(float), cudaMemcpyDeviceToHost);
@@ -84,14 +91,14 @@ __device__ ArrayStaticGPU<Size> allocate_local() {
     return ArrayStaticGPU<Size>();
 }
 
-__device__ inline void add(ArrayGPU a, ArrayGPU b) {
+__device__ inline void add_1(ArrayGPU a, ArrayGPU b) {
     for (int64_t i = 0; i < a.size; i++) {
-        b.data[i] += a.data[i];
+        b.data[i] = a.data[i] + 1;
     }
 }
 
 template<int Size>
-__device__ inline void add(ArrayStaticGPU<Size> &a, ArrayStaticGPU<Size> &b) {
+__device__ inline void add_1(ArrayStaticGPU<Size> &a, ArrayStaticGPU<Size> &b) {
     for (int64_t i = 0; i < Size; i++) {
         b.data[i] += a.data[i];
     }

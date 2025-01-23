@@ -15,7 +15,7 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     // Lower each IR node one by one.
     ComposableLower lower(c);
     // Generate code the after lowering.
-    bool is_device_call = false;
+    bool is_device_call = c.isDeviceLaunch();
     top_level_codegen(lower.lower(), is_device_call);
 
     // Generate the hook.
@@ -43,11 +43,17 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     CGStmt hook_call = gen(compute_func.constructCall());
     if (is_device_call) {
         // Declare the grid and block dimensions.
-        // hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
-        // hook_body.push_back(EscapeCGStmt::make("dim3 __block_dim__(" + block_dim.str() + ");"));
-        // hook_call = KernelLaunch::make(name, hook_args, call_template_vars, Var::make("__grid_dim__"), Var::make("__block_dim__"));
-        // full_code.push_back(EscapeCGStmt::make("#include <cuda_runtime.h>"));
-        throw error::InternalError("Unimplemented");
+        hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
+        hook_body.push_back(EscapeCGStmt::make("dim3 __block_dim__(" + block_dim.str() + ");"));
+        std::vector<CGExpr> hook_args;
+        for (auto const &a : compute_func.args) {
+            hook_args.push_back(gen(a));
+        }
+        std::vector<CGExpr> call_template_vars;
+        for (auto const &a : compute_func.template_args) {
+            call_template_vars.push_back(gen(a));
+        }
+        hook_call = KernelLaunch::make(name, hook_args, call_template_vars, Var::make("__grid_dim__"), Var::make("__block_dim__"));
     }
     hook_body.push_back(hook_call);
 
@@ -57,7 +63,9 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     for (const auto &h : headers) {
         full_code.push_back(EscapeCGStmt::make("#include \"" + h + "\""));
     }
-
+    if (is_device_call) {
+        full_code.push_back(EscapeCGStmt::make("#include <cuda_runtime.h>"));
+    }
     full_code.push_back(BlankLine::make());
     full_code.push_back(BlankLine::make());
     // Now, add the children (compute functions that must be declared).
@@ -501,7 +509,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     }
 
     Variable interval_var = op->getIntervalVariable();
-    Grid::Property property = Grid::Property::UNDEFINED;
+    Grid::Property property = op->p;
 
     // This only works for ceiling.
     CGExpr divisor = gen(op->step);

@@ -56,10 +56,10 @@ protected:
 };
 
 // This *must* be a device function.
-class addGPU : public add {
+class add_1_GPU : public add_1 {
 public:
-    addGPU()
-        : add() {
+    add_1_GPU()
+        : add_1() {
     }
 
     std::vector<std::string> getHeader() {
@@ -98,7 +98,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add";
+        f.name = "gern::impl::add_1";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }
@@ -155,10 +155,10 @@ public:
     }
 };
 
-class addGPUTemplate : public addGPU {
+class add_1_GPU_Template : public add_1_GPU {
 public:
-    addGPUTemplate()
-        : addGPU() {
+    add_1_GPU_Template()
+        : add_1_GPU() {
     }
 
     virtual FunctionSignature getFunction() override {

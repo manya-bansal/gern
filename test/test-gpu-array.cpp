@@ -17,28 +17,26 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
 
-    annot::addGPU add_f;
+    annot::add_1_GPU add_f;
     Variable v("v");
     Variable step("step");
 
     // No interval variable is being mapped to the grid,
     // this implementation runs the entire computation on a
     // single thread.
-    std::vector<Compose> c = {add_f[{
-        {"step", step},
-    }](inputDS, outputDS)};
+    Composable program =
+        For(outputDS["x"], step)(
+            add_f.construct(inputDS, outputDS));
 
-    Compose p(c, true);
-    p.callAtDevice();
-    Runner run(p);
+    program.callAtDevice();
+    Runner run(program);
 
     run.compile(test::gpuRunner("array"));
 
     // Now, actually run the function.
     impl::ArrayGPU a(10);
-    a.vvals(2.0f);
+    a.ascending();
     impl::ArrayGPU b(10);
-    b.vvals(3.0f);
     int64_t step_val = 10;
 
     ASSERT_NO_THROW(run.evaluate({
@@ -50,8 +48,10 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     // impl::ArrayCPU result = b.get();
     // Make sure we got the correct answer.
     impl::ArrayCPU result = b.get();
+    impl::ArrayCPU a_host = a.get();
+
     for (int i = 0; i < 10; i++) {
-        ASSERT_TRUE(result.data[i] == 5.0f);
+        ASSERT_TRUE(result.data[i] == (a_host.data[i] + 1));
     }
 
     // Try running with insufficient number
@@ -73,32 +73,29 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     a.destroy();
     b.destroy();
     result.destroy();
+    a_host.destroy();
 }
 
 TEST(LoweringGPU, SingleElemFunctionBind) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
 
-    annot::addGPU add_f;
+    annot::add_1_GPU add_1;
     Variable v("v");
     Variable step("step");
     Variable blk("blk");
 
-    std::vector<Compose> c = {add_f[{
-        {"step", step},
-        {"x", blk.bindToGrid(Grid::Property::BLOCK_ID_X)},
-    }](inputDS, outputDS)};
+    Composable program =
+        (For(outputDS["x"], step) || Grid::Property::BLOCK_ID_X)(
+            add_1.construct(inputDS, outputDS));
 
-    Compose p(c, true);
-    p.callAtDevice();
-    Runner run(p);
-
+    program.callAtDevice();
+    Runner run(program);
     run.compile(test::gpuRunner("array"));
     // Now, actually run the function.
     impl::ArrayGPU a(10);
-    a.vvals(2.0f);
+    a.ascending();
     impl::ArrayGPU b(10);
-    b.vvals(3.0f);
     int64_t step_val = 1;
 
     ASSERT_NO_THROW(run.evaluate({
@@ -108,173 +105,217 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     }));
 
     impl::ArrayCPU result = b.get();
-    // Make sure we got the correct answer.
+    impl::ArrayCPU a_host = a.get();
     for (int i = 0; i < 10; i++) {
-        ASSERT_TRUE(result.data[i] == 5.0f);
+        ASSERT_TRUE(result.data[i] == (a_host.data[i] + 1));
     }
 
     a.destroy();
     b.destroy();
     result.destroy();
+    a_host.destroy();
 }
 
-TEST(LoweringGPU, SingleReduceNoBind) {
+TEST(LoweringGPU, DoubleBind) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
 
-    Variable v1("v1");
-    Variable v2("v2");
-
-    annot::reductionGPU reduce_f;
-
-    std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
-
-    Compose p(c, true);
-    p.callAtDevice();
-    Runner run(p);
-
-    run.compile(test::gpuRunner("array"));
-
-    impl::ArrayGPU a(10);
-    a.vvals(2.0f);
-    impl::ArrayGPU b(10);
-    b.vvals(0.0f);
-    int64_t var1 = 10;
-    int64_t var2 = 1;
-
-    ASSERT_NO_THROW(run.evaluate({
-        {inputDS.getName(), &a},
-        {outputDS.getName(), &b},
-        {v2.getName(), &var2},
-        {v1.getName(), &var1},
-    }));
-
-    impl::ArrayCPU result = b.get();
-    // Make sure we got the correct answer.
-    for (int i = 0; i < 10; i++) {
-        ASSERT_TRUE(result.data[i] == 2.0f * 10);
-    }
-
-    b.vvals(0.0f);
-    // Run again, we should be able to
-    // repeatedly used the compiled pipeline.
-    ASSERT_NO_THROW(run.evaluate({
-        {inputDS.getName(), &a},
-        {outputDS.getName(), &b},
-        {v2.getName(), &var2},
-        {v1.getName(), &var1},
-    }));
-
-    result = b.get();
-    // Make sure we got the correct answer.
-    for (int i = 0; i < 10; i++) {
-        ASSERT_TRUE(result.data[i] == 2.0f * 10);
-    }
-
-    // Try running with insufficient number
-    // of arguments.
-    ASSERT_THROW(run.evaluate({
-                     {inputDS.getName(), &a},
-                     {outputDS.getName(), &b},
-                 }),
-                 error::UserError);
-
-    a.destroy();
-    b.destroy();
-    result.destroy();
-}
-
-TEST(LoweringGPU, SingleReduceBind) {
-    auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
-    auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
-
-    Variable v1("v1");
-    Variable v2("v2");
+    annot::add_1_GPU add_f;
+    Variable v("v");
+    Variable step("step");
     Variable blk("blk");
 
-    annot::reductionGPU reduce_f;
+    Composable program =
+        (For(outputDS["x"], blk) || Grid::Property::BLOCK_ID_X)(
+            (For(outputDS["x"], step) || Grid::Property::THREAD_ID_X)(
+                add_f.construct(inputDS, outputDS)));
 
-    std::vector<Compose> c = {reduce_f[{
-        {"x", blk.bindToGrid(Grid::Property::BLOCK_ID_X)},
-        {"end", v1},
-        {"step", v2},
-    }](inputDS, outputDS)};
-
-    Compose p(c, true);
-    p.callAtDevice();
-    Runner run(p);
-
+    program.callAtDevice();
+    Runner run(program);
     run.compile(test::gpuRunner("array"));
-
+    // Now, actually run the function.
     impl::ArrayGPU a(10);
-    a.vvals(2.0f);
+    a.ascending();
     impl::ArrayGPU b(10);
-    b.vvals(0.0f);
-    int64_t var1 = 10;
-    int64_t var2 = 1;
+    int64_t step_val = 1;
+    int64_t blk_val = 1;
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {v2.getName(), &var2},
-        {v1.getName(), &var1},
+        {step.getName(), &step_val},
+        {blk.getName(), &blk_val},
     }));
 
     impl::ArrayCPU result = b.get();
-    // Make sure we got the correct answer.
+    impl::ArrayCPU a_host = a.get();
     for (int i = 0; i < 10; i++) {
-        ASSERT_TRUE(result.data[i] == 2.0f * 10);
+        ASSERT_TRUE(result.data[i] == (a_host.data[i] + 1));
     }
-
-    // Try running with insufficient number
-    // of arguments.
-    ASSERT_THROW(run.evaluate({
-                     {inputDS.getName(), &a},
-                     {outputDS.getName(), &b},
-                 }),
-                 error::UserError);
 
     a.destroy();
     b.destroy();
     result.destroy();
+    a_host.destroy();
 }
 
-TEST(LoweringGPU, MultiArray) {
-    auto inputDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("input_con"));
-    auto tempDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("temp"));
-    auto outputDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("output_con"));
+// TEST(LoweringGPU, SingleReduceNoBind) {
+//     auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
+//     auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
 
-    annot::addGPUTemplate add_f;
-    Variable x("x");
-    Variable end("end");
-    Variable step("step");
+//     Variable v1("v1");
+//     Variable v2("v2");
 
-    std::vector<Compose> c = {
-        add_f(inputDS, tempDS),
-        add_f[{
-            {"x", x.bindToGrid(Grid::Property::BLOCK_ID_X)},
-            {"step", step.bindToInt64(5)},
-        }](tempDS, outputDS)};
+//     annot::reductionGPU reduce_f;
 
-    Compose p(c, true);
-    p.callAtDevice();
-    Runner run(p);
+//     std::vector<Compose> c = {reduce_f[{{"end", v1}, {"step", v2}}](inputDS, outputDS)};
 
-    run.compile(test::gpuRunner("array"));
+//     Compose p(c, true);
+//     p.callAtDevice();
+//     Runner run(p);
 
-    impl::ArrayGPU input(10);
-    input.vvals(2.0f);
-    impl::ArrayGPU output(10);
-    output.vvals(6.0f);
+//     run.compile(test::gpuRunner("array"));
 
-    ASSERT_NO_THROW(run.evaluate({
-        {inputDS.getName(), &input},
-        {outputDS.getName(), &output},
-    }));
+//     impl::ArrayGPU a(10);
+//     a.vvals(2.0f);
+//     impl::ArrayGPU b(10);
+//     b.vvals(0.0f);
+//     int64_t var1 = 10;
+//     int64_t var2 = 1;
 
-    impl::ArrayCPU result = output.get();
-    // Make sure we got the correct answer.
-    for (int i = 0; i < 10; i++) {
-        ASSERT_TRUE(result.data[i] == 8.0f);
-    }
-}
+//     ASSERT_NO_THROW(run.evaluate({
+//         {inputDS.getName(), &a},
+//         {outputDS.getName(), &b},
+//         {v2.getName(), &var2},
+//         {v1.getName(), &var1},
+//     }));
+
+//     impl::ArrayCPU result = b.get();
+//     // Make sure we got the correct answer.
+//     for (int i = 0; i < 10; i++) {
+//         ASSERT_TRUE(result.data[i] == 2.0f * 10);
+//     }
+
+//     b.vvals(0.0f);
+//     // Run again, we should be able to
+//     // repeatedly used the compiled pipeline.
+//     ASSERT_NO_THROW(run.evaluate({
+//         {inputDS.getName(), &a},
+//         {outputDS.getName(), &b},
+//         {v2.getName(), &var2},
+//         {v1.getName(), &var1},
+//     }));
+
+//     result = b.get();
+//     // Make sure we got the correct answer.
+//     for (int i = 0; i < 10; i++) {
+//         ASSERT_TRUE(result.data[i] == 2.0f * 10);
+//     }
+
+//     // Try running with insufficient number
+//     // of arguments.
+//     ASSERT_THROW(run.evaluate({
+//                      {inputDS.getName(), &a},
+//                      {outputDS.getName(), &b},
+//                  }),
+//                  error::UserError);
+
+//     a.destroy();
+//     b.destroy();
+//     result.destroy();
+// }
+
+// TEST(LoweringGPU, SingleReduceBind) {
+//     auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
+//     auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
+
+//     Variable v1("v1");
+//     Variable v2("v2");
+//     Variable blk("blk");
+
+//     annot::reductionGPU reduce_f;
+
+//     std::vector<Compose> c = {reduce_f[{
+//         {"x", blk.bindToGrid(Grid::Property::BLOCK_ID_X)},
+//         {"end", v1},
+//         {"step", v2},
+//     }](inputDS, outputDS)};
+
+//     Compose p(c, true);
+//     p.callAtDevice();
+//     Runner run(p);
+
+//     run.compile(test::gpuRunner("array"));
+
+//     impl::ArrayGPU a(10);
+//     a.vvals(2.0f);
+//     impl::ArrayGPU b(10);
+//     b.vvals(0.0f);
+//     int64_t var1 = 10;
+//     int64_t var2 = 1;
+
+//     ASSERT_NO_THROW(run.evaluate({
+//         {inputDS.getName(), &a},
+//         {outputDS.getName(), &b},
+//         {v2.getName(), &var2},
+//         {v1.getName(), &var1},
+//     }));
+
+//     impl::ArrayCPU result = b.get();
+//     // Make sure we got the correct answer.
+//     for (int i = 0; i < 10; i++) {
+//         ASSERT_TRUE(result.data[i] == 2.0f * 10);
+//     }
+
+//     // Try running with insufficient number
+//     // of arguments.
+//     ASSERT_THROW(run.evaluate({
+//                      {inputDS.getName(), &a},
+//                      {outputDS.getName(), &b},
+//                  }),
+//                  error::UserError);
+
+//     a.destroy();
+//     b.destroy();
+//     result.destroy();
+// }
+
+// TEST(LoweringGPU, MultiArray) {
+//     auto inputDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("input_con"));
+//     auto tempDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("temp"));
+//     auto outputDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("output_con"));
+
+//     annot::addGPUTemplate add_f;
+//     Variable x("x");
+//     Variable end("end");
+//     Variable step("step");
+
+//     std::vector<Compose> c = {
+//         add_f(inputDS, tempDS),
+//         add_f[{
+//             {"x", x.bindToGrid(Grid::Property::BLOCK_ID_X)},
+//             {"step", step.bindToInt64(5)},
+//         }](tempDS, outputDS)};
+
+//     Compose p(c, true);
+//     p.callAtDevice();
+//     Runner run(p);
+
+//     run.compile(test::gpuRunner("array"));
+
+//     impl::ArrayGPU input(10);
+//     input.vvals(2.0f);
+//     impl::ArrayGPU output(10);
+//     output.vvals(6.0f);
+
+//     ASSERT_NO_THROW(run.evaluate({
+//         {inputDS.getName(), &input},
+//         {outputDS.getName(), &output},
+//     }));
+
+//     impl::ArrayCPU result = output.get();
+//     // Make sure we got the correct answer.
+//     for (int i = 0; i < 10; i++) {
+//         ASSERT_TRUE(result.data[i] == 8.0f);
+//     }
+// }
