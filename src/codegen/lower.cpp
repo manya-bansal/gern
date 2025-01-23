@@ -318,6 +318,7 @@ void ComposableLower::common(const ComposableNode *node) {
         throw error::InternalError("GOING TO SCREAM");
     }
 
+    std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
     std::vector<LowerIR> lowered;
     Pattern annotation = node->getAnnotation();
     std::vector<SubsetObj> inputs = annotation.getAllConsumesSubsets();
@@ -332,11 +333,21 @@ void ComposableLower::common(const ComposableNode *node) {
             // Generate a query.
             lowered.push_back(constructQueryNode(input_ds,
                                                  input.getFields()));
+            AbstractDataTypePtr queried = getCurrent(input_ds);
+            if (queried.freeQuery()) {
+                to_free.insert(queried);
+            }
         }
     }
     // Now, visit the node.
     this->visit(node);
     lowered.push_back(lowerIR);
+
+    // Free any the queried subsets.
+    for (const auto &ds : to_free) {
+        lowered.push_back(new const FreeNode(ds));
+    }
+
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -350,7 +361,7 @@ void ComposableLower::visit(const Computation *node) {
     std::vector<LowerIR> lowered;           // Vector for lowered code.
     std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
 
-    // First declare all the variable relationships.
+    // Step 0: Declare all the variable relationships.
     lowered.push_back(declare_computes(node->getAnnotation()));
     for (const auto &decl : node->declarations) {
         lowered.push_back(generate_definitions(decl));
@@ -474,12 +485,6 @@ const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std
     f.name = ds_in_scope.getName() + "." + f.name;
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
-
-    // If any of the queried data-structures need to be free, track that.
-    if (ds.freeQuery()) {
-        to_free.insert(queried);
-    }
-
     return new const QueryNode(ds, f);
 }
 
@@ -497,10 +502,6 @@ const InsertNode *ComposableLower::constructInsertNode(AbstractDataTypePtr paren
 const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
     FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds.getFields(), alloc_args);
     alloc_func.output = Parameter(ds);
-
-    if (ds.freeAlloc()) {
-        to_free.insert(ds);
-    }
 
     return new const AllocateNode(alloc_func);
 }
