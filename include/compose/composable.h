@@ -80,7 +80,10 @@ public:
 
 class TiledComputation : public ComposableNode {
 public:
-    TiledComputation(ADTMember, Variable, Composable);
+    TiledComputation(ADTMember member,
+                     Variable v,
+                     Composable body,
+                     Grid::Property property);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
     Pattern getAnnotation() const;
@@ -93,6 +96,7 @@ public:
                               // parameter for the computation.
     Composable tiled;
     Variable captured;
+    Grid::Property property;  // Tracks whether the grid is mapped over a grid.
 
     Expr start;
     Expr end;
@@ -116,13 +120,16 @@ struct TileDummy {
                       "All arguments must be of type Composable");
         std::vector<Composable> to_compose{first, second, c...};
         return new const TiledComputation(member, v,
-                                          Composable(new const Computation(to_compose)));
+                                          Composable(new const Computation(to_compose)),
+                                          property);
     }
 
+    TileDummy operator||(Grid::Property p);
     Composable operator()(Composable c);
 
     ADTMember member;
     Variable v;
+    Grid::Property property = Grid::Property::UNDEFINED;
 };
 
 TileDummy For(ADTMember member, Variable v);

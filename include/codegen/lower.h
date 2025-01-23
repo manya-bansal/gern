@@ -186,8 +186,8 @@ struct BlockNode : public LowerIRNode {
 // for the pipeline.
 struct IntervalNode : public LowerIRNode {
 public:
-    IntervalNode(Assign start, Expr end, Expr step, LowerIR body)
-        : start(start), end(end), step(step), body(body) {
+    IntervalNode(Assign start, Expr end, Expr step, LowerIR body, Grid::Property p)
+        : start(start), end(end), step(step), body(body), p(p) {
     }
     void accept(LowerIRVisitor *) const;
 
@@ -205,6 +205,7 @@ public:
     Expr end;
     Expr step;
     LowerIR body;
+    Grid::Property p;
 };
 
 // Node to declare definitions of variables.

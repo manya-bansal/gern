@@ -501,7 +501,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     }
 
     Variable interval_var = op->getIntervalVariable();
-    Grid::Property property = interval_var.getBoundProperty();
+    Grid::Property property = op->p;
 
     // This only works for ceiling.
     CGExpr divisor = gen(op->step);
@@ -529,7 +529,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     return VarAssign::make(
         declVar(interval_var, false),
         // Add any shift factor specified in the interval.
-        (genProp(interval_var.getBoundProperty()) * gen(op->step)) + gen(op->start.getB()));
+        (genProp(property) * gen(op->step)) + gen(op->start.getB()));
 }
 
 }  // namespace codegen
