@@ -110,8 +110,19 @@ private:
 
 class ArrayStaticGPU : public ArrayGPU {
 public:
-    ArrayStaticGPU(const std::string &name)
-        : ArrayGPU(name) {
+    ArrayStaticGPU(const std::string &name, bool temp = false)
+        : name(name), temp(temp) {
+    }
+
+    std::string getName() const override {
+        return name;
+    }
+
+    std::string getType() const override {
+        if (temp) {
+            return "auto";
+        }
+        return "gern::impl::ArrayGPU";
     }
 
     std::vector<Variable> getFields() const override {
@@ -153,6 +164,12 @@ public:
     bool insertQuery() const override {
         return true;
     }
+
+private:
+    std::string name;
+    bool temp;
+    Variable x{"x"};
+    Variable len{"len"};
 };
 
 class add_1_GPU_Template : public add_1_GPU {
@@ -163,7 +180,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add";
+        f.name = "gern::impl::add_1";
         f.args = {Parameter(input), Parameter(output)};
         f.template_args = {step};
         return f;

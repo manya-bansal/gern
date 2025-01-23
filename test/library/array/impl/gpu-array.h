@@ -100,7 +100,7 @@ __device__ inline void add_1(ArrayGPU a, ArrayGPU b) {
 template<int Size>
 __device__ inline void add_1(ArrayStaticGPU<Size> &a, ArrayStaticGPU<Size> &b) {
     for (int64_t i = 0; i < Size; i++) {
-        b.data[i] += a.data[i];
+        b.data[i] = a.data[i] + 1;
     }
 }
 
