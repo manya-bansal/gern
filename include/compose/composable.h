@@ -82,8 +82,7 @@ class TiledComputation : public ComposableNode {
 public:
     TiledComputation(ADTMember member,
                      Variable v,
-                     Composable body,
-                     Grid::Property property);
+                     Composable body);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
     Pattern getAnnotation() const;
@@ -96,17 +95,18 @@ public:
                               // parameter for the computation.
     Composable tiled;
     Variable captured;
-    Grid::Property property;  // Tracks whether the grid is mapped over a grid.
 
     Expr start;
     Expr end;
     Variable step;
+    Grid::Property property{Grid::Property::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
 };
 
 // This class only exists for the overload.
 struct TileDummy {
-    TileDummy(ADTMember member, Variable v)
-        : member(member), v(v) {
+    TileDummy(ADTMember member, Variable v,
+              Grid::Property property = Grid::Property::UNDEFINED)
+        : member(member), v(v), property(property) {
     }
 
     template<typename First, typename Second, typename... ToCompose>
@@ -119,9 +119,11 @@ struct TileDummy {
         static_assert((std::is_same_v<Second, Composable>),
                       "All arguments must be of type Composable");
         std::vector<Composable> to_compose{first, second, c...};
-        return new const TiledComputation(member, v,
-                                          Composable(new const Computation(to_compose)),
-                                          property);
+        return Composable(new const TiledComputation(member, v,
+                                                     Composable(new const Computation(to_compose))));
+        // return new const TiledComputation(member, v,
+        //                                   Composable(new const Computation(to_compose)),
+        //                                   property);
     }
 
     TileDummy operator||(Grid::Property p);
@@ -129,7 +131,7 @@ struct TileDummy {
 
     ADTMember member;
     Variable v;
-    Grid::Property property = Grid::Property::UNDEFINED;
+    Grid::Property property;
 };
 
 TileDummy For(ADTMember member, Variable v);

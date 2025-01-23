@@ -233,7 +233,7 @@ LowerIR ComposeLower::generateConsumesIntervals(Pattern p, std::vector<LowerIR> 
     match(p, std::function<void(const ConsumesForNode *, Matcher *)>(
                  [&](const ConsumesForNode *op, Matcher *ctx) {
                      ctx->match(op->body);
-                     current = {new IntervalNode(op->start, op->end, op->step, current, Grid::Property::UNDEFINED)};
+                     current = {new IntervalNode(op->start, op->end, op->step, current)};
                  }));
     return current;
 }
@@ -243,7 +243,7 @@ LowerIR ComposeLower::generateOuterIntervals(Pattern p, std::vector<LowerIR> bod
     match(p, std::function<void(const ComputesForNode *, Matcher *)>(
                  [&](const ComputesForNode *op, Matcher *ctx) {
                      ctx->match(op->body);
-                     current = {new IntervalNode(op->start, op->end, op->step, current, Grid::Property::UNDEFINED)};
+                     current = {new IntervalNode(op->start, op->end, op->step, current)};
                  }));
     return current;
 }
@@ -287,7 +287,7 @@ void DefNode::accept(LowerIRVisitor *v) const {
 }
 
 bool IntervalNode::isMappedToGrid() const {
-    return p != Grid::Property::UNDEFINED;
+    return false;
 }
 
 Variable IntervalNode::getIntervalVariable() const {
@@ -467,8 +467,7 @@ void ComposableLower::visit(const TiledComputation *node) {
         has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
         has_parent ? parents.at(node->step) : node->end,
         node->v,
-        lowerIR,
-        Grid::Property::UNDEFINED);
+        lowerIR);
 }
 
 AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {

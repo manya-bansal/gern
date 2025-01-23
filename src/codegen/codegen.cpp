@@ -501,7 +501,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     }
 
     Variable interval_var = op->getIntervalVariable();
-    Grid::Property property = op->p;
+    Grid::Property property = Grid::Property::UNDEFINED;
 
     // This only works for ceiling.
     CGExpr divisor = gen(op->step);
