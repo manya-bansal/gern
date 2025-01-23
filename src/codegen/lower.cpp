@@ -347,7 +347,8 @@ LowerIR ComposableLower::generate_definitions(Assign definition) const {
 
 void ComposableLower::visit(const Computation *node) {
 
-    std::vector<LowerIR> lowered;
+    std::vector<LowerIR> lowered;           // Vector for lowered code.
+    std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
 
     // First declare all the variable relationships.
     lowered.push_back(declare_computes(node->getAnnotation()));
@@ -355,33 +356,47 @@ void ComposableLower::visit(const Computation *node) {
         lowered.push_back(generate_definitions(decl));
     }
 
-    // Query the output.
+    // Step 1 : Query the output and track whether the query needs to be
+    // freed.
     SubsetObj output_subset = node->getAnnotation().getOutput();
     AbstractDataTypePtr output = output_subset.getDS();
     std::vector<Expr> fields = output_subset.getFields();
-    // Get the current parent before query over-writes it.
-    AbstractDataTypePtr parent = getCurrent(output);
+    AbstractDataTypePtr parent = getCurrent(output);  // Get the current parent before query over-writes it.
     lowered.push_back(constructQueryNode(output, output_subset.getFields()));
+    AbstractDataTypePtr child = getCurrent(output);
+    if (child.freeQuery()) {
+        to_free.insert(child);
+    }
 
-    // Construct the allocations.
+    // Step 2: Construct the allocations and track whether the allocations
+    // need to be freed.
     std::vector<Composable> composed = node->composed;
     size_t size_funcs = composed.size();
     for (size_t i = 0; i < size_funcs - 1; i++) {
-        SubsetObj temp = composed[i].getAnnotation().getOutput();
-        lowered.push_back(constructAllocNode(temp.getDS(), temp.getFields()));
-        intermediates.insert(temp.getDS());
+        SubsetObj temp_subset = composed[i].getAnnotation().getOutput();
+        AbstractDataTypePtr temp = temp_subset.getDS();
+        lowered.push_back(constructAllocNode(temp, temp_subset.getFields()));
+        intermediates.insert(temp);
+        // Do we need to free our allocs?
+        if (temp.freeAlloc()) {
+            to_free.insert(temp);
+        }
     }
 
     // std::vector<LowerIR> body;
-    // Now, we are ready to lower the  body individually.
+    // Step 3: Now, we are ready to lower the composable objects that make up the body.
     for (const auto &function : node->composed) {
         common(function.ptr);
         lowered.push_back(lowerIR);
     }
 
-    // We may need to insert the final output.
-    if (output.insertQuery()) {
-        lowered.push_back(constructInsertNode(parent, getCurrent(output), fields));
+    // Step 4: Insert the final output.
+    if (parent.insertQuery()) {
+        lowered.push_back(constructInsertNode(parent, child, fields));
+    }
+
+    for (const auto &ds : to_free) {
+        lowered.push_back(new const FreeNode(ds));
     }
 
     // Wrap the lowered body in the loops.
