@@ -339,6 +339,7 @@ void ComposableLower::common(const ComposableNode *node) {
             }
         }
     }
+
     // Now, visit the node.
     this->visit(node);
     lowered.push_back(lowerIR);
@@ -347,7 +348,6 @@ void ComposableLower::common(const ComposableNode *node) {
     for (const auto &ds : to_free) {
         lowered.push_back(new const FreeNode(ds));
     }
-
     lowerIR = new const BlockNode(lowered);
 }
 

@@ -31,7 +31,7 @@ public:
     void visit(const BlockNode *);
     void visit(const FunctionBoundary *);
 
-    CGExpr gen(Expr, bool const_expr = false);  // Is this part of the LHS of a const_expr?
+    CGExpr gen(Expr);  // Is this part of the LHS of a const_expr?
     CGExpr gen(Constraint);
     CGExpr gen(AbstractDataTypePtr);
     CGStmt gen(FunctionCall f);
@@ -59,7 +59,6 @@ public:
 
     // To insert used variables.
     void insertInUsed(Variable);
-    void insertInConstExpr(Variable);
 
     // Little helper to make sure that
     // that once a var is declared, it's been
@@ -85,7 +84,6 @@ private:
     std::string hook_name;
     std::set<Variable> declared;
     std::set<Variable> used;
-    std::set<Variable> const_expr_vars;
     std::set<AbstractDataTypePtr> declared_adt;
     std::set<AbstractDataTypePtr> used_adt;
     // The signature of the generated function.

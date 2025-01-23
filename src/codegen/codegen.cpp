@@ -210,11 +210,11 @@ void CodeGenerator::visit(const FunctionBoundary *op) {
         cg_e = op::make(a, cg_e);      \
     }
 
-CGExpr CodeGenerator::gen(Expr e, bool const_expr) {
+CGExpr CodeGenerator::gen(Expr e) {
 
     struct ConvertToCode : public ExprVisitorStrict {
-        ConvertToCode(CodeGenerator *cg, bool const_expr)
-            : cg(cg), const_expr(const_expr) {
+        ConvertToCode(CodeGenerator *cg)
+            : cg(cg) {
         }
         using ExprVisitorStrict::visit;
         void visit(const LiteralNode *op) {
@@ -226,9 +226,6 @@ CGExpr CodeGenerator::gen(Expr e, bool const_expr) {
         void visit(const VariableNode *op) {
             cg_e = Var::make(op->name);
             cg->insertInUsed(op);
-            if (const_expr) {
-                cg->insertInConstExpr(op);
-            }
         }
 
         VISIT_AND_DECLARE(Add);
@@ -238,11 +235,10 @@ CGExpr CodeGenerator::gen(Expr e, bool const_expr) {
         VISIT_AND_DECLARE(Mod);
 
         CodeGenerator *cg;
-        bool const_expr;
         CGExpr cg_e;
     };
 
-    ConvertToCode cg(this, const_expr);
+    ConvertToCode cg(this);
     cg.visit(e);
     return cg.cg_e;
 }
@@ -322,7 +318,7 @@ CGExpr CodeGenerator::declParameter(Parameter a,
             gen_expr = cg->declVar(v->getVar(), properties.is_const, track);
         }
 
-        void visit(const ExprArg *v) {
+        void visit(const ExprArg *) {
             throw error::InternalError("unreachable");
         }
 
@@ -373,7 +369,7 @@ CGStmt CodeGenerator::gen(FunctionCall f) {
     }
     std::vector<CGExpr> template_args;
     for (auto a : f.template_args) {
-        template_args.push_back(gen(a, true));  // All of these are const_expr;
+        template_args.push_back(gen(a));  // All of these are const_expr;
     }
 
     CGExpr call = Call::make(f.name, args, template_args);
@@ -416,10 +412,6 @@ CGStmt CodeGenerator::gen(FunctionSignature f, CGStmt body) {
 
 void CodeGenerator::insertInUsed(Variable v) {
     used.insert(v);
-}
-
-void CodeGenerator::insertInConstExpr(Variable v) {
-    const_expr_vars.insert(v);
 }
 
 std::string CodeGenerator::getName() const {
