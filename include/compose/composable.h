@@ -37,7 +37,7 @@ public:
     Composable(const ComposableNode *n)
         : util::IntrusivePtr<const ComposableNode>(n) {
     }
-
+    Composable(std::vector<Composable> composed);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
     Pattern getAnnotation() const;
@@ -119,13 +119,7 @@ struct TileDummy {
                                           Composable(new const Computation(to_compose)));
     }
 
-    template<typename ToCompose>
-    Composable operator()(ToCompose c) {
-        // Static assertion to ensure all arguments are of type Compose
-        static_assert((std::is_same_v<ToCompose, Composable>),
-                      "All arguments must be of type Composable");
-        return new const TiledComputation(member, v, c);
-    }
+    Composable operator()(Composable c);
 
     ADTMember member;
     Variable v;
@@ -146,6 +140,11 @@ Composable Call(ToCompose... c) {
                   "All arguments must be of type Composable");
     std::vector<Composable> to_compose{c...};
     return new const Computation(to_compose);
+}
+
+template<typename E>
+inline bool isa(const ComposableNode *e) {
+    return e != nullptr && dynamic_cast<const E *>(e) != nullptr;
 }
 
 }  // namespace gern

@@ -42,14 +42,18 @@ std::ostream &operator<<(std::ostream &os, const LowerIR &n);
 
 class ComposableLower : public ComposableVisitorStrict {
 public:
-    LowerIR Lower(Composable composable);
+    ComposableLower(Composable composable)
+        : composable(composable) {
+    }
+
+    LowerIR lower();
     using ComposableVisitorStrict::visit;
     void visit(const Computation *);
     void visit(const TiledComputation *);
     void visit(const ComputeFunctionCall *);
 
 private:
-    void common(Composable, std::set<AbstractDataTypePtr>);
+    void common(const ComposableNode *);
     LowerIR define_loop_var(Assign start, Expr end, Variable step) const;
     LowerIR generate_definitions(Assign definition) const;
     LowerIR declare_computes(Pattern annotation) const;
@@ -67,8 +71,10 @@ private:
     util::ScopedMap<Variable, Expr> tiled_vars;
     util::ScopedMap<Variable, Variable> parents;  // Used for splits.
     util::ScopedSet<AbstractDataTypePtr> to_free;
+    util::ScopedSet<AbstractDataTypePtr> intermediates;
 
     LowerIR lowerIR;
+    Composable composable;
 };
 
 class ComposeLower : public CompositionVisitorStrict {

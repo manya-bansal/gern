@@ -71,7 +71,7 @@ void LowerPrinter::visit(const FunctionBoundary *node) {
     util::printIdent(os, ident);
     os << "Function {" << "\n";
     ident++;
-    this->visit(node);
+    this->visit(node->nodes);
     ident--;
     util::printIdent(os, ident);
     os << "}" << "\n";

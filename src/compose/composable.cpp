@@ -154,7 +154,7 @@ void TiledComputation::init_binding() {
     std::string field_to_find = field_to_tile.getMember();
     std::vector<Variable> mf_fields = field_to_tile.getDS().getFields();
     size_t size = mf_fields.size();
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         if (mf_fields[i].getName() == field_to_find) {
             index = i;
         }
@@ -186,6 +186,10 @@ std::set<Variable> Composable::getVariableArgs() const {
     return ptr->getVariableArgs();
 }
 
+Composable::Composable(std::vector<Composable> composed)
+    : Composable(new const Computation(composed)) {
+}
+
 std::set<Variable> Composable::getTemplateArgs() const {
     if (!defined()) {
         return {};
@@ -215,6 +219,15 @@ std::ostream &operator<<(std::ostream &os, const Composable &f) {
     ComposablePrinter print(os, 0);
     print.visit(f);
     return os;
+}
+
+Composable TileDummy::operator()(Composable c) {
+    if (isa<ComputeFunctionCall>(c.ptr)) {
+        return new const TiledComputation(member, v,
+                                          Composable(
+                                              new const Computation({c})));
+    }
+    return new const TiledComputation(member, v, c);
 }
 
 }  // namespace gern

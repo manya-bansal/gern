@@ -241,7 +241,7 @@ Compose Compose::Tile(ADTMember adt, Variable v) {
     std::string field_to_find = adt.getMember();
     std::vector<Variable> mf_fields = adt.getDS().getFields();
     size_t size = mf_fields.size();
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         if (mf_fields[i].getName() == field_to_find) {
             index = i;
         }

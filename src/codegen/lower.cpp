@@ -253,7 +253,6 @@ LowerIR ComposeLower::generateBindings(Compose c) const {
     std::vector<Assign> bindings = c.getBindings();
     for (const auto &binding : bindings) {
         Variable v = to<Variable>(binding.getA());
-        std::cout << " here " << binding << std::endl;
         definitons.push_back(new const DefNode(binding, c.isTemplateArg(v)));
     }
     return new const BlockNode(definitons);
@@ -308,15 +307,19 @@ void BlockNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 
-LowerIR ComposableLower::Lower(Composable composable) {
+LowerIR ComposableLower::lower() {
     this->visit(composable);
     return lowerIR;
 }
 
-void ComposableLower::common(Composable node,
-                             std::set<AbstractDataTypePtr> intermediates) {
+void ComposableLower::common(const ComposableNode *node) {
+
+    if (node == nullptr) {
+        throw error::InternalError("GOING TO SCREAM");
+    }
+
     std::vector<LowerIR> lowered;
-    Pattern annotation = node.getAnnotation();
+    Pattern annotation = node->getAnnotation();
     std::vector<SubsetObj> inputs = annotation.getAllConsumesSubsets();
     // Declare all the outer variables.
     // Query the inputs if they are not an intermediate of the current pipeline.
@@ -325,7 +328,8 @@ void ComposableLower::common(Composable node,
         // (at this point we are already declared
         // all the intermediates), generate a query.
         AbstractDataTypePtr input_ds = input.getDS();
-        if (!intermediates.contains(input_ds)) {
+        // std::cout << intermediates << std::endl;
+        if (!intermediates.contains_at_current_scope(input_ds)) {
             // Generate a query.
             lowered.push_back(constructQueryNode(input_ds,
                                                  input.getFields()));
@@ -345,7 +349,6 @@ LowerIR ComposableLower::generate_definitions(Assign definition) const {
 void ComposableLower::visit(const Computation *node) {
 
     std::vector<LowerIR> lowered;
-    std::set<AbstractDataTypePtr> intermediates;
 
     // First declare all the variable relationships.
     lowered.push_back(declare_computes(node->getAnnotation()));
@@ -360,7 +363,7 @@ void ComposableLower::visit(const Computation *node) {
     // Construct the allocations.
     std::vector<Composable> composed = node->composed;
     size_t size_funcs = composed.size();
-    for (int i = 0; i < size_funcs - 1; i++) {
+    for (size_t i = 0; i < size_funcs - 1; i++) {
         SubsetObj temp = composed[i].getAnnotation().getOutput();
         lowered.push_back(constructAllocNode(temp.getDS(), temp.getFields()));
         intermediates.insert(temp.getDS());
@@ -369,7 +372,7 @@ void ComposableLower::visit(const Computation *node) {
     // std::vector<LowerIR> body;
     // Now, we are ready to lower the  body individually.
     for (const auto &function : node->composed) {
-        common(function, intermediates);
+        common(function.ptr);
         lowered.push_back(lowerIR);
     }
 
@@ -387,9 +390,13 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                               if (tiled_vars.contains(v)) {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(v = tiled_vars.at(v)));
+                                  lowered.insert(lowered.begin(),
+                                                 generate_definitions(op->step = parents.at(op->step)));
                               } else {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->start));
+                                  lowered.insert(lowered.begin(),
+                                                 generate_definitions(op->step = op->end));
                               }
                           }));
     return new const BlockNode(lowered);
@@ -412,17 +419,19 @@ void ComposableLower::visit(const TiledComputation *node) {
     current_ds.scope();
     parents.scope();
     tiled_vars.scope();
-    parents.insert(captured, node->v);
+    parents.insert(node->step, node->v);
     tiled_vars.insert(captured, current_value);
+    intermediates.scope();
     this->visit(node->tiled);
     current_ds.unscope();
     parents.unscope();
     tiled_vars.unscope();
+    intermediates.unscope();
 
     bool has_parent = parents.contains(captured);
     lowerIR = new const IntervalNode(
         has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
-        has_parent ? parents.at(captured) : node->end,
+        has_parent ? parents.at(node->step) : node->end,
         node->v,
         lowerIR);
 }

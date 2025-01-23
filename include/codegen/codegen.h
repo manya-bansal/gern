@@ -15,7 +15,7 @@ public:
         : name(name), hook_name(hook_prefix + name) {
     }
 
-    CGStmt generate_code(Compose);
+    CGStmt generate_code(Composable);
     CGStmt top_level_codegen(LowerIR, bool is_device_launch);
 
     using LowerIRVisitor::visit;

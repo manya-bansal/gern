@@ -11,12 +11,12 @@
 namespace gern {
 namespace codegen {
 
-CGStmt CodeGenerator::generate_code(Compose c) {
+CGStmt CodeGenerator::generate_code(Composable c) {
     // Lower each IR node one by one.
-    ComposeLower lower(c);
+    ComposableLower lower(c);
     // Generate code the after lowering.
-    bool is_device_call = c.isDeviceCall();
-    top_level_codegen(lower.lower(), c.isDeviceCall());
+    bool is_device_call = false;
+    top_level_codegen(lower.lower(), is_device_call);
 
     // Generate the hook.
     std::vector<CGStmt> hook_body;
@@ -31,7 +31,7 @@ CGStmt CodeGenerator::generate_code(Compose c) {
         .num_ptr = 0,
     };
     // Get all the arguments out of a void**.
-    for (int i = 0; i < compute_func.args.size(); i++) {
+    for (size_t i = 0; i < compute_func.args.size(); i++) {
         Parameter param = compute_func.args[i];
         hook_body.push_back(
             VarAssign::make(declParameter(param, false, properties),

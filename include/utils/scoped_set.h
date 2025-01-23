@@ -43,6 +43,11 @@ public:
         }
     }
 
+    bool contains_at_current_scope(const Key &key) {
+        auto scope_first = scopes.front();
+        return scope_first.find(key) != scope_first.end();
+    }
+
     bool contains(const Key &key) {
         for (auto &scope : scopes) {
             if (scope.find(key) != scope.end()) {

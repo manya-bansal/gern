@@ -8,7 +8,7 @@ using GernGenFuncPtr = void (*)(void **);
 
 class Runner {
 public:
-    Runner(Compose c)
+    Runner(Composable c)
         : c(c) {
     }
     struct Options {
@@ -27,7 +27,7 @@ public:
     void evaluate(std::map<std::string, void *> args);
 
 private:
-    Compose c;
+    Composable c;
     GernGenFuncPtr fp;
     std::vector<std::string> argument_order;
     bool compiled = false;
