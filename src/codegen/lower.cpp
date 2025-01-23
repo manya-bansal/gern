@@ -462,7 +462,7 @@ void ComposableLower::visit(const TiledComputation *node) {
     tiled_vars.unscope();
     intermediates.unscope();
 
-    bool has_parent = parents.contains(captured);
+    bool has_parent = parents.contains(node->step);
     lowerIR = new const IntervalNode(
         has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
         has_parent ? parents.at(node->step) : node->end,

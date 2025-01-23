@@ -42,6 +42,9 @@ TEST(ComposableTest, NoFusion) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == (a.data[i] + 2));
     }
+
+    a.destroy();
+    b.destroy();
 }
 
 TEST(ComposableTest, NestedFusion) {
@@ -81,6 +84,9 @@ TEST(ComposableTest, NestedFusion) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == (a.data[i] + 2));
     }
+
+    a.destroy();
+    b.destroy();
 }
 
 TEST(ComposableTest, FusionSameScope) {
@@ -120,4 +126,7 @@ TEST(ComposableTest, FusionSameScope) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == (a.data[i] + 2));
     }
+
+    a.destroy();
+    b.destroy();
 }
