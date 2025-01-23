@@ -99,11 +99,11 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
         if (declared.contains(v)) {
             continue;
         }
-        if (const_expr_vars.contains(v)) {
-            template_arguments.push_back(v);
+        if (v.isConstExpr()) {
             if (!v.isBoundToInt64()) {
                 throw error::UserError(v.getName() + " must be bound to an int64_t, it is a template parameter");
             }
+            template_arguments.push_back(v);
             continue;
         }
         argument_order.push_back(v.getName());

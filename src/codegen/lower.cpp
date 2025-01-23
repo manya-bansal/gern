@@ -328,7 +328,6 @@ void ComposableLower::common(const ComposableNode *node) {
         // (at this point we are already declared
         // all the intermediates), generate a query.
         AbstractDataTypePtr input_ds = input.getDS();
-        // std::cout << intermediates << std::endl;
         if (!intermediates.contains_at_current_scope(input_ds)) {
             // Generate a query.
             lowered.push_back(constructQueryNode(input_ds,
@@ -343,7 +342,7 @@ void ComposableLower::common(const ComposableNode *node) {
 
 LowerIR ComposableLower::generate_definitions(Assign definition) const {
     Variable v = to<Variable>(definition.getA());
-    return new const DefNode(definition, false);
+    return new const DefNode(definition, v.isConstExpr());
 }
 
 void ComposableLower::visit(const Computation *node) {

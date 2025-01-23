@@ -123,6 +123,7 @@ class Variable : public Expr {
 public:
     Variable() = default;
     Variable(const std::string &name);
+    Variable(const std::string &name, bool const_expr);
     Variable(const VariableNode *);
 
     /**
@@ -137,6 +138,7 @@ public:
     Variable bindToGrid(const Grid::Property &p) const;
     Variable bindToInt64(int64_t) const;
     bool isBoundToGrid() const;
+    bool isConstExpr() const;
     bool isBoundToInt64() const;
 
     /**

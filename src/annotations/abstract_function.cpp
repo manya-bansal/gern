@@ -155,7 +155,7 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
     }
 
     for (const auto &template_arg : f.template_args) {
-        fresh_names[template_arg] = getUniqueName("_gern_" + template_arg.getName());
+        fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()), true);
     }
 
     auto annotation = getAnnotation();
