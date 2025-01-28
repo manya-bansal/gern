@@ -16,7 +16,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
 
-    annot::add_1_GPU add_f;
+    annot::add_1_GPU add_1;
     Variable v("v");
     Variable step("step");
 
@@ -25,7 +25,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     // single thread.
     Composable program =
         Tile(outputDS["size"], step)(
-            add_f(inputDS, outputDS));
+            add_1(inputDS, outputDS));
 
     program.callAtDevice();
     Runner run(program);
@@ -119,7 +119,7 @@ TEST(LoweringGPU, DoubleBind) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
 
-    annot::add_1_GPU add_f;
+    annot::add_1_GPU add_1;
     Variable v("v");
     Variable step("step");
     Variable blk("blk");
@@ -127,7 +127,7 @@ TEST(LoweringGPU, DoubleBind) {
     Composable program =
         (Tile(outputDS["size"], blk) || Grid::Property::BLOCK_ID_X)(
             (Tile(outputDS["size"], step) || Grid::Property::THREAD_ID_X)(
-                add_f(inputDS, outputDS)));
+                add_1(inputDS, outputDS)));
 
     program.callAtDevice();
     Runner run(program);

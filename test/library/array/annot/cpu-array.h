@@ -58,41 +58,6 @@ protected:
     Variable len{"len"};
 };
 
-class add : public AbstractFunction {
-public:
-    add()
-        : input(new const ArrayCPU("input")),
-          output(new const ArrayCPU("output")) {
-    }
-
-    Pattern getAnnotation() override {
-        Variable x("x");
-
-        return For(x = Expr(0), output["size"], step,
-                   Produces::Subset(output, {x, step}),
-                   Consumes::Subset(input, {x, step}));
-    }
-
-    virtual FunctionSignature getFunction() override {
-        FunctionSignature f;
-        f.name = "gern::impl::add";
-        f.args = {Parameter(input), Parameter(output)};
-        return f;
-    }
-
-    std::vector<std::string> getHeader() override {
-        return {
-            "cpu-array.h",
-        };
-    }
-
-protected:
-    AbstractDataTypePtr input;
-    AbstractDataTypePtr output;
-    Variable end{"end"};
-    Variable step{"step"};
-};
-
 class add_1 : public AbstractFunction {
 public:
     add_1()
@@ -145,10 +110,10 @@ public:
 
 // Doesn't actually exist, there to
 // exercise  test.
-class addWithSize : public add {
+class addWithSize : public add_1 {
 public:
     addWithSize()
-        : add() {
+        : add_1() {
     }
     std::string getName() {
         return "gern::impl::addWithSize";

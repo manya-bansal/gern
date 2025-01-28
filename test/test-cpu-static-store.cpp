@@ -15,13 +15,13 @@ TEST(StaticStore, Single) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPUTemplate<10>("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPUTemplate<10>("output_con"));
 
-    annot::addStaticStore add_f;
+    annot::addStaticStore add_1;
     Variable v("v");
     Variable step("step");
 
     Composable program =
         Tile(outputDS["size"], step.bindToInt64(5))(
-            add_f(inputDS, outputDS));
+            add_1(inputDS, outputDS));
 
     Runner run(program);
 
@@ -47,14 +47,14 @@ TEST(StaticStore, Multi) {
     auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPUTemplate<10>("temp", true));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPUTemplate<10>("output_con"));
 
-    annot::addStaticStore add_f;
+    annot::addStaticStore add_1;
     Variable v("v");
     Variable step("step");
 
     Composable program = Composable(
         Tile(outputDS["size"], step.bindToInt64(5))(
-            add_f(inputDS, tempDS),
-            add_f(tempDS, outputDS)));
+            add_1(inputDS, tempDS),
+            add_1(tempDS, outputDS)));
 
     Runner run(program);
 

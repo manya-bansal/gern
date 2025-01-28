@@ -12,23 +12,23 @@
 using namespace gern;
 
 TEST(SetGridProperty, BindStableVar) {
-    annot::addGPU add_f;
+    annot::addGPU add_1;
     Variable v("v");
 
     ASSERT_THROW(
-        (add_f[{{"end", v.bindToGrid(Grid::Property::BLOCK_ID_X)}}]),
+        (add_1[{{"end", v.bindToGrid(Grid::Property::BLOCK_ID_X)}}]),
         error::UserError);
     ASSERT_NO_THROW(
-        (add_f[{{"end", v.bindToGrid(Grid::Property::BLOCK_DIM_X)}}]));
+        (add_1[{{"end", v.bindToGrid(Grid::Property::BLOCK_DIM_X)}}]));
 }
 
 TEST(SetGridProperty, BindIntervalVar) {
-    annot::addGPU add_f;
+    annot::addGPU add_1;
     Variable v("v");
 
-    ASSERT_NO_THROW((add_f[{{"x", v.bindToGrid(Grid::Property::BLOCK_ID_X)}}]));
+    ASSERT_NO_THROW((add_1[{{"x", v.bindToGrid(Grid::Property::BLOCK_ID_X)}}]));
     ASSERT_THROW(
-        (add_f[{{"x", v.bindToGrid(Grid::Property::BLOCK_DIM_X)}}]),
+        (add_1[{{"x", v.bindToGrid(Grid::Property::BLOCK_DIM_X)}}]),
         error::UserError);
 }
 
