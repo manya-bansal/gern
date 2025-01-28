@@ -114,6 +114,9 @@ void ComposableLower::common(const ComposableNode *node) {
 
 LowerIR ComposableLower::generate_definitions(Assign definition) const {
     Variable v = to<Variable>(definition.getA());
+    if (isConstExpr(v) && !isConstExpr(definition.getB())) {
+        throw error::UserError("Binding const expr " + v.getName() + " to a non-const expr");
+    }
     return new const DefNode(definition, v.isConstExpr());
 }
 

@@ -106,7 +106,7 @@ TEST(ComposableTest, FusionSameScope) {
     impl::ArrayCPU a(10);
     a.ascending();
     impl::ArrayCPU b(10);
-    b.vvals(0.0f);
+
     int64_t step_1 = 5;
     int64_t step_2 = 1;
 

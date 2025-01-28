@@ -128,15 +128,15 @@ protected:
     Variable step{"step"};
 };
 
-class addTemplate : public add {
+class add1Template : public add_1 {
 public:
-    addTemplate()
-        : add() {
+    add1Template()
+        : add_1() {
     }
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::addTemplate";
+        f.name = "gern::impl::add1Template";
         f.args = {Parameter(input), Parameter(output)};
         f.template_args = {step};
         return f;
@@ -156,7 +156,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::addTemplate";
+        f.name = "gern::impl::add1Template";
         f.args = {Parameter(input), Parameter(output), Parameter(step)};
         return f;
     }

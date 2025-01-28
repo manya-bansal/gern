@@ -51,7 +51,17 @@ public:
     void accept(ExprVisitorStrict *v) const;
     std::string str() const;
 };
+
 std::ostream &operator<<(std::ostream &os, const Expr &);
+/**
+ * @brief isConstExpr returns whether an expression is a
+ *        constant expression (can be evaluated at program
+ *        compile time).
+ *
+ * @return true
+ * @return false
+ */
+bool isConstExpr(Expr);
 
 class Constraint : public util::IntrusivePtr<const ConstraintNode> {
 public:

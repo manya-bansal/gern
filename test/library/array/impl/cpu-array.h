@@ -74,9 +74,9 @@ inline void add_1(ArrayCPU a, ArrayCPU b) {
 }
 
 template<int64_t Len>
-inline void addTemplate(ArrayCPU a, ArrayCPU b) {
+inline void add1Template(ArrayCPU a, ArrayCPU b) {
     for (int64_t i = 0; i < Len; i++) {
-        b.data[i] += a.data[i];
+        b.data[i] = a.data[i] + 1;
     }
 }
 
