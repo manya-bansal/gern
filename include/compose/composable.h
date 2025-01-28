@@ -34,9 +34,7 @@ public:
     Composable()
         : util::IntrusivePtr<const ComposableNode>(nullptr) {
     }
-    Composable(const ComposableNode *n)
-        : util::IntrusivePtr<const ComposableNode>(n) {
-    }
+    Composable(const ComposableNode *n);
     Composable(std::vector<Composable> composed);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;

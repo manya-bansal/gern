@@ -453,5 +453,4 @@ Pattern For(Assign start, ADTMember end, Variable step, Pattern body,
 Pattern For(Assign start, ADTMember end, Variable step,
             Produces produces, Consumes consumes,
             bool parallel = false);
-
 }  // namespace gern

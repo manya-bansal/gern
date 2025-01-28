@@ -2,7 +2,6 @@
 
 #include "codegen/codegen_ir.h"
 #include "codegen/lower_visitor.h"
-#include "compose/pipeline.h"
 #include "utils/name_generator.h"
 
 namespace gern {

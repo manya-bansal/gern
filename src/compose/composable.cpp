@@ -16,7 +16,6 @@ Computation::Computation(std::vector<Composable> composed)
                 consumer_functions[input.getDS()].insert(c);
             }
         }
-        check_legal();
         init_args();
         init_template_args();
         init_annotation();
@@ -37,9 +36,6 @@ Pattern Computation::getAnnotation() const {
 
 void Computation::accept(ComposableVisitorStrict *v) const {
     v->visit(this);
-}
-
-void Computation::check_legal() {
 }
 
 void Computation::init_args() {
@@ -98,9 +94,9 @@ void Computation::init_annotation() {
         // Declare all the relationships btw inputs and outputs.
         infer_relationships(intermediate, c_annotation.getProducesField());
         intermediates.insert(intermediate);
-        // Now add the consumes for the pure inputs.
     }
 
+    // Now add the consumes for the pure inputs.
     for (const auto &c : composed) {
         std::vector<SubsetObj> inputs = c.getAnnotation().getInputs();
         for (const auto &input : inputs) {
@@ -123,7 +119,6 @@ TiledComputation::TiledComputation(ADTMember field_to_tile,
                                    Variable v,
                                    Composable tiled,
                                    Grid::Property property)
-    //    Grid::Property property)
     : field_to_tile(field_to_tile),
       v(v), tiled(tiled), property(property) {
     init_binding();
@@ -152,9 +147,9 @@ void TiledComputation::init_binding() {
     if (field_to_tile.getDS() != output_subset.getDS()) {
         throw error::UserError("Can only tile the output " + adt.str());
     }
+
     // Find whether the meta-data field that they are
     // referring is actually possible to tile.
-
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable = getAnnotation().getTileableFields();
     for (const auto &[key, val] : tileable) {
         if (key.getDS() == ds) {
@@ -174,6 +169,12 @@ std::set<Variable> Composable::getVariableArgs() const {
         return {};
     }
     return ptr->getVariableArgs();
+}
+
+Composable::Composable(const ComposableNode *n)
+    : util::IntrusivePtr<const ComposableNode>(n) {
+    LegalToCompose check_legal;
+    check_legal.isLegal(*this);
 }
 
 Composable::Composable(std::vector<Composable> composed)
@@ -218,15 +219,11 @@ TileDummy TileDummy::operator||(Grid::Property p) {
 
 Composable TileDummy::operator()(Composable c) {
     if (isa<ComputeFunctionCall>(c.ptr)) {
-        // return new const TiledComputation(member, v,
-        //                                   Composable(
-        //                                       new const Computation({c})));
         return new const TiledComputation(member, v,
                                           Composable(
                                               new const Computation({c})),
                                           property);
     }
-    // return new const TiledComputation(member, v, c);
     return new const TiledComputation(member, v, c, property);
 }
 

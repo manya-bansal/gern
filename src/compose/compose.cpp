@@ -4,8 +4,6 @@
 #include "annotations/visitor.h"
 #include "compose/composable_visitor.h"
 
-#include "compose/pipeline.h"
-
 namespace gern {
 
 FunctionCall FunctionSignature::constructCall() const {

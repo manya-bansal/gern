@@ -2,7 +2,6 @@
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
 #include "codegen/lower_visitor.h"
-#include "compose/pipeline.h"
 #include "utils/name_generator.h"
 
 namespace gern {

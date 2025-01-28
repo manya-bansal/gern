@@ -12,47 +12,39 @@
 
 using namespace gern;
 
-TEST(LoweringCPU, SingleElemFunction) {
+TEST(LoweringCPU, OneFuncNoFusion) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 
-    annot::add add_f;
+    annot::add_1 add_1;
     Variable v("v");
     Variable step("step");
 
-    std::vector<Compose> c = {add_f[{
-        {"step", step},
-    }](inputDS, outputDS)};
+    Composable program(
+        add_1(inputDS, outputDS));
 
-    Pipeline p(c);
-    Runner run(p);
+    Runner run(program);
 
     run.compile(test::cpuRunner("array"));
 
     impl::ArrayCPU a(10);
-    a.vvals(2.0f);
+    a.ascending();
     impl::ArrayCPU b(10);
-    b.vvals(3.0f);
-    int64_t var = 10;
-    int64_t step_val = 1;
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
-        {step.getName(), &step_val},
     }));
 
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
-        ASSERT_TRUE(b.data[i] == 5.0f);
+        ASSERT_TRUE(b.data[i] == (a.data[i] + 1));
     }
 
     // Try running with insufficient number
     // of arguments.
     ASSERT_THROW(run.evaluate({
                      {inputDS.getName(), &a},
-                     {outputDS.getName(), &b},
-                     {v.getName(), &var},
                  }),
                  error::UserError);
 
@@ -62,11 +54,8 @@ TEST(LoweringCPU, SingleElemFunction) {
     ASSERT_THROW(run.evaluate({
                      {inputDS.getName(), &a},
                      {dummyDS.getName(), &b},
-                     {v.getName(), &var},
-                     {step.getName(), &step_val},
                  }),
                  error::UserError);
-
     a.destroy();
     b.destroy();
 }

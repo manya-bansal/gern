@@ -36,7 +36,6 @@ target_sources(
         src/compose/compose.cpp
         src/compose/composable.cpp
         src/compose/composable_visitor.cpp
-        src/compose/pipeline.cpp
         src/codegen/codegen.cpp
         src/codegen/codegen_ir.cpp
         src/codegen/codegen_printer.cpp
@@ -62,7 +61,6 @@ target_sources(
         include/compose/compose.h
         include/compose/composable.h
         include/compose/composable_visitor.h
-        include/compose/pipeline.h
         include/compose/runner.h
         include/codegen/codegen.h
         include/codegen/codegen_ir.h

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "codegen/lower.h"
-#include "compose/pipeline.h"
 #include <iostream>
 
 namespace gern {

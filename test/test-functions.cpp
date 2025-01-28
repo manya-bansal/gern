@@ -19,24 +19,23 @@ TEST(Arguments, isSameType) {
 TEST(Functions, CallFunctions) {
     annot::add add_f;
     AbstractDataTypePtr inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    AbstractDataTypePtr outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
     // Call with incorrect number of arguments.
     ASSERT_THROW(add_f(), error::UserError);
     ASSERT_THROW(add_f(inputDS), error::UserError);
     // Call with more than required.
-    ASSERT_THROW(add_f(inputDS, inputDS, inputDS), error::UserError);
+    ASSERT_THROW(add_f(inputDS, inputDS, outputDS), error::UserError);
     // Try calling with an undefined argument.
     ASSERT_THROW(add_f(Argument(), Argument()), error::UserError);
 
-    // Try calling with correct arguments.
-    // The fact that we are overwriting the input is caught in
-    // the pipeline step, as opposed to this step.
-    ASSERT_NO_THROW(add_f(inputDS, inputDS));
+    // Try to overwrite the input.
+    ASSERT_THROW(add_f(inputDS, inputDS), error::UserError);
 
     annot::addWithSize add_with_size;
     // Call with incorrect type of arg.
-    ASSERT_THROW(add_with_size(inputDS, Variable{"x"}, inputDS), error::UserError);
+    ASSERT_THROW(add_with_size(inputDS, Variable{"x"}, outputDS), error::UserError);
     // Call with correct type of arg.
-    ASSERT_NO_THROW(add_with_size(inputDS, inputDS, Variable{"x"}));
+    ASSERT_NO_THROW(add_with_size(inputDS, outputDS, Variable{"x"}));
 }
 
 TEST(Functions, Binding) {
