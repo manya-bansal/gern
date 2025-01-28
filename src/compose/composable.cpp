@@ -152,7 +152,7 @@ void TiledComputation::init_binding() {
     // referring is actually possible to tile.
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable = getAnnotation().getTileableFields();
     for (const auto &[key, val] : tileable) {
-        if (key.getDS() == ds) {
+        if (key.getDS() == ds && key.getMember() == field_to_find) {
             captured = std::get<0>(val);
             start = std::get<1>(val);
             end = field_to_tile;

@@ -271,7 +271,9 @@ struct less<gern::AbstractDataTypePtr> {
 template<>
 struct less<gern::ADTMember> {
     bool operator()(const gern::ADTMember &a, const gern::ADTMember &b) const {
-        return a.getDS() < b.getDS() && a.getMember() < b.getMember();
+        if (a.getDS() < b.getDS()) return true;   // Compare primary key
+        if (b.getDS() < a.getDS()) return false;  // Compare reverse order
+        return a.getMember() < b.getMember();     // Compare secondary key
     }
 };
 

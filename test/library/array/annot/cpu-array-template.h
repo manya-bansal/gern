@@ -66,6 +66,10 @@ public:
         return true;
     }
 
+    bool freeAlloc() const override {
+        return false;
+    }
+
 protected:
     std::string name;
     bool temp;
