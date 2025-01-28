@@ -16,16 +16,14 @@ TEST(Runner, FailGracefully) {
     auto outputDS = AbstractDataTypePtr(new const annot::MatrixCPU("output_con"));
 
     annot::MatrixAddCPU add;
-    std::vector<Compose> c = {add(inputDS, outputDS)};
+    std::vector<Composable> program = {add(inputDS, outputDS)};
 
     // Make sure Gern throws an exception and crash, and not just explode.
-
-    Pipeline p(c);
-    // Runner run(p);
+    Runner run(program);
 
     // Try to compile with no include flag sets, so that the compilation
     // step fails.
-    // ASSERT_THROW(run.compile(Runner::Options()), error::UserError);
+    ASSERT_THROW(run.compile(Runner::Options()), error::UserError);
     // Okay now.
-    // ASSERT_NO_THROW(run.compile(test::cpuRunner("matrix")));
+    ASSERT_NO_THROW(run.compile(test::cpuRunner("matrix")));
 }

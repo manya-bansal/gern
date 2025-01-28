@@ -57,32 +57,29 @@ TEST(Functions, ReplaceWithFreshVars) {
 
     annot::add add_f;
 
-    Compose c1 = add_f(inputDS, outputDS);
-    Compose c2 = add_f(outputDS, output_2_DS);
-
-    ComputeFunctionCallPtr concreteCall1 = to<ComputeFunctionCall>(c1);
-    ComputeFunctionCallPtr concreteCall2 = to<ComputeFunctionCall>(c2);
+    Composable c1 = add_f(inputDS, outputDS);
+    Composable c2 = add_f(outputDS, output_2_DS);
 
     // Test that all variables were replaced
     std::set<Variable> abstract_vars = getVariables(add_f.getAnnotation());
-    std::set<Variable> concrete_vars_1 = getVariables(concreteCall1->getAnnotation());
-    std::set<Variable> concrete_vars_2 = getVariables(concreteCall2->getAnnotation());
+    std::set<Variable> concrete_vars_1 = getVariables(c1.getAnnotation());
+    std::set<Variable> concrete_vars_2 = getVariables(c2.getAnnotation());
 
     // All the variables should now be different.
     ASSERT_TRUE(test::areDisjoint(concrete_vars_1, abstract_vars));
     ASSERT_TRUE(test::areDisjoint(concrete_vars_2, abstract_vars));
     ASSERT_TRUE(test::areDisjoint(concrete_vars_2, concrete_vars_1));
 
-    AbstractDataTypePtr output_1 = concreteCall1->getOutput();
+    AbstractDataTypePtr output_1 = c1.getAnnotation().getOutput().getDS();
     ASSERT_TRUE(output_1 == outputDS);
-    AbstractDataTypePtr output_2 = concreteCall2->getOutput();
+    AbstractDataTypePtr output_2 = c2.getAnnotation().getOutput().getDS();
     ASSERT_TRUE(output_2 == output_2_DS);
 
-    std::set<AbstractDataTypePtr> all_inputs = concreteCall1->getInputs();
+    std::vector<SubsetObj> all_inputs = c1.getAnnotation().getAllConsumesSubsets();
     ASSERT_TRUE(all_inputs.size() == 1);
-    ASSERT_TRUE(*(all_inputs.begin()) == inputDS);
+    ASSERT_TRUE(all_inputs.begin()->getDS() == inputDS);
 
-    std::set<AbstractDataTypePtr> all_inputs_2 = concreteCall2->getInputs();
+    std::vector<SubsetObj> all_inputs_2 = c2.getAnnotation().getAllConsumesSubsets();
     ASSERT_TRUE(all_inputs_2.size() == 1);
-    ASSERT_TRUE(*(all_inputs_2.begin()) == outputDS);
+    ASSERT_TRUE(all_inputs_2.begin()->getDS() == outputDS);
 }

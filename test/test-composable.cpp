@@ -60,9 +60,7 @@ TEST(ComposableTest, NestedFusion) {
         For(outputDS["x"], v)(
             For(outputDS["x"], v1)(
                 add_1.construct(inputDS, tempDS),
-                add_1.construct(tempDS, outputDS)
-
-                    ));
+                add_1.construct(tempDS, outputDS)));
 
     impl::ArrayCPU a(10);
     a.ascending();

@@ -35,24 +35,24 @@ public:
     }
 
     template<typename T>
-    Compose operator()(T argument) {
+    Composable operator()(T argument) {
         std::vector<Argument> arguments;
         addArguments(arguments, argument);
-        return generateComputeFunctionCall(arguments);
+        return constructComposableObject(arguments);
     }
 
     template<typename FirstT, typename... Next>
-    Compose operator()(FirstT first, Next... remaining) {
+    Composable operator()(FirstT first, Next... remaining) {
         std::vector<Argument> arguments;
         addArguments(arguments, first, remaining...);
-        return generateComputeFunctionCall(arguments);
+        return constructComposableObject(arguments);
     }
 
-    Compose operator()() {
+    Composable operator()() {
         if (getFunction().args.size() != 0) {
             throw error::UserError("Called FunctionSignature " + getFunction().name + " with 0 arguments");
         }
-        return generateComputeFunctionCall({});
+        return constructComposableObject({});
     }
 
     template<typename FirstT, typename... Next>
