@@ -21,8 +21,8 @@ TEST(ComposableTest, NoFusion) {
 
     Composable call =
         Composable({
-            add_1.construct(inputDS, tempDS),
-            add_1.construct(tempDS, outputDS),
+            add_1(inputDS, tempDS),
+            add_1(tempDS, outputDS),
         });
 
     impl::ArrayCPU a(10);
@@ -57,10 +57,10 @@ TEST(ComposableTest, NestedFusion) {
     Variable v1("v1");
 
     Composable program =
-        For(outputDS["x"], v)(
-            For(outputDS["x"], v1)(
-                add_1.construct(inputDS, tempDS),
-                add_1.construct(tempDS, outputDS)));
+        Tile(outputDS["size"], v)(
+            Tile(outputDS["size"], v1)(
+                add_1(inputDS, tempDS),
+                add_1(tempDS, outputDS)));
 
     impl::ArrayCPU a(10);
     a.ascending();
@@ -97,10 +97,10 @@ TEST(ComposableTest, FusionSameScope) {
     Variable v1("v1");
 
     Composable program({
-        For(tempDS["x"], v)(
-            add_1.construct(inputDS, tempDS)),
-        For(outputDS["x"], v1)(
-            add_1.construct(tempDS, outputDS)),
+        Tile(tempDS["size"], v)(
+            add_1(inputDS, tempDS)),
+        Tile(outputDS["size"], v1)(
+            add_1(tempDS, outputDS)),
     });
 
     impl::ArrayCPU a(10);

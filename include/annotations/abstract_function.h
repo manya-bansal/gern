@@ -63,7 +63,6 @@ public:
     }
 
 private:
-    Compose generateComputeFunctionCall(std::vector<Argument> concrete_arguments);
     Composable constructComposableObject(std::vector<Argument> concrete_arguments);
     /**
      * @brief This FunctionSignature actually performs the binding, and checks

@@ -251,20 +251,20 @@ std::map<Variable, Variable> Stmt::getComputesIntervalAndStepVars() const {
     return vars;
 }
 
-std::map<Variable, std::tuple<Expr, Expr, Variable>> Stmt::getIntervalAndStepVars() const {
-    std::map<Variable, std::tuple<Expr, Expr, Variable>> vars;
+std::map<ADTMember, std::tuple<Variable, Expr, Variable>> Stmt::getTileableFields() const {
+    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable;
     match(*this,
           std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
                                                                            Matcher *ctx) {
-              vars[to<Variable>(op->start.getA())] = std::make_tuple(op->start.getB(), op->end, op->step);
+              tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
               ctx->match(op->body);
           }),
           std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
                                                                            Matcher *ctx) {
-              vars[to<Variable>(op->start.getA())] = std::make_tuple(op->start.getB(), op->end, op->step);
+              tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
               ctx->match(op->body);
           }));
-    return vars;
+    return tileable;
 }
 
 #define DEFINE_WHERE_METHOD(Type)            \
@@ -422,18 +422,18 @@ Consumes Consumes::Subsets(ConsumeMany many) {
     return Consumes(getNode(many));
 }
 
-ConsumeMany For(Assign start, Expr end, Variable step, ConsumeMany body,
+ConsumeMany For(Assign start, ADTMember end, Variable step, ConsumeMany body,
                 bool parallel) {
     return ConsumeMany(
         new const ConsumesForNode(start, end, step, body, parallel));
 }
 
-ConsumeMany For(Assign start, Expr end, Variable step, std::vector<SubsetObj> body,
+ConsumeMany For(Assign start, ADTMember end, Variable step, std::vector<SubsetObj> body,
                 bool parallel) {
     return For(start, end, step, SubsetObjMany(body), parallel);
 }
 
-ConsumeMany For(Assign start, Expr end, Variable step, SubsetObj body,
+ConsumeMany For(Assign start, ADTMember end, Variable step, SubsetObj body,
                 bool parallel) {
     return For(start, end, step, std::vector<SubsetObj>{body}, parallel);
 }
@@ -470,7 +470,7 @@ Pattern Pattern::refreshVariables() const {
     return rw_annotation;
 }
 
-std::vector<SubsetObj> Pattern::getAllConsumesSubsets() const {
+std::vector<SubsetObj> Pattern::getInputs() const {
     std::vector<SubsetObj> subset;
     match(*this, std::function<void(const SubsetObjManyNode *)>(
                      [&](const SubsetObjManyNode *op) {
@@ -508,13 +508,13 @@ SubsetObj Pattern::getOutput() const {
     return subset;
 }
 
-Pattern For(Assign start, Expr end, Variable step, Pattern body,
+Pattern For(Assign start, ADTMember end, Variable step, Pattern body,
             bool parallel) {
     return Pattern(
         new const ComputesForNode(start, end, step, body, parallel));
 }
 
-Pattern For(Assign start, Expr end, Variable step,
+Pattern For(Assign start, ADTMember end, Variable step,
             Produces produces, Consumes consumes,
             bool parallel) {
     return For(start, end, step, Computes(produces, consumes), parallel);

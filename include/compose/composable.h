@@ -107,7 +107,7 @@ public:
     Variable captured;
 
     Expr start;
-    Expr end;
+    ADTMember end;
     Variable step;
     Grid::Property property{Grid::Property::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
 };
@@ -144,22 +144,7 @@ struct TileDummy {
     Grid::Property property;
 };
 
-TileDummy For(ADTMember member, Variable v);
-
-/**
- * @brief Calls takes 1 or more Compose objects and fuses them together.
- *
- * @param functions The list of functions to fuse
- * @return Compose
- */
-template<typename... ToCompose>
-Composable Call(ToCompose... c) {
-    // Static assertion to ensure all arguments are of type Compose
-    static_assert((std::is_same_v<ToCompose, Composable> && ...),
-                  "All arguments must be of type Composable");
-    std::vector<Composable> to_compose{c...};
-    return new const Computation(to_compose);
-}
+TileDummy Tile(ADTMember member, Variable v);
 
 template<typename E>
 inline bool isa(const ComposableNode *e) {

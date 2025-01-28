@@ -4,7 +4,6 @@
 #include "compose/composable.h"
 #include "compose/composable_visitor.h"
 #include "compose/compose.h"
-#include "compose/compose_visitor.h"
 #include "utils/scoped_map.h"
 #include "utils/scoped_set.h"
 #include "utils/uncopyable.h"
@@ -40,32 +39,41 @@ public:
 
 std::ostream &operator<<(std::ostream &os, const LowerIR &n);
 
-class ComposableLower : public ComposableVisitorStrict {
+/**
+ * @brief ComposeableLower takes a composable object and generated
+ *        the IR that corresponds to that function call.
+ *
+ */
+class ComposableLower : private ComposableVisitorStrict {
 public:
     ComposableLower(Composable composable)
         : composable(composable) {
     }
 
     LowerIR lower();
+
+private:
     using ComposableVisitorStrict::visit;
+    // Methods to lower different types of
+    // composable objects.
     void visit(const Computation *);
     void visit(const TiledComputation *);
     void visit(const ComputeFunctionCall *);
 
-private:
     void common(const ComposableNode *);
-    LowerIR define_loop_var(Assign start, Expr end, Variable step) const;
+    LowerIR define_loop_var(Assign start, ADTMember end, Variable step) const;
     LowerIR generate_definitions(Assign definition) const;
     LowerIR declare_computes(Pattern annotation) const;
 
+    // Helper methods to generate calls.
     FunctionCall constructFunctionCall(FunctionSignature f,
                                        std::vector<Variable> ref_md_fields,
-                                       std::vector<Expr> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
-
+                                       std::vector<Expr> true_md_fields) const;                                // Constructs a call with the true meta data fields mapped in the correct place.
     const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);                               // Constructs a query node for a data-structure, and tracks this relationship.
     const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);                            // Constructs a allocate for a data-structure, and tracks this relationship.
     const InsertNode *constructInsertNode(AbstractDataTypePtr, AbstractDataTypePtr, std::vector<Expr>) const;  // Constructs a allocate for a data-structure, and tracks this relationship.
-
+    // Get the data-structure (queried, allocated, etc) that maps to the data
+    // structure in the current scope.
     AbstractDataTypePtr getCurrent(AbstractDataTypePtr) const;
 
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
@@ -75,47 +83,6 @@ private:
 
     LowerIR lowerIR;
     Composable composable;
-};
-
-class ComposeLower : public CompositionVisitorStrict {
-public:
-    ComposeLower(Compose c)
-        : c(c) {
-    }
-
-    using CompositionVisitorStrict::visit;
-    LowerIR lower();
-    void visit(const ComputeFunctionCall *c);
-    void visit(const PipelineNode *c);
-
-private:
-    bool isIntermediate(AbstractDataTypePtr d) const;
-
-    std::vector<LowerIR> generateAllDefs(const PipelineNode *node);       // Helper method to define all the variable definitions.
-    std::vector<LowerIR> generateAllAllocs(const PipelineNode *node);     // Helper method to declare all the allocate node.
-    std::vector<LowerIR> generateAllFrees(const PipelineNode *node);      // Helper method to declare all the frees.
-    std::vector<LowerIR> generateAllQueries(const PipelineNode *parent);  // Helper method to declare all the frees.
-
-    const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);     // Constructs a query node for a data-structure, and tracks this relationship.
-    const FreeNode *constructFreeNode(AbstractDataTypePtr);                          // Constructs a free node for a data-structure, and tracks this relationship.
-    const AllocateNode *constructAllocNode(AbstractDataTypePtr, std::vector<Expr>);  // Constructs a allocate for a data-structure, and tracks this relationship.
-    std::vector<Compose> rewriteCalls(const PipelineNode *node) const;
-
-    FunctionCall constructFunctionCall(FunctionSignature f, std::vector<Variable> ref_md_fields, std::vector<Expr> true_md_fields) const;  // Constructs a call with the true meta data fields mapped in the correct place.
-
-    LowerIR generateConsumesIntervals(Pattern, std::vector<LowerIR> body) const;
-    LowerIR generateOuterIntervals(Pattern, std::vector<LowerIR> body) const;
-    LowerIR generateBindings(Compose c) const;
-
-    std::vector<Assign> variable_definitions;
-    std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
-
-    std::set<AbstractDataTypePtr> intermediates_set;  // All the intermediates visible to this pipeline.
-    std::set<AbstractDataTypePtr> to_free;            // All the intermediates produces in reverse order.
-
-    Compose c;
-    LowerIR final_lower;
-    bool has_been_lowered = false;
 };
 
 // IR Node that marks an allocation
@@ -236,6 +203,81 @@ struct FunctionBoundary : public LowerIRNode {
     void accept(LowerIRVisitor *) const;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> queried_names;
     LowerIR nodes;
+};
+
+// Defining an abstract data class that we can use to define query and free node.
+class DummyDS : public AbstractDataType {
+public:
+    DummyDS(const std::string &name,
+            const std::string &type,
+            const std::vector<Variable> &fields,
+            const FunctionSignature &allocate,
+            const FunctionSignature &free,
+            const FunctionSignature &insert,
+            const FunctionSignature &query,
+            const bool &to_free)
+        : name(name), type(type), fields(fields),
+          allocate(allocate), free(free),
+          insert(insert), query(query),
+          to_free(to_free) {
+    }
+
+    virtual std::string getName() const override {
+        return name;
+    }
+
+    virtual std::string getType() const override {
+        return type;
+    }
+
+    std::vector<Variable> getFields() const override {
+        return fields;
+    }
+    FunctionSignature getAllocateFunction() const override {
+        return allocate;
+    }
+    FunctionSignature getFreeFunction() const override {
+        return free;
+    }
+    FunctionSignature getInsertFunction() const override {
+        return insert;
+    }
+    FunctionSignature getQueryFunction() const override {
+        return query;
+    }
+
+    // Tracks whether any of the queries need to be free,
+    // or if they are actually returning views.
+    bool freeQuery() const override {
+        return to_free;
+    }
+
+    static AbstractDataTypePtr make(const std::string &name,
+                                    const std::string &type,
+                                    AbstractDataTypePtr ds) {
+        return AbstractDataTypePtr(new const DummyDS(name, type,
+                                                     ds.ptr->getFields(),
+                                                     ds.ptr->getAllocateFunction(),
+                                                     ds.ptr->getFreeFunction(),
+                                                     ds.ptr->getInsertFunction(),
+                                                     ds.ptr->getQueryFunction(),
+                                                     ds.ptr->freeQuery()));
+    }
+
+    static AbstractDataTypePtr make(const std::string &name,
+                                    AbstractDataTypePtr ds) {
+        return make(name, ds.getType(), ds);
+    }
+
+private:
+    std::string name;
+    std::string type;
+    std::vector<Variable> fields;
+    FunctionSignature allocate;
+    FunctionSignature free;
+    FunctionSignature insert;
+    FunctionSignature query;
+    bool to_free;
 };
 
 }  // namespace gern

@@ -23,9 +23,9 @@ using namespace gern;
 //     Variable step("step");
 
 //     Compose functions({
-//         For(outputDS["x"], v2,
+//         For(outputDS["size"], v2,
 //             Tile(
-//                 For(tempDS["x"], v1,
+//                 For(tempDS["size"], v1,
 //                     Tile(add_1(inputDS, tempDS))),
 //                 add_1(tempDS, outputDS))),
 //     });

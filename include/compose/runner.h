@@ -1,6 +1,7 @@
 #pragma once
 
-#include "compose/pipeline.h"
+#include "compose/composable.h"
+#include <string>
 
 namespace gern {
 

@@ -25,8 +25,8 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     // this implementation runs the entire computation on a
     // single thread.
     Composable program =
-        For(outputDS["x"], step)(
-            add_f.construct(inputDS, outputDS));
+        Tile(outputDS["size"], step)(
+            add_f(inputDS, outputDS));
 
     program.callAtDevice();
     Runner run(program);
@@ -86,8 +86,8 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     Variable blk("blk");
 
     Composable program =
-        (For(outputDS["x"], step) || Grid::Property::BLOCK_ID_X)(
-            add_1.construct(inputDS, outputDS));
+        (Tile(outputDS["size"], step) || Grid::Property::BLOCK_ID_X)(
+            add_1(inputDS, outputDS));
 
     program.callAtDevice();
     Runner run(program);
@@ -126,9 +126,9 @@ TEST(LoweringGPU, DoubleBind) {
     Variable blk("blk");
 
     Composable program =
-        (For(outputDS["x"], blk) || Grid::Property::BLOCK_ID_X)(
-            (For(outputDS["x"], step) || Grid::Property::THREAD_ID_X)(
-                add_f.construct(inputDS, outputDS)));
+        (Tile(outputDS["size"], blk) || Grid::Property::BLOCK_ID_X)(
+            (Tile(outputDS["size"], step) || Grid::Property::THREAD_ID_X)(
+                add_f(inputDS, outputDS)));
 
     program.callAtDevice();
     Runner run(program);
@@ -171,10 +171,10 @@ TEST(LoweringGPU, MultiArray) {
     Variable blk("blk");
 
     Composable program =
-        (For(outputDS["x"], blk) || Grid::Property::BLOCK_ID_X)(
-            (For(outputDS["x"], step.bindToInt64(1)) || Grid::Property::THREAD_ID_X)(
-                add_1.construct(inputDS, tempDS),
-                add_1.construct(tempDS, outputDS)));
+        (Tile(outputDS["size"], blk) || Grid::Property::BLOCK_ID_X)(
+            (Tile(outputDS["size"], step.bindToInt64(1)) || Grid::Property::THREAD_ID_X)(
+                add_1(inputDS, tempDS),
+                add_1(tempDS, outputDS)));
 
     program.callAtDevice();
     Runner run(program);

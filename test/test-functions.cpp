@@ -75,11 +75,11 @@ TEST(Functions, ReplaceWithFreshVars) {
     AbstractDataTypePtr output_2 = c2.getAnnotation().getOutput().getDS();
     ASSERT_TRUE(output_2 == output_2_DS);
 
-    std::vector<SubsetObj> all_inputs = c1.getAnnotation().getAllConsumesSubsets();
+    std::vector<SubsetObj> all_inputs = c1.getAnnotation().getInputs();
     ASSERT_TRUE(all_inputs.size() == 1);
     ASSERT_TRUE(all_inputs.begin()->getDS() == inputDS);
 
-    std::vector<SubsetObj> all_inputs_2 = c2.getAnnotation().getAllConsumesSubsets();
+    std::vector<SubsetObj> all_inputs_2 = c2.getAnnotation().getInputs();
     ASSERT_TRUE(all_inputs_2.size() == 1);
     ASSERT_TRUE(all_inputs_2.begin()->getDS() == outputDS);
 }

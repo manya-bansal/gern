@@ -11,7 +11,7 @@ Computation::Computation(std::vector<Composable> composed)
     if (!composed.empty()) {
         // Set up consumer functions.
         for (const auto &c : composed) {
-            std::vector<SubsetObj> inputs = c.getAnnotation().getAllConsumesSubsets();
+            std::vector<SubsetObj> inputs = c.getAnnotation().getInputs();
             for (const auto &input : inputs) {
                 consumer_functions[input.getDS()].insert(c);
             }
@@ -102,7 +102,7 @@ void Computation::init_annotation() {
     }
 
     for (const auto &c : composed) {
-        std::vector<SubsetObj> inputs = c.getAnnotation().getAllConsumesSubsets();
+        std::vector<SubsetObj> inputs = c.getAnnotation().getInputs();
         for (const auto &input : inputs) {
             // The the input is not an intermediate, add.
             if (!intermediates.contains(input.getDS())) {
@@ -146,42 +146,27 @@ void TiledComputation::init_binding() {
     SubsetObj output_subset = annotation.getOutput();
     AbstractDataTypePtr adt = output_subset.getDS();
 
+    std::string field_to_find = field_to_tile.getMember();
+    AbstractDataTypePtr ds = field_to_tile.getDS();
+
     if (field_to_tile.getDS() != output_subset.getDS()) {
         throw error::UserError("Can only tile the output " + adt.str());
     }
     // Find whether the meta-data field that they are
-    // referring is actually possible to tile i.e.
-    // it is an interval variable.
+    // referring is actually possible to tile.
 
-    // 1. Find the index at which the meta-data field actually
-    //     is set.
-    int index = -1;
-    std::string field_to_find = field_to_tile.getMember();
-    std::vector<Variable> mf_fields = field_to_tile.getDS().getFields();
-    size_t size = mf_fields.size();
-    for (size_t i = 0; i < size; i++) {
-        if (mf_fields[i].getName() == field_to_find) {
-            index = i;
+    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable = getAnnotation().getTileableFields();
+    for (const auto &[key, val] : tileable) {
+        if (key.getDS() == ds) {
+            captured = std::get<0>(val);
+            start = std::get<1>(val);
+            end = field_to_tile;
+            step = std::get<2>(val);
+            return;
         }
     }
 
-    if (index < 0) {
-        throw error::UserError("Could not find " + field_to_find + " in " + adt.str());
-    }
-
-    // Now that we have the index, make sure it is an index variable.
-    Variable var_to_bind = annotation.getProducesField()[index];
-    std::map<Variable, std::tuple<Expr, Expr, Variable>> interval_vars = getAnnotation().getIntervalAndStepVars();
-    if (!interval_vars.contains(var_to_bind)) {
-        throw error::UserError("Cannot tile a non-interval var");
-    }
-
-    // All is ok, add to bindings now.
-    captured = var_to_bind;
-    auto interval_vals = interval_vars.at(var_to_bind);
-    start = std::get<0>(interval_vals);
-    end = std::get<1>(interval_vals);
-    step = std::get<2>(interval_vals);
+    throw error::UserError("Could not find " + field_to_find + " in " + adt.str());
 }
 
 std::set<Variable> Composable::getVariableArgs() const {
@@ -216,7 +201,7 @@ void Composable::accept(ComposableVisitorStrict *v) const {
     ptr->accept(v);
 }
 
-TileDummy For(ADTMember member, Variable v) {
+TileDummy Tile(ADTMember member, Variable v) {
     return TileDummy(member, v);
 }
 

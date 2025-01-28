@@ -183,7 +183,7 @@ public:
                    Computes(
                        Produces::Subset(output, {x, step}),
                        Consumes::Subsets(
-                           For(r = Expr(0), end, end,
+                           For(r = Expr(0), output["size"], end,
                                SubsetObjMany{
                                    SubsetObj(input, {r, end})}))));
     }

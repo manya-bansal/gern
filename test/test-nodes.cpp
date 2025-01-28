@@ -58,11 +58,11 @@ TEST(Annotations, ConstrainPatterns) {
     auto TestDSCPU = AbstractDataTypePtr(new const annot::ArrayCPU());
     SubsetObj s{TestDSCPU, {1 - v, v * 2}};
 
-    ASSERT_NO_THROW(For(v = Expr(0), Expr(0), v,
+    ASSERT_NO_THROW(For(v = Expr(0), TestDSCPU["dummy"], v,
                         Computes(Produces::Subset(TestDSCPU, {v, v}),
                                  Consumes(SubsetObjMany(s))))
                         .where(v == 1));
-    ASSERT_THROW(For(v = Expr(0), Expr(0), v,
+    ASSERT_THROW(For(v = Expr(0), TestDSCPU["dummy"], v,
                      Computes(
                          Produces::Subset(TestDSCPU, {v, v}),
                          Consumes(SubsetObjMany(s))))

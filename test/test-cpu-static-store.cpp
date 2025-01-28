@@ -21,8 +21,8 @@ TEST(StaticStore, Single) {
     Variable step("step");
 
     Composable program =
-        For(outputDS["x"], step.bindToInt64(5))(
-            add_f.construct(inputDS, outputDS));
+        Tile(outputDS["size"], step.bindToInt64(5))(
+            add_f(inputDS, outputDS));
 
     Runner run(program);
 
