@@ -265,6 +265,18 @@ std::map<Variable, Variable> Stmt::getComputesIntervalAndStepVars() const {
 std::map<ADTMember, std::tuple<Variable, Expr, Variable>> Stmt::getTileableFields() const {
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable;
     match(*this,
+          std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
+                                                                           Matcher *ctx) {
+              tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
+              std::cout << op->end << std::endl;
+              ctx->match(op->body);
+          }));
+    return tileable;
+}
+
+std::map<ADTMember, std::tuple<Variable, Expr, Variable>> Stmt::getReducableFields() const {
+    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable;
+    match(*this,
           std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
                                                                            Matcher *ctx) {
               tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
@@ -433,20 +445,20 @@ Consumes Consumes::Subsets(ConsumeMany many) {
     return Consumes(getNode(many));
 }
 
-ConsumeMany For(Assign start, ADTMember end, Variable step, ConsumeMany body,
-                bool parallel) {
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, ConsumeMany body,
+                   bool parallel) {
     return ConsumeMany(
         new const ConsumesForNode(start, end, step, body, parallel));
 }
 
-ConsumeMany For(Assign start, ADTMember end, Variable step, std::vector<SubsetObj> body,
-                bool parallel) {
-    return For(start, end, step, SubsetObjMany(body), parallel);
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, std::vector<SubsetObj> body,
+                   bool parallel) {
+    return Reduce(start, end, step, SubsetObjMany(body), parallel);
 }
 
-ConsumeMany For(Assign start, ADTMember end, Variable step, SubsetObj body,
-                bool parallel) {
-    return For(start, end, step, std::vector<SubsetObj>{body}, parallel);
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, SubsetObj body,
+                   bool parallel) {
+    return Reduce(start, end, step, std::vector<SubsetObj>{body}, parallel);
 }
 
 Allocates::Allocates(const AllocatesNode *n)

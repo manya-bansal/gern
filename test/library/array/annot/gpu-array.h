@@ -86,8 +86,8 @@ public:
         return For(x = Expr(0), output["size"], step,
                    Produces::Subset(output, {x, step}),
                    Consumes::Subsets(
-                       For(r = Expr(0), output["size"], end,
-                           {input, {r, 1}})));
+                       Reduce(r = Expr(0), output["size"], end,
+                              {input, {r, 1}})));
     }
 
     std::vector<std::string> getHeader() override {

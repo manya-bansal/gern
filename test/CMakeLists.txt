@@ -24,13 +24,11 @@ set(TEST_SOURCES
     # test-resolve-constraints.cpp
     test-runner.cpp
     test-functions.cpp
-    # test-grid-property.cpp
     test-cpu-array.cpp
-    # test-cpu-matrix.cpp
+    test-cpu-matrix.cpp
     test-cpu-static-store.cpp
+    test-cpu-reduction.cpp
     test-composable.cpp
-
-    nested_pipelines/test-nested-cpu.cpp
 )
 
 

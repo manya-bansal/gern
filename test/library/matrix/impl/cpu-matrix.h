@@ -101,7 +101,7 @@ inline void add(MatrixCPU a, MatrixCPU b) {
         a_data = a.data + (i * a.lda);
         b_data = b.data + (i * b.lda);
         for (int64_t j = 0; j < a.col; j++) {
-            b_data[j] += a_data[j];
+            b_data[j] = a_data[j] + 1;
         }
     }
 }

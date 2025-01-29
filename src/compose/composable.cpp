@@ -115,13 +115,14 @@ void TiledComputation::accept(ComposableVisitorStrict *v) const {
     v->visit(this);
 }
 
-TiledComputation::TiledComputation(ADTMember field_to_tile,
+TiledComputation::TiledComputation(ADTMember adt_member,
                                    Variable v,
                                    Composable tiled,
-                                   Grid::Property property)
-    : field_to_tile(field_to_tile),
+                                   Grid::Property property,
+                                   bool reduce)
+    : adt_member(adt_member),
       v(v), tiled(tiled), property(property) {
-    init_binding();
+    init_binding(reduce);
 }
 
 std::set<Variable> TiledComputation::getVariableArgs() const {
@@ -136,30 +137,41 @@ Pattern TiledComputation::getAnnotation() const {
     return tiled.getAnnotation();
 }
 
-void TiledComputation::init_binding() {
+void TiledComputation::init_binding(bool reduce) {
     Pattern annotation = getAnnotation();
     SubsetObj output_subset = annotation.getOutput();
     AbstractDataTypePtr adt = output_subset.getDS();
 
-    std::string field_to_find = field_to_tile.getMember();
-    AbstractDataTypePtr ds = field_to_tile.getDS();
+    std::string field_to_find = adt_member.getMember();
+    AbstractDataTypePtr ds = adt_member.getDS();
 
-    if (field_to_tile.getDS() != output_subset.getDS()) {
-        throw error::UserError("Can only tile the output " + adt.str());
+    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> loops;
+
+    if (reduce) {
+        loops = annotation.getReducableFields();
+    } else {
+        std::cout << "here" << std::endl;
+        loops = annotation.getTileableFields();
+    }
+    std::cout << adt_member << std::endl;
+    if (!loops.contains(adt_member)) {
+        throw error::UserError("Cannot tile " + adt_member.str());
     }
 
-    // Find whether the meta-data field that they are
-    // referring is actually possible to tile.
-    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable = getAnnotation().getTileableFields();
-    for (const auto &[key, val] : tileable) {
-        if (key.getDS() == ds && key.getMember() == field_to_find) {
-            captured = std::get<0>(val);
-            start = std::get<1>(val);
-            end = field_to_tile;
-            step = std::get<2>(val);
-            return;
-        }
-    }
+    auto value = loops.at(adt_member);
+    captured = std::get<0>(value);
+    start = std::get<1>(value);
+    end = adt_member;
+    step = std::get<2>(value);
+
+    // // Gern needs to make sure that all adts that are involved in the
+    // // reduction and in scope of this for loop.
+    // std::vector<SubsetObj> inputs = annotation.getInputs();
+    // std::set<AbstractDataTypePtr> in_scope_intermediates;
+    // composable_match(tiled, std::function<void(const ComputeFunctionCall *)>(
+    //                             [&](const ComputeFunctionCall *op) {
+    //                                 in_scope_intermediates.insert(op->getAnnotation().getOutput().getDS());
+    //                             }));
 
     throw error::UserError("Could not find " + field_to_find + " in " + adt.str());
 }
@@ -203,7 +215,11 @@ void Composable::accept(ComposableVisitorStrict *v) const {
 }
 
 TileDummy Tile(ADTMember member, Variable v) {
-    return TileDummy(member, v);
+    return TileDummy(member, v, false);
+}
+
+TileDummy Reduce(ADTMember member, Variable v) {
+    return TileDummy(member, v, true);
 }
 
 std::ostream &operator<<(std::ostream &os, const Composable &f) {
@@ -222,9 +238,10 @@ Composable TileDummy::operator()(Composable c) {
         return new const TiledComputation(member, v,
                                           Composable(
                                               new const Computation({c})),
-                                          property);
+                                          property,
+                                          reduce);
     }
-    return new const TiledComputation(member, v, c, property);
+    return new const TiledComputation(member, v, c, property, reduce);
 }
 
 }  // namespace gern

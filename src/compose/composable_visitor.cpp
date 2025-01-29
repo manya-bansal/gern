@@ -15,7 +15,7 @@ void ComposablePrinter::visit(const Computation *op) {
 
 void ComposablePrinter::visit(const TiledComputation *op) {
     util::printIdent(os, ident);
-    os << "For " << op->field_to_tile << " with " << op->v << "{\n";
+    os << "For " << op->adt_member << " with " << op->v << "{\n";
     ident++;
     ComposablePrinter printer(os, ident);
     printer.visit(op->tiled);
@@ -98,6 +98,20 @@ void LegalToCompose::common(std::set<AbstractDataTypePtr> inputs, AbstractDataTy
         throw error::UserError("Cannot assign to " + output.str() + " twice ");
     }
     all_writes.insert(output);
+}
+
+void ComposableVisitor::visit(const Computation *node) {
+    auto composed = node->composed;
+    for (auto const &c : composed) {
+        this->visit(c);
+    }
+}
+
+void ComposableVisitor::visit(const TiledComputation *node) {
+    this->visit(node->tiled);
+}
+
+void ComposableVisitor::visit(const ComputeFunctionCall *) {
 }
 
 }  // namespace gern

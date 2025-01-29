@@ -90,17 +90,18 @@ public:
     TiledComputation(ADTMember member,
                      Variable v,
                      Composable body,
-                     Grid::Property property);
+                     Grid::Property property,
+                     bool reduce);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
     Pattern getAnnotation() const;
     void accept(ComposableVisitorStrict *) const;
 
-    void init_binding();
+    void init_binding(bool reduce);
 
-    ADTMember field_to_tile;  // The field that the user wants to tile.
-    Variable v;               // The variable that the user will set to concretize the tile
-                              // parameter for the computation.
+    ADTMember adt_member;  // The field that the user wants to tile.
+    Variable v;            // The variable that the user will set to concretize the tile
+                           // parameter for the computation.
     Composable tiled;
     Variable captured;
 
@@ -113,8 +114,8 @@ public:
 // This class only exists for the overload.
 struct TileDummy {
     TileDummy(ADTMember member, Variable v,
-              Grid::Property property = Grid::Property::UNDEFINED)
-        : member(member), v(v), property(property) {
+              bool reduce)
+        : member(member), v(v), reduce(reduce) {
     }
 
     template<typename First, typename Second, typename... ToCompose>
@@ -131,7 +132,7 @@ struct TileDummy {
         //                                              Composable(new const Computation(to_compose))));
         return new const TiledComputation(member, v,
                                           Composable(new const Computation(to_compose)),
-                                          property);
+                                          property, reduce);
     }
 
     TileDummy operator||(Grid::Property p);
@@ -139,10 +140,12 @@ struct TileDummy {
 
     ADTMember member;
     Variable v;
-    Grid::Property property;
+    bool reduce;
+    Grid::Property property{Grid::Property::UNDEFINED};
 };
 
 TileDummy Tile(ADTMember member, Variable v);
+TileDummy Reduce(ADTMember member, Variable v);
 
 template<typename E>
 inline bool isa(const ComposableNode *e) {

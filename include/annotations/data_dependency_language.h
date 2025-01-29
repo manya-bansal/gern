@@ -329,6 +329,7 @@ public:
     std::map<Variable, Variable> getConsumesIntervalAndStepVars() const;
     std::map<Variable, Variable> getComputesIntervalAndStepVars() const;
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> getTileableFields() const;
+    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> getReducableFields() const;
     Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
     Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
     void accept(StmtVisitorStrict *v) const;
@@ -414,12 +415,12 @@ public:
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
-ConsumeMany For(Assign start, ADTMember end, Variable step, ConsumeMany body,
-                bool parallel = false);
-ConsumeMany For(Assign start, ADTMember end, Variable step, std::vector<SubsetObj> body,
-                bool parallel = false);
-ConsumeMany For(Assign start, ADTMember end, Variable step, SubsetObj body,
-                bool parallel = false);
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, ConsumeMany body,
+                   bool parallel = false);
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, std::vector<SubsetObj> body,
+                   bool parallel = false);
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, SubsetObj body,
+                   bool parallel = false);
 
 class Allocates : public Stmt {
 public:

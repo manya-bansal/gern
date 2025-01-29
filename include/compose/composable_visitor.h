@@ -3,6 +3,8 @@
 #include "compose/composable.h"
 #include "utils/scoped_set.h"
 
+#include <functional>
+
 namespace gern {
 
 class Computation;
@@ -47,5 +49,72 @@ private:
     std::set<AbstractDataTypePtr> all_writes;
     util::ScopedSet<AbstractDataTypePtr> in_scope;
 };
+
+class ComposableVisitor : public ComposableVisitorStrict {
+public:
+    using ComposableVisitorStrict::visit;
+    void visit(const Computation *);
+    void visit(const TiledComputation *);
+    void visit(const ComputeFunctionCall *);
+};
+
+#define COMPOSABLE_RULE(Rule)                                                     \
+    std::function<void(const Rule *)> Rule##Func;                                 \
+    std::function<void(const Rule *, ComposableMatcher *)> Rule##CtxFunc;         \
+    void unpack(std::function<void(const Rule *)> pattern) {                      \
+        assert(!Rule##CtxFunc && !Rule##Func);                                    \
+        Rule##Func = pattern;                                                     \
+    }                                                                             \
+    void unpack(std::function<void(const Rule *, ComposableMatcher *)> pattern) { \
+        assert(!Rule##CtxFunc && !Rule##Func);                                    \
+        Rule##CtxFunc = pattern;                                                  \
+    }                                                                             \
+    void visit(const Rule *op) {                                                  \
+        if (Rule##Func) {                                                         \
+            Rule##Func(op);                                                       \
+        } else if (Rule##CtxFunc) {                                               \
+            Rule##CtxFunc(op, this);                                              \
+            return;                                                               \
+        }                                                                         \
+        ComposableVisitor::visit(op);                                             \
+    }
+
+class ComposableMatcher : public ComposableVisitor {
+public:
+    template<class T>
+    void match(T stmt) {
+        if (!stmt.defined()) {
+            return;
+        }
+        stmt.accept(this);
+    }
+
+    template<class IR, class... Patterns>
+    void process(IR ir, Patterns... patterns) {
+        unpack(patterns...);
+        ir.accept(this);
+    }
+
+private:
+    template<class First, class... Rest>
+    void unpack(First first, Rest... rest) {
+        unpack(first);
+        unpack(rest...);
+    }
+
+    using ComposableVisitorStrict::visit;
+
+    COMPOSABLE_RULE(ComputeFunctionCall);
+    COMPOSABLE_RULE(TiledComputation);
+    COMPOSABLE_RULE(Computation);
+};
+
+template<class T, class... Patterns>
+void composable_match(T stmt, Patterns... patterns) {
+    if (!stmt.defined()) {
+        return;
+    }
+    ComposableMatcher().process(stmt, patterns...);
+}
 
 }  // namespace gern
