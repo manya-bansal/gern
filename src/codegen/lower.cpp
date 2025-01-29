@@ -69,50 +69,63 @@ void BlockNode::accept(LowerIRVisitor *v) const {
 }
 
 LowerIR ComposableLower::lower() {
+    // Add the inputs and output to the current scope.
+    // these will come directly from the user.
+    auto annotation = composable.getAnnotation();
+    AbstractDataTypePtr output = annotation.getOutput().getDS();
+    current_ds.insert(output, output);
+
+    auto inputs_subsets = annotation.getInputs();
+
+    for (const auto &subset : inputs_subsets) {
+        AbstractDataTypePtr input = subset.getDS();
+        current_ds.insert(input, input);
+    }
+
     this->visit(composable);
     return lowerIR;
 }
 
-void ComposableLower::common(const ComposableNode *node) {
-    if (node == nullptr) {
-        throw error::InternalError("GOING TO SCREAM");
-    }
+// void ComposableLower::common(const ComposableNode *node) {
+//     if (node == nullptr) {
+//         throw error::InternalError("GOING TO SCREAM");
+//     }
 
-    std::vector<LowerIR> lowered;
-    // Declare any reductions if present.
-    lowered.push_back(declare_consumes(node->getAnnotation()));
-    std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
-    Pattern annotation = node->getAnnotation();
-    std::vector<SubsetObj> inputs = annotation.getInputs();
-    // Declare all the outer variables.
-    // Query the inputs if they are not an intermediate of the current pipeline.
-    for (auto const &input : inputs) {
-        // If the current DS is not in scope
-        // (at this point we are already declared
-        // all the intermediates), generate a query.
-        AbstractDataTypePtr input_ds = input.getDS();
-        if (!intermediates.contains_at_current_scope(input_ds)) {
-            // Generate a query.
-            lowered.push_back(constructQueryNode(input_ds,
-                                                 input.getFields()));
-            AbstractDataTypePtr queried = getCurrent(input_ds);
-            if (queried.freeQuery()) {
-                to_free.insert(queried);
-            }
-        }
-    }
+//     std::vector<LowerIR> lowered;
+//     // Declare any reductions if present.
+//     lowered.push_back(declare_consumes(node->getAnnotation()));
+//     std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
+//     Pattern annotation = node->getAnnotation();
+//     std::vector<SubsetObj> inputs = annotation.getInputs();
+//     // Declare all the outer variables.
+//     // Query the inputs if they are not an intermediate of the current pipeline.
+//     for (auto const &input : inputs) {
+//         // If the current DS is not in scope
+//         // (at this point we are already declared
+//         // all the intermediates), generate a query.
+//         AbstractDataTypePtr input_ds = input.getDS();
+//         if (!intermediates.contains_at_current_scope(input_ds)) {
+//             // Generate a query.
+//             lowered.push_back(constructQueryNode(input_ds,
+//                                                  input.getFields()));
+//             AbstractDataTypePtr queried = getCurrent(input_ds);
+//             if (queried.freeQuery()) {
+//                 to_free.insert(queried);
+//             }
+//         }
+//     }
 
-    // Now, visit the node.
-    this->visit(node);
-    lowered.push_back(lowerIR);
+//     // Now, visit the node.
+//     this->visit(node);
+//     lowered.push_back(lowerIR);
 
-    // Free any the queried subsets.
-    for (const auto &ds : to_free) {
-        lowered.push_back(new const FreeNode(ds));
-    }
+//     // Free any the queried subsets.
+//     for (const auto &ds : to_free) {
+//         lowered.push_back(new const FreeNode(ds));
+//     }
 
-    lowerIR = new const BlockNode(lowered);
-}
+//     lowerIR = new const BlockNode(lowered);
+// }
 
 LowerIR ComposableLower::generate_definitions(Assign definition) const {
     Variable v = to<Variable>(definition.getA());
@@ -156,17 +169,15 @@ void ComposableLower::visit(const Computation *node) {
         SubsetObj temp_subset = composed[i].getAnnotation().getOutput();
         AbstractDataTypePtr temp = temp_subset.getDS();
         lowered.push_back(constructAllocNode(temp, temp_subset.getFields()));
-        intermediates.insert(temp);
         // Do we need to free our allocs?
         if (temp.freeAlloc()) {
             to_free.insert(temp);
         }
     }
 
-    // std::vector<LowerIR> body;
     // Step 3: Now, we are ready to lower the composable objects that make up the body.
     for (const auto &function : node->composed) {
-        common(function.ptr);
+        this->visit(function);
         lowered.push_back(lowerIR);
     }
 
@@ -243,12 +254,10 @@ void ComposableLower::visit(const TiledComputation *node) {
     tiled_vars.scope();
     parents.insert(node->step, node->v);
     tiled_vars.insert(captured, current_value);
-    intermediates.scope();
     this->visit(node->tiled);
     current_ds.unscope();
     parents.unscope();
     tiled_vars.unscope();
-    intermediates.unscope();
 
     bool has_parent = parents.contains(node->step);
     lowerIR = new const IntervalNode(
@@ -291,7 +300,7 @@ const InsertNode *ComposableLower::constructInsertNode(AbstractDataTypePtr paren
 const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
     FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds.getFields(), alloc_args);
     alloc_func.output = Parameter(ds);
-
+    current_ds.insert(ds, ds);
     return new const AllocateNode(alloc_func);
 }
 
@@ -328,9 +337,38 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
 }
 
 void ComposableLower::visit(const ComputeFunctionCall *node) {
+
+    if (node == nullptr) {
+        throw error::InternalError("GOING TO SCREAM");
+    }
+
+    std::vector<LowerIR> lowered;
+    // Declare any reductions if present.
+    lowered.push_back(declare_consumes(node->getAnnotation()));
+    std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
+    Pattern annotation = node->getAnnotation();
+    std::vector<SubsetObj> inputs = annotation.getInputs();
+    // Declare all the outer variables.
+    // Query the inputs if they are not an intermediate of the current pipeline.
+    for (auto const &input : inputs) {
+        // If the current DS is not in scope
+        // (at this point we are already declared
+        // all the intermediates), generate a query.
+        AbstractDataTypePtr input_ds = input.getDS();
+        if (!current_ds.contains_in_current_scope(input_ds)) {
+            // Generate a query.
+            lowered.push_back(constructQueryNode(input_ds,
+                                                 input.getFields()));
+            AbstractDataTypePtr queried = getCurrent(input_ds);
+            if (queried.freeQuery()) {
+                to_free.insert(queried);
+            }
+        }
+    }
+
+    // Now, generate the function call.
     FunctionCall call = node->getCall();
     std::vector<Argument> new_args;
-
     auto args = call.args;
     for (const auto &arg : args) {
         if (isa<DSArg>(arg) &&
@@ -348,7 +386,13 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         .output = call.output,
     };
 
-    lowerIR = new const ComputeNode(new_call, node->getHeader());
+    lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
+    // Free any the queried subsets.
+    for (const auto &ds : to_free) {
+        lowered.push_back(new const FreeNode(ds));
+    }
+
+    lowerIR = new const BlockNode(lowered);
 }
 
 }  // namespace gern

@@ -80,7 +80,6 @@ private:
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
     util::ScopedMap<Variable, Expr> tiled_vars;
     util::ScopedMap<Variable, Variable> parents;  // Used for splits.
-    util::ScopedSet<AbstractDataTypePtr> intermediates;
 
     LowerIR lowerIR;
     Composable composable;
