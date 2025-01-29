@@ -150,10 +150,9 @@ void TiledComputation::init_binding(bool reduce) {
     if (reduce) {
         loops = annotation.getReducableFields();
     } else {
-        std::cout << "here" << std::endl;
         loops = annotation.getTileableFields();
     }
-    std::cout << adt_member << std::endl;
+
     if (!loops.contains(adt_member)) {
         throw error::UserError("Cannot tile " + adt_member.str());
     }
@@ -163,17 +162,6 @@ void TiledComputation::init_binding(bool reduce) {
     start = std::get<1>(value);
     end = adt_member;
     step = std::get<2>(value);
-
-    // // Gern needs to make sure that all adts that are involved in the
-    // // reduction and in scope of this for loop.
-    // std::vector<SubsetObj> inputs = annotation.getInputs();
-    // std::set<AbstractDataTypePtr> in_scope_intermediates;
-    // composable_match(tiled, std::function<void(const ComputeFunctionCall *)>(
-    //                             [&](const ComputeFunctionCall *op) {
-    //                                 in_scope_intermediates.insert(op->getAnnotation().getOutput().getDS());
-    //                             }));
-
-    throw error::UserError("Could not find " + field_to_find + " in " + adt.str());
 }
 
 std::set<Variable> Composable::getVariableArgs() const {

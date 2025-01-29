@@ -268,7 +268,6 @@ std::map<ADTMember, std::tuple<Variable, Expr, Variable>> Stmt::getTileableField
           std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
                                                                            Matcher *ctx) {
               tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
-              std::cout << op->end << std::endl;
               ctx->match(op->body);
           }));
     return tileable;
@@ -278,11 +277,6 @@ std::map<ADTMember, std::tuple<Variable, Expr, Variable>> Stmt::getReducableFiel
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable;
     match(*this,
           std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
-                                                                           Matcher *ctx) {
-              tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
-              ctx->match(op->body);
-          }),
-          std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
                                                                            Matcher *ctx) {
               tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
               ctx->match(op->body);
