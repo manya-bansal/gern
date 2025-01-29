@@ -38,6 +38,9 @@ TEST(LoweringCPU, ReductionNoTile) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == ((size * (size - 1) / 2)));
     }
+
+    a.destroy();
+    b.destroy();
 }
 
 TEST(LoweringCPU, ReductionOuterTile) {
@@ -72,6 +75,9 @@ TEST(LoweringCPU, ReductionOuterTile) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == ((size * (size - 1) / 2)));
     }
+
+    a.destroy();
+    b.destroy();
 }
 
 TEST(LoweringCPU, ReductionInnerTile) {
@@ -107,6 +113,9 @@ TEST(LoweringCPU, ReductionInnerTile) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == ((size * (size - 1) / 2)));
     }
+
+    a.destroy();
+    b.destroy();
 }
 
 TEST(LoweringCPU, TileReductions) {
@@ -147,6 +156,9 @@ TEST(LoweringCPU, TileReductions) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == ((size * (size - 1) / 2)));
     }
+
+    a.destroy();
+    b.destroy();
 }
 
 TEST(LoweringCPU, MixReductionStrategy) {
@@ -215,4 +227,7 @@ TEST(LoweringCPU, MixReductionStrategy) {
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == ((size * (size - 1) / 2) + size));
     }
+
+    a.destroy();
+    b.destroy();
 }
