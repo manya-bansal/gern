@@ -64,6 +64,7 @@ private:
     LowerIR define_loop_var(Assign start, ADTMember end, Variable step) const;
     LowerIR generate_definitions(Assign definition) const;
     LowerIR declare_computes(Pattern annotation) const;
+    LowerIR declare_consumes(Pattern annotation) const;
 
     // Helper methods to generate calls.
     FunctionCall constructFunctionCall(FunctionSignature f,

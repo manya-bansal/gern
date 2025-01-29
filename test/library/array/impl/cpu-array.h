@@ -67,6 +67,15 @@ inline void add(ArrayCPU a, ArrayCPU b) {
     }
 }
 
+inline void reduction(ArrayCPU a, ArrayCPU b) {
+    for (int64_t i = 0; i < b.size; i++) {
+        b.data[i] = 0;
+        for (int64_t j = 0; j < a.size; j++) {
+            b.data[i] += a.data[j];
+        }
+    }
+}
+
 inline void add_1(ArrayCPU a, ArrayCPU b) {
     for (int64_t i = 0; i < a.size; i++) {
         b.data[i] = a.data[i] + 1;

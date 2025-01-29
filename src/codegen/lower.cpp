@@ -74,13 +74,14 @@ LowerIR ComposableLower::lower() {
 }
 
 void ComposableLower::common(const ComposableNode *node) {
-
     if (node == nullptr) {
         throw error::InternalError("GOING TO SCREAM");
     }
 
-    std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
     std::vector<LowerIR> lowered;
+    // Declare any reductions if present.
+    lowered.push_back(declare_consumes(node->getAnnotation()));
+    std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
     Pattern annotation = node->getAnnotation();
     std::vector<SubsetObj> inputs = annotation.getInputs();
     // Declare all the outer variables.
@@ -109,6 +110,7 @@ void ComposableLower::common(const ComposableNode *node) {
     for (const auto &ds : to_free) {
         lowered.push_back(new const FreeNode(ds));
     }
+
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -177,8 +179,6 @@ void ComposableLower::visit(const Computation *node) {
         lowered.push_back(new const FreeNode(ds));
     }
 
-    // Wrap the lowered body in the loops.
-    // COME BACK TO THIS! Special reduce command.
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -186,6 +186,27 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
     std::vector<LowerIR> lowered;
     match(annotation, std::function<void(const ComputesForNode *, Matcher *)>(
                           [&](const ComputesForNode *op, Matcher *ctx) {
+                              ctx->match(op->body);
+                              Variable v = to<Variable>(op->start.getA());
+                              if (tiled_vars.contains(v)) {
+                                  lowered.insert(lowered.begin(),
+                                                 generate_definitions(v = tiled_vars.at(v)));
+                                  lowered.insert(lowered.begin(),
+                                                 generate_definitions(op->step = parents.at(op->step)));
+                              } else {
+                                  lowered.insert(lowered.begin(),
+                                                 generate_definitions(op->start));
+                                  lowered.insert(lowered.begin(),
+                                                 generate_definitions(op->step = op->end));
+                              }
+                          }));
+    return new const BlockNode(lowered);
+}
+
+LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
+    std::vector<LowerIR> lowered;
+    match(annotation, std::function<void(const ConsumesForNode *, Matcher *)>(
+                          [&](const ConsumesForNode *op, Matcher *ctx) {
                               ctx->match(op->body);
                               Variable v = to<Variable>(op->start.getA());
                               if (tiled_vars.contains(v)) {

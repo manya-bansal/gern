@@ -111,6 +111,28 @@ public:
     Grid::Property property{Grid::Property::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
 };
 
+// class TileComputationWrapper : public Composable {
+//     TileComputationWrapper() = default;
+//     TileComputationWrapper(const TiledComputation *);
+//     std::set<Variable> getVariableArgs() const;
+//     std::set<Variable> getTemplateArgs() const;
+//     Pattern getAnnotation() const;
+// };
+
+// class ReductionLoop : public ComposableNode {
+// public:
+//     ReductionLoop(Composable computation)
+//         : computation(computation) {
+//     }
+
+//     std::set<Variable> getVariableArgs() const;
+//     std::set<Variable> getTemplateArgs() const;
+//     Pattern getAnnotation() const;
+//     void accept(ComposableVisitorStrict *) const;
+
+//     TiledComputation computation;
+// }
+
 // This class only exists for the overload.
 struct TileDummy {
     TileDummy(ADTMember member, Variable v,

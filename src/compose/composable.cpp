@@ -121,7 +121,9 @@ TiledComputation::TiledComputation(ADTMember adt_member,
                                    Grid::Property property,
                                    bool reduce)
     : adt_member(adt_member),
-      v(v), tiled(tiled), property(property) {
+      v(v),
+      tiled(tiled),
+      property(property) {
     init_binding(reduce);
 }
 

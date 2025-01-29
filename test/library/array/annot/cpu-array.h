@@ -160,7 +160,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add";
+        f.name = "gern::impl::reduction";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }
