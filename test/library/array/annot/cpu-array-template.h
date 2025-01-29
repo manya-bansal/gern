@@ -11,8 +11,8 @@ namespace annot {
 template<int Size>
 class ArrayCPUTemplate : public AbstractDataType {
 public:
-    ArrayCPUTemplate(const std::string &name)
-        : name(name) {
+    ArrayCPUTemplate(const std::string &name, bool temp = false)
+        : name(name), temp(temp) {
     }
     ArrayCPUTemplate()
         : ArrayCPUTemplate("test") {
@@ -23,6 +23,9 @@ public:
     }
 
     std::string getType() const override {
+        if (temp) {
+            return "auto";  // Don't know what type it will be.
+        }
         return "gern::impl::ArrayCPUTemplate<" + std::to_string(Size) + ">";
     }
 
@@ -63,8 +66,13 @@ public:
         return true;
     }
 
+    bool freeAlloc() const override {
+        return false;
+    }
+
 protected:
     std::string name;
+    bool temp;
     Variable x{"x"};
     Variable len{"len"};
 };

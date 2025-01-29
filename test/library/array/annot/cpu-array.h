@@ -58,9 +58,9 @@ protected:
     Variable len{"len"};
 };
 
-class add : public AbstractFunction {
+class add_1 : public AbstractFunction {
 public:
-    add()
+    add_1()
         : input(new const ArrayCPU("input")),
           output(new const ArrayCPU("output")) {
     }
@@ -75,7 +75,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add";
+        f.name = "gern::impl::add_1";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }
@@ -93,15 +93,15 @@ protected:
     Variable step{"step"};
 };
 
-class addTemplate : public add {
+class add1Template : public add_1 {
 public:
-    addTemplate()
-        : add() {
+    add1Template()
+        : add_1() {
     }
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::addTemplate";
+        f.name = "gern::impl::add1Template";
         f.args = {Parameter(input), Parameter(output)};
         f.template_args = {step};
         return f;
@@ -110,10 +110,10 @@ public:
 
 // Doesn't actually exist, there to
 // exercise  test.
-class addWithSize : public add {
+class addWithSize : public add_1 {
 public:
     addWithSize()
-        : add() {
+        : add_1() {
     }
     std::string getName() {
         return "gern::impl::addWithSize";
@@ -121,7 +121,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::addTemplate";
+        f.name = "gern::impl::add1Template";
         f.args = {Parameter(input), Parameter(output), Parameter(step)};
         return f;
     }
@@ -141,15 +141,15 @@ public:
         Variable x("x");
         Variable r("r");
         Variable step("step");
-        Variable end("end");
+        Variable reduce("reduce");
 
         return For(x = Expr(0), output["size"], step,
                    Computes(
                        Produces::Subset(output, {x, step}),
                        Consumes::Subsets(
-                           For(r = Expr(0), end, 1,
-                               SubsetObjMany{
-                                   SubsetObj(input, {r, 1})}))));
+                           Reduce(r = Expr(0), output["size"], reduce,
+                                  SubsetObjMany{
+                                      SubsetObj(input, {r, reduce})}))));
     }
 
     std::vector<std::string> getHeader() override {
@@ -160,7 +160,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add";
+        f.name = "gern::impl::reduction";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }

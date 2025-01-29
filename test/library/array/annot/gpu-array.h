@@ -56,10 +56,10 @@ protected:
 };
 
 // This *must* be a device function.
-class addGPU : public add {
+class add_1_GPU : public add_1 {
 public:
-    addGPU()
-        : add() {
+    add_1_GPU()
+        : add_1() {
     }
 
     std::vector<std::string> getHeader() {
@@ -81,12 +81,13 @@ public:
         Variable r("r");
         Variable step("step");
         Variable end("end");
+        Variable extra("extra");
 
         return For(x = Expr(0), output["size"], step,
                    Produces::Subset(output, {x, step}),
                    Consumes::Subsets(
-                       For(r = Expr(0), end, 1,
-                           {input, {r, 1}})));
+                       Reduce(r = Expr(0), output["size"], end,
+                              {input, {r, 1}})));
     }
 
     std::vector<std::string> getHeader() override {
@@ -97,7 +98,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add";
+        f.name = "gern::impl::add_1";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }
@@ -109,8 +110,19 @@ private:
 
 class ArrayStaticGPU : public ArrayGPU {
 public:
-    ArrayStaticGPU(const std::string &name)
-        : ArrayGPU(name) {
+    ArrayStaticGPU(const std::string &name, bool temp = false)
+        : name(name), temp(temp) {
+    }
+
+    std::string getName() const override {
+        return name;
+    }
+
+    std::string getType() const override {
+        if (temp) {
+            return "auto";
+        }
+        return "gern::impl::ArrayGPU";
     }
 
     std::vector<Variable> getFields() const override {
@@ -152,17 +164,23 @@ public:
     bool insertQuery() const override {
         return true;
     }
+
+private:
+    std::string name;
+    bool temp;
+    Variable x{"x"};
+    Variable len{"len"};
 };
 
-class addGPUTemplate : public addGPU {
+class add_1_GPU_Template : public add_1_GPU {
 public:
-    addGPUTemplate()
-        : addGPU() {
+    add_1_GPU_Template()
+        : add_1_GPU() {
     }
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add";
+        f.name = "gern::impl::add_1";
         f.args = {Parameter(input), Parameter(output)};
         f.template_args = {step};
         return f;

@@ -30,10 +30,10 @@ std::ostream &operator<<(std::ostream &os, const LiteralNode &);
 struct VariableNode : public ExprNode {
     VariableNode(const std::string &name,
                  Grid::Property p = Grid::Property::UNDEFINED,
-                 Datatype type = Datatype::Int64,
+                 Datatype type = Datatype::Int64, bool const_expr = false,
                  bool bound = false, int64_t val = 0)
         : ExprNode(Datatype::Kind::Int64), name(name), p(p),
-          type(type), bound(bound), val(val) {
+          type(type), const_expr(const_expr), bound(bound), val(val) {
     }
     void accept(ExprVisitorStrict *v) const override {
         v->visit(this);
@@ -42,6 +42,7 @@ struct VariableNode : public ExprNode {
     std::string name;
     Grid::Property p;
     Datatype type;
+    bool const_expr;
     bool bound;
     int64_t val;
 };
@@ -106,6 +107,7 @@ struct ProducesNode : public StmtNode {
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
+    std::vector<Variable> getFieldsAsVars() const;
     SubsetObj output;
 };
 
@@ -117,7 +119,7 @@ struct ConsumesNode : public StmtNode {
 };
 
 struct ConsumesForNode : public ConsumesNode {
-    ConsumesForNode(Assign start, Expr end, Expr step, ConsumeMany body,
+    ConsumesForNode(Assign start, ADTMember end, Variable step, ConsumeMany body,
                     bool parallel = false)
         : start(start), end(end), step(step), body(body),
           parallel(parallel) {
@@ -126,8 +128,8 @@ struct ConsumesForNode : public ConsumesNode {
         v->visit(this);
     }
     Assign start;
-    Expr end;
-    Expr step;
+    ADTMember end;
+    Variable step;
     ConsumeMany body;
     bool parallel;
 };
@@ -150,7 +152,7 @@ struct PatternNode : public StmtNode {
 };
 
 struct ComputesForNode : public PatternNode {
-    ComputesForNode(Assign start, Expr end, Expr step, Pattern body,
+    ComputesForNode(Assign start, ADTMember end, Variable step, Pattern body,
                     bool parallel = false)
         : start(start), end(end), step(step), body(body),
           parallel(parallel) {
@@ -159,8 +161,8 @@ struct ComputesForNode : public PatternNode {
         v->visit(this);
     }
     Assign start;
-    Expr end;
-    Expr step;
+    ADTMember end;
+    Variable step;
     Pattern body;
     bool parallel;
 };

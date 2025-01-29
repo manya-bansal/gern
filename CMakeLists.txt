@@ -34,12 +34,13 @@ target_sources(
         src/annotations/lang_nodes.cpp
         src/annotations/visitor.cpp
         src/compose/compose.cpp
-        src/compose/compose_visitor.cpp
-        src/compose/pipeline.cpp
-        src/compose/pipeline_visitor.cpp
+        src/compose/composable.cpp
+        src/compose/composable_visitor.cpp
         src/codegen/codegen.cpp
         src/codegen/codegen_ir.cpp
         src/codegen/codegen_printer.cpp
+        src/codegen/lower.cpp
+        src/codegen/lower_visitor.cpp
         src/codegen/runner.cpp
         # src/resolve_constraints/resolve_constraints.cpp
         src/utils/name_generator.cpp
@@ -58,24 +59,26 @@ target_sources(
         include/annotations/visitor.h
         # include/resolve_constraints/resolve_constraints.h
         include/compose/compose.h
-        include/compose/compose_visitor.h
-        include/compose/pipeline.h
-        include/compose/pipeline_visitor.h
+        include/compose/composable.h
+        include/compose/composable_visitor.h
         include/compose/runner.h
         include/codegen/codegen.h
         include/codegen/codegen_ir.h
         include/codegen/codegen_visitor.h
         include/codegen/codegen_printer.h
+        include/codegen/lower.h
+        include/codegen/lower_visitor.h
         include/utils/debug.h
         include/utils/error.h
         include/utils/name_generator.h
+        include/utils/scoped_map.h
         include/utils/printer.h
         include/utils/uncopyable.h
 )
 
 target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
 target_compile_features(Gern_Gern PUBLIC cxx_std_20)
-# target_link_libraries(Gern_Gern PRIVATE ginac::ginac)
+target_link_libraries(Gern_Gern PRIVATE ${CMAKE_DL_LIBS})
 
 ##
 # Testing

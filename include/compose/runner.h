@@ -1,6 +1,7 @@
 #pragma once
 
-#include "compose/pipeline.h"
+#include "compose/composable.h"
+#include <string>
 
 namespace gern {
 
@@ -8,8 +9,8 @@ using GernGenFuncPtr = void (*)(void **);
 
 class Runner {
 public:
-    Runner(const Pipeline &p)
-        : p(p) {
+    Runner(Composable c)
+        : c(c) {
     }
     struct Options {
         std::string filename = "gern_file";
@@ -27,7 +28,7 @@ public:
     void evaluate(std::map<std::string, void *> args);
 
 private:
-    Pipeline p;
+    Composable c;
     GernGenFuncPtr fp;
     std::vector<std::string> argument_order;
     bool compiled = false;

@@ -7,26 +7,6 @@
 
 namespace gern {
 
-AbstractDataTypePtr ComputeFunctionCall::getOutput() const {
-    AbstractDataTypePtr ds;
-    match(getAnnotation(), std::function<void(const ProducesNode *)>(
-                               [&](const ProducesNode *op) { ds = op->output.getDS(); }));
-    return ds;
-}
-
-std::set<AbstractDataTypePtr> ComputeFunctionCall::getInputs() const {
-    std::set<AbstractDataTypePtr> inputs;
-    // Only the consumes part of the annotation has
-    // multiple subsets, so, we will only ever get the inputs.
-    match(getAnnotation(), std::function<void(const SubsetObjManyNode *)>(
-                               [&](const SubsetObjManyNode *op) {
-                                   for (const auto &s : op->subsets) {
-                                       inputs.insert(s.getDS());
-                                   }
-                               }));
-    return inputs;
-}
-
 FunctionCall FunctionCall::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const {
 
     std::vector<Argument> new_args;
@@ -48,8 +28,7 @@ FunctionCall FunctionCall::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDa
     return new_call;
 }
 
-Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> concrete_arguments) {
-
+Composable AbstractFunction::constructComposableObject(std::vector<Argument> concrete_arguments) {
     FunctionSignature f = getFunction();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> abstract_to_concrete_adt;
     std::map<Variable, Variable> fresh_names;
@@ -81,7 +60,7 @@ Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> conc
     }
 
     for (const auto &template_arg : f.template_args) {
-        fresh_names[template_arg] = getUniqueName("_gern_" + template_arg.getName());
+        fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()), true);
     }
 
     auto annotation = getAnnotation();
@@ -120,7 +99,7 @@ Compose AbstractFunction::generateComputeFunctionCall(std::vector<Argument> conc
         .output = f.output,
     };
 
-    return Compose(new const ComputeFunctionCall(call, rw_annotation, getHeader()));
+    return Composable(new const ComputeFunctionCall(call, rw_annotation, getHeader()));
 }
 
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {

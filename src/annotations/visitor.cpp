@@ -340,8 +340,8 @@ void Rewriter::visit(const AllocatesNode *op) {
 
 void Rewriter::visit(const ConsumesForNode *op) {
     Assign rw_start = to<Assign>(this->rewrite(op->start));
-    Expr rw_end = this->rewrite(op->end);
-    Expr rw_step = this->rewrite(op->step);
+    ADTMember rw_end = to<ADTMember>(this->rewrite(op->end));
+    Variable rw_step = to<Variable>(this->rewrite(op->step));
     ConsumeMany rw_body = to<ConsumeMany>(this->rewrite(op->body));
     stmt = Consumes(new const ConsumesForNode(rw_start,
                                               rw_end, rw_step,
@@ -350,8 +350,8 @@ void Rewriter::visit(const ConsumesForNode *op) {
 
 void Rewriter::visit(const ComputesForNode *op) {
     Assign rw_start = to<Assign>(this->rewrite(op->start));
-    Expr rw_end = this->rewrite(op->end);
-    Expr rw_step = this->rewrite(op->step);
+    ADTMember rw_end = to<ADTMember>(this->rewrite(op->end));
+    Variable rw_step = to<Variable>(this->rewrite(op->step));
     Pattern rw_body = to<Pattern>(this->rewrite(op->body));
     stmt = Pattern(new const ComputesForNode(rw_start,
                                              rw_end, rw_step,
@@ -392,5 +392,25 @@ DEFINE_BINARY_REWRITER_METHOD(LessNode, Constraint, where)
 DEFINE_BINARY_REWRITER_METHOD(GreaterNode, Constraint, where)
 
 DEFINE_BINARY_REWRITER_METHOD(AssignNode, Stmt, stmt)
+
+Consumes mimicConsumes(Pattern p, std::vector<SubsetObj> input_subsets) {
+    ConsumeMany consumes = SubsetObjMany(input_subsets);
+    match(p, std::function<void(const ConsumesForNode *, Matcher *)>(
+                 [&](const ConsumesForNode *op, Matcher *ctx) {
+                     ctx->match(op->body);
+                     consumes = Reduce(op->start, op->end, op->step, consumes);
+                 }));
+    return consumes;
+}
+
+Pattern mimicComputes(Pattern p, Computes computes) {
+    Pattern pattern = computes;
+    match(p, std::function<void(const ComputesForNode *, Matcher *)>(
+                 [&](const ComputesForNode *op, Matcher *ctx) {
+                     ctx->match(op->body);
+                     pattern = For(op->start, op->end, op->step, pattern);
+                 }));
+    return pattern;
+}
 
 }  // namespace gern

@@ -51,7 +51,17 @@ public:
     void accept(ExprVisitorStrict *v) const;
     std::string str() const;
 };
+
 std::ostream &operator<<(std::ostream &os, const Expr &);
+/**
+ * @brief isConstExpr returns whether an expression is a
+ *        constant expression (can be evaluated at program
+ *        compile time).
+ *
+ * @return true
+ * @return false
+ */
+bool isConstExpr(Expr);
 
 class Constraint : public util::IntrusivePtr<const ConstraintNode> {
 public:
@@ -123,6 +133,7 @@ class Variable : public Expr {
 public:
     Variable() = default;
     Variable(const std::string &name);
+    Variable(const std::string &name, bool const_expr);
     Variable(const VariableNode *);
 
     /**
@@ -137,6 +148,7 @@ public:
     Variable bindToGrid(const Grid::Property &p) const;
     Variable bindToInt64(int64_t) const;
     bool isBoundToGrid() const;
+    bool isConstExpr() const;
     bool isBoundToInt64() const;
 
     /**
@@ -229,11 +241,11 @@ std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads);
 
 class ADTMember : public Expr {
 public:
+    ADTMember() = default;
     ADTMember(const ADTMemberNode *);
     ADTMember(AbstractDataTypePtr ds, const std::string &field);
     AbstractDataTypePtr getDS() const;
     std::string getMember() const;
-
     typedef ADTMemberNode Node;
 };
 
@@ -263,6 +275,15 @@ template<>
 struct less<gern::AbstractDataTypePtr> {
     bool operator()(const gern::AbstractDataTypePtr &a, const gern::AbstractDataTypePtr &b) const {
         return a.ptr < b.ptr;
+    }
+};
+
+template<>
+struct less<gern::ADTMember> {
+    bool operator()(const gern::ADTMember &a, const gern::ADTMember &b) const {
+        if (a.getDS() < b.getDS()) return true;   // Compare primary key
+        if (b.getDS() < a.getDS()) return false;  // Compare reverse order
+        return a.getMember() < b.getMember();     // Compare secondary key
     }
 };
 
@@ -305,6 +326,10 @@ public:
 
     std::set<Variable> getDefinedVariables() const;
     std::set<Variable> getIntervalVariables() const;
+    std::map<Variable, Variable> getConsumesIntervalAndStepVars() const;
+    std::map<Variable, Variable> getComputesIntervalAndStepVars() const;
+    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> getTileableFields() const;
+    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> getReducableFields() const;
     Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
     Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
     void accept(StmtVisitorStrict *v) const;
@@ -338,7 +363,7 @@ public:
     explicit SubsetObj(const SubsetNode *);
     SubsetObj(AbstractDataTypePtr data,
               std::vector<Expr> mdFields);
-    std::vector<Expr> getFields();
+    std::vector<Expr> getFields() const;
     SubsetObj where(Constraint);
     AbstractDataTypePtr getDS() const;
     typedef SubsetNode Node;
@@ -390,12 +415,12 @@ public:
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
-ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
-                bool parallel = false);
-ConsumeMany For(Assign start, Expr end, Expr step, std::vector<SubsetObj> body,
-                bool parallel = false);
-ConsumeMany For(Assign start, Expr end, Expr step, SubsetObj body,
-                bool parallel = false);
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, ConsumeMany body,
+                   bool parallel = false);
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, std::vector<SubsetObj> body,
+                   bool parallel = false);
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, SubsetObj body,
+                   bool parallel = false);
 
 class Allocates : public Stmt {
 public:
@@ -411,8 +436,16 @@ public:
 struct PatternNode;
 class Pattern : public Stmt {
 public:
+    Pattern()
+        : Stmt() {
+    }
     explicit Pattern(const PatternNode *);
     Pattern where(Constraint);
+    Pattern refreshVariables() const;
+    std::vector<SubsetObj> getInputs() const;
+    std::vector<Variable> getProducesField() const;
+    std::vector<Expr> getRequirement(AbstractDataTypePtr) const;
+    SubsetObj getOutput() const;
     typedef PatternNode Node;
 };
 
@@ -427,11 +460,10 @@ public:
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.
-Pattern For(Assign start, Expr end, Expr step, Pattern body,
+Pattern For(Assign start, ADTMember end, Variable step, Pattern body,
             bool parallel = false);
 // FunctionSignature so that users do need an explicit compute initialization.
-Pattern For(Assign start, Expr end, Expr step,
+Pattern For(Assign start, ADTMember end, Variable step,
             Produces produces, Consumes consumes,
             bool parallel = false);
-
 }  // namespace gern

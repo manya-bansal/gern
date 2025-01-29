@@ -4,25 +4,25 @@
 
 namespace gern {
 
-class Grid {
-public:
-    enum Property {
+namespace Grid {
+enum Property {
 
-        BLOCK_ID_X,
-        BLOCK_ID_Y,
-        BLOCK_ID_Z,
+    BLOCK_ID_X,
+    BLOCK_ID_Y,
+    BLOCK_ID_Z,
 
-        THREAD_ID_X,
-        THREAD_ID_Y,
-        THREAD_ID_Z,
+    THREAD_ID_X,
+    THREAD_ID_Y,
+    THREAD_ID_Z,
 
-        BLOCK_DIM_X,
-        BLOCK_DIM_Y,
-        BLOCK_DIM_Z,
+    BLOCK_DIM_X,
+    BLOCK_DIM_Y,
+    BLOCK_DIM_Z,
 
-        UNDEFINED,  // For variables that are not bound to the grid.
-    };
+    UNDEFINED,  // For variables that are not bound to the grid.
 };
+
+}
 
 std::ostream &operator<<(std::ostream &, const Grid::Property &);
 

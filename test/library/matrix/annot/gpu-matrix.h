@@ -58,8 +58,8 @@ private:
     std::string name;
     Variable x{"x"};
     Variable y{"y"};
-    Variable l_x{"l_x"};
-    Variable l_y{"l_y"};
+    Variable l_x{"row"};
+    Variable l_y{"col"};
 };
 
 class MatrixAddGPU : public MatrixAddCPU {

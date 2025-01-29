@@ -44,4 +44,13 @@ std::ostream &operator<<(std::ostream &os, const LiteralNode &op) {
     return os;
 }
 
+std::vector<Variable> ProducesNode::getFieldsAsVars() const {
+    std::vector<Variable> vars;
+    std::vector<Expr> expr_vars = output.getFields();
+    for (const auto &e : expr_vars) {
+        vars.push_back(to<Variable>(e));
+    }
+    return vars;
+}
+
 }  // namespace gern

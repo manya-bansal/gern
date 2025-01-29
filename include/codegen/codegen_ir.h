@@ -276,23 +276,37 @@ struct Type : public CGExprNode<Type> {
     static const CGNodeType _type_info = CGNodeType::Type;
 };
 
+struct DeclProperties {
+    bool is_const = false;  // Is a const decl.
+    int num_ref = 0;        // Declare reference.
+    int num_ptr = 0;        // Track that this is declared.
+};
+
 struct VarDecl : public CGExprNode<VarDecl> {
     static CGExpr make(CGExpr type, const std::string &var_name,
-                       bool is_const = false, int num_ref = 0, int num_ptr = 0) {
+                       DeclProperties properties) {
         VarDecl *var = new VarDecl;
         var->type = type;
         var->var_name = var_name;
-        var->is_const = is_const;
-        var->num_ref = num_ref;
-        var->num_ptr = num_ptr;
+        var->properties = properties;
+        return var;
+    }
+
+    static CGExpr make(CGExpr type, const std::string &var_name,
+                       bool is_const = false,
+                       int num_ref = 0, int num_ptr = 0) {
+        VarDecl *var = new VarDecl;
+        var->type = type;
+        var->var_name = var_name;
+        var->properties.is_const = is_const;
+        var->properties.num_ref = num_ref;
+        var->properties.num_ptr = num_ptr;
         return var;
     }
 
     CGExpr type;
     std::string var_name;
-    bool is_const = false;
-    int num_ref = 0;
-    int num_ptr = 0;
+    DeclProperties properties;
 
     static const CGNodeType _type_info = CGNodeType::VarDecl;
 };
@@ -536,12 +550,12 @@ struct Scope : public CGStmtNode<Scope> {
 };
 
 struct DeclFunc : public CGStmtNode<DeclFunc> {
+    std::string name;
     CGExpr return_type;
     std::vector<CGExpr> args;
     CGStmt body;
-    std::string name;
-    std::vector<CGExpr> template_args;
     bool device;
+    std::vector<CGExpr> template_args;
 
     static CGStmt make(std::string name, CGExpr return_type, std::vector<CGExpr> args,
                        CGStmt body, bool device = false, std::vector<CGExpr> template_args = {}) {

@@ -1,14 +1,13 @@
 #pragma once
 
-#include "compose/pipeline.h"
+#include "codegen/lower.h"
 #include <iostream>
 
 namespace gern {
 
-class PipelineVisitor {
+class LowerIRVisitor {
 public:
     void visit(LowerIR);
-    void visit(const Pipeline &);
 
     virtual void visit(const AllocateNode *) = 0;
     virtual void visit(const FreeNode *) = 0;
@@ -18,16 +17,16 @@ public:
     virtual void visit(const IntervalNode *) = 0;
     virtual void visit(const DefNode *) = 0;
     virtual void visit(const BlankNode *) = 0;
+    virtual void visit(const FunctionBoundary *) = 0;
+    virtual void visit(const BlockNode *) = 0;
 };
 
-class PipelinePrinter : PipelineVisitor {
+class LowerPrinter : LowerIRVisitor {
 public:
-    PipelinePrinter(std::ostream &os, int ident)
+    LowerPrinter(std::ostream &os, int ident)
         : os(os), ident(ident) {
     }
-    using PipelineVisitor::visit;
-
-    void visit(const Pipeline &);
+    using LowerIRVisitor::visit;
 
     void visit(const AllocateNode *);
     void visit(const FreeNode *);
@@ -37,6 +36,8 @@ public:
     void visit(const IntervalNode *);
     void visit(const DefNode *);
     void visit(const BlankNode *);
+    void visit(const FunctionBoundary *);
+    void visit(const BlockNode *);
 
 private:
     std::ostream &os;

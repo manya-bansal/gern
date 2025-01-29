@@ -2,6 +2,7 @@
 
 #include "annotations/argument.h"
 #include "annotations/data_dependency_language.h"
+#include "compose/composable.h"
 #include "compose/compose.h"
 #include "utils/error.h"
 #include "utils/uncopyable.h"
@@ -34,34 +35,41 @@ public:
     }
 
     template<typename T>
-    Compose operator()(T argument) {
+    Composable operator()(T argument) {
         std::vector<Argument> arguments;
         addArguments(arguments, argument);
-        return generateComputeFunctionCall(arguments);
+        return constructComposableObject(arguments);
     }
 
     template<typename FirstT, typename... Next>
-    Compose operator()(FirstT first, Next... remaining) {
+    Composable operator()(FirstT first, Next... remaining) {
         std::vector<Argument> arguments;
         addArguments(arguments, first, remaining...);
-        return generateComputeFunctionCall(arguments);
+        return constructComposableObject(arguments);
     }
 
-    Compose operator()() {
+    Composable operator()() {
         if (getFunction().args.size() != 0) {
             throw error::UserError("Called FunctionSignature " + getFunction().name + " with 0 arguments");
         }
-        return generateComputeFunctionCall({});
+        return constructComposableObject({});
+    }
+
+    template<typename FirstT, typename... Next>
+    Composable construct(FirstT first, Next... remaining) {
+        std::vector<Argument> arguments;
+        addArguments(arguments, first, remaining...);
+        return constructComposableObject(arguments);
     }
 
 private:
-    Compose generateComputeFunctionCall(std::vector<Argument> concrete_arguments);
+    Composable constructComposableObject(std::vector<Argument> concrete_arguments);
     /**
      * @brief This FunctionSignature actually performs the binding, and checks
      *        the following conditions:
      *
      *        1. Interval variables can only be bound to ID property.
-     *        2. Non-interval varaibles cannot be bound to ID property.
+     *        2. Non-interval variables cannot be bound to ID property.
      *        3. If a variable is already completely determined, then it
      *           cannot be bound.
      *

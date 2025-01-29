@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <set>
+#include <tuple>
 
 namespace gern {
 
@@ -67,17 +68,27 @@ Variable::Variable(const std::string &name)
     : Expr(new const VariableNode(name)) {
 }
 
+Variable::Variable(const std::string &name, bool const_expr)
+    : Expr(new const VariableNode(name,
+                                  Grid::Property::UNDEFINED,
+                                  Datatype::Int64, const_expr)) {
+}
+
 Variable Variable::bindToGrid(const Grid::Property &p) const {
     return Variable(new const VariableNode(getName(), p));
 }
 
 Variable Variable::bindToInt64(int64_t val) const {
     return Variable(new const VariableNode(getName(), getBoundProperty(),
-                                           Datatype::Int64, true, val));
+                                           Datatype::Int64, true, true, val));
 }
 
 bool Variable::isBoundToGrid() const {
     return isGridPropertySet(getBoundProperty());
+}
+
+bool Variable::isConstExpr() const {
+    return getNode(*this)->const_expr;
 }
 
 bool Variable::isBoundToInt64() const {
@@ -140,6 +151,17 @@ std::ostream &operator<<(std::ostream &os, const Expr &e) {
     Printer p{os};
     p.visit(e);
     return os;
+}
+
+bool isConstExpr(Expr e) {
+    bool is_const_expr = true;
+    match(e, std::function<void(const VariableNode *)>(
+                 [&](const VariableNode *op) {
+                     if (!op->const_expr) {
+                         is_const_expr = false;
+                     }
+                 }));
+    return is_const_expr;
 }
 
 std::ostream &operator<<(std::ostream &os, const Constraint &c) {
@@ -216,6 +238,50 @@ std::set<Variable> Stmt::getIntervalVariables() const {
               vars.insert(op);
           }));
     return vars;
+}
+
+std::map<Variable, Variable> Stmt::getConsumesIntervalAndStepVars() const {
+    std::map<Variable, Variable> vars;
+    match(*this,
+          std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
+                                                                           Matcher *ctx) {
+              vars[to<Variable>(op->start.getA())] = op->step;
+              ctx->match(op->body);
+          }));
+    return vars;
+}
+
+std::map<Variable, Variable> Stmt::getComputesIntervalAndStepVars() const {
+    std::map<Variable, Variable> vars;
+    match(*this,
+          std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
+                                                                           Matcher *ctx) {
+              vars[to<Variable>(op->start.getA())] = op->step;
+              ctx->match(op->body);
+          }));
+    return vars;
+}
+
+std::map<ADTMember, std::tuple<Variable, Expr, Variable>> Stmt::getTileableFields() const {
+    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable;
+    match(*this,
+          std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
+                                                                           Matcher *ctx) {
+              tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
+              ctx->match(op->body);
+          }));
+    return tileable;
+}
+
+std::map<ADTMember, std::tuple<Variable, Expr, Variable>> Stmt::getReducableFields() const {
+    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable;
+    match(*this,
+          std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
+                                                                           Matcher *ctx) {
+              tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
+              ctx->match(op->body);
+          }));
+    return tileable;
 }
 
 #define DEFINE_WHERE_METHOD(Type)            \
@@ -325,7 +391,7 @@ SubsetObj::SubsetObj(AbstractDataTypePtr data,
     : Stmt(new const SubsetNode(data, mdFields)) {
 }
 
-std::vector<Expr> SubsetObj::getFields() {
+std::vector<Expr> SubsetObj::getFields() const {
     return getNode(*this)->mdFields;
 }
 
@@ -342,12 +408,7 @@ Produces Produces::Subset(AbstractDataTypePtr ds, std::vector<Variable> v) {
 }
 
 std::vector<Variable> Produces::getFieldsAsVars() const {
-    std::vector<Variable> vars;
-    std::vector<Expr> expr_vars = getSubset().getFields();
-    for (const auto &e : expr_vars) {
-        vars.push_back(to<Variable>(e));
-    }
-    return vars;
+    return getNode(*this)->getFieldsAsVars();
 }
 
 SubsetObj Produces::getSubset() const {
@@ -378,20 +439,20 @@ Consumes Consumes::Subsets(ConsumeMany many) {
     return Consumes(getNode(many));
 }
 
-ConsumeMany For(Assign start, Expr end, Expr step, ConsumeMany body,
-                bool parallel) {
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, ConsumeMany body,
+                   bool parallel) {
     return ConsumeMany(
         new const ConsumesForNode(start, end, step, body, parallel));
 }
 
-ConsumeMany For(Assign start, Expr end, Expr step, std::vector<SubsetObj> body,
-                bool parallel) {
-    return For(start, end, step, SubsetObjMany(body), parallel);
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, std::vector<SubsetObj> body,
+                   bool parallel) {
+    return Reduce(start, end, step, SubsetObjMany(body), parallel);
 }
 
-ConsumeMany For(Assign start, Expr end, Expr step, SubsetObj body,
-                bool parallel) {
-    return For(start, end, step, std::vector<SubsetObj>{body}, parallel);
+ConsumeMany Reduce(Assign start, ADTMember end, Variable step, SubsetObj body,
+                   bool parallel) {
+    return Reduce(start, end, step, std::vector<SubsetObj>{body}, parallel);
 }
 
 Allocates::Allocates(const AllocatesNode *n)
@@ -414,13 +475,63 @@ Pattern::Pattern(const PatternNode *p)
     : Stmt(p) {
 }
 
-Pattern For(Assign start, Expr end, Expr step, Pattern body,
+Pattern Pattern::refreshVariables() const {
+    std::set<Variable> old_vars = getVariables(*this);
+    // Generate fresh names for all old variables, except the
+    std::map<Variable, Variable> fresh_names;
+    for (const auto &v : old_vars) {
+        // Otherwise, generate a new name.
+        fresh_names[v] = getUniqueName("_gern_" + v.getName());
+    }
+    Pattern rw_annotation = to<Pattern>(this->replaceVariables(fresh_names));
+    return rw_annotation;
+}
+
+std::vector<SubsetObj> Pattern::getInputs() const {
+    std::vector<SubsetObj> subset;
+    match(*this, std::function<void(const SubsetObjManyNode *)>(
+                     [&](const SubsetObjManyNode *op) {
+                         subset = op->subsets;
+                     }));
+    return subset;
+}
+
+std::vector<Variable> Pattern::getProducesField() const {
+    std::vector<Variable> fields;
+    match(*this, std::function<void(const ProducesNode *)>(
+                     [&](const ProducesNode *op) {
+                         fields = op->getFieldsAsVars();
+                     }));
+    return fields;
+}
+
+std::vector<Expr> Pattern::getRequirement(AbstractDataTypePtr d) const {
+    std::vector<Expr> metaFields;
+    match(*this, std::function<void(const SubsetNode *)>(
+                     [&](const SubsetNode *op) {
+                         if (op->data == d) {
+                             metaFields = op->mdFields;
+                         }
+                     }));
+    return metaFields;
+}
+
+SubsetObj Pattern::getOutput() const {
+    SubsetObj subset;
+    match(*this, std::function<void(const ProducesNode *)>(
+                     [&](const ProducesNode *op) {
+                         subset = op->output;
+                     }));
+    return subset;
+}
+
+Pattern For(Assign start, ADTMember end, Variable step, Pattern body,
             bool parallel) {
     return Pattern(
         new const ComputesForNode(start, end, step, body, parallel));
 }
 
-Pattern For(Assign start, Expr end, Expr step,
+Pattern For(Assign start, ADTMember end, Variable step,
             Produces produces, Consumes consumes,
             bool parallel) {
     return For(start, end, step, Computes(produces, consumes), parallel);

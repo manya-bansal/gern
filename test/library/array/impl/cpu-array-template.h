@@ -40,6 +40,12 @@ public:
         }
     }
 
+    void ascending() {
+        for (int i = 0; i < Size; i++) {
+            data[i] = i;
+        }
+    }
+
     float data[Size] = {0};
     int64_t size = Size;
 };
@@ -52,7 +58,7 @@ ArrayCPUTemplate<Len> temp_allocate() {
 template<int Size>
 inline void add(ArrayCPUTemplate<Size> &a, ArrayCPUTemplate<Size> &b) {
     for (int64_t i = 0; i < Size; i++) {
-        b.data[i] += a.data[i];
+        b.data[i] = a.data[i] + 1;
     }
 }
 

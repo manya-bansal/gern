@@ -88,13 +88,6 @@ public:
                        Consumes::Subset(input, {x, y, l_x, l_y})));
     }
 
-    std::vector<Argument> getArguments() {
-        return {
-            Parameter(input),
-            Parameter(output),
-        };
-    }
-
     std::vector<std::string> getHeader() override {
         return {
             "cpu-matrix.h",
