@@ -60,6 +60,7 @@ TEST(LowerinCPU, ReductionOuterTile) {
     impl::ArrayCPU a(size);
     a.ascending();
     impl::ArrayCPU b(size);
+    b.vvals(0.0f);
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
@@ -94,11 +95,52 @@ TEST(LowerinCPU, ReductionInnerTile) {
     impl::ArrayCPU a(size);
     a.ascending();
     impl::ArrayCPU b(size);
+    b.vvals(0.0f);
 
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
         {v.getName(), &v_tile},
+    }));
+
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(b.data[i] == ((size * (size - 1) / 2)));
+    }
+}
+
+TEST(LowerinCPU, TileReductions) {
+
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+
+    annot::reduction reduction;
+    Variable v("v");
+    Variable v1("v1");
+
+    Composable program(
+        Tile(outputDS["size"], v)(
+            Tile(outputDS["size"], v1)(
+                Reduce(outputDS["size"], v)(
+                    Reduce(outputDS["size"], v1)(
+                        reduction(inputDS, outputDS))))));
+
+    Runner run(program);
+    run.compile(test::cpuRunner("array"));
+
+    int64_t size = 10;
+    int64_t v_tile = 5;
+    int64_t v1_tile = 5;
+    impl::ArrayCPU a(size);
+    a.ascending();
+    impl::ArrayCPU b(size);
+    b.vvals(0.0f);
+
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+        {v.getName(), &v_tile},
+        {v1.getName(), &v1_tile},
     }));
 
     // Make sure we got the correct answer.

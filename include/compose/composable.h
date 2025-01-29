@@ -97,18 +97,18 @@ public:
     Pattern getAnnotation() const;
     void accept(ComposableVisitorStrict *) const;
 
-    void init_binding(bool reduce);
+    void init_binding();
 
     ADTMember adt_member;  // The field that the user wants to tile.
     Variable v;            // The variable that the user will set to concretize the tile
                            // parameter for the computation.
     Composable tiled;
     Variable captured;
-
     Expr start;
     ADTMember end;
     Variable step;
     Grid::Property property{Grid::Property::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
+    bool reduce = false;
 };
 
 // class TileComputationWrapper : public Composable {
@@ -172,6 +172,12 @@ TileDummy Reduce(ADTMember member, Variable v);
 template<typename E>
 inline bool isa(const ComposableNode *e) {
     return e != nullptr && dynamic_cast<const E *>(e) != nullptr;
+}
+
+template<typename E>
+inline const E *to(const ComposableNode *e) {
+    assert(isa<E>(e));
+    return static_cast<const E *>(e);
 }
 
 }  // namespace gern

@@ -123,8 +123,9 @@ TiledComputation::TiledComputation(ADTMember adt_member,
     : adt_member(adt_member),
       v(v),
       tiled(tiled),
-      property(property) {
-    init_binding(reduce);
+      property(property),
+      reduce(reduce) {
+    init_binding();
 }
 
 std::set<Variable> TiledComputation::getVariableArgs() const {
@@ -139,7 +140,7 @@ Pattern TiledComputation::getAnnotation() const {
     return tiled.getAnnotation();
 }
 
-void TiledComputation::init_binding(bool reduce) {
+void TiledComputation::init_binding() {
     Pattern annotation = getAnnotation();
     SubsetObj output_subset = annotation.getOutput();
     AbstractDataTypePtr adt = output_subset.getDS();
@@ -224,14 +225,17 @@ TileDummy TileDummy::operator||(Grid::Property p) {
 }
 
 Composable TileDummy::operator()(Composable c) {
-    if (isa<ComputeFunctionCall>(c.ptr)) {
-        return new const TiledComputation(member, v,
-                                          Composable(
-                                              new const Computation({c})),
-                                          property,
-                                          reduce);
+    Composable nested = c;
+    if (isa<ComputeFunctionCall>(c.ptr) && !reduce) {
+        nested = new const Computation({c});
     }
-    return new const TiledComputation(member, v, c, property, reduce);
+    Composable new_program = new const TiledComputation(member, v, nested, property, reduce);
+
+    if (reduce) {
+        return new const Computation({new_program});
+    }
+
+    return new_program;
 }
 
 }  // namespace gern
