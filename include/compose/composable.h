@@ -150,15 +150,10 @@ struct TileDummy {
         static_assert((std::is_same_v<Second, Composable>),
                       "All arguments must be of type Composable");
         std::vector<Composable> to_compose{first, second, c...};
-        // return Composable(new const TiledComputation(member, v,
-        //                                              Composable(new const Computation(to_compose))));
+
         Composable new_program = new const TiledComputation(member, v,
                                                             Composable(new const Computation(to_compose)),
                                                             property, reduce);
-
-        if (reduce) {
-            return new const Computation({new_program});
-        }
 
         return new_program;
     }

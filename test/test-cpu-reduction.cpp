@@ -103,7 +103,6 @@ TEST(LoweringCPU, ReductionInnerTile) {
         {v.getName(), &v_tile},
     }));
 
-    std::cout << b << std::endl;
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == ((size * (size - 1) / 2)));
@@ -212,7 +211,6 @@ TEST(LoweringCPU, MixReductionStrategy) {
         {v1.getName(), &v1_tile},
     }));
 
-    std::cout << b << std::endl;
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == ((size * (size - 1) / 2) + size));

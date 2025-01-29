@@ -57,10 +57,23 @@ private:
     // Methods to lower different types of
     // composable objects.
     void visit(const Computation *);
+    void lower(const Computation *);
+
     void visit(const TiledComputation *);
+    void lower(const TiledComputation *);
+
     void visit(const ComputeFunctionCall *);
 
-    void common(const ComposableNode *);
+    /**
+     * @brief common pulls out functionality used to define output.
+     *        common internally calls lower, so the lower function
+     *        must be implemented to work with the rest of the lowerer.
+     *
+     * @tparam T
+     */
+    template<typename T>
+    void common(const T *);
+
     LowerIR define_loop_var(Assign start, ADTMember end, Variable step) const;
     LowerIR generate_definitions(Assign definition) const;
     LowerIR declare_computes(Pattern annotation) const;

@@ -229,14 +229,7 @@ Composable TileDummy::operator()(Composable c) {
     if (isa<ComputeFunctionCall>(c.ptr)) {
         nested = new const Computation({c});
     }
-    Composable new_program = new const TiledComputation(member, v, nested, property, reduce);
-
-    if (reduce) {
-        std::cout << "reducing " << std::endl;
-        return new const Computation({new_program});
-    }
-
-    return new_program;
+    return new const TiledComputation(member, v, nested, property, reduce);
 }
 
 }  // namespace gern
