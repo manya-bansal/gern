@@ -226,12 +226,13 @@ TileDummy TileDummy::operator||(Grid::Property p) {
 
 Composable TileDummy::operator()(Composable c) {
     Composable nested = c;
-    if (isa<ComputeFunctionCall>(c.ptr) && !reduce) {
+    if (isa<ComputeFunctionCall>(c.ptr)) {
         nested = new const Computation({c});
     }
     Composable new_program = new const TiledComputation(member, v, nested, property, reduce);
 
     if (reduce) {
+        std::cout << "reducing " << std::endl;
         return new const Computation({new_program});
     }
 

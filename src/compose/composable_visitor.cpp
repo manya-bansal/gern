@@ -67,8 +67,8 @@ void LegalToCompose::visit(const TiledComputation *node) {
     for (const auto &input : inputs) {
         if (all_writes.contains(input) &&
             input != output &&
-            !in_scope.contains(output)) {
-            throw error::UserError("Trying to write to intermediate " +
+            !in_scope.contains(input)) {
+            throw error::UserError("Nested pipeline is writing to our intermediate " +
                                    input.getName() +
                                    " from nested pipeline");
         }

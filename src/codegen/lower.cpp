@@ -104,6 +104,8 @@ void ComposableLower::visit(const Computation *node) {
 
     // Step 0: Declare all the variable relationships.
     lowered.push_back(declare_computes(node->getAnnotation()));
+    lowered.push_back(declare_consumes(node->getAnnotation()));
+
     for (const auto &decl : node->declarations) {
         lowered.push_back(generate_definitions(decl));
     }
@@ -218,17 +220,17 @@ void ComposableLower::visit(const TiledComputation *node) {
         current_value = current_value + tiled_vars.at(captured);
     }
 
-    if (!node->reduce) {  // If it is a reduce, everything outside should be visible.
-        current_ds.scope();
+    AbstractDataTypePtr output = node->getAnnotation().getOutput().getDS();
+    current_ds.scope();
+    if (node->reduce) {
+        current_ds.insert(output, getCurrent(output));
     }
     parents.scope();
     tiled_vars.scope();
     parents.insert(node->step, node->v);
     tiled_vars.insert(captured, current_value);
     this->visit(node->tiled);  // Visit the actual object.
-    if (!node->reduce) {
-        current_ds.unscope();
-    }
+    current_ds.unscope();
     parents.unscope();
     tiled_vars.unscope();
 
@@ -317,7 +319,7 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
 
     std::vector<LowerIR> lowered;
     // Declare any reductions if present.
-    lowered.push_back(declare_consumes(node->getAnnotation()));
+
     std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
     Pattern annotation = node->getAnnotation();
     std::vector<SubsetObj> inputs = annotation.getInputs();
