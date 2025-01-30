@@ -54,8 +54,8 @@ __device__ void insert(T1 a,
 }
 
 template<int num_row, int num_col>
-__device__ reg_array_internal<num_row, num_col> allocate_local() {
-    return reg_array_internal<num_row, num_col>();
+__device__ StaticMatrix<num_row, num_col> allocate_local() {
+    return StaticMatrix<num_row, num_col>();
 }
 
 #include "impl.h"
@@ -73,7 +73,7 @@ __global__ void softmax_kernel_mine(T a,
 
     // if (y < h)
     // {
-    reg_array_internal<num_rows_in, num_cols_in> reg_array_big;
+    StaticMatrix<num_rows_in, num_cols_in> reg_array_big;
     query<tile_col>(a, x, y, reg_array_big);
     holder<num_rows_in> hold;
     max_shuffle<tile_col>(hold, reg_array_big);
@@ -98,7 +98,7 @@ __global__ void softmax_kernel_gern_like(T a,
 
     // if (y < h)
     // {
-    // reg_array_internal<num_rows_in, num_cols_in> reg_array_big;
+    // StaticMatrix<num_rows_in, num_cols_in> reg_array_big;
     // query<tile_col>(a, x, y, reg_array_big);
 
     auto reg_array_big = a.template query_obj<num_rows_in, num_cols_in, tile_col>(x, y);
@@ -106,16 +106,16 @@ __global__ void softmax_kernel_gern_like(T a,
     max_shuffle<tile_col>(hold, reg_array_big);
 
     auto reg_query_2 = a.template query_obj<num_rows_in, num_cols_in, tile_col>(x, y);
-    reg_array_internal<num_rows_in, num_cols_in> reg_array_subs;
+    StaticMatrix<num_rows_in, num_cols_in> reg_array_subs;
     subtract_vec(hold, reg_query_2, reg_array_subs);
 
-    reg_array_internal<num_rows_in, num_cols_in> reg_array_exp;
+    StaticMatrix<num_rows_in, num_cols_in> reg_array_exp;
     exp_matrix(reg_array_subs, reg_array_exp);
 
     holder<num_rows_in> hold_2;
     sum_row<tile_col>(hold_2, reg_array_exp);
 
-    reg_array_internal<num_rows_in, num_cols_in> reg_array_final;
+    StaticMatrix<num_rows_in, num_cols_in> reg_array_final;
     divide_vec(hold_2, reg_array_exp, reg_array_final);
     insert<tile_col>(b, x, y, reg_array_final);
     // }
@@ -138,7 +138,7 @@ int main() {
     constexpr int64_t h = WIDTH;
     constexpr int64_t w = WIDTH;
 
-    using MatrixType = gern::impl::MatrixGPUConst<h, w, h>;
+    using MatrixType = gern::impl::MatrixGPU<h, w, h>;
     std::cout << WIDTH << std::endl;
 
     MatrixType in;
