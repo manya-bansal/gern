@@ -82,7 +82,7 @@ public:
     std::set<Variable> template_args;
 
     std::map<AbstractDataTypePtr, std::set<Composable>> consumer_functions;
-    Pattern _annotation;
+    Annotation _annotation;
 };
 
 class TiledComputation : public ComposableNode {
@@ -118,6 +118,8 @@ struct TileDummy {
         : member(member), v(v), reduce(reduce) {
     }
 
+    Composable operator()(Composable c);
+
     template<typename First, typename Second, typename... ToCompose>
     Composable operator()(First first, Second second, ToCompose... c) {
         // Static assertion to ensure all arguments are of type Compose
@@ -128,16 +130,10 @@ struct TileDummy {
         static_assert((std::is_same_v<Second, Composable>),
                       "All arguments must be of type Composable");
         std::vector<Composable> to_compose{first, second, c...};
-
-        Composable new_program = new const TiledComputation(member, v,
-                                                            Composable(new const Computation(to_compose)),
-                                                            property, reduce);
-
-        return new_program;
+        return operator()(Composable(new const Computation(to_compose)));
     }
 
     TileDummy operator||(Grid::Property p);
-    Composable operator()(Composable c);
 
     ADTMember member;
     Variable v;

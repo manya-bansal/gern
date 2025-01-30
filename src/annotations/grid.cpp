@@ -41,10 +41,37 @@ std::ostream &operator<<(std::ostream &os, const Grid::Property &p) {
         return os;
     }
 }
+
+std::ostream &operator<<(std::ostream &os, const Grid::Unit &unit) {
+    switch (unit) {
+    case Grid::Unit::GRID:
+        os << "GRID";
+        return os;
+    case Grid::Unit::BLOCK_CLUSTER:
+        os << "BLOCK_CLUSTER";
+        return os;
+    case Grid::Unit::BLOCK:
+        os << "BLOCK";
+        return os;
+    case Grid::Unit::WARPS:
+        os << "WARPS";
+        return os;
+    case Grid::Unit::THREADS:
+        os << "THREADS";
+        return os;
+    default:
+        os << "UNDEFINED";
+        return os;
+    }
+}
 // GCOVR_EXCL_STOP
 
 bool isGridPropertySet(const Grid::Property &p) {
     return p != Grid::Property::UNDEFINED;
+}
+
+bool isLegalUnit(const Grid::Unit &u) {
+    return u != Grid::Unit::NULL_UNIT;
 }
 
 bool isPropertyStable(const Grid::Property &p) {

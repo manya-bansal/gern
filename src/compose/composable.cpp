@@ -97,8 +97,12 @@ void Computation::init_annotation() {
     }
 
     // Now add the consumes for the pure inputs.
+    Grid::Unit unit{Grid::Unit::NULL_UNIT};
     for (const auto &c : composed) {
-        std::vector<SubsetObj> inputs = c.getAnnotation().getPattern().getInputs();
+        Annotation annotation = c.getAnnotation();
+        Grid::Unit c_unit = annotation.getOccupiedUnit();
+        unit = (unit > c_unit) ? unit : c_unit;
+        std::vector<SubsetObj> inputs = annotation.getPattern().getInputs();
         for (const auto &input : inputs) {
             // The the input is not an intermediate, add.
             if (!intermediates.contains(input.getDS())) {
@@ -108,7 +112,8 @@ void Computation::init_annotation() {
     }
 
     Consumes consumes = mimicConsumes(last_pattern, input_subsets);
-    _annotation = mimicComputes(last_pattern, Computes(produces, consumes));
+    Pattern p = mimicComputes(last_pattern, Computes(produces, consumes));
+    _annotation = Annotation(p, unit);
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {
@@ -194,7 +199,7 @@ std::set<Variable> Composable::getTemplateArgs() const {
 
 Annotation Composable::getAnnotation() const {
     if (!defined()) {
-        return Pattern{};
+        return Annotation{};
     }
     return ptr->getAnnotation();
 }
@@ -230,6 +235,17 @@ Composable TileDummy::operator()(Composable c) {
     if (isa<ComputeFunctionCall>(c.ptr)) {
         nested = new const Computation({c});
     }
+
+    if (isGridPropertySet(property)) {
+        // If property is set, then make sure that the compose has a reasonable
+        // grid property.
+        Grid::Unit unit = c.getAnnotation().getOccupiedUnit();
+        std::cout << unit << std::endl;
+        if (!isLegalUnit(unit)) {
+            throw error::UserError("The function does not have a legal unit for the current GPU");
+        }
+    }
+
     return new const TiledComputation(member, v, nested, property, reduce);
 }
 

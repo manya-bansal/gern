@@ -177,6 +177,7 @@ void Printer::visit(const PatternNode *op) {
 
 void Printer::visit(const AnnotationNode *op) {
     this->visit(op->p);
+    os << " @ " << op->unit;
 }
 
 #define DEFINE_BINARY_VISITOR_METHOD(CLASS_NAME)     \
@@ -379,7 +380,7 @@ void Rewriter::visit(const ComputesNode *op) {
 
 void Rewriter::visit(const AnnotationNode *op) {
     Pattern rw_pattern = to<Pattern>(this->rewrite(op->p));
-    stmt = Annotation(rw_pattern);
+    stmt = Annotation(rw_pattern, op->unit);
 }
 
 #define DEFINE_BINARY_REWRITER_METHOD(CLASS_NAME, PARENT, VAR) \

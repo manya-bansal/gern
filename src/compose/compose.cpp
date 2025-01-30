@@ -93,9 +93,11 @@ ComputeFunctionCallPtr ComputeFunctionCall::refreshVariable() const {
         // Otherwise, generate a new name.
         fresh_names[v] = getUniqueName("_gern_" + v.getName());
     }
-    Pattern rw_annotation = to<Pattern>(annotation
+    Pattern rw_annotation = to<Pattern>(annotation.getPattern()
                                             .replaceVariables(fresh_names));
-    return new const ComputeFunctionCall(getCall(), rw_annotation, header);
+    return new const ComputeFunctionCall(getCall(),
+                                         Annotation(rw_annotation, annotation.getOccupiedUnit()),
+                                         header);
 }
 
 void ComputeFunctionCall::accept(ComposableVisitorStrict *v) const {

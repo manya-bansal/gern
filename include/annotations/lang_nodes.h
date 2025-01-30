@@ -191,13 +191,14 @@ struct ComputesNode : public PatternNode {
 };
 
 struct AnnotationNode : public StmtNode {
-    AnnotationNode(Pattern p)
-        : p(p) {
+    AnnotationNode(Pattern p, Grid::Unit unit)
+        : p(p), unit(unit) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
     Pattern p;
+    Grid::Unit unit;
 };
 
 template<typename E>
