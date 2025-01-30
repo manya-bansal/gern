@@ -525,6 +525,14 @@ SubsetObj Pattern::getOutput() const {
     return subset;
 }
 
+Annotation::Annotation(const AnnotationNode *n)
+    : Stmt(n) {
+}
+
+Annotation::Annotation(Pattern p)
+    : Annotation(new const AnnotationNode(p)) {
+}
+
 Pattern For(Assign start, ADTMember end, Variable step, Pattern body,
             bool parallel) {
     return Pattern(

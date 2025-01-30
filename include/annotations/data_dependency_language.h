@@ -26,6 +26,7 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
+struct AnnotationNode;
 struct AssignNode;
 struct FunctionSignature;
 
@@ -455,6 +456,13 @@ public:
     Computes(Produces p, Consumes c, Allocates a = Allocates());
     Computes where(Constraint);
     typedef ComputesNode Node;
+};
+
+class Annotation : public Stmt {
+public:
+    Annotation(const AnnotationNode *);
+    Annotation(Pattern);
+    typedef AnnotationNode Node;
 };
 
 // This ensures that a computes node will only ever contain a for loop

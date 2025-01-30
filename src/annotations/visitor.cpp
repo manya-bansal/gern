@@ -175,6 +175,10 @@ void Printer::visit(const PatternNode *op) {
     (void)op;
 }
 
+void Printer::visit(const AnnotationNode *op) {
+    this->visit(op->p);
+}
+
 #define DEFINE_BINARY_VISITOR_METHOD(CLASS_NAME)     \
     void AnnotVisitor::visit(const CLASS_NAME *op) { \
         this->visit(op->a);                          \
@@ -229,6 +233,10 @@ void AnnotVisitor::visit(const ConsumesNode *op) {
 
 void AnnotVisitor::visit(const PatternNode *op) {
     (void)op;
+}
+
+void AnnotVisitor::visit(const AnnotationNode *op) {
+    this->visit(op->p);
 }
 
 void AnnotVisitor::visit(const AllocatesNode *op) {
@@ -367,6 +375,11 @@ void Rewriter::visit(const ComputesNode *op) {
     } else {
         stmt = Computes(rw_produces, rw_consumes);
     }
+}
+
+void Rewriter::visit(const AnnotationNode *op) {
+    Pattern rw_pattern = to<Pattern>(this->rewrite(op->p));
+    stmt = Annotation(rw_pattern);
 }
 
 #define DEFINE_BINARY_REWRITER_METHOD(CLASS_NAME, PARENT, VAR) \

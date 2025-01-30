@@ -190,6 +190,16 @@ struct ComputesNode : public PatternNode {
     Allocates a;
 };
 
+struct AnnotationNode : public StmtNode {
+    AnnotationNode(Pattern p)
+        : p(p) {
+    }
+    void accept(StmtVisitorStrict *v) const override {
+        v->visit(this);
+    }
+    Pattern p;
+};
+
 template<typename E>
 inline bool isa(const ExprNode *e) {
     return e != nullptr && dynamic_cast<const E *>(e) != nullptr;

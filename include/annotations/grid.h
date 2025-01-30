@@ -22,7 +22,16 @@ enum Property {
     UNDEFINED,  // For variables that are not bound to the grid.
 };
 
-}
+enum Unit {
+    GRID,
+    BLOCK_CLUSTER,
+    BLOCK,
+    WARPS,
+    THREADS,
+    NULL_UNIT,
+};
+
+}  // namespace Grid
 
 std::ostream &operator<<(std::ostream &, const Grid::Property &);
 
