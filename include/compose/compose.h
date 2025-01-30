@@ -47,7 +47,7 @@ class ComputeFunctionCall : public ComposableNode {
 public:
     ComputeFunctionCall() = delete;
     ComputeFunctionCall(FunctionCall call,
-                        Pattern annotation,
+                        Annotation annotation,
                         std::vector<std::string> header)
         : call(call), annotation(annotation), header(header) {
     }
@@ -56,7 +56,7 @@ public:
         return call;
     }
 
-    Pattern getAnnotation() const override {
+    Annotation getAnnotation() const override {
         return annotation;
     }
 
@@ -78,7 +78,7 @@ public:
 
 private:
     FunctionCall call;
-    Pattern annotation;
+    Annotation annotation;
     std::vector<std::string> header;
 };
 

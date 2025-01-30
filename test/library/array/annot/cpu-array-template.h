@@ -84,7 +84,7 @@ public:
           output(new const ArrayCPUTemplate<10>("output")) {
     }
 
-    Pattern getAnnotation() override {
+    Annotation getAnnotation() override {
         Variable x("x");
 
         return For(x = Expr(0), output["size"], step,

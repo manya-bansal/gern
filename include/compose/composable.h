@@ -22,7 +22,7 @@ public:
     virtual void accept(ComposableVisitorStrict *) const = 0;
     virtual std::set<Variable> getVariableArgs() const = 0;
     virtual std::set<Variable> getTemplateArgs() const = 0;
-    virtual Pattern getAnnotation() const = 0;
+    virtual Annotation getAnnotation() const = 0;
 };
 
 /**
@@ -38,7 +38,7 @@ public:
     Composable(std::vector<Composable> composed);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
-    Pattern getAnnotation() const;
+    Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *v) const;
     bool isDeviceLaunch() const {
         return call_at_device;
@@ -64,7 +64,7 @@ public:
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
 
-    Pattern getAnnotation() const;
+    Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *) const;
 
     void check_legal();
@@ -94,7 +94,7 @@ public:
                      bool reduce);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
-    Pattern getAnnotation() const;
+    Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *) const;
 
     void init_binding();
@@ -110,28 +110,6 @@ public:
     Grid::Property property{Grid::Property::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
     bool reduce = false;
 };
-
-// class TileComputationWrapper : public Composable {
-//     TileComputationWrapper() = default;
-//     TileComputationWrapper(const TiledComputation *);
-//     std::set<Variable> getVariableArgs() const;
-//     std::set<Variable> getTemplateArgs() const;
-//     Pattern getAnnotation() const;
-// };
-
-// class ReductionLoop : public ComposableNode {
-// public:
-//     ReductionLoop(Composable computation)
-//         : computation(computation) {
-//     }
-
-//     std::set<Variable> getVariableArgs() const;
-//     std::set<Variable> getTemplateArgs() const;
-//     Pattern getAnnotation() const;
-//     void accept(ComposableVisitorStrict *) const;
-
-//     TiledComputation computation;
-// }
 
 // This class only exists for the overload.
 struct TileDummy {

@@ -462,6 +462,7 @@ class Annotation : public Stmt {
 public:
     Annotation(const AnnotationNode *);
     Annotation(Pattern);
+    Pattern getPattern() const;
     typedef AnnotationNode Node;
 };
 

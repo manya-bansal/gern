@@ -38,7 +38,7 @@ void ComposablePrinter::visit(const ComputeFunctionCall *op) {
 
 void LegalToCompose::isLegal(Composable c) {
     c.accept(this);
-    auto output = c.getAnnotation().getOutput().getDS();
+    auto output = c.getAnnotation().getPattern().getOutput().getDS();
 
     for (const auto &write : all_writes) {
         if (!all_reads.contains(write) && write != output) {
@@ -53,7 +53,7 @@ void LegalToCompose::visit(const Computation *node) {
     auto composed = node->composed;
     for (auto const &c : composed) {
         c.accept(this);
-        in_scope.insert(c.getAnnotation().getOutput().getDS());
+        in_scope.insert(c.getAnnotation().getPattern().getOutput().getDS());
     }
 }
 
@@ -61,8 +61,9 @@ void LegalToCompose::visit(const TiledComputation *node) {
     in_scope.scope();
     node->tiled.accept(this);
 
-    auto inputs = getADTSet(node->getAnnotation().getInputs());
-    auto output = node->getAnnotation().getOutput().getDS();
+    Pattern pattern = node->getAnnotation().getPattern();
+    auto inputs = getADTSet(pattern.getInputs());
+    auto output = pattern.getOutput().getDS();
 
     for (const auto &input : inputs) {
         if (all_writes.contains(input) &&
@@ -78,8 +79,9 @@ void LegalToCompose::visit(const TiledComputation *node) {
 }
 
 void LegalToCompose::visit(const ComputeFunctionCall *node) {
-    auto inputs = getADTSet(node->getAnnotation().getInputs());
-    auto output = node->getAnnotation().getOutput().getDS();
+    Pattern pattern = node->getAnnotation().getPattern();
+    auto inputs = getADTSet(pattern.getInputs());
+    auto output = pattern.getOutput().getDS();
     common(inputs, output);
 }
 

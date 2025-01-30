@@ -533,6 +533,10 @@ Annotation::Annotation(Pattern p)
     : Annotation(new const AnnotationNode(p)) {
 }
 
+Pattern Annotation::getPattern() const {
+    return getNode(*this)->p;
+}
+
 Pattern For(Assign start, ADTMember end, Variable step, Pattern body,
             bool parallel) {
     return Pattern(

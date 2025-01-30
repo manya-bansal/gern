@@ -11,7 +11,7 @@ Computation::Computation(std::vector<Composable> composed)
     if (!composed.empty()) {
         // Set up consumer functions.
         for (const auto &c : composed) {
-            std::vector<SubsetObj> inputs = c.getAnnotation().getInputs();
+            std::vector<SubsetObj> inputs = c.getAnnotation().getPattern().getInputs();
             for (const auto &input : inputs) {
                 consumer_functions[input.getDS()].insert(c);
             }
@@ -30,7 +30,7 @@ std::set<Variable> Computation::getTemplateArgs() const {
     return template_args;
 }
 
-Pattern Computation::getAnnotation() const {
+Annotation Computation::getAnnotation() const {
     return _annotation;
 }
 
@@ -64,7 +64,7 @@ void Computation::infer_relationships(AbstractDataTypePtr output,
         }
         // Loop through all the consumers, and set up the definitions.
         for (const auto &consumer : consumers) {
-            std::vector<Expr> consumer_fields = consumer.getAnnotation().getRequirement(output);
+            std::vector<Expr> consumer_fields = consumer.getAnnotation().getPattern().getRequirement(output);
             for (size_t i = 0; i < consumer_fields.size(); i++) {
                 declarations.push_back(output_fields[i] = consumer_fields[i]);
             }
@@ -80,25 +80,25 @@ void Computation::init_annotation() {
     auto it = composed.rbegin();
     auto end = composed.rend();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
-    Pattern last_annotation = it->getAnnotation();
-    Produces produces = Produces::Subset(last_annotation.getOutput().getDS(),
-                                         last_annotation.getProducesField());
+    Pattern last_pattern = it->getAnnotation().getPattern();
+    Produces produces = Produces::Subset(last_pattern.getOutput().getDS(),
+                                         last_pattern.getProducesField());
     // Now that we have generated a produces, it's time to generate all the
     // allocations in reverse order, and note the subset relationships.
     std::vector<SubsetObj> input_subsets;
     std::set<AbstractDataTypePtr> intermediates;
     for (; it < end; ++it) {
         Composable c = *it;
-        Pattern c_annotation = c.getAnnotation();
-        AbstractDataTypePtr intermediate = c_annotation.getOutput().getDS();
+        Pattern c_pattern = c.getAnnotation().getPattern();
+        AbstractDataTypePtr intermediate = c_pattern.getOutput().getDS();
         // Declare all the relationships btw inputs and outputs.
-        infer_relationships(intermediate, c_annotation.getProducesField());
+        infer_relationships(intermediate, c_pattern.getProducesField());
         intermediates.insert(intermediate);
     }
 
     // Now add the consumes for the pure inputs.
     for (const auto &c : composed) {
-        std::vector<SubsetObj> inputs = c.getAnnotation().getInputs();
+        std::vector<SubsetObj> inputs = c.getAnnotation().getPattern().getInputs();
         for (const auto &input : inputs) {
             // The the input is not an intermediate, add.
             if (!intermediates.contains(input.getDS())) {
@@ -107,8 +107,8 @@ void Computation::init_annotation() {
         }
     }
 
-    Consumes consumes = mimicConsumes(last_annotation, input_subsets);
-    _annotation = mimicComputes(last_annotation, Computes(produces, consumes));
+    Consumes consumes = mimicConsumes(last_pattern, input_subsets);
+    _annotation = mimicComputes(last_pattern, Computes(produces, consumes));
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {
@@ -136,13 +136,14 @@ std::set<Variable> TiledComputation::getTemplateArgs() const {
     return tiled.getTemplateArgs();
 }
 
-Pattern TiledComputation::getAnnotation() const {
+Annotation TiledComputation::getAnnotation() const {
     return tiled.getAnnotation();
 }
 
 void TiledComputation::init_binding() {
-    Pattern annotation = getAnnotation();
-    SubsetObj output_subset = annotation.getOutput();
+    Annotation annotation = getAnnotation();
+    Pattern pattern = annotation.getPattern();
+    SubsetObj output_subset = pattern.getOutput();
     AbstractDataTypePtr adt = output_subset.getDS();
 
     std::string field_to_find = adt_member.getMember();
@@ -151,9 +152,9 @@ void TiledComputation::init_binding() {
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> loops;
 
     if (reduce) {
-        loops = annotation.getReducableFields();
+        loops = pattern.getReducableFields();
     } else {
-        loops = annotation.getTileableFields();
+        loops = pattern.getTileableFields();
     }
 
     if (!loops.contains(adt_member)) {
@@ -191,7 +192,7 @@ std::set<Variable> Composable::getTemplateArgs() const {
     return ptr->getTemplateArgs();
 }
 
-Pattern Composable::getAnnotation() const {
+Annotation Composable::getAnnotation() const {
     if (!defined()) {
         return Pattern{};
     }

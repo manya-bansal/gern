@@ -76,7 +76,7 @@ public:
           output(new const ArrayGPU("output")) {
     }
 
-    Pattern getAnnotation() override {
+    Annotation getAnnotation() override {
         Variable x("x");
         Variable r("r");
         Variable step("step");

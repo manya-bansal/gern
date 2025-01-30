@@ -65,7 +65,7 @@ public:
           output(new const ArrayCPU("output")) {
     }
 
-    Pattern getAnnotation() override {
+    Annotation getAnnotation() override {
         Variable x("x");
 
         return For(x = Expr(0), output["size"], step,
@@ -137,7 +137,7 @@ public:
           output(new const annot::ArrayCPU("output")) {
     }
 
-    Pattern getAnnotation() override {
+    Annotation getAnnotation() override {
         Variable x("x");
         Variable r("r");
         Variable step("step");

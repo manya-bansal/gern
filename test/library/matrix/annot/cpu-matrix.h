@@ -72,7 +72,7 @@ public:
         return "gern::impl::add";
     }
 
-    Pattern getAnnotation() override {
+    Annotation getAnnotation() override {
 
         Variable x("x");
         Variable y("y");
@@ -114,7 +114,7 @@ public:
           output(new const ArrayCPU("output")) {
     }
 
-    Pattern getAnnotation() override {
+    Annotation getAnnotation() override {
 
         Variable x("x");
         Variable y("y");
@@ -184,7 +184,7 @@ public:
           vec(new const ArrayCPU("vec")) {
     }
 
-    Pattern getAnnotation() override {
+    Annotation getAnnotation() override {
 
         Variable x("x");
         Variable y("y");

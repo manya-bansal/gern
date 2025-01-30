@@ -104,8 +104,8 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
 
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {
 
-    std::set<Variable> defined_vars = getAnnotation().getDefinedVariables();
-    std::set<Variable> interval_vars = getAnnotation().getIntervalVariables();
+    std::set<Variable> defined_vars = getAnnotation().getPattern().getDefinedVariables();
+    std::set<Variable> interval_vars = getAnnotation().getPattern().getIntervalVariables();
 
     std::set<std::string> names_defined_vars;
     std::set<std::string> names_interval_vars;
