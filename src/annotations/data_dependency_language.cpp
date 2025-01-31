@@ -475,6 +475,10 @@ Pattern::Pattern(const PatternNode *p)
     : Stmt(p) {
 }
 
+Annotation Pattern::occupies(Grid::Unit unit) const {
+    return Annotation(*this, unit);
+}
+
 Pattern Pattern::refreshVariables() const {
     std::set<Variable> old_vars = getVariables(*this);
     // Generate fresh names for all old variables, except the
@@ -523,6 +527,34 @@ SubsetObj Pattern::getOutput() const {
                          subset = op->output;
                      }));
     return subset;
+}
+
+Annotation::Annotation(const AnnotationNode *n)
+    : Stmt(n) {
+}
+
+Annotation::Annotation(Pattern p, Grid::Unit unit)
+    : Annotation(new const AnnotationNode(p, unit)) {
+}
+
+// Annotation::Annotation(Pattern p)
+//     : Annotation(p, Grid::Unit::NULL_UNIT) {
+// }
+
+Annotation annotate(Pattern p) {
+    return Annotation(p, Grid::Unit::NULL_UNIT);
+}
+
+Annotation resetUnit(Annotation annot, Grid::Unit unit) {
+    return Annotation(annot.getPattern(), unit);
+}
+
+Pattern Annotation::getPattern() const {
+    return getNode(*this)->p;
+}
+
+Grid::Unit Annotation::getOccupiedUnit() const {
+    return getNode(*this)->unit;
 }
 
 Pattern For(Assign start, ADTMember end, Variable step, Pattern body,

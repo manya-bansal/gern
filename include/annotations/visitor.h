@@ -33,6 +33,7 @@ struct AllocatesNode;
 struct ComputesForNode;
 struct ComputesNode;
 struct PatternNode;
+struct AnnotationNode;
 
 class ConstraintNode;
 
@@ -81,6 +82,7 @@ public:
     virtual void visit(const ComputesForNode *) = 0;
     virtual void visit(const ComputesNode *) = 0;
     virtual void visit(const PatternNode *) = 0;
+    virtual void visit(const AnnotationNode *) = 0;
 };
 
 class AnnotVisitorStrict : public ExprVisitorStrict,
@@ -132,6 +134,7 @@ public:
     void visit(const ConsumesForNode *);
     void visit(const ComputesNode *);
     void visit(const PatternNode *);
+    void visit(const AnnotationNode *);
 
 private:
     std::ostream &os;
@@ -172,6 +175,7 @@ public:
     void visit(const ConsumesForNode *);
     void visit(const ComputesNode *);
     void visit(const PatternNode *);
+    void visit(const AnnotationNode *);
 };
 
 #define RULE(Rule)                                                      \
@@ -327,6 +331,7 @@ protected:
     void visit(const ConsumesForNode *);
     void visit(const ComputesNode *);
     void visit(const PatternNode *);
+    void visit(const AnnotationNode *);
 };
 
 template<typename T>

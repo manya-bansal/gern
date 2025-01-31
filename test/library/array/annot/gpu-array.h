@@ -62,6 +62,15 @@ public:
         : add_1() {
     }
 
+    Annotation getAnnotation() override {
+        Variable x("x");
+
+        return (For(x = Expr(0), output["size"], step,
+                    Produces::Subset(output, {x, step}),
+                    Consumes::Subset(input, {x, step}))
+                    .occupies(Grid::Unit::SCALAR));
+    }
+
     std::vector<std::string> getHeader() {
         return {
             "gpu-array.h",
@@ -76,18 +85,18 @@ public:
           output(new const ArrayGPU("output")) {
     }
 
-    Pattern getAnnotation() override {
+    Annotation getAnnotation() override {
         Variable x("x");
         Variable r("r");
         Variable step("step");
         Variable end("end");
         Variable extra("extra");
 
-        return For(x = Expr(0), output["size"], step,
-                   Produces::Subset(output, {x, step}),
-                   Consumes::Subsets(
-                       Reduce(r = Expr(0), output["size"], end,
-                              {input, {r, 1}})));
+        return annotate(For(x = Expr(0), output["size"], step,
+                            Produces::Subset(output, {x, step}),
+                            Consumes::Subsets(
+                                Reduce(r = Expr(0), output["size"], end,
+                                       {input, {r, 1}}))));
     }
 
     std::vector<std::string> getHeader() override {

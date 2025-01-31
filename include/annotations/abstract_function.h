@@ -25,7 +25,7 @@ public:
     // Not marking these functions as constant
     // because users can meta-program these class
     // using cpp if they would like.
-    virtual Pattern getAnnotation() = 0;
+    virtual Annotation getAnnotation() = 0;
     virtual std::vector<std::string> getHeader() = 0;
     virtual FunctionSignature getFunction() = 0;
 

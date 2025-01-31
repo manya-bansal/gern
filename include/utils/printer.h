@@ -22,5 +22,12 @@ static void iterable_printer(std::ostream &os, std::vector<T> v, int ident, std:
     }
 }
 
+template<typename T>
+std::string str(T t) {
+    std::ostringstream oss;
+    oss << t;
+    return oss.str();
+}
+
 }  // namespace util
 }  // namespace gern

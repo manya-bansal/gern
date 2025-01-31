@@ -63,7 +63,7 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
         fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()), true);
     }
 
-    auto annotation = getAnnotation();
+    Annotation annotation = getAnnotation();
     auto old_vars = getVariables(annotation);
     // Convert all variables to fresh names for each
     // individual callsite.
@@ -89,7 +89,7 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
         template_args.push_back(fresh_names.at(v));
     }
 
-    Pattern rw_annotation = to<Pattern>(annotation
+    Pattern rw_annotation = to<Pattern>(annotation.getPattern()
                                             .replaceDSArgs(abstract_to_concrete_adt)
                                             .replaceVariables(fresh_names));
     FunctionCall call{
@@ -99,13 +99,15 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
         .output = f.output,
     };
 
-    return Composable(new const ComputeFunctionCall(call, rw_annotation, getHeader()));
+    return Composable(new const ComputeFunctionCall(call,
+                                                    rw_annotation.occupies(annotation.getOccupiedUnit()),
+                                                    getHeader()));
 }
 
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {
 
-    std::set<Variable> defined_vars = getAnnotation().getDefinedVariables();
-    std::set<Variable> interval_vars = getAnnotation().getIntervalVariables();
+    std::set<Variable> defined_vars = getAnnotation().getPattern().getDefinedVariables();
+    std::set<Variable> interval_vars = getAnnotation().getPattern().getIntervalVariables();
 
     std::set<std::string> names_defined_vars;
     std::set<std::string> names_interval_vars;

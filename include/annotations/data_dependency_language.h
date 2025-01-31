@@ -26,8 +26,12 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
+struct PatternNode;
+struct AnnotationNode;
 struct AssignNode;
 struct FunctionSignature;
+
+class Annotation;
 
 class Expr : public util::IntrusivePtr<const ExprNode> {
 public:
@@ -433,13 +437,13 @@ public:
     typedef AllocatesNode Node;
 };
 
-struct PatternNode;
 class Pattern : public Stmt {
 public:
     Pattern()
         : Stmt() {
     }
     explicit Pattern(const PatternNode *);
+    Annotation occupies(Grid::Unit) const;
     Pattern where(Constraint);
     Pattern refreshVariables() const;
     std::vector<SubsetObj> getInputs() const;
@@ -457,6 +461,18 @@ public:
     typedef ComputesNode Node;
 };
 
+class Annotation : public Stmt {
+public:
+    Annotation() = default;
+    Annotation(const AnnotationNode *);
+    Annotation(Pattern, Grid::Unit);
+    Pattern getPattern() const;
+    Grid::Unit getOccupiedUnit() const;
+    typedef AnnotationNode Node;
+};
+
+Annotation annotate(Pattern);
+Annotation resetUnit(Annotation, Grid::Unit);
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.

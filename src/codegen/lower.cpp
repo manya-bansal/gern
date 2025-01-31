@@ -71,11 +71,11 @@ void BlockNode::accept(LowerIRVisitor *v) const {
 LowerIR ComposableLower::lower() {
     // Add the inputs and output to the current scope.
     // these will come directly from the user.
-    auto annotation = composable.getAnnotation();
-    AbstractDataTypePtr output = annotation.getOutput().getDS();
+    auto pattern = composable.getAnnotation().getPattern();
+    AbstractDataTypePtr output = pattern.getOutput().getDS();
     current_ds.insert(output, output);
 
-    auto inputs_subsets = annotation.getInputs();
+    auto inputs_subsets = pattern.getInputs();
 
     for (const auto &subset : inputs_subsets) {
         AbstractDataTypePtr input = subset.getDS();
@@ -109,7 +109,7 @@ void ComposableLower::lower(const TiledComputation *node) {
         current_value = current_value + tiled_vars.at(captured);
     }
 
-    AbstractDataTypePtr output = node->getAnnotation().getOutput().getDS();
+    AbstractDataTypePtr output = node->getAnnotation().getPattern().getOutput().getDS();
     current_ds.scope();
     if (node->reduce) {
         current_ds.insert(output, getCurrent(output));
@@ -135,7 +135,8 @@ void ComposableLower::lower(const TiledComputation *node) {
 template<typename T>
 void ComposableLower::common(const T *node) {
     std::vector<LowerIR> lowered;
-    SubsetObj output_subset = node->getAnnotation().getOutput();
+    Pattern pattern = node->getAnnotation().getPattern();
+    SubsetObj output_subset = pattern.getOutput();
     AbstractDataTypePtr output = output_subset.getDS();
     std::vector<Expr> fields = output_subset.getFields();
 
@@ -181,7 +182,7 @@ void ComposableLower::lower(const Computation *node) {
     std::vector<Composable> composed = node->composed;
     size_t size_funcs = composed.size();
     for (size_t i = 0; i < size_funcs - 1; i++) {
-        SubsetObj temp_subset = composed[i].getAnnotation().getOutput();
+        SubsetObj temp_subset = composed[i].getAnnotation().getPattern().getOutput();
         AbstractDataTypePtr temp = temp_subset.getDS();
         if (!current_ds.contains(temp)) {
             lowered.push_back(constructAllocNode(temp, temp_subset.getFields()));
@@ -207,8 +208,8 @@ void ComposableLower::lower(const Computation *node) {
 
 void ComposableLower::visit(const Computation *node) {
     std::vector<LowerIR> lowered;
-    lowered.push_back(declare_computes(node->getAnnotation()));
-    lowered.push_back(declare_consumes(node->getAnnotation()));
+    lowered.push_back(declare_computes(node->getAnnotation().getPattern()));
+    lowered.push_back(declare_consumes(node->getAnnotation().getPattern()));
     for (const auto &decl : node->declarations) {
         lowered.push_back(generate_definitions(decl));
     }
@@ -221,10 +222,11 @@ void ComposableLower::visit(const TiledComputation *node) {
 
     if (node->reduce) {  // Declares the output.
         std::vector<LowerIR> lowered;
-        SubsetObj output_subset = node->getAnnotation().getOutput();
+        Pattern pattern = node->getAnnotation().getPattern();
+        SubsetObj output_subset = pattern.getOutput();
         AbstractDataTypePtr output = output_subset.getDS();
         if (!current_ds.contains_in_current_scope(output)) {
-            lowered.push_back(declare_computes(node->getAnnotation()));  // Declare anything that's necessary for the queries.
+            lowered.push_back(declare_computes(pattern));  // Declare anything that's necessary for the queries.
         }
         common(node);
         lowered.push_back(lowerIR);
@@ -243,8 +245,8 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
     std::vector<LowerIR> lowered;
 
     std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
-    Pattern annotation = node->getAnnotation();
-    std::vector<SubsetObj> inputs = annotation.getInputs();
+    Pattern pattern = node->getAnnotation().getPattern();
+    std::vector<SubsetObj> inputs = pattern.getInputs();
     // Query the inputs if they are not an intermediate of the current pipeline.
     for (auto const &input : inputs) {
         // If the current DS is not in scope

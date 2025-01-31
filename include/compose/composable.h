@@ -22,7 +22,7 @@ public:
     virtual void accept(ComposableVisitorStrict *) const = 0;
     virtual std::set<Variable> getVariableArgs() const = 0;
     virtual std::set<Variable> getTemplateArgs() const = 0;
-    virtual Pattern getAnnotation() const = 0;
+    virtual Annotation getAnnotation() const = 0;
 };
 
 /**
@@ -38,7 +38,7 @@ public:
     Composable(std::vector<Composable> composed);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
-    Pattern getAnnotation() const;
+    Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *v) const;
     bool isDeviceLaunch() const {
         return call_at_device;
@@ -64,7 +64,7 @@ public:
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
 
-    Pattern getAnnotation() const;
+    Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *) const;
 
     void check_legal();
@@ -82,7 +82,7 @@ public:
     std::set<Variable> template_args;
 
     std::map<AbstractDataTypePtr, std::set<Composable>> consumer_functions;
-    Pattern _annotation;
+    Annotation _annotation;
 };
 
 class TiledComputation : public ComposableNode {
@@ -94,7 +94,7 @@ public:
                      bool reduce);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
-    Pattern getAnnotation() const;
+    Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *) const;
 
     void init_binding();
@@ -107,31 +107,10 @@ public:
     Expr start;
     ADTMember end;
     Variable step;
+    Annotation _annotation;
     Grid::Property property{Grid::Property::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
     bool reduce = false;
 };
-
-// class TileComputationWrapper : public Composable {
-//     TileComputationWrapper() = default;
-//     TileComputationWrapper(const TiledComputation *);
-//     std::set<Variable> getVariableArgs() const;
-//     std::set<Variable> getTemplateArgs() const;
-//     Pattern getAnnotation() const;
-// };
-
-// class ReductionLoop : public ComposableNode {
-// public:
-//     ReductionLoop(Composable computation)
-//         : computation(computation) {
-//     }
-
-//     std::set<Variable> getVariableArgs() const;
-//     std::set<Variable> getTemplateArgs() const;
-//     Pattern getAnnotation() const;
-//     void accept(ComposableVisitorStrict *) const;
-
-//     TiledComputation computation;
-// }
 
 // This class only exists for the overload.
 struct TileDummy {
@@ -139,6 +118,8 @@ struct TileDummy {
               bool reduce)
         : member(member), v(v), reduce(reduce) {
     }
+
+    Composable operator()(Composable c);
 
     template<typename First, typename Second, typename... ToCompose>
     Composable operator()(First first, Second second, ToCompose... c) {
@@ -150,16 +131,10 @@ struct TileDummy {
         static_assert((std::is_same_v<Second, Composable>),
                       "All arguments must be of type Composable");
         std::vector<Composable> to_compose{first, second, c...};
-
-        Composable new_program = new const TiledComputation(member, v,
-                                                            Composable(new const Computation(to_compose)),
-                                                            property, reduce);
-
-        return new_program;
+        return operator()(Composable(new const Computation(to_compose)));
     }
 
     TileDummy operator||(Grid::Property p);
-    Composable operator()(Composable c);
 
     ADTMember member;
     Variable v;
