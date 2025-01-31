@@ -2,6 +2,7 @@
 #include "annotations/visitor.h"
 #include "compose/composable_visitor.h"
 #include "compose/compose.h"
+#include "utils/printer.h"
 
 namespace gern {
 
@@ -97,7 +98,7 @@ void Computation::init_annotation() {
     }
 
     // Now add the consumes for the pure inputs.
-    Grid::Unit unit{Grid::Unit::NULL_UNIT};
+    Grid::Unit unit{Grid::Unit::THREADS};
     for (const auto &c : composed) {
         Annotation annotation = c.getAnnotation();
         Grid::Unit c_unit = annotation.getOccupiedUnit();
@@ -130,6 +131,12 @@ TiledComputation::TiledComputation(ADTMember adt_member,
       tiled(tiled),
       property(property),
       reduce(reduce) {
+    auto annotation = tiled.getAnnotation();
+    auto unit = annotation.getOccupiedUnit();
+    auto distributed_unit = getUnit(property);
+    // Assume the highest ranking unit.
+    _annotation = resetUnit(annotation,
+                            (unit > distributed_unit) ? unit : distributed_unit);
     init_binding();
 }
 
@@ -142,7 +149,7 @@ std::set<Variable> TiledComputation::getTemplateArgs() const {
 }
 
 Annotation TiledComputation::getAnnotation() const {
-    return tiled.getAnnotation();
+    return _annotation;
 }
 
 void TiledComputation::init_binding() {
@@ -240,9 +247,12 @@ Composable TileDummy::operator()(Composable c) {
         // If property is set, then make sure that the compose has a reasonable
         // grid property.
         Grid::Unit unit = c.getAnnotation().getOccupiedUnit();
-        std::cout << unit << std::endl;
         if (!isLegalUnit(unit)) {
             throw error::UserError("The function does not have a legal unit for the current GPU");
+        }
+        if (!legalToDistribute(unit, property)) {
+            throw error::UserError("Trying to distribute " + util::str(c) + " over unit " +
+                                   util::str(unit) + " using " + util::str(property));
         }
     }
 

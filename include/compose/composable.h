@@ -107,6 +107,7 @@ public:
     Expr start;
     ADTMember end;
     Variable step;
+    Annotation _annotation;
     Grid::Property property{Grid::Property::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
     bool reduce = false;
 };

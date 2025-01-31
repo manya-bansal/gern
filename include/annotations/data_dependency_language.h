@@ -472,6 +472,7 @@ public:
 };
 
 Annotation annotate(Pattern);
+Annotation resetUnit(Annotation, Grid::Unit);
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.

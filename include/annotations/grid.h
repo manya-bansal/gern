@@ -6,10 +6,7 @@ namespace gern {
 
 namespace Grid {
 enum Property {
-
-    BLOCK_ID_X,
-    BLOCK_ID_Y,
-    BLOCK_ID_Z,
+    UNDEFINED,  // For variables that are not bound to the grid.
 
     THREAD_ID_X,
     THREAD_ID_Y,
@@ -19,16 +16,20 @@ enum Property {
     BLOCK_DIM_Y,
     BLOCK_DIM_Z,
 
-    UNDEFINED,  // For variables that are not bound to the grid.
+    BLOCK_ID_X,
+    BLOCK_ID_Y,
+    BLOCK_ID_Z,
 };
 
 enum Unit {
-    GRID,
-    BLOCK_CLUSTER,
-    BLOCK,
-    WARPS,
-    THREADS,
     NULL_UNIT,
+
+    SCALAR,
+    THREADS,
+    WARPS,
+    BLOCK,
+    BLOCK_CLUSTER,
+    GRID,
 };
 
 }  // namespace Grid
@@ -49,5 +50,24 @@ bool isPropertyStable(const Grid::Property &);
  * @return false
  */
 bool isLegalUnit(const Grid::Unit &u);
+
+/**
+ * @brief This function checks whether the unit can be distributed over
+ *        a grid's property.
+ *
+ * @param u
+ * @param p
+ * @return true
+ * @return false
+ */
+bool legalToDistribute(const Grid::Unit &u, const Grid::Property &p);
+
+/**
+ * @brief Get the unit assosciated with a particular property.
+ *
+ * @param p
+ * @return Grid::Unit
+ */
+Grid::Unit getUnit(const Grid::Property &p);
 
 }  // namespace gern

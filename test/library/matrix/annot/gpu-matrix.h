@@ -68,6 +68,11 @@ public:
         : MatrixAddCPU() {
     }
 
+    Annotation getAnnotation() override {
+        return resetUnit(MatrixAddCPU::getAnnotation(),
+                         Grid::Unit::THREADS);
+    }
+
     std::vector<std::string> getHeader() {
         return {
             "gpu-matrix.h",

@@ -1,4 +1,5 @@
 #include "annotations/grid.h"
+#include "utils/error.h"
 
 namespace gern {
 
@@ -83,6 +84,51 @@ bool isPropertyStable(const Grid::Property &p) {
     }
 
     return false;
+}
+
+bool legalToDistribute(const Grid::Unit &u, const Grid::Property &p) {
+
+    if (!isGridPropertySet(p) || !isLegalUnit(u)) {
+        return false;
+    }
+
+    switch (u) {
+    case Grid::Unit::BLOCK:
+        if (p >= Grid::Property::BLOCK_ID_X) {
+            return true;
+        }
+        break;
+    case Grid::Unit::WARPS:
+        if (p >= Grid::Property::BLOCK_ID_X) {  // Need to add a property for warp.
+            return true;
+        }
+        break;
+    case Grid::Unit::THREADS:
+        if (p >= Grid::Property::THREAD_ID_X) {
+            return true;
+        }
+        break;
+    default:
+        throw error::InternalError("This unit has not been implemented!");
+    }
+
+    return false;
+}
+
+Grid::Unit getUnit(const Grid::Property &p) {
+
+    switch (p) {
+    case Grid::Property::THREAD_ID_X:
+    case Grid::Property::THREAD_ID_Y:
+    case Grid::Property::THREAD_ID_Z:
+        return Grid::Unit::THREADS;
+    case Grid::Property::BLOCK_ID_X:
+    case Grid::Property::BLOCK_ID_Y:
+    case Grid::Property::BLOCK_ID_Z:
+        return Grid::Unit::BLOCK;
+    default:
+        return Grid::Unit::NULL_UNIT;
+    }
 }
 
 }  // namespace gern

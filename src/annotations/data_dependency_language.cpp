@@ -545,6 +545,10 @@ Annotation annotate(Pattern p) {
     return Annotation(p, Grid::Unit::NULL_UNIT);
 }
 
+Annotation resetUnit(Annotation annot, Grid::Unit unit) {
+    return Annotation(annot.getPattern(), unit);
+}
+
 Pattern Annotation::getPattern() const {
     return getNode(*this)->p;
 }
