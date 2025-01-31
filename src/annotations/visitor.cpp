@@ -177,7 +177,14 @@ void Printer::visit(const PatternNode *op) {
 
 void Printer::visit(const AnnotationNode *op) {
     this->visit(op->p);
-    os << " @ " << op->unit;
+    os << " @ " << op->unit << "\n";
+    util::printIdent(os, ident);
+    os << " with constraints {";
+    ident++;
+    util::iterable_printer(os, op->constraints, ident, "\n");
+    ident--;
+    util::printIdent(os, ident);
+    os << "}";
 }
 
 #define DEFINE_BINARY_VISITOR_METHOD(CLASS_NAME)     \
@@ -380,7 +387,12 @@ void Rewriter::visit(const ComputesNode *op) {
 
 void Rewriter::visit(const AnnotationNode *op) {
     Pattern rw_pattern = to<Pattern>(this->rewrite(op->p));
-    stmt = Annotation(rw_pattern, op->unit);
+    std::vector<Constraint> op_constraints = op->constraints;
+    std::vector<Constraint> rw_constraints;
+    for (const auto &c : op_constraints) {
+        rw_constraints.push_back(this->rewrite(c));
+    }
+    stmt = Annotation(rw_pattern, op->unit, rw_constraints);
 }
 
 #define DEFINE_BINARY_REWRITER_METHOD(CLASS_NAME, PARENT, VAR) \

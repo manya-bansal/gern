@@ -1,6 +1,7 @@
 #include "compose/compose.h"
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "compose/composable_visitor.h"
 
@@ -93,10 +94,10 @@ ComputeFunctionCallPtr ComputeFunctionCall::refreshVariable() const {
         // Otherwise, generate a new name.
         fresh_names[v] = getUniqueName("_gern_" + v.getName());
     }
-    Pattern rw_annotation = to<Pattern>(annotation.getPattern()
-                                            .replaceVariables(fresh_names));
+    Annotation rw_annotation = replaceVariables(annotation,
+                                                fresh_names);
     return new const ComputeFunctionCall(getCall(),
-                                         Annotation(rw_annotation, annotation.getOccupiedUnit()),
+                                         rw_annotation,
                                          header);
 }
 

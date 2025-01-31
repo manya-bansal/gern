@@ -12,7 +12,10 @@ static void printIdent(std::ostream &os, int ident) {
 }
 
 template<typename T>
-static void iterable_printer(std::ostream &os, std::vector<T> v, int ident, std::string end = "") {
+static void iterable_printer(std::ostream &os,
+                             std::vector<T> v,
+                             int ident,
+                             std::string end = "") {
     int len = v.size();
     for (int i = 0; i < len; i++) {
         printIdent(os, ident);

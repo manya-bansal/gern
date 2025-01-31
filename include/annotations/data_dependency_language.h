@@ -334,8 +334,6 @@ public:
     std::map<Variable, Variable> getComputesIntervalAndStepVars() const;
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> getTileableFields() const;
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> getReducableFields() const;
-    Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
-    Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
     void accept(StmtVisitorStrict *v) const;
     std::string str() const;
 
@@ -445,7 +443,6 @@ public:
     explicit Pattern(const PatternNode *);
     Annotation occupies(Grid::Unit) const;
     Pattern where(Constraint);
-    Pattern refreshVariables() const;
     std::vector<SubsetObj> getInputs() const;
     std::vector<Variable> getProducesField() const;
     std::vector<Expr> getRequirement(AbstractDataTypePtr) const;
@@ -465,8 +462,9 @@ class Annotation : public Stmt {
 public:
     Annotation() = default;
     Annotation(const AnnotationNode *);
-    Annotation(Pattern, Grid::Unit);
+    Annotation(Pattern, Grid::Unit, std::vector<Constraint>);
     Pattern getPattern() const;
+    std::vector<Constraint> getConstraints() const;
     Grid::Unit getOccupiedUnit() const;
     typedef AnnotationNode Node;
 };

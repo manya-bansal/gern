@@ -99,11 +99,14 @@ void Computation::init_annotation() {
 
     // Now add the consumes for the pure inputs.
     Grid::Unit unit{Grid::Unit::NULL_UNIT};
+    std::vector<Constraint> constraints;
     for (const auto &c : composed) {
         Annotation annotation = c.getAnnotation();
         Grid::Unit c_unit = annotation.getOccupiedUnit();
+        std::vector<Constraint> c_constraints = annotation.getConstraints();
         unit = (unit > c_unit) ? unit : c_unit;
         std::vector<SubsetObj> inputs = annotation.getPattern().getInputs();
+        constraints.insert(constraints.begin(), c_constraints.begin(), c_constraints.end());
         for (const auto &input : inputs) {
             // The the input is not an intermediate, add.
             if (!intermediates.contains(input.getDS())) {
@@ -114,7 +117,7 @@ void Computation::init_annotation() {
 
     Consumes consumes = mimicConsumes(last_pattern, input_subsets);
     Pattern p = mimicComputes(last_pattern, Computes(produces, consumes));
-    _annotation = Annotation(p, unit);
+    _annotation = Annotation(p, unit, constraints);
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {

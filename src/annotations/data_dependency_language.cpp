@@ -1,5 +1,6 @@
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "compose/compose.h"
 #include "utils/debug.h"
@@ -298,59 +299,6 @@ DEFINE_WHERE_METHOD(Allocates)
 DEFINE_WHERE_METHOD(Pattern)
 DEFINE_WHERE_METHOD(Computes)
 
-Stmt Stmt::replaceVariables(std::map<Variable, Variable> rw_vars) const {
-    struct rewriteVar : public Rewriter {
-        rewriteVar(std::map<Variable, Variable> rw_vars)
-            : rw_vars(rw_vars) {
-        }
-        using Rewriter::rewrite;
-
-        void visit(const VariableNode *op) {
-            if (rw_vars.find(op) != rw_vars.end()) {
-                expr = rw_vars[op];
-            } else {
-                expr = op;
-            }
-        }
-        std::map<Variable, Variable> rw_vars;
-    };
-    rewriteVar rw{rw_vars};
-    return rw.rewrite(*this);
-}
-
-Stmt Stmt::replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const {
-    struct rewriteDS : public Rewriter {
-        rewriteDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds)
-            : rw_ds(rw_ds) {
-        }
-        using Rewriter::rewrite;
-
-        void visit(const ADTMemberNode *op) {
-            if (rw_ds.contains(op->ds)) {
-                expr = ADTMember(rw_ds.at(op->ds), op->member);
-            } else {
-                expr = op;
-            }
-        }
-        void visit(const SubsetNode *op) {
-            // Rewrite all the fields.
-            std::vector<Expr> rw_expr;
-            for (size_t i = 0; i < op->mdFields.size(); i++) {
-                rw_expr.push_back(this->rewrite(op->mdFields[i]));
-            }
-            // Construct the new subset object.
-            if (rw_ds.contains(op->data)) {
-                stmt = SubsetObj(rw_ds[op->data], rw_expr);
-            } else {
-                stmt = SubsetObj(op->data, rw_expr);
-            }
-        }
-        std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds;
-    };
-    rewriteDS rw{rw_ds};
-    return rw.rewrite(*this);
-}
-
 #define DEFINE_BINARY_CONSTRUCTOR(CLASS_NAME, NODE)               \
     CLASS_NAME::CLASS_NAME(const CLASS_NAME##Node *n) : NODE(n) { \
     }                                                             \
@@ -476,19 +424,7 @@ Pattern::Pattern(const PatternNode *p)
 }
 
 Annotation Pattern::occupies(Grid::Unit unit) const {
-    return Annotation(*this, unit);
-}
-
-Pattern Pattern::refreshVariables() const {
-    std::set<Variable> old_vars = getVariables(*this);
-    // Generate fresh names for all old variables, except the
-    std::map<Variable, Variable> fresh_names;
-    for (const auto &v : old_vars) {
-        // Otherwise, generate a new name.
-        fresh_names[v] = getUniqueName("_gern_" + v.getName());
-    }
-    Pattern rw_annotation = to<Pattern>(this->replaceVariables(fresh_names));
-    return rw_annotation;
+    return Annotation(*this, unit, {});
 }
 
 std::vector<SubsetObj> Pattern::getInputs() const {
@@ -533,28 +469,30 @@ Annotation::Annotation(const AnnotationNode *n)
     : Stmt(n) {
 }
 
-Annotation::Annotation(Pattern p, Grid::Unit unit)
-    : Annotation(new const AnnotationNode(p, unit)) {
+Annotation::Annotation(Pattern p,
+                       Grid::Unit unit,
+                       std::vector<Constraint> constraints)
+    : Annotation(new const AnnotationNode(p, unit, constraints)) {
 }
-
-// Annotation::Annotation(Pattern p)
-//     : Annotation(p, Grid::Unit::NULL_UNIT) {
-// }
 
 Annotation annotate(Pattern p) {
-    return Annotation(p, Grid::Unit::NULL_UNIT);
-}
-
-Annotation resetUnit(Annotation annot, Grid::Unit unit) {
-    return Annotation(annot.getPattern(), unit);
+    return Annotation(p, Grid::Unit::NULL_UNIT, {});
 }
 
 Pattern Annotation::getPattern() const {
     return getNode(*this)->p;
 }
 
+std::vector<Constraint> Annotation::getConstraints() const {
+    return getNode(*this)->constraints;
+}
+
 Grid::Unit Annotation::getOccupiedUnit() const {
     return getNode(*this)->unit;
+}
+
+Annotation resetUnit(Annotation annot, Grid::Unit unit) {
+    return Annotation(annot.getPattern(), unit, annot.getConstraints());
 }
 
 Pattern For(Assign start, ADTMember end, Variable step, Pattern body,

@@ -1,6 +1,7 @@
 #include "annotations/abstract_function.h"
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "utils/name_generator.h"
 #include <map>
@@ -89,9 +90,9 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
         template_args.push_back(fresh_names.at(v));
     }
 
-    Pattern rw_annotation = to<Pattern>(annotation.getPattern()
-                                            .replaceDSArgs(abstract_to_concrete_adt)
-                                            .replaceVariables(fresh_names));
+    Annotation rw_annotation = replaceVariables(            // Replace all variables with concrete vars.
+        replaceADTs(annotation, abstract_to_concrete_adt),  // Replace all abstract ADTs with concrete ADTs.
+        fresh_names);
     FunctionCall call{
         .name = f.name,
         .args = concrete_arguments,
@@ -100,7 +101,7 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
     };
 
     return Composable(new const ComputeFunctionCall(call,
-                                                    rw_annotation.occupies(annotation.getOccupiedUnit()),
+                                                    rw_annotation,
                                                     getHeader()));
 }
 

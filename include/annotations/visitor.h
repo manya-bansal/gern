@@ -334,6 +334,9 @@ protected:
     void visit(const AnnotationNode *);
 };
 
+Consumes mimicConsumes(Pattern p, std::vector<SubsetObj>);
+Pattern mimicComputes(Pattern p, Computes);
+
 template<typename T>
 inline std::set<Variable> getVariables(T annot) {
     std::set<Variable> vars;
@@ -341,8 +344,5 @@ inline std::set<Variable> getVariables(T annot) {
                      [&](const VariableNode *op) { vars.insert(op); }));
     return vars;
 }
-
-Consumes mimicConsumes(Pattern p, std::vector<SubsetObj>);
-Pattern mimicComputes(Pattern p, Computes);
 
 }  // namespace gern
