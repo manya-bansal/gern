@@ -251,6 +251,48 @@ CGExpr CodeGenerator::gen(Expr e) {
     return cg.cg_e;
 }
 
+static CGExpr genProp(const Grid::Property &p) {
+    switch (p) {
+
+    case Grid::Property::BLOCK_ID_X:
+        return EscapeCGExpr::make("blockIdx.x");
+    case Grid::Property::BLOCK_ID_Y:
+        return EscapeCGExpr::make("blockIdx.y");
+    case Grid::Property::BLOCK_ID_Z:
+        return EscapeCGExpr::make("blockIdx.z");
+
+    case Grid::Property::THREAD_ID_X:
+        return EscapeCGExpr::make("threadIdx.x");
+    case Grid::Property::THREAD_ID_Y:
+        return EscapeCGExpr::make("threadIdx.y");
+    case Grid::Property::THREAD_ID_Z:
+        return EscapeCGExpr::make("threadIdx.z");
+
+    default:
+        throw error::InternalError("Undefined Grid Property Passed!");
+    }
+}
+
+static CGExpr genProp(const Grid::Dim &p) {
+    switch (p) {
+
+    case Grid::Dim::BLOCK_DIM_X:
+        return EscapeCGExpr::make("blockDim.x");
+    case Grid::Dim::BLOCK_DIM_Y:
+        return EscapeCGExpr::make("blockDim.y");
+    case Grid::Dim::BLOCK_DIM_Z:
+        return EscapeCGExpr::make("blockDim.z");
+    case Grid::Dim::GRID_DIM_X:
+        return EscapeCGExpr::make("gridDim.x");
+    case Grid::Dim::GRID_DIM_Y:
+        return EscapeCGExpr::make("gridDim.y");
+    case Grid::Dim::GRID_DIM_Z:
+        return EscapeCGExpr::make("blockDim.z");
+    default:
+        throw error::InternalError("Undefined Grid Dim Passed!");
+    }
+}
+
 #define VISIT_AND_DECLARE_CONSTRAINT(op, name) \
     void visit(const op##Node *node) {         \
         auto a = cg->gen(node->a);             \
@@ -274,6 +316,10 @@ CGExpr CodeGenerator::gen(Constraint c) {
         VISIT_AND_DECLARE_CONSTRAINT(Leq, Lte);
         VISIT_AND_DECLARE_CONSTRAINT(And, And);
         VISIT_AND_DECLARE_CONSTRAINT(Or, Or);
+
+        void visit(const GridDimNode *node) {
+            cg_e = genProp(node->dim);
+        }
 
         CodeGenerator *cg;
         CGExpr cg_e;
@@ -471,48 +517,6 @@ CGExpr CodeGenerator::declADT(AbstractDataTypePtr ds,
         declared_adt.insert(ds);
     }
     return decl;
-}
-
-static CGExpr genProp(const Grid::Property &p) {
-    switch (p) {
-
-    case Grid::Property::BLOCK_ID_X:
-        return EscapeCGExpr::make("blockIdx.x");
-    case Grid::Property::BLOCK_ID_Y:
-        return EscapeCGExpr::make("blockIdx.y");
-    case Grid::Property::BLOCK_ID_Z:
-        return EscapeCGExpr::make("blockIdx.z");
-
-    case Grid::Property::THREAD_ID_X:
-        return EscapeCGExpr::make("threadIdx.x");
-    case Grid::Property::THREAD_ID_Y:
-        return EscapeCGExpr::make("threadIdx.y");
-    case Grid::Property::THREAD_ID_Z:
-        return EscapeCGExpr::make("threadIdx.z");
-
-    default:
-        throw error::InternalError("Undefined Grid Property Passed!");
-    }
-}
-
-static CGExpr genProp(const Grid::Dim &p) {
-    switch (p) {
-
-    case Grid::Dim::BLOCK_DIM_X:
-        return EscapeCGExpr::make("blockDim.x");
-    case Grid::Dim::BLOCK_DIM_Y:
-        return EscapeCGExpr::make("blockDim.y");
-    case Grid::Dim::BLOCK_DIM_Z:
-        return EscapeCGExpr::make("blockDim.z");
-    case Grid::Dim::GRID_DIM_X:
-        return EscapeCGExpr::make("gridDim.x");
-    case Grid::Dim::GRID_DIM_Y:
-        return EscapeCGExpr::make("gridDim.y");
-    case Grid::Dim::GRID_DIM_Z:
-        return EscapeCGExpr::make("blockDim.z");
-    default:
-        throw error::InternalError("Undefined Grid Dim Passed!");
-    }
 }
 
 CGStmt CodeGenerator::setGrid(const IntervalNode *op) {

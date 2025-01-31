@@ -2,6 +2,7 @@
 
 #include "cpu-array.h"
 
+#include <cuda.h>
 #include <cuda_runtime.h>
 #include <iostream>
 #include <stdexcept>
@@ -85,24 +86,6 @@ public:
     float *data;
     int64_t size;
 };
-
-template<int Size>
-__device__ ArrayStaticGPU<Size> allocate_local() {
-    return ArrayStaticGPU<Size>();
-}
-
-__device__ inline void add_1(ArrayGPU a, ArrayGPU b) {
-    for (int64_t i = 0; i < a.size; i++) {
-        b.data[i] = a.data[i] + 1;
-    }
-}
-
-template<int Size>
-__device__ inline void add_1(ArrayStaticGPU<Size> &a, ArrayStaticGPU<Size> &b) {
-    for (int64_t i = 0; i < Size; i++) {
-        b.data[i] = a.data[i] + 1;
-    }
-}
 
 }  // namespace impl
 }  // namespace gern

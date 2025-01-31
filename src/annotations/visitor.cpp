@@ -50,6 +50,10 @@ void Printer::visit(const ADTMemberNode *op) {
        << "." << op->member;
 }
 
+void Printer::visit(const GridDimNode *op) {
+    os << op->dim;
+}
+
 #define DEFINE_PRINTER_METHOD(CLASS_NAME, OPERATOR)      \
     void Printer::visit(const CLASS_NAME *op) {          \
         os << "(" << op->a << #OPERATOR << op->b << ")"; \
@@ -195,6 +199,10 @@ void Printer::visit(const AnnotationNode *op) {
 
 void AnnotVisitor::visit(const LiteralNode *) {
 }
+
+void AnnotVisitor::visit(const GridDimNode *) {
+}
+
 DEFINE_BINARY_VISITOR_METHOD(AddNode)
 DEFINE_BINARY_VISITOR_METHOD(SubNode)
 DEFINE_BINARY_VISITOR_METHOD(DivNode)
@@ -310,6 +318,10 @@ void Rewriter::visit(const ADTMemberNode *op) {
 
 void Rewriter::visit(const LiteralNode *op) {
     expr = op;
+}
+
+void Rewriter::visit(const GridDimNode *op) {
+    where = GridDim(op->dim);
 }
 
 void Rewriter::visit(const ConsumesNode *op) {

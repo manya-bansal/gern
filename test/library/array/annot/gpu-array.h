@@ -74,6 +74,7 @@ public:
     std::vector<std::string> getHeader() {
         return {
             "gpu-array.h",
+            "gpu-array.cu",
         };
     }
 };
@@ -102,6 +103,7 @@ public:
     std::vector<std::string> getHeader() override {
         return {
             "gpu-array.h",
+            "gpu-array.cu",
         };
     }
 

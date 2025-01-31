@@ -12,6 +12,4 @@
 using namespace gern;
 
 TEST(GridConstraints, Simple) {
-    std::cout << std::is_base_of_v<Constraint, gern::Eq> << std::endl;
-    std::cout << "Hi" << std::endl;
 }

@@ -247,10 +247,13 @@ public:
     typedef ADTMemberNode Node;
 };
 
-// class GridDim : public Constraint {
-// public:
-//     typedef GridDimNode Node;
-// };
+class GridDim : public Constraint {
+public:
+    GridDim(const GridDimNode *);
+    GridDim(const Grid::Dim &);
+    Grid::Dim getDim() const;
+    typedef GridDimNode Node;
+};
 
 }  // namespace gern
 

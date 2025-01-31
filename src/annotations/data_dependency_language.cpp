@@ -148,6 +148,18 @@ std::string ADTMember::getMember() const {
     return getNode(*this)->member;
 }
 
+GridDim::GridDim(const GridDimNode *n)
+    : Constraint(n) {
+}
+
+GridDim::GridDim(const Grid::Dim &dim)
+    : GridDim(new const GridDimNode(dim)) {
+}
+
+Grid::Dim GridDim::getDim() const {
+    return getNode(*this)->dim;
+}
+
 std::ostream &operator<<(std::ostream &os, const Expr &e) {
     Printer p{os};
     p.visit(e);
@@ -156,12 +168,13 @@ std::ostream &operator<<(std::ostream &os, const Expr &e) {
 
 bool isConstExpr(Expr e) {
     bool is_const_expr = true;
-    match(e, std::function<void(const VariableNode *)>(
-                 [&](const VariableNode *op) {
-                     if (!op->const_expr) {
-                         is_const_expr = false;
-                     }
-                 }));
+    match(e,
+          std::function<void(const VariableNode *)>(
+              [&](const VariableNode *op) {
+                  if (!op->const_expr) {
+                      is_const_expr = false;
+                  }
+              }));
     return is_const_expr;
 }
 

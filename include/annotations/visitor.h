@@ -14,6 +14,7 @@ struct DivNode;
 struct ModNode;
 struct VariableNode;
 struct ADTMemberNode;
+
 struct EqNode;
 struct NeqNode;
 struct LeqNode;
@@ -22,6 +23,7 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
+struct GridDimNode;
 
 struct AssignNode;
 struct SubsetNode;
@@ -65,6 +67,7 @@ public:
     virtual void visit(const GreaterNode *) = 0;
     virtual void visit(const OrNode *) = 0;
     virtual void visit(const AndNode *) = 0;
+    virtual void visit(const GridDimNode *) = 0;
 };
 
 class StmtVisitorStrict {
@@ -123,6 +126,7 @@ public:
     void visit(const GreaterNode *);
     void visit(const OrNode *);
     void visit(const AndNode *);
+    void visit(const GridDimNode *);
 
     void visit(const AssignNode *);
     void visit(const SubsetNode *);
@@ -164,6 +168,7 @@ public:
     void visit(const GreaterNode *);
     void visit(const OrNode *);
     void visit(const AndNode *);
+    void visit(const GridDimNode *);
 
     void visit(const AssignNode *);
     void visit(const SubsetNode *);
@@ -177,6 +182,54 @@ public:
     void visit(const PatternNode *);
     void visit(const AnnotationNode *);
 };
+
+class Rewriter : public AnnotVisitorStrict {
+public:
+    virtual ~Rewriter() = default;
+    using AnnotVisitorStrict::visit;
+    Stmt rewrite(Stmt);
+    Expr rewrite(Expr);
+    Constraint rewrite(Constraint);
+
+protected:
+    Expr expr;
+    Stmt stmt;
+    Constraint where;
+
+    void visit(const LiteralNode *);
+    void visit(const AddNode *);
+    void visit(const SubNode *);
+    void visit(const MulNode *);
+    void visit(const DivNode *);
+    void visit(const ModNode *);
+    void visit(const VariableNode *);
+    void visit(const ADTMemberNode *);
+
+    void visit(const EqNode *);
+    void visit(const NeqNode *);
+    void visit(const LeqNode *);
+    void visit(const GeqNode *);
+    void visit(const LessNode *);
+    void visit(const GreaterNode *);
+    void visit(const OrNode *);
+    void visit(const AndNode *);
+    void visit(const GridDimNode *);
+
+    void visit(const AssignNode *);
+    void visit(const SubsetNode *);
+    void visit(const SubsetObjManyNode *);
+    void visit(const ProducesNode *);
+    void visit(const ConsumesNode *);
+    void visit(const AllocatesNode *);
+    void visit(const ComputesForNode *);
+    void visit(const ConsumesForNode *);
+    void visit(const ComputesNode *);
+    void visit(const PatternNode *);
+    void visit(const AnnotationNode *);
+};
+
+Consumes mimicConsumes(Pattern p, std::vector<SubsetObj>);
+Pattern mimicComputes(Pattern p, Computes);
 
 #define RULE(Rule)                                                      \
     std::function<void(const Rule *)> Rule##Func;                       \
@@ -224,11 +277,15 @@ private:
 
     using AnnotVisitor::visit;
 
+    RULE(VariableNode);
+    RULE(ADTMemberNode);
+    RULE(LiteralNode);
     RULE(AddNode);
     RULE(SubNode);
     RULE(DivNode);
     RULE(MulNode);
     RULE(ModNode);
+
     RULE(AndNode);
     RULE(OrNode);
     RULE(EqNode);
@@ -237,9 +294,8 @@ private:
     RULE(GeqNode);
     RULE(LessNode);
     RULE(GreaterNode);
-    RULE(VariableNode);
-    RULE(ADTMemberNode);
-    RULE(LiteralNode);
+    RULE(GridDimNode);
+
     RULE(AssignNode);
     RULE(SubsetNode);
     RULE(SubsetObjManyNode);
@@ -289,53 +345,6 @@ void match(T stmt, Patterns... patterns) {
     }
     Matcher().process(stmt, patterns...);
 }
-
-class Rewriter : public AnnotVisitorStrict {
-public:
-    virtual ~Rewriter() = default;
-    using AnnotVisitorStrict::visit;
-    Stmt rewrite(Stmt);
-    Expr rewrite(Expr);
-    Constraint rewrite(Constraint);
-
-protected:
-    Expr expr;
-    Stmt stmt;
-    Constraint where;
-
-    void visit(const LiteralNode *);
-    void visit(const AddNode *);
-    void visit(const SubNode *);
-    void visit(const MulNode *);
-    void visit(const DivNode *);
-    void visit(const ModNode *);
-    void visit(const VariableNode *);
-    void visit(const ADTMemberNode *);
-
-    void visit(const EqNode *);
-    void visit(const NeqNode *);
-    void visit(const LeqNode *);
-    void visit(const GeqNode *);
-    void visit(const LessNode *);
-    void visit(const GreaterNode *);
-    void visit(const OrNode *);
-    void visit(const AndNode *);
-
-    void visit(const AssignNode *);
-    void visit(const SubsetNode *);
-    void visit(const SubsetObjManyNode *);
-    void visit(const ProducesNode *);
-    void visit(const ConsumesNode *);
-    void visit(const AllocatesNode *);
-    void visit(const ComputesForNode *);
-    void visit(const ConsumesForNode *);
-    void visit(const ComputesNode *);
-    void visit(const PatternNode *);
-    void visit(const AnnotationNode *);
-};
-
-Consumes mimicConsumes(Pattern p, std::vector<SubsetObj>);
-Pattern mimicComputes(Pattern p, Computes);
 
 template<typename T>
 inline std::set<Variable> getVariables(T annot) {
