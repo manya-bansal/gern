@@ -60,6 +60,9 @@ std::ostream &operator<<(std::ostream &os, const Grid::Unit &unit) {
     case Grid::Unit::THREADS:
         os << "THREADS";
         return os;
+    case Grid::Unit::SCALAR:
+        os << "SCALAR";
+        return os;
     default:
         os << "UNDEFINED";
         return os;
@@ -87,8 +90,8 @@ bool isPropertyStable(const Grid::Property &p) {
 }
 
 bool legalToDistribute(const Grid::Unit &u, const Grid::Property &p) {
-
-    if (!isGridPropertySet(p) || !isLegalUnit(u)) {
+    // If it is undefined, then complain.
+    if (!isLegalUnit(u)) {
         return false;
     }
 
@@ -128,8 +131,10 @@ Grid::Unit getUnit(const Grid::Property &p) {
     case Grid::Property::BLOCK_ID_Y:
     case Grid::Property::BLOCK_ID_Z:
         return Grid::Unit::BLOCK;
-    default:
+    case Grid::Property::UNDEFINED:
         return Grid::Unit::NULL_UNIT;
+    default:
+        return Grid::Unit::SCALAR;
     }
 }
 

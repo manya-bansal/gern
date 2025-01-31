@@ -98,7 +98,7 @@ void Computation::init_annotation() {
     }
 
     // Now add the consumes for the pure inputs.
-    Grid::Unit unit{Grid::Unit::THREADS};
+    Grid::Unit unit{Grid::Unit::NULL_UNIT};
     for (const auto &c : composed) {
         Annotation annotation = c.getAnnotation();
         Grid::Unit c_unit = annotation.getOccupiedUnit();

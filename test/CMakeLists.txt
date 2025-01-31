@@ -19,16 +19,18 @@ set(LIB_HEADERS
 )
 
 set(TEST_SOURCES
-    test-nodes.cpp
-    test-pipeline.cpp
-    # test-resolve-constraints.cpp
-    test-runner.cpp
-    test-functions.cpp
+    test-composable.cpp
     test-cpu-array.cpp
     test-cpu-matrix.cpp
     test-cpu-static-store.cpp
     test-cpu-reduction.cpp
-    test-composable.cpp
+    test-functions.cpp
+    test-map-grid.cpp
+    test-nodes.cpp
+    test-pipeline.cpp
+    test-set-unit.cpp
+    # test-resolve-constraints.cpp
+    test-runner.cpp
 )
 
 
