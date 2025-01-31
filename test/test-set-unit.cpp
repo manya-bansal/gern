@@ -16,27 +16,27 @@ TEST(SetGrid, NoMap) {
     auto tempDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("temp", true));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("output_con"));
 
-    annot::add_1_GPU_Template add_1;
+    annot::Add1GPUTemplate add_1;
     Variable step("step");
     Variable blk("blk");
 
     Composable program =
         add_1(tempDS, outputDS);
 
-    ASSERT_TRUE(program.getAnnotation().getOccupiedUnit() == Grid::Unit::SCALAR);
+    ASSERT_TRUE(getLevel(program.getAnnotation().getOccupiedUnits()) == Grid::Level::SCALAR);
 
     program =
         (Tile(outputDS["size"], step))(
             add_1(tempDS, outputDS));
     // No change still.
-    ASSERT_TRUE(program.getAnnotation().getOccupiedUnit() == Grid::Unit::SCALAR);
+    ASSERT_TRUE(getLevel(program.getAnnotation().getOccupiedUnits()) == Grid::Level::SCALAR);
 
     program =
         (Tile(outputDS["size"], blk))(
             (Tile(outputDS["size"], step))(
                 add_1(tempDS, outputDS)));
     // No change still.
-    ASSERT_TRUE(program.getAnnotation().getOccupiedUnit() == Grid::Unit::SCALAR);
+    ASSERT_TRUE(getLevel(program.getAnnotation().getOccupiedUnits()) == Grid::Level::SCALAR);
 
     // Try a multi stage pipeline.
     program =
@@ -45,7 +45,7 @@ TEST(SetGrid, NoMap) {
                 add_1(inputDS, tempDS),
                 add_1(tempDS, outputDS)));
     // No change still.
-    ASSERT_TRUE(program.getAnnotation().getOccupiedUnit() == Grid::Unit::SCALAR);
+    ASSERT_TRUE(getLevel(program.getAnnotation().getOccupiedUnits()) == Grid::Level::SCALAR);
 }
 
 TEST(SetGrid, WithMap) {
@@ -53,39 +53,39 @@ TEST(SetGrid, WithMap) {
     auto tempDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("temp", true));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("output_con"));
 
-    annot::add_1_GPU_Template add_1;
+    annot::Add1GPUTemplate add_1;
     Variable step("step");
     Variable blk("blk");
 
     Composable program =
-        (Tile(outputDS["size"], step) || Grid::Property::THREAD_ID_X)(
+        (Tile(outputDS["size"], step) || Grid::Unit::THREAD_X)(
             add_1(tempDS, outputDS));
-    ASSERT_TRUE(program.getAnnotation().getOccupiedUnit() == Grid::Unit::THREADS);
+    ASSERT_TRUE(getLevel(program.getAnnotation().getOccupiedUnits()) == Grid::Level::THREADS);
 
     program =
-        (Tile(outputDS["size"], step) || Grid::Property::BLOCK_ID_X)(
+        (Tile(outputDS["size"], step) || Grid::Unit::BLOCK_X)(
             add_1(tempDS, outputDS));
-    ASSERT_TRUE(program.getAnnotation().getOccupiedUnit() == Grid::Unit::BLOCK);
+    ASSERT_TRUE(getLevel(program.getAnnotation().getOccupiedUnits()) == Grid::Level::BLOCK);
 
     program =
-        (Tile(outputDS["size"], blk) || Grid::Property::BLOCK_ID_X)(
-            (Tile(outputDS["size"], step) || Grid::Property::THREAD_ID_X)(
+        (Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_X)(
+            (Tile(outputDS["size"], step) || Grid::Unit::THREAD_X)(
                 add_1(tempDS, outputDS)));
     // No change still.
-    ASSERT_TRUE(program.getAnnotation().getOccupiedUnit() == Grid::Unit::BLOCK);
+    ASSERT_TRUE(getLevel(program.getAnnotation().getOccupiedUnits()) == Grid::Level::BLOCK);
 
     program =
-        Composable({(Tile(tempDS["size"], blk) || Grid::Property::BLOCK_ID_X)(
+        Composable({(Tile(tempDS["size"], blk) || Grid::Unit::BLOCK_X)(
                         add_1(inputDS, tempDS)),
-                    (Tile(outputDS["size"], step) || Grid::Property::THREAD_ID_X)(
+                    (Tile(outputDS["size"], step) || Grid::Unit::THREAD_X)(
                         add_1(tempDS, outputDS))});
-    ASSERT_TRUE(program.getAnnotation().getOccupiedUnit() == Grid::Unit::BLOCK);
+    ASSERT_TRUE(getLevel(program.getAnnotation().getOccupiedUnits()) == Grid::Level::BLOCK);
 
     // Try with no child tiling.
     program =
-        Composable({(Tile(tempDS["size"], blk) || Grid::Property::BLOCK_ID_X)(
+        Composable({(Tile(tempDS["size"], blk) || Grid::Unit::BLOCK_X)(
                         add_1(inputDS, tempDS)),
                     (Tile(outputDS["size"], step))(
                         add_1(tempDS, outputDS))});
-    ASSERT_TRUE(program.getAnnotation().getOccupiedUnit() == Grid::Unit::BLOCK);
+    ASSERT_TRUE(getLevel(program.getAnnotation().getOccupiedUnits()) == Grid::Level::BLOCK);
 }

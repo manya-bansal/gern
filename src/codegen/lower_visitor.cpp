@@ -67,6 +67,11 @@ void LowerPrinter::visit(const BlankNode *op) {
     DEBUG("BLANK!");
 }
 
+void LowerPrinter::visit(const AssertNode *op) {
+    os << ((op->compile_time) ? "static_assert" : "dynamic_assert")
+       << op->constraint;
+}
+
 void LowerPrinter::visit(const FunctionBoundary *node) {
     util::printIdent(os, ident);
     os << "Function {" << "\n";

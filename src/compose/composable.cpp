@@ -98,12 +98,16 @@ void Computation::init_annotation() {
     }
 
     // Now add the consumes for the pure inputs.
-    Grid::Unit unit{Grid::Unit::NULL_UNIT};
+    std::set<Grid::Unit> occupied;
+    std::vector<Constraint> constraints;
     for (const auto &c : composed) {
         Annotation annotation = c.getAnnotation();
-        Grid::Unit c_unit = annotation.getOccupiedUnit();
-        unit = (unit > c_unit) ? unit : c_unit;
-        std::vector<SubsetObj> inputs = annotation.getPattern().getInputs();
+        std::set<Grid::Unit> c_units = annotation.getOccupiedUnits();
+        std::vector<Constraint> c_constraints = annotation.getConstraints();
+        occupied.insert(c_units.begin(), c_units.end());
+        std::vector<SubsetObj>
+            inputs = annotation.getPattern().getInputs();
+        constraints.insert(constraints.begin(), c_constraints.begin(), c_constraints.end());
         for (const auto &input : inputs) {
             // The the input is not an intermediate, add.
             if (!intermediates.contains(input.getDS())) {
@@ -114,7 +118,7 @@ void Computation::init_annotation() {
 
     Consumes consumes = mimicConsumes(last_pattern, input_subsets);
     Pattern p = mimicComputes(last_pattern, Computes(produces, consumes));
-    _annotation = Annotation(p, unit);
+    _annotation = Annotation(p, occupied, constraints);
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {
@@ -124,19 +128,19 @@ void TiledComputation::accept(ComposableVisitorStrict *v) const {
 TiledComputation::TiledComputation(ADTMember adt_member,
                                    Variable v,
                                    Composable tiled,
-                                   Grid::Property property,
+                                   Grid::Unit unit,
                                    bool reduce)
     : adt_member(adt_member),
       v(v),
       tiled(tiled),
-      property(property),
+      unit(unit),
       reduce(reduce) {
     auto annotation = tiled.getAnnotation();
-    auto unit = annotation.getOccupiedUnit();
-    auto distributed_unit = getUnit(property);
+    auto body_units = annotation.getOccupiedUnits();
+    body_units.insert(unit);
     // Assume the highest ranking unit.
     _annotation = resetUnit(annotation,
-                            (unit > distributed_unit) ? unit : distributed_unit);
+                            body_units);
     init_binding();
 }
 
@@ -232,8 +236,8 @@ std::ostream &operator<<(std::ostream &os, const Composable &f) {
     return os;
 }
 
-TileDummy TileDummy::operator||(Grid::Property p) {
-    property = p;
+TileDummy TileDummy::operator||(Grid::Unit p) {
+    unit = p;
     return *this;
 }
 
@@ -243,20 +247,20 @@ Composable TileDummy::operator()(Composable c) {
         nested = new const Computation({c});
     }
 
-    if (isGridPropertySet(property)) {
-        // If property is set, then make sure that the compose has a reasonable
-        // grid property.
-        Grid::Unit unit = c.getAnnotation().getOccupiedUnit();
-        if (!isLegalUnit(unit)) {
+    if (isLegalUnit(unit)) {
+        // If unit is set, then make sure that the compose has a reasonable
+        // grid unit.
+        std::set<Grid::Unit> occupied = c.getAnnotation().getOccupiedUnits();
+        if (occupied.empty()) {
             throw error::UserError("The function does not have a legal unit for the current GPU");
         }
-        if (!legalToDistribute(unit, property)) {
-            throw error::UserError("Trying to distribute " + util::str(c) + " over unit " +
-                                   util::str(unit) + " using " + util::str(property));
+        if (!legalToDistribute(occupied, unit)) {
+            throw error::UserError("Trying to distribute " + util::str(getLevel(occupied)) + " over unit " +
+                                   util::str(unit) + " using " + util::str(unit));
         }
     }
 
-    return new const TiledComputation(member, v, nested, property, reduce);
+    return new const TiledComputation(member, v, nested, unit, reduce);
 }
 
 }  // namespace gern

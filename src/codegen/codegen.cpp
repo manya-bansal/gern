@@ -188,6 +188,12 @@ void CodeGenerator::visit(const DefNode *op) {
     code = gen(op->assign, op->const_expr);
 }
 
+void CodeGenerator::visit(const AssertNode *op) {
+    CGExpr condition = gen(op->constraint);
+    std::string name = (op->compile_time) ? "std::static_assert" : "std::dynamic_assert";
+    code = VoidCall::make(Call::make(name, {condition}));
+}
+
 void CodeGenerator::visit(const BlankNode *) {
     code = CGStmt();
 }
@@ -208,6 +214,26 @@ void CodeGenerator::visit(const FunctionBoundary *op) {
     children.push_back(cg.top_level_codegen(op->nodes, is_device));
     // Call the generated compute function.
     code = gen(cg.getComputeFunctionSignature().constructCall());
+}
+
+static CGExpr genDim(const Grid::Dim &p) {
+    switch (p) {
+
+    case Grid::Dim::BLOCK_DIM_X:
+        return EscapeCGExpr::make("blockDim.x");
+    case Grid::Dim::BLOCK_DIM_Y:
+        return EscapeCGExpr::make("blockDim.y");
+    case Grid::Dim::BLOCK_DIM_Z:
+        return EscapeCGExpr::make("blockDim.z");
+    case Grid::Dim::GRID_DIM_X:
+        return EscapeCGExpr::make("gridDim.x");
+    case Grid::Dim::GRID_DIM_Y:
+        return EscapeCGExpr::make("gridDim.y");
+    case Grid::Dim::GRID_DIM_Z:
+        return EscapeCGExpr::make("blockDim.z");
+    default:
+        throw error::InternalError("Undefined Grid Dim Passed!");
+    }
 }
 
 #define VISIT_AND_DECLARE(op)          \
@@ -235,7 +261,9 @@ CGExpr CodeGenerator::gen(Expr e) {
             cg_e = Var::make(op->name);
             cg->insertInUsed(op);
         }
-
+        void visit(const GridDimNode *node) {
+            cg_e = genDim(node->dim);
+        }
         VISIT_AND_DECLARE(Add);
         VISIT_AND_DECLARE(Sub);
         VISIT_AND_DECLARE(Mul);
@@ -249,6 +277,28 @@ CGExpr CodeGenerator::gen(Expr e) {
     ConvertToCode cg(this);
     cg.visit(e);
     return cg.cg_e;
+}
+
+static CGExpr genProp(const Grid::Unit &p) {
+    switch (p) {
+
+    case Grid::Unit::BLOCK_X:
+        return EscapeCGExpr::make("blockIdx.x");
+    case Grid::Unit::BLOCK_Y:
+        return EscapeCGExpr::make("blockIdx.y");
+    case Grid::Unit::BLOCK_Z:
+        return EscapeCGExpr::make("blockIdx.z");
+
+    case Grid::Unit::THREAD_X:
+        return EscapeCGExpr::make("threadIdx.x");
+    case Grid::Unit::THREAD_Y:
+        return EscapeCGExpr::make("threadIdx.y");
+    case Grid::Unit::THREAD_Z:
+        return EscapeCGExpr::make("threadIdx.z");
+
+    default:
+        throw error::InternalError("Undefined Grid unit Passed!");
+    }
 }
 
 #define VISIT_AND_DECLARE_CONSTRAINT(op, name) \
@@ -473,35 +523,6 @@ CGExpr CodeGenerator::declADT(AbstractDataTypePtr ds,
     return decl;
 }
 
-static CGExpr genProp(const Grid::Property &p) {
-    switch (p) {
-
-    case Grid::Property::BLOCK_ID_X:
-        return EscapeCGExpr::make("blockIdx.x");
-    case Grid::Property::BLOCK_ID_Y:
-        return EscapeCGExpr::make("blockIdx.y");
-    case Grid::Property::BLOCK_ID_Z:
-        return EscapeCGExpr::make("blockIdx.z");
-
-    case Grid::Property::THREAD_ID_X:
-        return EscapeCGExpr::make("threadIdx.x");
-    case Grid::Property::THREAD_ID_Y:
-        return EscapeCGExpr::make("threadIdx.y");
-    case Grid::Property::THREAD_ID_Z:
-        return EscapeCGExpr::make("threadIdx.z");
-
-    case Grid::Property::BLOCK_DIM_X:
-        return EscapeCGExpr::make("blockDim.x");
-    case Grid::Property::BLOCK_DIM_Y:
-        return EscapeCGExpr::make("blockDim.y");
-    case Grid::Property::BLOCK_DIM_Z:
-        return EscapeCGExpr::make("blockDim.z");
-
-    default:
-        throw error::InternalError("Undefined Grid Property Passed!");
-    }
-}
-
 CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     // If not a grid mapping, do nothing.
     if (!op->isMappedToGrid()) {
@@ -509,7 +530,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     }
 
     Variable interval_var = op->getIntervalVariable();
-    Grid::Property property = op->p;
+    Grid::Unit unit = op->p;
 
     // This only works for ceiling.
     CGExpr divisor = gen(op->step);
@@ -517,17 +538,17 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     auto ceil = (divisor + dividend - 1) / divisor;
 
     // Store the grid dimension that correspond with this mapping.
-    if (property == Grid::Property::BLOCK_ID_X) {
+    if (unit == Grid::Unit::BLOCK_X) {
         grid_dim.x = ceil;
-    } else if (property == Grid::Property::BLOCK_ID_Y) {
+    } else if (unit == Grid::Unit::BLOCK_Y) {
         grid_dim.y = ceil;
-    } else if (property == Grid::Property::BLOCK_ID_Z) {
+    } else if (unit == Grid::Unit::BLOCK_Z) {
         grid_dim.z = ceil;
-    } else if (property == Grid::Property::THREAD_ID_X) {
+    } else if (unit == Grid::Unit::THREAD_X) {
         block_dim.x = ceil;
-    } else if (property == Grid::Property::THREAD_ID_Y) {
+    } else if (unit == Grid::Unit::THREAD_Y) {
         block_dim.y = ceil;
-    } else if (property == Grid::Property::THREAD_ID_Z) {
+    } else if (unit == Grid::Unit::THREAD_Z) {
         block_dim.z = ceil;
     } else {
         throw error::InternalError("Unreachable");
@@ -537,7 +558,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     return VarAssign::make(
         declVar(interval_var, false),
         // Add any shift factor specified in the interval.
-        (genProp(property) * gen(op->step)) + gen(op->start.getB()));
+        (genProp(unit) * gen(op->step)) + gen(op->start.getB()));
 }
 
 }  // namespace codegen

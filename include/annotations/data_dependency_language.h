@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 
 namespace gern {
 
@@ -26,6 +27,7 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
+struct GridDimNode;
 struct PatternNode;
 struct AnnotationNode;
 struct AssignNode;
@@ -47,6 +49,7 @@ public:
     Expr(int32_t);
     Expr(int64_t);
     Expr(double);
+    Expr(Grid::Dim);
 
     bool operator()(const Expr &e) {
         return ptr < e.ptr;
@@ -74,14 +77,6 @@ public:
     }
     Constraint(const ConstraintNode *n)
         : util::IntrusivePtr<const ConstraintNode>(n) {
-    }
-
-    virtual Expr getA() const {
-        return Expr();
-    }
-
-    virtual Expr getB() const {
-        return Expr();
     }
 
     std::string str() const;
@@ -149,7 +144,7 @@ public:
      *  @param p The grid property to bind this variable
      *           to.
      */
-    Variable bindToGrid(const Grid::Property &p) const;
+    Variable bindToGrid(const Grid::Unit &p) const;
     Variable bindToInt64(int64_t) const;
     bool isBoundToGrid() const;
     bool isConstExpr() const;
@@ -165,7 +160,7 @@ public:
      */
     bool isBound() const;
     int64_t getInt64Val() const;
-    Grid::Property getBoundProperty() const;
+    Grid::Unit getBoundUnit() const;
 
     std::string getName() const;
     Datatype getType() const;
@@ -253,6 +248,14 @@ public:
     typedef ADTMemberNode Node;
 };
 
+class GridDim : public Expr {
+public:
+    GridDim(const GridDimNode *);
+    GridDim(const Grid::Dim &);
+    Grid::Dim getDim() const;
+    typedef GridDimNode Node;
+};
+
 }  // namespace gern
 
 // Defining an std::less overload so that
@@ -314,36 +317,14 @@ public:
         : util::IntrusivePtr<const StmtNode>(n) {
     }
 
-    /**
-     * @brief Add a constraint to a statement
-     *
-     *  The FunctionSignature checks that only variables that are in
-     *  scope are used within the constraint.
-     *
-     * @param constraint Constraint to add.
-     * @return Stmt New statement with the constraint attached.
-     */
-    Stmt whereStmt(Constraint constraint) const;
-    Constraint getConstraint() const {
-        return c;
-    }
-
     std::set<Variable> getDefinedVariables() const;
     std::set<Variable> getIntervalVariables() const;
     std::map<Variable, Variable> getConsumesIntervalAndStepVars() const;
     std::map<Variable, Variable> getComputesIntervalAndStepVars() const;
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> getTileableFields() const;
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> getReducableFields() const;
-    Stmt replaceVariables(std::map<Variable, Variable> rw_vars) const;
-    Stmt replaceDSArgs(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds) const;
     void accept(StmtVisitorStrict *v) const;
     std::string str() const;
-
-private:
-    Stmt(const StmtNode *n, Constraint c)
-        : util::IntrusivePtr<const StmtNode>(n), c(c) {
-    }
-    Constraint c;
 };
 
 std::ostream &operator<<(std::ostream &os, const Stmt &);
@@ -368,7 +349,6 @@ public:
     SubsetObj(AbstractDataTypePtr data,
               std::vector<Expr> mdFields);
     std::vector<Expr> getFields() const;
-    SubsetObj where(Constraint);
     AbstractDataTypePtr getDS() const;
     typedef SubsetNode Node;
 };
@@ -379,7 +359,6 @@ public:
     // Factory method to produce make a produces node.
     static Produces Subset(AbstractDataTypePtr, std::vector<Variable>);
     SubsetObj getSubset() const;
-    Produces where(Constraint);
     std::vector<Variable> getFieldsAsVars() const;
     typedef ProducesNode Node;
 };
@@ -394,7 +373,6 @@ public:
     static Consumes Subset(AbstractDataTypePtr, std::vector<Expr>);
     static Consumes Subsets(ConsumeMany);
     Consumes(SubsetObj s);
-    Consumes where(Constraint);
     typedef ConsumesNode Node;
 };
 
@@ -402,7 +380,6 @@ class ConsumeMany : public Consumes {
 public:
     ConsumeMany(const ConsumesNode *s)
         : Consumes(s) {};
-    ConsumeMany where(Constraint);
 };
 
 class SubsetObjMany : public ConsumeMany {
@@ -412,7 +389,6 @@ public:
     SubsetObjMany(SubsetObj s)
         : SubsetObjMany(std::vector<SubsetObj>{s}) {
     }
-    SubsetObjMany where(Constraint);
     typedef SubsetObjManyNode Node;
 };
 
@@ -433,8 +409,32 @@ public:
     }
     explicit Allocates(const AllocatesNode *);
     Allocates(Expr reg, Expr smem = Expr());
-    Allocates where(Constraint);
     typedef AllocatesNode Node;
+};
+
+class Pattern;
+class Annotation : public Stmt {
+public:
+    Annotation() = default;
+    Annotation(const AnnotationNode *);
+    Annotation(Pattern, std::set<Grid::Unit>, std::vector<Constraint>);
+    Pattern getPattern() const;
+    std::vector<Constraint> getConstraints() const;
+
+    Annotation assumes(std::vector<Constraint>) const;  // requires is already used as a keyword :(
+
+    template<typename First, typename... Remaining>
+    Annotation assumes(First first, Remaining... remaining) const {
+        static_assert(std::is_base_of_v<Constraint, First>,
+                      "All arguments must be children of Constraint");
+        static_assert((std::is_base_of_v<Constraint, Remaining> && ...),
+                      "All arguments must be children of Constraint");
+        std::vector<Constraint> constraints{first, remaining...};
+        return this->assumes(constraints);
+    }
+
+    std::set<Grid::Unit> getOccupiedUnits() const;
+    typedef AnnotationNode Node;
 };
 
 class Pattern : public Stmt {
@@ -443,9 +443,25 @@ public:
         : Stmt() {
     }
     explicit Pattern(const PatternNode *);
-    Annotation occupies(Grid::Unit) const;
-    Pattern where(Constraint);
-    Pattern refreshVariables() const;
+    Annotation occupies(std::set<Grid::Unit>) const;
+
+    Annotation assumes(std::vector<Constraint>) const;
+    /**
+     * @brief assumes adds constraints to the pattern, and
+     *        converts it to an annotation.
+     *
+     * @return Annotation
+     */
+    template<typename First, typename... Remaining>
+    Annotation assumes(First first, Remaining... remaining) const {
+        static_assert(std::is_base_of_v<Constraint, First>,
+                      "All arguments must be children of Constraint");
+        static_assert((std::is_base_of_v<Constraint, Remaining> && ...),
+                      "All arguments must be children of Constraint");
+        std::vector<Constraint> constraints{first, remaining...};
+        return this->assumes(constraints);
+    }
+
     std::vector<SubsetObj> getInputs() const;
     std::vector<Variable> getProducesField() const;
     std::vector<Expr> getRequirement(AbstractDataTypePtr) const;
@@ -457,22 +473,11 @@ class Computes : public Pattern {
 public:
     explicit Computes(const ComputesNode *);
     Computes(Produces p, Consumes c, Allocates a = Allocates());
-    Computes where(Constraint);
     typedef ComputesNode Node;
 };
 
-class Annotation : public Stmt {
-public:
-    Annotation() = default;
-    Annotation(const AnnotationNode *);
-    Annotation(Pattern, Grid::Unit);
-    Pattern getPattern() const;
-    Grid::Unit getOccupiedUnit() const;
-    typedef AnnotationNode Node;
-};
-
 Annotation annotate(Pattern);
-Annotation resetUnit(Annotation, Grid::Unit);
+Annotation resetUnit(Annotation, std::set<Grid::Unit>);
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.

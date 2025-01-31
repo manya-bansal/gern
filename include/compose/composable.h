@@ -90,7 +90,7 @@ public:
     TiledComputation(ADTMember member,
                      Variable v,
                      Composable body,
-                     Grid::Property property,
+                     Grid::Unit unit,
                      bool reduce);
     std::set<Variable> getVariableArgs() const;
     std::set<Variable> getTemplateArgs() const;
@@ -108,7 +108,7 @@ public:
     ADTMember end;
     Variable step;
     Annotation _annotation;
-    Grid::Property property{Grid::Property::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
+    Grid::Unit unit{Grid::Unit::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
     bool reduce = false;
 };
 
@@ -134,12 +134,11 @@ struct TileDummy {
         return operator()(Composable(new const Computation(to_compose)));
     }
 
-    TileDummy operator||(Grid::Property p);
-
+    TileDummy operator||(Grid::Unit p);
     ADTMember member;
     Variable v;
     bool reduce;
-    Grid::Property property{Grid::Property::UNDEFINED};
+    Grid::Unit unit{Grid::Unit::UNDEFINED};
 };
 
 TileDummy Tile(ADTMember member, Variable v);
