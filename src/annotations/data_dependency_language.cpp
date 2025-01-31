@@ -80,12 +80,12 @@ Variable Variable::bindToGrid(const Grid::Unit &p) const {
 }
 
 Variable Variable::bindToInt64(int64_t val) const {
-    return Variable(new const VariableNode(getName(), getBoundProperty(),
+    return Variable(new const VariableNode(getName(), getBoundUnit(),
                                            Datatype::Int64, true, true, val));
 }
 
 bool Variable::isBoundToGrid() const {
-    return isLegalUnit(getBoundProperty());
+    return isLegalUnit(getBoundUnit());
 }
 
 bool Variable::isConstExpr() const {
@@ -112,7 +112,7 @@ int64_t Variable::getInt64Val() const {
     return getNode(*this)->val;
 }
 
-Grid::Unit Variable::getBoundProperty() const {
+Grid::Unit Variable::getBoundUnit() const {
     return getNode(*this)->p;
 }
 

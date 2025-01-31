@@ -269,7 +269,7 @@ static CGExpr genProp(const Grid::Unit &p) {
         return EscapeCGExpr::make("threadIdx.z");
 
     default:
-        throw error::InternalError("Undefined Grid Property Passed!");
+        throw error::InternalError("Undefined Grid unit Passed!");
     }
 }
 
@@ -526,7 +526,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     }
 
     Variable interval_var = op->getIntervalVariable();
-    Grid::Unit property = op->p;
+    Grid::Unit unit = op->p;
 
     // This only works for ceiling.
     CGExpr divisor = gen(op->step);
@@ -534,17 +534,17 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     auto ceil = (divisor + dividend - 1) / divisor;
 
     // Store the grid dimension that correspond with this mapping.
-    if (property == Grid::Unit::BLOCK_ID_X) {
+    if (unit == Grid::Unit::BLOCK_ID_X) {
         grid_dim.x = ceil;
-    } else if (property == Grid::Unit::BLOCK_ID_Y) {
+    } else if (unit == Grid::Unit::BLOCK_ID_Y) {
         grid_dim.y = ceil;
-    } else if (property == Grid::Unit::BLOCK_ID_Z) {
+    } else if (unit == Grid::Unit::BLOCK_ID_Z) {
         grid_dim.z = ceil;
-    } else if (property == Grid::Unit::THREAD_ID_X) {
+    } else if (unit == Grid::Unit::THREAD_ID_X) {
         block_dim.x = ceil;
-    } else if (property == Grid::Unit::THREAD_ID_Y) {
+    } else if (unit == Grid::Unit::THREAD_ID_Y) {
         block_dim.y = ceil;
-    } else if (property == Grid::Unit::THREAD_ID_Z) {
+    } else if (unit == Grid::Unit::THREAD_ID_Z) {
         block_dim.z = ceil;
     } else {
         throw error::InternalError("Unreachable");
@@ -554,7 +554,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     return VarAssign::make(
         declVar(interval_var, false),
         // Add any shift factor specified in the interval.
-        (genProp(property) * gen(op->step)) + gen(op->start.getB()));
+        (genProp(unit) * gen(op->step)) + gen(op->start.getB()));
 }
 
 }  // namespace codegen

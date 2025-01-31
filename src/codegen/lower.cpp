@@ -129,7 +129,7 @@ void ComposableLower::lower(const TiledComputation *node) {
         has_parent ? Expr(parents.at(node->step)) : Expr(node->end),
         node->v,
         lowerIR,
-        node->property);
+        node->unit);
 }
 
 template<typename T>

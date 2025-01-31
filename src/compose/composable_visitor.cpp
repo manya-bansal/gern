@@ -59,18 +59,7 @@ void LegalToCompose::visit(const Computation *node) {
 
 void LegalToCompose::visit(const TiledComputation *node) {
 
-    Grid::Unit property = node->property;
-    // Do not allow the same property to be used in the same scope.
-    if (isLegalUnit(property) &&
-        property_in_use.contains(property)) {
-        throw error::UserError("Already using " +
-                               util::str(property) +
-                               " in current scope");
-    }
-
     in_scope.scope();
-    property_in_use.scope();
-    property_in_use.insert(property);
     node->tiled.accept(this);
 
     Annotation annotation = node->getAnnotation();
@@ -88,7 +77,6 @@ void LegalToCompose::visit(const TiledComputation *node) {
     }
 
     in_scope.unscope();
-    property_in_use.unscope();
     in_scope.insert(output);
 }
 

@@ -128,19 +128,19 @@ void TiledComputation::accept(ComposableVisitorStrict *v) const {
 TiledComputation::TiledComputation(ADTMember adt_member,
                                    Variable v,
                                    Composable tiled,
-                                   Grid::Unit property,
+                                   Grid::Unit unit,
                                    bool reduce)
     : adt_member(adt_member),
       v(v),
       tiled(tiled),
-      property(property),
+      unit(unit),
       reduce(reduce) {
     auto annotation = tiled.getAnnotation();
-    auto unit = annotation.getOccupiedUnits();
-    unit.insert(property);
+    auto body_units = annotation.getOccupiedUnits();
+    body_units.insert(unit);
     // Assume the highest ranking unit.
     _annotation = resetUnit(annotation,
-                            unit);
+                            body_units);
     init_binding();
 }
 
@@ -237,7 +237,7 @@ std::ostream &operator<<(std::ostream &os, const Composable &f) {
 }
 
 TileDummy TileDummy::operator||(Grid::Unit p) {
-    property = p;
+    unit = p;
     return *this;
 }
 
@@ -247,20 +247,20 @@ Composable TileDummy::operator()(Composable c) {
         nested = new const Computation({c});
     }
 
-    if (isLegalUnit(property)) {
-        // If property is set, then make sure that the compose has a reasonable
-        // grid property.
+    if (isLegalUnit(unit)) {
+        // If unit is set, then make sure that the compose has a reasonable
+        // grid unit.
         std::set<Grid::Unit> occupied = c.getAnnotation().getOccupiedUnits();
         if (occupied.empty()) {
             throw error::UserError("The function does not have a legal unit for the current GPU");
         }
-        if (!legalToDistribute(occupied, property)) {
+        if (!legalToDistribute(occupied, unit)) {
             throw error::UserError("Trying to distribute " + util::str(getLevel(occupied)) + " over unit " +
-                                   util::str(property) + " using " + util::str(property));
+                                   util::str(unit) + " using " + util::str(unit));
         }
     }
 
-    return new const TiledComputation(member, v, nested, property, reduce);
+    return new const TiledComputation(member, v, nested, unit, reduce);
 }
 
 }  // namespace gern

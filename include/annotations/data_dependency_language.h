@@ -159,7 +159,7 @@ public:
      */
     bool isBound() const;
     int64_t getInt64Val() const;
-    Grid::Unit getBoundProperty() const;
+    Grid::Unit getBoundUnit() const;
 
     std::string getName() const;
     Datatype getType() const;
