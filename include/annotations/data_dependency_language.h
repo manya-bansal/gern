@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 
 namespace gern {
 
@@ -465,6 +466,19 @@ public:
     Annotation(Pattern, Grid::Unit, std::vector<Constraint>);
     Pattern getPattern() const;
     std::vector<Constraint> getConstraints() const;
+
+    Annotation assumes(std::vector<Constraint>) const;  // requires is already used as a keyword :(
+
+    template<typename First, typename... Remaining>
+    Annotation operator()(First first, Remaining... remaining) {
+        static_assert((std::is_same_v<Remaining, Constraint> && ...),
+                      "All arguments must be of type Constraint");
+        static_assert((std::is_same_v<First, Constraint>),
+                      "All arguments must be of type Constraint");
+        std::vector<Constraint> constraints{first, remaining...};
+        return assumes(constraints);
+    }
+
     Grid::Unit getOccupiedUnit() const;
     typedef AnnotationNode Node;
 };

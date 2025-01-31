@@ -479,6 +479,10 @@ Annotation annotate(Pattern p) {
     return Annotation(p, Grid::Unit::NULL_UNIT, {});
 }
 
+Annotation Annotation::assumes(std::vector<Constraint> constraints) const {
+    return Annotation(getPattern(), getOccupiedUnit(), constraints);
+}
+
 Pattern Annotation::getPattern() const {
     return getNode(*this)->p;
 }

@@ -93,6 +93,7 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
     Annotation rw_annotation = replaceVariables(            // Replace all variables with concrete vars.
         replaceADTs(annotation, abstract_to_concrete_adt),  // Replace all abstract ADTs with concrete ADTs.
         fresh_names);
+
     FunctionCall call{
         .name = f.name,
         .args = concrete_arguments,

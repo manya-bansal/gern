@@ -3,6 +3,7 @@
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
+#include <map>
 
 namespace gern {
 
@@ -29,8 +30,8 @@ inline T replaceVariables(T annot,
 }
 
 template<typename T>
-T replaceADTs(T annot,
-              const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &rw_ds) {
+inline T replaceADTs(T annot,
+                     const std::map<AbstractDataTypePtr, AbstractDataTypePtr> &rw_ds) {
     struct rewriteDS : public Rewriter {
         rewriteDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> rw_ds)
             : rw_ds(rw_ds) {
