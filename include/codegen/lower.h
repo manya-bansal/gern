@@ -76,6 +76,7 @@ private:
 
     LowerIR define_loop_var(Assign start, ADTMember end, Variable step) const;
     LowerIR generate_definitions(Assign definition) const;
+    LowerIR generate_constraints(std::vector<Constraint> constraints) const;  // Generate constraints.
     LowerIR declare_computes(Pattern annotation) const;
     LowerIR declare_consumes(Pattern annotation) const;
 
@@ -197,6 +198,17 @@ struct DefNode : public LowerIRNode {
     void accept(LowerIRVisitor *) const;
     Assign assign;
     bool const_expr;  // Track whether this is a actually a constexpr definition.
+};
+
+// Node to declare definitions of variables.
+struct AssertNode : public LowerIRNode {
+    AssertNode(Constraint constraint, bool compile_time)
+        : constraint(constraint), compile_time(compile_time) {
+    }
+
+    void accept(LowerIRVisitor *) const;
+    Constraint constraint;
+    bool compile_time;  // Track whether this is a actually a constexpr definition.
 };
 
 // Filler Node to manipulate objects (like vectors, etc)

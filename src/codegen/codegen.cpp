@@ -188,6 +188,12 @@ void CodeGenerator::visit(const DefNode *op) {
     code = gen(op->assign, op->const_expr);
 }
 
+void CodeGenerator::visit(const AssertNode *op) {
+    CGExpr condition = gen(op->constraint);
+    std::string name = (op->compile_time) ? "std::static_assert" : "std::dynamic_assert";
+    code = VoidCall::make(Call::make(name, {condition}));
+}
+
 void CodeGenerator::visit(const BlankNode *) {
     code = CGStmt();
 }

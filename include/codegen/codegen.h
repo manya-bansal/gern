@@ -27,6 +27,7 @@ public:
     void visit(const IntervalNode *);
     void visit(const BlankNode *);
     void visit(const DefNode *);
+    void visit(const AssertNode *);
     void visit(const BlockNode *);
     void visit(const FunctionBoundary *);
 

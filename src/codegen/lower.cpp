@@ -47,6 +47,10 @@ void DefNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 
+void AssertNode::accept(LowerIRVisitor *v) const {
+    v->visit(this);
+}
+
 bool IntervalNode::isMappedToGrid() const {
     return p != Grid::Unit::UNDEFINED;
 }
@@ -97,8 +101,15 @@ LowerIR ComposableLower::generate_definitions(Assign definition) const {
     return new const DefNode(definition, v.isConstExpr());
 }
 
-void ComposableLower::lower(const TiledComputation *node) {
+LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraints) const {
     std::vector<LowerIR> lowered;
+    for (const auto &c : constraints) {
+        lowered.push_back(new const AssertNode(c, false));  // Need to add logic for lowering constraints.
+    }
+    return new const BlockNode(lowered);
+}
+
+void ComposableLower::lower(const TiledComputation *node) {
     // First, add the value of the captured value.
     Variable captured = node->captured;
     Variable loop_index(getUniqueName("_i_"));
@@ -243,6 +254,9 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
     }
 
     std::vector<LowerIR> lowered;
+
+    // Generate the constraints now.
+    lowered.push_back(generate_constraints(node->getAnnotation().getConstraints()));
 
     std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
     Pattern pattern = node->getAnnotation().getPattern();
