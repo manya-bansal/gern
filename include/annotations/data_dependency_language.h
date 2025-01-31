@@ -49,6 +49,7 @@ public:
     Expr(int32_t);
     Expr(int64_t);
     Expr(double);
+    Expr(Grid::Dim);
 
     bool operator()(const Expr &e) {
         return ptr < e.ptr;
@@ -247,7 +248,7 @@ public:
     typedef ADTMemberNode Node;
 };
 
-class GridDim : public Constraint {
+class GridDim : public Expr {
 public:
     GridDim(const GridDimNode *);
     GridDim(const Grid::Dim &);

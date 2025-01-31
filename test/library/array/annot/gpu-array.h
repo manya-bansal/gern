@@ -56,9 +56,9 @@ protected:
 };
 
 // This *must* be a device function.
-class add_1_GPU : public add_1 {
+class Add1GPU : public add_1 {
 public:
-    add_1_GPU()
+    Add1GPU()
         : add_1() {
     }
 
@@ -183,10 +183,10 @@ private:
     Variable len{"len"};
 };
 
-class add_1_GPU_Template : public add_1_GPU {
+class Add1GPUTemplate : public Add1GPU {
 public:
-    add_1_GPU_Template()
-        : add_1_GPU() {
+    Add1GPUTemplate()
+        : Add1GPU() {
     }
 
     virtual FunctionSignature getFunction() override {
@@ -195,6 +195,16 @@ public:
         f.args = {Parameter(input), Parameter(output)};
         f.template_args = {step};
         return f;
+    }
+};
+
+class AddArrayThreads : public Add1GPU {
+public:
+    AddArrayThreads() = default;
+    Annotation getAnnotation() override {
+        return resetUnit(Add1GPU::getAnnotation(),
+                         {Grid::Unit::THREAD_X})
+            .assumes(GridDim(Grid::Dim::BLOCK_DIM_X) > step);
     }
 };
 

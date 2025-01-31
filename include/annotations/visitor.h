@@ -52,6 +52,7 @@ public:
     virtual void visit(const ModNode *) = 0;
     virtual void visit(const VariableNode *) = 0;
     virtual void visit(const ADTMemberNode *) = 0;
+    virtual void visit(const GridDimNode *) = 0;
 };
 
 class ConstraintVisitorStrict {
@@ -67,7 +68,6 @@ public:
     virtual void visit(const GreaterNode *) = 0;
     virtual void visit(const OrNode *) = 0;
     virtual void visit(const AndNode *) = 0;
-    virtual void visit(const GridDimNode *) = 0;
 };
 
 class StmtVisitorStrict {
@@ -285,6 +285,7 @@ private:
     RULE(DivNode);
     RULE(MulNode);
     RULE(ModNode);
+    RULE(GridDimNode);
 
     RULE(AndNode);
     RULE(OrNode);
@@ -294,7 +295,6 @@ private:
     RULE(GeqNode);
     RULE(LessNode);
     RULE(GreaterNode);
-    RULE(GridDimNode);
 
     RULE(AssignNode);
     RULE(SubsetNode);

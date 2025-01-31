@@ -8,27 +8,28 @@ namespace gern {
 std::ostream &operator<<(std::ostream &os, const Grid::Unit &p) {
     switch (p) {
 
-    case Grid::Unit::BLOCK_ID_X:
-        os << "BLOCK_ID_X";
+    case Grid::Unit::BLOCK_X:
+        os << "BLOCK_X";
         return os;
-    case Grid::Unit::BLOCK_ID_Y:
-        os << "BLOCK_ID_Y";
+    case Grid::Unit::BLOCK_Y:
+        os << "BLOCK_Y";
         return os;
-    case Grid::Unit::BLOCK_ID_Z:
-        os << "BLOCK_ID_Z";
+    case Grid::Unit::BLOCK_Z:
+        os << "BLOCK_Z";
         return os;
 
-    case Grid::Unit::THREAD_ID_X:
-        os << "THREAD_ID_X";
+    case Grid::Unit::THREAD_X:
+        os << "THREAD_X";
         return os;
-    case Grid::Unit::THREAD_ID_Y:
-        os << "THREAD_ID_Y";
+    case Grid::Unit::THREAD_Y:
+        os << "THREAD_Y";
         return os;
-    case Grid::Unit::THREAD_ID_Z:
-        os << "THREAD_ID_Z";
+    case Grid::Unit::THREAD_Z:
+        os << "THREAD_Z";
         return os;
     case Grid::Unit::SCALAR_UNIT:
         os << "SCALAR_UNIT";
+        return os;
     default:
         os << "UNDEFINED";
         return os;
@@ -116,21 +117,37 @@ bool legalToDistribute(const std::set<Grid::Unit> &units, const Grid::Unit &dist
     return true;
 }
 
-Grid::Level getLevel(const Grid::Unit &p) {
+Grid::Level getLevel(const Grid::Unit &unit) {
 
-    switch (p) {
-    case Grid::Unit::THREAD_ID_X:
-    case Grid::Unit::THREAD_ID_Y:
-    case Grid::Unit::THREAD_ID_Z:
+    switch (unit) {
+    case Grid::Unit::THREAD_X:
+    case Grid::Unit::THREAD_Y:
+    case Grid::Unit::THREAD_Z:
         return Grid::Level::THREADS;
-    case Grid::Unit::BLOCK_ID_X:
-    case Grid::Unit::BLOCK_ID_Y:
-    case Grid::Unit::BLOCK_ID_Z:
+    case Grid::Unit::BLOCK_X:
+    case Grid::Unit::BLOCK_Y:
+    case Grid::Unit::BLOCK_Z:
         return Grid::Level::BLOCK;
     case Grid::Unit::UNDEFINED:
         return Grid::Level::NULL_LEVEL;
     default:
         return Grid::Level::SCALAR;
+    }
+}
+
+Grid::Level getLevel(const Grid::Dim &dim) {
+
+    switch (dim) {
+    case Grid::Dim::BLOCK_DIM_X:
+    case Grid::Dim::BLOCK_DIM_Y:
+    case Grid::Dim::BLOCK_DIM_Z:
+        return Grid::Level::THREADS;
+    case Grid::Dim::GRID_DIM_X:
+    case Grid::Dim::GRID_DIM_Y:
+    case Grid::Dim::GRID_DIM_Z:
+        return Grid::Level::BLOCK;
+    default:
+        throw error::UserError("Unimplemented Dimension");
     }
 }
 
@@ -141,6 +158,34 @@ Grid::Level getLevel(const std::set<Grid::Unit> &units) {
         level = (level > current_unit) ? level : current_unit;
     }
     return level;
+}
+
+Grid::Dim getDim(const Grid::Unit &unit) {
+
+    switch (unit) {
+    case Grid::Unit::THREAD_X:
+        return Grid::Dim::BLOCK_DIM_X;
+    case Grid::Unit::THREAD_Y:
+        return Grid::Dim::BLOCK_DIM_Y;
+    case Grid::Unit::THREAD_Z:
+        return Grid::Dim::BLOCK_DIM_Z;
+    case Grid::Unit::BLOCK_X:
+        return Grid::Dim::GRID_DIM_X;
+    case Grid::Unit::BLOCK_Y:
+        return Grid::Dim::GRID_DIM_Y;
+    case Grid::Unit::BLOCK_Z:
+        return Grid::Dim::GRID_DIM_Z;
+    default:
+        throw error::UserError("Asking for the dim for an undefined unit!");
+    }
+}
+
+std::set<Grid::Dim> getDims(const std::set<Grid::Unit> &units) {
+    std::set<Grid::Dim> dims;
+    for (const auto &unit : units) {
+        dims.insert(getDim(unit));
+    }
+    return dims;
 }
 
 }  // namespace gern

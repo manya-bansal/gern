@@ -81,7 +81,7 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
     Variable l_y("l_y");
 
     Composable program = {
-        (Tile(outputDS["row"], l_x) || Grid::Unit::BLOCK_ID_X)(
+        (Tile(outputDS["row"], l_x) || Grid::Unit::BLOCK_X)(
             Tile(outputDS["col"], l_y)(
                 add(inputDS, outputDS)))};
 
@@ -141,8 +141,8 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     Variable l_y("l_y");
 
     Composable program = {
-        (Tile(outputDS["row"], l_x) || Grid::Unit::BLOCK_ID_X)(
-            (Tile(outputDS["col"], l_y) || Grid::Unit::BLOCK_ID_Y)(
+        (Tile(outputDS["row"], l_x) || Grid::Unit::BLOCK_X)(
+            (Tile(outputDS["col"], l_y) || Grid::Unit::BLOCK_Y)(
                 add(inputDS, outputDS)))};
 
     program.callAtDevice();

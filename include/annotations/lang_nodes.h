@@ -85,11 +85,11 @@ DEFINE_BINARY_NODE(GeqNode, Constraint)
 DEFINE_BINARY_NODE(LessNode, Constraint)
 DEFINE_BINARY_NODE(GreaterNode, Constraint)
 
-struct GridDimNode : public ConstraintNode {
+struct GridDimNode : public ExprNode {
     GridDimNode(const Grid::Dim &dim)
         : dim(dim) {
     }
-    void accept(ConstraintVisitorStrict *v) const override {
+    void accept(ExprVisitorStrict *v) const override {
         v->visit(this);
     }
     Grid::Dim dim;

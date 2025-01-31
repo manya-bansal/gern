@@ -64,4 +64,12 @@ inline T replaceADTs(T annot,
     return to<T>(rw.rewrite(annot));
 }
 
+template<typename T>
+inline std::set<Grid::Dim> getDims(T annot) {
+    std::set<Grid::Dim> dims;
+    match(annot, std::function<void(const GridDimNode *)>(
+                     [&](const GridDimNode *op) { dims.insert(op->dim); }));
+    return dims;
+}
+
 }  // namespace gern

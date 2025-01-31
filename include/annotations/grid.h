@@ -11,13 +11,13 @@ enum Unit {
 
     SCALAR_UNIT,
 
-    THREAD_ID_X,
-    THREAD_ID_Y,
-    THREAD_ID_Z,
+    THREAD_X,
+    THREAD_Y,
+    THREAD_Z,
 
-    BLOCK_ID_X,
-    BLOCK_ID_Y,
-    BLOCK_ID_Z,
+    BLOCK_X,
+    BLOCK_Y,
+    BLOCK_Z,
 };
 
 enum Dim {
@@ -80,5 +80,11 @@ bool legalToDistribute(const std::set<Grid::Unit> &u, const Grid::Unit &p);
 Grid::Level getLevel(const Grid::Unit &p);
 
 Grid::Level getLevel(const std::set<Grid::Unit> &p);
+
+Grid::Level getLevel(const Grid::Dim &dim);
+
+Grid::Dim getDim(const Grid::Unit &unit);
+
+std::set<Grid::Dim> getDims(const std::set<Grid::Unit> &unit);
 
 }  // namespace gern

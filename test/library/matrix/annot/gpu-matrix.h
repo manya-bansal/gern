@@ -70,7 +70,7 @@ public:
 
     Annotation getAnnotation() override {
         return resetUnit(MatrixAddCPU::getAnnotation(),
-                         Grid::Level::SCALAR);
+                         {Grid::Unit::SCALAR_UNIT});
     }
 
     std::vector<std::string> getHeader() {

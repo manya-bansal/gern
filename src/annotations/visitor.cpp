@@ -322,7 +322,7 @@ void Rewriter::visit(const LiteralNode *op) {
 }
 
 void Rewriter::visit(const GridDimNode *op) {
-    where = GridDim(op->dim);
+    expr = GridDim(op->dim);
 }
 
 void Rewriter::visit(const ConsumesNode *op) {

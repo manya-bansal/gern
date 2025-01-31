@@ -16,7 +16,6 @@ static void iterable_printer(std::ostream &os,
                              const T &v,
                              int ident,
                              std::string end = "") {
-    int len = v.size();
     for (const auto &e : v) {
         printIdent(os, ident);
         os << e;

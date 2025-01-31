@@ -5,6 +5,7 @@
 #include "compose/compose.h"
 #include "utils/debug.h"
 #include "utils/error.h"
+#include "utils/printer.h"
 
 #include <algorithm>
 #include <set>
@@ -13,19 +14,22 @@
 namespace gern {
 
 Expr::Expr(uint32_t val)
-    : Expr(new LiteralNode(val)) {
+    : Expr(new const LiteralNode(val)) {
 }
 Expr::Expr(uint64_t val)
-    : Expr(new LiteralNode(val)) {
+    : Expr(new const LiteralNode(val)) {
 }
 Expr::Expr(int32_t val)
-    : Expr(new LiteralNode(val)) {
+    : Expr(new const LiteralNode(val)) {
 }
 Expr::Expr(int64_t val)
-    : Expr(new LiteralNode(val)) {
+    : Expr(new const LiteralNode(val)) {
 }
 Expr::Expr(double val)
-    : Expr(new LiteralNode(val)) {
+    : Expr(new const LiteralNode(val)) {
+}
+Expr::Expr(Grid::Dim dim)
+    : Expr(new const GridDimNode(dim)) {
 }
 
 void Expr::accept(ExprVisitorStrict *v) const {
@@ -149,7 +153,7 @@ std::string ADTMember::getMember() const {
 }
 
 GridDim::GridDim(const GridDimNode *n)
-    : Constraint(n) {
+    : Expr(n) {
 }
 
 GridDim::GridDim(const Grid::Dim &dim)
@@ -473,12 +477,23 @@ Annotation annotate(Pattern p) {
 
 Annotation Annotation::assumes(std::vector<Constraint> constraints) const {
     auto annotVars = getVariables(getPattern());
+    auto legalDims = getDims(getOccupiedUnits());       // Dimensions of the grid the function can actually control.
+    auto current_level = getLevel(getOccupiedUnits());  // Dimensions of the grid the function can actually control.
     for (const auto &c : constraints) {
         auto constraintVars = getVariables(c);
         if (!std::includes(annotVars.begin(), annotVars.end(), constraintVars.begin(),
                            constraintVars.end(), std::less<Variable>())) {
             throw error::UserError("Putting constraints on variables that are not "
                                    "present in statement's scope");
+        }
+        auto constraintDims = getDims(c);
+        for (const auto &c_dim : constraintDims) {
+            if (!legalDims.contains(c_dim) &&
+                getLevel(c_dim) >= current_level) {
+                throw error::UserError(" Cannot constrain " +
+                                       util::str(c_dim) + " at " +
+                                       util::str(current_level));
+            }
         }
     }
     return Annotation(getPattern(), getOccupiedUnits(), constraints);

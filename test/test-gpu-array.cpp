@@ -16,7 +16,7 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
 
-    annot::add_1_GPU add_1;
+    annot::Add1GPU add_1;
     Variable v("v");
     Variable step("step");
 
@@ -79,13 +79,13 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
 
-    annot::add_1_GPU add_1;
+    annot::Add1GPU add_1;
     Variable v("v");
     Variable step("step");
     Variable blk("blk");
 
     Composable program =
-        (Tile(outputDS["size"], step) || Grid::Unit::BLOCK_ID_X)(
+        (Tile(outputDS["size"], step) || Grid::Unit::BLOCK_X)(
             add_1(inputDS, outputDS));
 
     program.callAtDevice();
@@ -119,14 +119,14 @@ TEST(LoweringGPU, DoubleBind) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
 
-    annot::add_1_GPU add_1;
+    annot::Add1GPU add_1;
     Variable v("v");
     Variable step("step");
     Variable blk("blk");
 
     Composable program =
-        (Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_ID_X)(
-            (Tile(outputDS["size"], step) || Grid::Unit::THREAD_ID_X)(
+        (Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_X)(
+            (Tile(outputDS["size"], step) || Grid::Unit::THREAD_X)(
                 add_1(inputDS, outputDS)));
 
     program.callAtDevice();
@@ -163,15 +163,15 @@ TEST(LoweringGPU, MultiArray) {
     auto tempDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("temp", true));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayStaticGPU("output_con"));
 
-    annot::add_1_GPU_Template add_1;
+    annot::Add1GPUTemplate add_1;
     Variable x("x");
     Variable end("end");
     Variable step("step");
     Variable blk("blk");
 
     Composable program =
-        (Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_ID_X)(
-            (Tile(outputDS["size"], step.bindToInt64(1)) || Grid::Unit::THREAD_ID_X)(
+        (Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_X)(
+            (Tile(outputDS["size"], step.bindToInt64(1)) || Grid::Unit::THREAD_X)(
                 add_1(inputDS, tempDS),
                 add_1(tempDS, outputDS)));
 
