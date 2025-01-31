@@ -12,13 +12,19 @@ enum Property {
     THREAD_ID_Y,
     THREAD_ID_Z,
 
-    BLOCK_DIM_X,
-    BLOCK_DIM_Y,
-    BLOCK_DIM_Z,
-
     BLOCK_ID_X,
     BLOCK_ID_Y,
     BLOCK_ID_Z,
+};
+
+enum Dim {
+    GRID_DIM_X,
+    GRID_DIM_Y,
+    GRID_DIM_Z,
+
+    BLOCK_DIM_X,
+    BLOCK_DIM_Y,
+    BLOCK_DIM_Z,
 };
 
 enum Unit {
@@ -35,12 +41,12 @@ enum Unit {
 }  // namespace Grid
 
 std::ostream &operator<<(std::ostream &, const Grid::Property &);
+std::ostream &operator<<(std::ostream &, const Grid::Dim &);
 std::ostream &operator<<(std::ostream &, const Grid::Unit &);
 
 bool isGridPropertySet(const Grid::Property &);
 // Indicates whether the property chances over the
 // same kernel launch.
-bool isPropertyStable(const Grid::Property &);
 
 /**
  * @brief isLegalUnit checks whether the grid unit is legal for the GPU.

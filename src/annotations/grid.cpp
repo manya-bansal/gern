@@ -27,18 +27,36 @@ std::ostream &operator<<(std::ostream &os, const Grid::Property &p) {
         os << "THREAD_ID_Z";
         return os;
 
-    case Grid::Property::BLOCK_DIM_X:
+    default:
+        os << "UNDEFINED";
+        return os;
+    }
+}
+
+std::ostream &operator<<(std::ostream &os, const Grid::Dim &dim) {
+    switch (dim) {
+
+    case Grid::Dim::BLOCK_DIM_X:
         os << "BLOCK_DIM_X";
         return os;
-    case Grid::Property::BLOCK_DIM_Y:
+    case Grid::Dim::BLOCK_DIM_Y:
         os << "BLOCK_DIM_Y";
         return os;
-    case Grid::Property::BLOCK_DIM_Z:
+    case Grid::Dim::BLOCK_DIM_Z:
         os << "BLOCK_DIM_Z";
+        return os;
+    case Grid::Dim::GRID_DIM_X:
+        os << "GRID_DIM_X";
+        return os;
+    case Grid::Dim::GRID_DIM_Y:
+        os << "GRID_DIM_Y";
+        return os;
+    case Grid::Dim::GRID_DIM_Z:
+        os << "GRID_DIM_Z";
         return os;
 
     default:
-        os << "UNDEFINED";
+        error::InternalError("Unreachable");
         return os;
     }
 }
@@ -76,17 +94,6 @@ bool isGridPropertySet(const Grid::Property &p) {
 
 bool isLegalUnit(const Grid::Unit &u) {
     return u != Grid::Unit::NULL_UNIT;
-}
-
-bool isPropertyStable(const Grid::Property &p) {
-    if (p == Grid::Property::BLOCK_DIM_X ||
-        p == Grid::Property::BLOCK_DIM_Y ||
-        p == Grid::Property::BLOCK_DIM_Z) {
-
-        return true;
-    }
-
-    return false;
 }
 
 bool legalToDistribute(const Grid::Unit &u, const Grid::Property &p) {

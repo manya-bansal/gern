@@ -85,6 +85,10 @@ DEFINE_BINARY_NODE(GeqNode, Constraint)
 DEFINE_BINARY_NODE(LessNode, Constraint)
 DEFINE_BINARY_NODE(GreaterNode, Constraint)
 
+// struct GridDimNode : public ConstraintNode {
+
+// };
+
 // Assignment Node
 DEFINE_BINARY_NODE(AssignNode, Stmt)
 

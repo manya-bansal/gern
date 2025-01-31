@@ -27,6 +27,7 @@ struct LessNode;
 struct GreaterNode;
 struct AndNode;
 struct OrNode;
+struct GridDimNode;
 struct PatternNode;
 struct AnnotationNode;
 struct AssignNode;
@@ -245,6 +246,11 @@ public:
     std::string getMember() const;
     typedef ADTMemberNode Node;
 };
+
+// class GridDim : public Constraint {
+// public:
+//     typedef GridDimNode Node;
+// };
 
 }  // namespace gern
 

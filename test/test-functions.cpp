@@ -38,17 +38,6 @@ TEST(Functions, CallFunctions) {
     ASSERT_NO_THROW(add_with_size(inputDS, outputDS, Variable{"x"}));
 }
 
-TEST(Functions, Binding) {
-    // Try to incorrectly bind variables to the grid.
-    annot::add_1 add_1;
-    AbstractDataTypePtr inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
-    Variable x("x");
-    ASSERT_THROW((add_1[{
-                     {"x", x.bindToGrid(Grid::Property::BLOCK_DIM_X)},
-                 }](inputDS, inputDS)),
-                 error::UserError);
-}
-
 TEST(Functions, ReplaceWithFreshVars) {
     AbstractDataTypePtr inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
     AbstractDataTypePtr outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
