@@ -68,10 +68,10 @@ public:
         return (For(x = Expr(0), output["size"], step,
                     Produces::Subset(output, {x, step}),
                     Consumes::Subset(input, {x, step}))
-                    .occupies(Grid::Unit::SCALAR));
+                    .occupies({Grid::Unit::SCALAR_UNIT}));
     }
 
-    std::vector<std::string> getHeader() {
+    std::vector<std::string> getHeader() override {
         return {
             "gpu-array.h",
             "gpu-array.cu",

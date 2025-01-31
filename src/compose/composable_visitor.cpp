@@ -59,9 +59,9 @@ void LegalToCompose::visit(const Computation *node) {
 
 void LegalToCompose::visit(const TiledComputation *node) {
 
-    Grid::Property property = node->property;
+    Grid::Unit property = node->property;
     // Do not allow the same property to be used in the same scope.
-    if (isGridPropertySet(property) &&
+    if (isLegalUnit(property) &&
         property_in_use.contains(property)) {
         throw error::UserError("Already using " +
                                util::str(property) +

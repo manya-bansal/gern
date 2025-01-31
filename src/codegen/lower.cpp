@@ -48,7 +48,7 @@ void DefNode::accept(LowerIRVisitor *v) const {
 }
 
 bool IntervalNode::isMappedToGrid() const {
-    return p != Grid::Property::UNDEFINED;
+    return p != Grid::Unit::UNDEFINED;
 }
 
 Variable IntervalNode::getIntervalVariable() const {

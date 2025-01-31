@@ -13,14 +13,14 @@ static void printIdent(std::ostream &os, int ident) {
 
 template<typename T>
 static void iterable_printer(std::ostream &os,
-                             std::vector<T> v,
+                             const T &v,
                              int ident,
                              std::string end = "") {
     int len = v.size();
-    for (int i = 0; i < len; i++) {
+    for (const auto &e : v) {
         printIdent(os, ident);
-        os << v[i];
-        os << ((i != len - 1) ? "," : "");
+        os << e;
+        // os << ((i != len - 1) ? "," : "");
         os << end;
     }
 }

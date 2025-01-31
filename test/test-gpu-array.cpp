@@ -85,7 +85,7 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     Variable blk("blk");
 
     Composable program =
-        (Tile(outputDS["size"], step) || Grid::Property::BLOCK_ID_X)(
+        (Tile(outputDS["size"], step) || Grid::Unit::BLOCK_ID_X)(
             add_1(inputDS, outputDS));
 
     program.callAtDevice();
@@ -125,8 +125,8 @@ TEST(LoweringGPU, DoubleBind) {
     Variable blk("blk");
 
     Composable program =
-        (Tile(outputDS["size"], blk) || Grid::Property::BLOCK_ID_X)(
-            (Tile(outputDS["size"], step) || Grid::Property::THREAD_ID_X)(
+        (Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_ID_X)(
+            (Tile(outputDS["size"], step) || Grid::Unit::THREAD_ID_X)(
                 add_1(inputDS, outputDS)));
 
     program.callAtDevice();
@@ -170,8 +170,8 @@ TEST(LoweringGPU, MultiArray) {
     Variable blk("blk");
 
     Composable program =
-        (Tile(outputDS["size"], blk) || Grid::Property::BLOCK_ID_X)(
-            (Tile(outputDS["size"], step.bindToInt64(1)) || Grid::Property::THREAD_ID_X)(
+        (Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_ID_X)(
+            (Tile(outputDS["size"], step.bindToInt64(1)) || Grid::Unit::THREAD_ID_X)(
                 add_1(inputDS, tempDS),
                 add_1(tempDS, outputDS)));
 

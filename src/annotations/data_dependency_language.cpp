@@ -71,11 +71,11 @@ Variable::Variable(const std::string &name)
 
 Variable::Variable(const std::string &name, bool const_expr)
     : Expr(new const VariableNode(name,
-                                  Grid::Property::UNDEFINED,
+                                  Grid::Unit::UNDEFINED,
                                   Datatype::Int64, const_expr)) {
 }
 
-Variable Variable::bindToGrid(const Grid::Property &p) const {
+Variable Variable::bindToGrid(const Grid::Unit &p) const {
     return Variable(new const VariableNode(getName(), p));
 }
 
@@ -85,7 +85,7 @@ Variable Variable::bindToInt64(int64_t val) const {
 }
 
 bool Variable::isBoundToGrid() const {
-    return isGridPropertySet(getBoundProperty());
+    return isLegalUnit(getBoundProperty());
 }
 
 bool Variable::isConstExpr() const {
@@ -112,7 +112,7 @@ int64_t Variable::getInt64Val() const {
     return getNode(*this)->val;
 }
 
-Grid::Property Variable::getBoundProperty() const {
+Grid::Unit Variable::getBoundProperty() const {
     return getNode(*this)->p;
 }
 
@@ -411,8 +411,8 @@ Pattern::Pattern(const PatternNode *p)
     : Stmt(p) {
 }
 
-Annotation Pattern::occupies(Grid::Unit unit) const {
-    return Annotation(*this, unit, {});
+Annotation Pattern::occupies(std::set<Grid::Unit> occupied) const {
+    return Annotation(*this, occupied, {});
 }
 
 Annotation Pattern::assumes(std::vector<Constraint> constraints) const {
@@ -462,13 +462,13 @@ Annotation::Annotation(const AnnotationNode *n)
 }
 
 Annotation::Annotation(Pattern p,
-                       Grid::Unit unit,
+                       std::set<Grid::Unit> occupied,
                        std::vector<Constraint> constraints)
-    : Annotation(new const AnnotationNode(p, unit, constraints)) {
+    : Annotation(new const AnnotationNode(p, occupied, constraints)) {
 }
 
 Annotation annotate(Pattern p) {
-    return Annotation(p, Grid::Unit::NULL_UNIT, {});
+    return Annotation(p, {}, {});
 }
 
 Annotation Annotation::assumes(std::vector<Constraint> constraints) const {
@@ -481,7 +481,7 @@ Annotation Annotation::assumes(std::vector<Constraint> constraints) const {
                                    "present in statement's scope");
         }
     }
-    return Annotation(getPattern(), getOccupiedUnit(), constraints);
+    return Annotation(getPattern(), getOccupiedUnits(), constraints);
 }
 
 Pattern Annotation::getPattern() const {
@@ -492,12 +492,12 @@ std::vector<Constraint> Annotation::getConstraints() const {
     return getNode(*this)->constraints;
 }
 
-Grid::Unit Annotation::getOccupiedUnit() const {
-    return getNode(*this)->unit;
+std::set<Grid::Unit> Annotation::getOccupiedUnits() const {
+    return getNode(*this)->occupied;
 }
 
-Annotation resetUnit(Annotation annot, Grid::Unit unit) {
-    return Annotation(annot.getPattern(), unit, annot.getConstraints());
+Annotation resetUnit(Annotation annot, std::set<Grid::Unit> occupied) {
+    return Annotation(annot.getPattern(), occupied, annot.getConstraints());
 }
 
 Pattern For(Assign start, ADTMember end, Variable step, Pattern body,

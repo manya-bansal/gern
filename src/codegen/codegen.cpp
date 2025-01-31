@@ -251,21 +251,21 @@ CGExpr CodeGenerator::gen(Expr e) {
     return cg.cg_e;
 }
 
-static CGExpr genProp(const Grid::Property &p) {
+static CGExpr genProp(const Grid::Unit &p) {
     switch (p) {
 
-    case Grid::Property::BLOCK_ID_X:
+    case Grid::Unit::BLOCK_ID_X:
         return EscapeCGExpr::make("blockIdx.x");
-    case Grid::Property::BLOCK_ID_Y:
+    case Grid::Unit::BLOCK_ID_Y:
         return EscapeCGExpr::make("blockIdx.y");
-    case Grid::Property::BLOCK_ID_Z:
+    case Grid::Unit::BLOCK_ID_Z:
         return EscapeCGExpr::make("blockIdx.z");
 
-    case Grid::Property::THREAD_ID_X:
+    case Grid::Unit::THREAD_ID_X:
         return EscapeCGExpr::make("threadIdx.x");
-    case Grid::Property::THREAD_ID_Y:
+    case Grid::Unit::THREAD_ID_Y:
         return EscapeCGExpr::make("threadIdx.y");
-    case Grid::Property::THREAD_ID_Z:
+    case Grid::Unit::THREAD_ID_Z:
         return EscapeCGExpr::make("threadIdx.z");
 
     default:
@@ -526,7 +526,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     }
 
     Variable interval_var = op->getIntervalVariable();
-    Grid::Property property = op->p;
+    Grid::Unit property = op->p;
 
     // This only works for ceiling.
     CGExpr divisor = gen(op->step);
@@ -534,17 +534,17 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     auto ceil = (divisor + dividend - 1) / divisor;
 
     // Store the grid dimension that correspond with this mapping.
-    if (property == Grid::Property::BLOCK_ID_X) {
+    if (property == Grid::Unit::BLOCK_ID_X) {
         grid_dim.x = ceil;
-    } else if (property == Grid::Property::BLOCK_ID_Y) {
+    } else if (property == Grid::Unit::BLOCK_ID_Y) {
         grid_dim.y = ceil;
-    } else if (property == Grid::Property::BLOCK_ID_Z) {
+    } else if (property == Grid::Unit::BLOCK_ID_Z) {
         grid_dim.z = ceil;
-    } else if (property == Grid::Property::THREAD_ID_X) {
+    } else if (property == Grid::Unit::THREAD_ID_X) {
         block_dim.x = ceil;
-    } else if (property == Grid::Property::THREAD_ID_Y) {
+    } else if (property == Grid::Unit::THREAD_ID_Y) {
         block_dim.y = ceil;
-    } else if (property == Grid::Property::THREAD_ID_Z) {
+    } else if (property == Grid::Unit::THREAD_ID_Z) {
         block_dim.z = ceil;
     } else {
         throw error::InternalError("Unreachable");

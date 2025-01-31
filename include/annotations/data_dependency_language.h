@@ -143,7 +143,7 @@ public:
      *  @param p The grid property to bind this variable
      *           to.
      */
-    Variable bindToGrid(const Grid::Property &p) const;
+    Variable bindToGrid(const Grid::Unit &p) const;
     Variable bindToInt64(int64_t) const;
     bool isBoundToGrid() const;
     bool isConstExpr() const;
@@ -159,7 +159,7 @@ public:
      */
     bool isBound() const;
     int64_t getInt64Val() const;
-    Grid::Property getBoundProperty() const;
+    Grid::Unit getBoundProperty() const;
 
     std::string getName() const;
     Datatype getType() const;
@@ -416,7 +416,7 @@ class Annotation : public Stmt {
 public:
     Annotation() = default;
     Annotation(const AnnotationNode *);
-    Annotation(Pattern, Grid::Unit, std::vector<Constraint>);
+    Annotation(Pattern, std::set<Grid::Unit>, std::vector<Constraint>);
     Pattern getPattern() const;
     std::vector<Constraint> getConstraints() const;
 
@@ -432,7 +432,7 @@ public:
         return this->assumes(constraints);
     }
 
-    Grid::Unit getOccupiedUnit() const;
+    std::set<Grid::Unit> getOccupiedUnits() const;
     typedef AnnotationNode Node;
 };
 
@@ -442,7 +442,7 @@ public:
         : Stmt() {
     }
     explicit Pattern(const PatternNode *);
-    Annotation occupies(Grid::Unit) const;
+    Annotation occupies(std::set<Grid::Unit>) const;
 
     Annotation assumes(std::vector<Constraint>) const;
     /**
@@ -476,7 +476,7 @@ public:
 };
 
 Annotation annotate(Pattern);
-Annotation resetUnit(Annotation, Grid::Unit);
+Annotation resetUnit(Annotation, std::set<Grid::Unit>);
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.

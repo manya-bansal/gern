@@ -29,7 +29,7 @@ std::ostream &operator<<(std::ostream &os, const LiteralNode &);
 
 struct VariableNode : public ExprNode {
     VariableNode(const std::string &name,
-                 Grid::Property p = Grid::Property::UNDEFINED,
+                 Grid::Unit p = Grid::Unit::UNDEFINED,
                  Datatype type = Datatype::Int64, bool const_expr = false,
                  bool bound = false, int64_t val = 0)
         : ExprNode(Datatype::Kind::Int64), name(name), p(p),
@@ -40,7 +40,7 @@ struct VariableNode : public ExprNode {
     }
 
     std::string name;
-    Grid::Property p;
+    Grid::Unit p;
     Datatype type;
     bool const_expr;
     bool bound;
@@ -202,17 +202,17 @@ struct ComputesNode : public PatternNode {
 
 struct AnnotationNode : public StmtNode {
     AnnotationNode(Pattern p,
-                   Grid::Unit unit,
+                   std::set<Grid::Unit> occupied,
                    std::vector<Constraint> constraints)
         : p(p),
-          unit(unit),
+          occupied(occupied),
           constraints(constraints) {
     }
     void accept(StmtVisitorStrict *v) const override {
         v->visit(this);
     }
     Pattern p;
-    Grid::Unit unit;
+    std::set<Grid::Unit> occupied;
     std::vector<Constraint> constraints;
 };
 

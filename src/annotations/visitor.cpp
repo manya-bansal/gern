@@ -40,7 +40,7 @@ void Printer::visit(const LiteralNode *op) {
 }
 void Printer::visit(const VariableNode *op) {
     os << op->name;
-    if (isGridPropertySet(op->p)) {
+    if (isLegalUnit(op->p)) {
         os << op->p;
     }
 }
@@ -181,7 +181,8 @@ void Printer::visit(const PatternNode *op) {
 
 void Printer::visit(const AnnotationNode *op) {
     this->visit(op->p);
-    os << " @ " << op->unit << "\n";
+    os << " @ ";
+    util::iterable_printer(os, op->occupied, 0);
     util::printIdent(os, ident);
     os << " with constraints {";
     ident++;
@@ -402,7 +403,7 @@ void Rewriter::visit(const AnnotationNode *op) {
     for (const auto &c : op_constraints) {
         rw_constraints.push_back(this->rewrite(c));
     }
-    stmt = Annotation(rw_pattern, op->unit, rw_constraints);
+    stmt = Annotation(rw_pattern, op->occupied, rw_constraints);
 }
 
 #define DEFINE_BINARY_REWRITER_METHOD(CLASS_NAME, PARENT, VAR) \
