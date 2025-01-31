@@ -68,7 +68,7 @@ public:
         return (For(x = Expr(0), output["size"], step,
                     Produces::Subset(output, {x, step}),
                     Consumes::Subset(input, {x, step}))
-                    .occupies(Grid::Unit::THREADS));
+                    .occupies(Grid::Unit::SCALAR));
     }
 
     std::vector<std::string> getHeader() {

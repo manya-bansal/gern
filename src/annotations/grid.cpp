@@ -104,10 +104,12 @@ bool legalToDistribute(const Grid::Unit &u, const Grid::Property &p) {
         }
         break;
     case Grid::Unit::THREADS:
-        if (p >= Grid::Property::THREAD_ID_X) {
+        if (p >= Grid::Property::THREAD_ID_X) {  // Need to add a property for warp.
             return true;
         }
         break;
+    case Grid::Unit::SCALAR:
+        return true;
     default:
         throw error::InternalError("This unit has not been implemented!");
     }

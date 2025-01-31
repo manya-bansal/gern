@@ -48,6 +48,7 @@ private:
     std::set<AbstractDataTypePtr> all_reads;
     std::set<AbstractDataTypePtr> all_writes;
     util::ScopedSet<AbstractDataTypePtr> in_scope;
+    util::ScopedSet<Grid::Property> property_in_use;
 };
 
 class ComposableVisitor : public ComposableVisitorStrict {

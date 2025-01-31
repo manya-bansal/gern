@@ -58,10 +58,23 @@ void LegalToCompose::visit(const Computation *node) {
 }
 
 void LegalToCompose::visit(const TiledComputation *node) {
+
+    Grid::Property property = node->property;
+    // Do not allow the same property to be used in the same scope.
+    if (isPropertyStable(property) &&
+        property_in_use.contains(property)) {
+        throw error::UserError("Already using " +
+                               util::str(property) +
+                               " in current scope");
+    }
+
     in_scope.scope();
+    property_in_use.scope();
+    property_in_use.insert(property);
     node->tiled.accept(this);
 
-    Pattern pattern = node->getAnnotation().getPattern();
+    Annotation annotation = node->getAnnotation();
+    Pattern pattern = annotation.getPattern();
     auto inputs = getADTSet(pattern.getInputs());
     auto output = pattern.getOutput().getDS();
 
@@ -75,6 +88,7 @@ void LegalToCompose::visit(const TiledComputation *node) {
     }
 
     in_scope.unscope();
+    property_in_use.unscope();
     in_scope.insert(output);
 }
 
