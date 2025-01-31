@@ -203,17 +203,6 @@ std::string Stmt::str() const {
     return ss.str();
 }
 
-Stmt Stmt::whereStmt(Constraint constraint) const {
-    auto stmtVars = getVariables(*this);
-    auto constraintVars = getVariables(constraint);
-    if (!std::includes(stmtVars.begin(), stmtVars.end(), constraintVars.begin(),
-                       constraintVars.end(), std::less<Variable>())) {
-        throw error::UserError("Putting constraints on variables that are not "
-                               "present in statement's scope");
-    }
-    return Stmt(ptr, constraint);
-}
-
 std::set<Variable> Stmt::getDefinedVariables() const {
     std::set<Variable> vars;
     match(*this, std::function<void(const AssignNode *)>(
@@ -284,20 +273,6 @@ std::map<ADTMember, std::tuple<Variable, Expr, Variable>> Stmt::getReducableFiel
           }));
     return tileable;
 }
-
-#define DEFINE_WHERE_METHOD(Type)            \
-    Type Type::where(Constraint c) {         \
-        return to<Type>(this->whereStmt(c)); \
-    }
-
-DEFINE_WHERE_METHOD(Consumes)
-DEFINE_WHERE_METHOD(SubsetObj)
-DEFINE_WHERE_METHOD(Produces)
-DEFINE_WHERE_METHOD(ConsumeMany)
-DEFINE_WHERE_METHOD(SubsetObjMany)
-DEFINE_WHERE_METHOD(Allocates)
-DEFINE_WHERE_METHOD(Pattern)
-DEFINE_WHERE_METHOD(Computes)
 
 #define DEFINE_BINARY_CONSTRUCTOR(CLASS_NAME, NODE)               \
     CLASS_NAME::CLASS_NAME(const CLASS_NAME##Node *n) : NODE(n) { \
@@ -427,6 +402,10 @@ Annotation Pattern::occupies(Grid::Unit unit) const {
     return Annotation(*this, unit, {});
 }
 
+Annotation Pattern::assumes(std::vector<Constraint> constraints) const {
+    return annotate(*this).assumes(constraints);
+}
+
 std::vector<SubsetObj> Pattern::getInputs() const {
     std::vector<SubsetObj> subset;
     match(*this, std::function<void(const SubsetObjManyNode *)>(
@@ -480,6 +459,15 @@ Annotation annotate(Pattern p) {
 }
 
 Annotation Annotation::assumes(std::vector<Constraint> constraints) const {
+    auto annotVars = getVariables(getPattern());
+    for (const auto &c : constraints) {
+        auto constraintVars = getVariables(c);
+        if (!std::includes(annotVars.begin(), annotVars.end(), constraintVars.begin(),
+                           constraintVars.end(), std::less<Variable>())) {
+            throw error::UserError("Putting constraints on variables that are not "
+                                   "present in statement's scope");
+        }
+    }
     return Annotation(getPattern(), getOccupiedUnit(), constraints);
 }
 

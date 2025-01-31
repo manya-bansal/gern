@@ -135,7 +135,6 @@ struct TileDummy {
     }
 
     TileDummy operator||(Grid::Property p);
-
     ADTMember member;
     Variable v;
     bool reduce;

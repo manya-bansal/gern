@@ -285,8 +285,6 @@ Expr Rewriter::rewrite(Expr e) {
 Stmt Rewriter::rewrite(Stmt s) {
     if (s.defined()) {
         s.accept(this);
-        Constraint rw_where = this->rewrite(s.getConstraint());
-        stmt = stmt.whereStmt(rw_where);
     } else {
         stmt = Stmt();
     }
