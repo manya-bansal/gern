@@ -41,20 +41,6 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     }
     // Now, call the compute function.
     CGStmt hook_call = gen(compute_func.constructCall());
-    if (is_device_call) {
-        // Declare the grid and block dimensions.
-        hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
-        hook_body.push_back(EscapeCGStmt::make("dim3 __block_dim__(" + block_dim.str() + ");"));
-        std::vector<CGExpr> hook_args;
-        for (auto const &a : compute_func.args) {
-            hook_args.push_back(gen(a));
-        }
-        std::vector<CGExpr> call_template_vars;
-        for (auto const &a : compute_func.template_args) {
-            call_template_vars.push_back(gen(a));
-        }
-        hook_call = VoidCall::make(KernelLaunch::make(name, hook_args, call_template_vars, Var::make("__grid_dim__"), Var::make("__block_dim__")));
-    }
     hook_body.push_back(hook_call);
 
     // Finally ready to generate the full file.
@@ -124,6 +110,14 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
     compute_func.args = parameters;
     compute_func.template_args = template_arguments;
     compute_func.device = is_device_launch;
+    compute_func.block = block_dim;
+    compute_func.grid = grid_dim;
+
+    if (is_device_launch) {
+        compute_func.access = GLOBAL;
+    } else {
+        compute_func.access = HOST;
+    }
 
     // This generate the function declaration with the body.
     code = gen(compute_func, code);
@@ -558,9 +552,10 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     Grid::Unit unit = op->p;
 
     // This only works for ceiling.
-    CGExpr divisor = gen(op->step);
-    CGExpr dividend = gen(op->end) - gen(op->start.getB());
-    auto ceil = (divisor + dividend - 1) / divisor;
+    Expr divisor = op->step;
+    Expr dividend = op->end - op->start.getB();
+    Expr ceil = (divisor + dividend - 1) / divisor;
+    std::cout << ceil << std::endl;
 
     // Store the grid dimension that correspond with this mapping.
     if (unit == Grid::Unit::BLOCK_X) {

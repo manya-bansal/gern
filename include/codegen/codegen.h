@@ -95,23 +95,8 @@ private:
     std::set<std::string> libs;
     std::vector<std::string> argument_order;
 
-    // To track kernel launch parameters.
-    struct cg_dim3 {
-        CGExpr x = Literal::make(1);
-        CGExpr y = Literal::make(1);
-        CGExpr z = Literal::make(1);
-        std::string str() {
-            return x.str() + ", " +
-                   y.str() + ", " +
-                   z.str();
-        }
-    };
-
-    LaunchParameters grid_dim;
-    LaunchParameters block_dim;
-
-    cg_dim3 grid_dim;
-    cg_dim3 block_dim;
+    LaunchArguments grid_dim;
+    LaunchArguments block_dim;
 };
 
 }  // namespace codegen

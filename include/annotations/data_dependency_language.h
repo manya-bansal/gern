@@ -336,8 +336,12 @@ inline bool isa(const T &e) {
 
 template<typename E, typename T>
 inline const E to(const T &e) {
-    assert(isa<E>(e));
-    return E(static_cast<const typename E::Node *>(e.ptr));
+    if constexpr (std::is_same_v<E, T>) {
+        return e;
+    } else {
+        assert(isa<E>(e));
+        return E(static_cast<const typename E::Node *>(e.ptr));
+    }
 }
 
 DEFINE_BINARY_CLASS(Assign, Stmt)

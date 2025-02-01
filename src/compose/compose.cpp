@@ -8,11 +8,16 @@
 namespace gern {
 
 LaunchArguments LaunchParameters::constructCall() const {
-    LaunchArguments args{
-        .x = x,
-        .y = y,
-        .z = z,
-    };
+    LaunchArguments args;
+    if (x.defined()) {
+        args.x = x;
+    }
+    if (y.defined()) {
+        args.y = y;
+    }
+    if (z.defined()) {
+        args.z = z;
+    }
     return args;
 }
 
@@ -22,8 +27,8 @@ FunctionCall FunctionSignature::constructCall() const {
         .args = std::vector<Argument>(args.begin(), args.end()),
         .template_args = std::vector<Expr>(template_args.begin(), template_args.end()),
         .output = output,
-        .grid = grid.constructCall(),
-        .block = block.constructCall(),
+        .grid = grid,
+        .block = block,
         .access = access,
     };
     return f_call;

@@ -369,25 +369,8 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     FunctionCall f_new = f.constructCall();
     f_new.args = new_args;
     f_new.template_args = template_args;
-
-    if (f_new.access == GLOBAL) {
-        LaunchParameters sig_grid = f.grid;
-        LaunchArguments grid{
-            .x = mappings.at(sig_grid.x),
-            .y = mappings.at(sig_grid.y),
-            .z = mappings.at(sig_grid.z),
-        };
-
-        LaunchParameters sig_block = f.block;
-        LaunchArguments block{
-            .x = mappings.at(sig_block.x),
-            .y = mappings.at(sig_block.y),
-            .z = mappings.at(sig_block.z),
-        };
-
-        f_new.grid = grid;
-        f_new.block = block;
-    }
+    f_new.grid = LaunchArguments();
+    f_new.block = LaunchArguments();
 
     return f_new;
 }

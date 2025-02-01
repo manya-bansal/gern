@@ -17,9 +17,9 @@ enum Access {
 };
 
 struct LaunchArguments {
-    Expr x = Expr();
-    Expr y = Expr();
-    Expr z = Expr();
+    Expr x = Expr(1);
+    Expr y = Expr(1);
+    Expr z = Expr(1);
 };
 
 // For making an actual function call.
@@ -60,9 +60,9 @@ struct FunctionSignature {
     // To model an explict return. Currently, no compute FunctionSignature can return.
     Parameter output = Parameter();
 
-    // Launch Parameeters (in case it is a global function).
-    LaunchParameters grid = LaunchParameters();
-    LaunchParameters block = LaunchParameters();
+    // Launch Arguments (in case it is a global function).
+    LaunchArguments grid = LaunchArguments();
+    LaunchArguments block = LaunchArguments();
 
     Access access = HOST;
     bool device = false;
