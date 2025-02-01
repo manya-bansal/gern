@@ -107,6 +107,9 @@ private:
         }
     };
 
+    LaunchParameters grid_dim;
+    LaunchParameters block_dim;
+
     cg_dim3 grid_dim;
     cg_dim3 block_dim;
 };

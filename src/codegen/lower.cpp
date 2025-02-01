@@ -295,12 +295,8 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         }
     }
 
-    FunctionCall new_call{
-        .name = call.name,
-        .args = new_args,
-        .template_args = call.template_args,
-        .output = call.output,
-    };
+    FunctionCall new_call = call;
+    new_call.args = new_args;
 
     lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
     // Free any the queried subsets.
@@ -362,19 +358,36 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     // Now, set up the args.
     std::vector<Argument> new_args;
     for (auto const &a : f.args) {
-        new_args.push_back(Argument(mappings[to<VarArg>(a)->getVar()]));
+        new_args.push_back(Argument(mappings.at(to<VarArg>(a)->getVar())));
     }
     // set up the templated args.
     std::vector<Expr> template_args;
     for (auto const &a : f.template_args) {
-        template_args.push_back(mappings[a]);
+        template_args.push_back(mappings.at(a));
     }
 
-    FunctionCall f_new{
-        .name = f.name,
-        .args = new_args,
-        .template_args = template_args,
-    };
+    FunctionCall f_new = f.constructCall();
+    f_new.args = new_args;
+    f_new.template_args = template_args;
+
+    if (f_new.access == GLOBAL) {
+        LaunchParameters sig_grid = f.grid;
+        LaunchArguments grid{
+            .x = mappings.at(sig_grid.x),
+            .y = mappings.at(sig_grid.y),
+            .z = mappings.at(sig_grid.z),
+        };
+
+        LaunchParameters sig_block = f.block;
+        LaunchArguments block{
+            .x = mappings.at(sig_block.x),
+            .y = mappings.at(sig_block.y),
+            .z = mappings.at(sig_block.z),
+        };
+
+        f_new.grid = grid;
+        f_new.block = block;
+    }
 
     return f_new;
 }

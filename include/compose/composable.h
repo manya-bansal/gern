@@ -34,6 +34,7 @@ public:
     Composable()
         : util::IntrusivePtr<const ComposableNode>(nullptr) {
     }
+
     Composable(const ComposableNode *n);
     Composable(std::vector<Composable> composed);
     std::set<Variable> getVariableArgs() const;
@@ -43,6 +44,7 @@ public:
     bool isDeviceLaunch() const {
         return call_at_device;
     }
+
     void callAtDevice() {
         call_at_device = true;
     }

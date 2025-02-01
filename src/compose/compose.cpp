@@ -7,12 +7,24 @@
 
 namespace gern {
 
+LaunchArguments LaunchParameters::constructCall() const {
+    LaunchArguments args{
+        .x = x,
+        .y = y,
+        .z = z,
+    };
+    return args;
+}
+
 FunctionCall FunctionSignature::constructCall() const {
     FunctionCall f_call{
         .name = name,
         .args = std::vector<Argument>(args.begin(), args.end()),
         .template_args = std::vector<Expr>(template_args.begin(), template_args.end()),
         .output = output,
+        .grid = grid.constructCall(),
+        .block = block.constructCall(),
+        .access = access,
     };
     return f_call;
 }

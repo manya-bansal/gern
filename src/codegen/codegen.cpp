@@ -53,7 +53,7 @@ CGStmt CodeGenerator::generate_code(Composable c) {
         for (auto const &a : compute_func.template_args) {
             call_template_vars.push_back(gen(a));
         }
-        hook_call = KernelLaunch::make(name, hook_args, call_template_vars, Var::make("__grid_dim__"), Var::make("__block_dim__"));
+        hook_call = VoidCall::make(KernelLaunch::make(name, hook_args, call_template_vars, Var::make("__grid_dim__"), Var::make("__block_dim__")));
     }
     hook_body.push_back(hook_call);
 
@@ -431,10 +431,35 @@ CGStmt CodeGenerator::gen(FunctionCall f) {
     }
 
     CGExpr call = Call::make(f.name, args, template_args);
-    if (f.output.defined()) {
-        return VarAssign::make(declParameter(f.output, true), call);
+    std::vector<CGStmt> stmt;
+    // If it is a global function, then also set up the grid.
+    if (f.access == GLOBAL) {
+        std::string grid_name = getUniqueName("grid");
+        std::string block_name = getUniqueName("block");
+
+        LaunchArguments grid = f.grid;
+        LaunchArguments block = f.block;
+        CGExpr dim3_type = Type::make("dim3");
+
+        // Define the grid dimensions.
+        stmt.push_back(VarAssign::make(
+            VarDecl::make(dim3_type, grid_name, DeclProperties()),
+            Call::make("dim3", {gen(grid.x), gen(grid.y), gen(grid.z)})));
+        // Define the block dimensions.
+        stmt.push_back(VarAssign::make(
+            VarDecl::make(dim3_type, block_name, DeclProperties()),
+            Call::make("dim3", {gen(block.x), gen(block.y), gen(block.z)})));
+        call = KernelLaunch::make(f.name, args, template_args,
+                                  Var::make(grid_name), Var::make(block_name));
     }
-    return VoidCall::make(call);
+
+    if (f.output.defined()) {
+        stmt.push_back(VarAssign::make(declParameter(f.output, true), call));
+    } else {
+        stmt.push_back(VoidCall::make(call));
+    }
+
+    return Block::make(stmt);
 }
 
 CGStmt CodeGenerator::gen(FunctionSignature f, CGStmt body) {

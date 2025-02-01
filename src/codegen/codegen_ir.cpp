@@ -271,7 +271,7 @@ void CGStmtNode<VoidCall>::accept(CGVisitorStrict *v) const {
 }
 
 template<>
-void CGStmtNode<KernelLaunch>::accept(CGVisitorStrict *v) const {
+void CGExprNode<KernelLaunch>::accept(CGVisitorStrict *v) const {
     v->visit((const KernelLaunch *)this);
 }
 

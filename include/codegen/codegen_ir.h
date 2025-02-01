@@ -692,7 +692,7 @@ struct VoidCall : public CGStmtNode<VoidCall> {
     static const CGNodeType _type_info = CGNodeType::VoidCall;
 };
 
-struct KernelLaunch : public CGStmtNode<KernelLaunch> {
+struct KernelLaunch : public CGExprNode<KernelLaunch> {
     // Should be of type call, just wrapping in stmt
     std::string name;
     std::vector<CGExpr> args;
@@ -700,7 +700,7 @@ struct KernelLaunch : public CGStmtNode<KernelLaunch> {
     CGExpr grid;
     CGExpr block;
 
-    static CGStmt make(std::string name,
+    static CGExpr make(std::string name,
                        std::vector<CGExpr> args,
                        std::vector<CGExpr> template_args,
                        CGExpr grid,
