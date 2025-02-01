@@ -100,8 +100,6 @@ public:
 
     // Generate new variables for everything except variables passed as argument.
     const ComputeFunctionCall *refreshVariable() const;
-    std::set<Variable> getVariableArgs() const override;
-    std::set<Variable> getTemplateArgs() const override;
 
     void accept(ComposableVisitorStrict *) const override;
 

@@ -57,7 +57,9 @@ std::ostream &operator<<(std::ostream &os, const Grid::Dim &dim) {
     case Grid::Dim::GRID_DIM_Z:
         os << "GRID_DIM_Z";
         return os;
-
+    case Grid::Dim::NULL_DIM:
+        os << "NULL_DIM";
+        return os;
     default:
         error::InternalError("Unreachable");
         return os;
@@ -160,6 +162,15 @@ Grid::Level getLevel(const std::set<Grid::Unit> &units) {
     return level;
 }
 
+Grid::Level getLevel(const std::set<Grid::Dim> &dims) {
+    Grid::Level level{Grid::Level::NULL_LEVEL};
+    for (const auto &dim : dims) {
+        auto current_level = getLevel(dim);
+        level = (level > current_level) ? level : current_level;
+    }
+    return level;
+}
+
 Grid::Dim getDim(const Grid::Unit &unit) {
 
     switch (unit) {
@@ -175,6 +186,9 @@ Grid::Dim getDim(const Grid::Unit &unit) {
         return Grid::Dim::GRID_DIM_Y;
     case Grid::Unit::BLOCK_Z:
         return Grid::Dim::GRID_DIM_Z;
+    case Grid::Unit::UNDEFINED:
+    case Grid::Unit::SCALAR_UNIT:
+        return Grid::Dim::NULL_DIM;
     default:
         throw error::UserError("Asking for the dim for an undefined unit!");
     }
@@ -186,6 +200,21 @@ std::set<Grid::Dim> getDims(const std::set<Grid::Unit> &units) {
         dims.insert(getDim(unit));
     }
     return dims;
+}
+
+bool isDimInScope(const Grid::Dim &dim, const std::set<Grid::Dim> &dims) {
+
+    // If this is a dimension that the units directly control, then it is in scope.
+    if (dims.contains(dim)) {
+        return true;
+    }
+
+    // If not under direct control, check if the dim belongs to a unit at a lower level.
+    if (getLevel(dim) < getLevel(dims)) {
+        return true;
+    }
+
+    return false;  // Cannot control.
 }
 
 }  // namespace gern

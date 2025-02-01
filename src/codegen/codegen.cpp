@@ -30,6 +30,7 @@ CGStmt CodeGenerator::generate_code(Composable c) {
         .num_ref = 1,
         .num_ptr = 0,
     };
+
     // Get all the arguments out of a void**.
     for (size_t i = 0; i < compute_func.args.size(); i++) {
         Parameter param = compute_func.args[i];
@@ -555,7 +556,6 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     Expr divisor = op->step;
     Expr dividend = op->end - op->start.getB();
     Expr ceil = (divisor + dividend - 1) / divisor;
-    std::cout << ceil << std::endl;
 
     // Store the grid dimension that correspond with this mapping.
     if (unit == Grid::Unit::BLOCK_X) {

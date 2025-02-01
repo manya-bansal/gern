@@ -30,6 +30,7 @@ set(TEST_SOURCES
     test-nodes.cpp
     test-pipeline.cpp
     test-set-unit.cpp
+    test-set-grid.cpp
     # test-resolve-constraints.cpp
     test-runner.cpp
 )

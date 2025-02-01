@@ -307,6 +307,10 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
     lowerIR = new const BlockNode(lowered);
 }
 
+void ComposableLower::visit(const GlobalNode *node) {
+    this->visit(node->program);  // Just visit the program.
+}
+
 AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
     if (current_ds.contains(ds)) {
         return current_ds.at(ds);

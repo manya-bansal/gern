@@ -63,6 +63,7 @@ private:
     void lower(const TiledComputation *);
 
     void visit(const ComputeFunctionCall *);
+    void visit(const GlobalNode *);
 
     /**
      * @brief common pulls out functionality used to define output.

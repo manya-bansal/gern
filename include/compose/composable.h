@@ -20,8 +20,6 @@ public:
     ComposableNode() = default;
     virtual ~ComposableNode() = default;
     virtual void accept(ComposableVisitorStrict *) const = 0;
-    virtual std::set<Variable> getVariableArgs() const = 0;
-    virtual std::set<Variable> getTemplateArgs() const = 0;
     virtual Annotation getAnnotation() const = 0;
 };
 
@@ -37,23 +35,26 @@ public:
 
     Composable(const ComposableNode *n);
     Composable(std::vector<Composable> composed);
-    std::set<Variable> getVariableArgs() const;
-    std::set<Variable> getTemplateArgs() const;
     Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *v) const;
-    bool isDeviceLaunch() const {
-        return call_at_device;
-    }
-
-    void callAtDevice() {
-        call_at_device = true;
-    }
-
-private:
-    bool call_at_device = false;
+    bool isDeviceLaunch() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Composable &f);
+
+class GlobalNode : public ComposableNode {
+public:
+    GlobalNode(Composable program,
+               std::map<Grid::Dim, Variable> launch_args);
+    Annotation getAnnotation() const override;
+    void accept(ComposableVisitorStrict *) const override;
+    Composable program;
+    std::map<Grid::Dim, Variable> launch_args;
+};
+
+// Wrap a function in a global interface, mostly for a nicety.
+Composable Global(Composable program,
+                  std::map<Grid::Dim, Variable> launch_args = {});
 
 /**
  * @brief Computation contains a vector of composable objects.
@@ -62,26 +63,17 @@ std::ostream &operator<<(std::ostream &os, const Composable &f);
 class Computation : public ComposableNode {
 public:
     Computation(std::vector<Composable> composed);
-
-    std::set<Variable> getVariableArgs() const;
-    std::set<Variable> getTemplateArgs() const;
-
-    Annotation getAnnotation() const;
-    void accept(ComposableVisitorStrict *) const;
+    Annotation getAnnotation() const override;
+    void accept(ComposableVisitorStrict *) const override;
 
     void check_legal();
-    void init_args();
     void init_annotation();
-    void init_template_args();
     void infer_relationships(AbstractDataTypePtr output,
                              std::vector<Variable> output_fields);
 
     AbstractDataTypePtr output;
     std::vector<Composable> composed;
     std::vector<Assign> declarations;
-
-    std::set<Variable> variable_args;
-    std::set<Variable> template_args;
 
     std::map<AbstractDataTypePtr, std::set<Composable>> consumer_functions;
     Annotation _annotation;
@@ -94,8 +86,7 @@ public:
                      Composable body,
                      Grid::Unit unit,
                      bool reduce);
-    std::set<Variable> getVariableArgs() const;
-    std::set<Variable> getTemplateArgs() const;
+
     Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *) const;
 
