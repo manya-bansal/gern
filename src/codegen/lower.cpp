@@ -31,6 +31,10 @@ void InsertNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 
+void GridDeclNode::accept(LowerIRVisitor *v) const {
+    v->visit(this);
+}
+
 void QueryNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
@@ -308,7 +312,13 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
 }
 
 void ComposableLower::visit(const GlobalNode *node) {
+    std::vector<LowerIR> lowered;
+    for (const auto &def : node->launch_args) {
+        lowered.push_back(new const GridDeclNode(def.first, def.second));
+    }
     this->visit(node->program);  // Just visit the program.
+    lowered.push_back(lowerIR);
+    lowerIR = new const BlockNode(lowered);
 }
 
 AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {

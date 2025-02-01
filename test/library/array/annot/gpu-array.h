@@ -204,7 +204,7 @@ public:
     Annotation getAnnotation() override {
         return resetUnit(Add1GPU::getAnnotation(),
                          {Grid::Unit::THREAD_X})
-            .assumes(GridDim(Grid::Dim::BLOCK_DIM_X) > step);
+            .assumes(GridDim(Grid::Dim::BLOCK_DIM_X) >= step);
     }
 };
 
