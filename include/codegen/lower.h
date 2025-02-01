@@ -131,6 +131,15 @@ struct InsertNode : public LowerIRNode {
     FunctionCall f;
 };
 
+struct GridDeclNode : public LowerIRNode {
+    GridDeclNode(const Grid::Dim &dim, Variable v)
+        : dim(dim), v(v) {
+    }
+    void accept(LowerIRVisitor *) const;
+    Grid::Dim dim;
+    Variable v;
+};
+
 // IR Node that marks a query
 // The child data structure is produced
 // from the parent data-structure corresponding to

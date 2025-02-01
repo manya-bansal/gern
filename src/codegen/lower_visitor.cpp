@@ -90,4 +90,9 @@ void LowerPrinter::visit(const BlockNode *node) {
     }
 }
 
+void LowerPrinter::visit(const GridDeclNode *node) {
+    util::printIdent(os, ident);
+    os << node->dim << " = " << node->v;
+}
+
 }  // namespace gern

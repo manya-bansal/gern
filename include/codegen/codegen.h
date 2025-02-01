@@ -30,6 +30,7 @@ public:
     void visit(const AssertNode *);
     void visit(const BlockNode *);
     void visit(const FunctionBoundary *);
+    void visit(const GridDeclNode *);
 
     CGExpr gen(Expr);  // Is this part of the LHS of a const_expr?
     CGExpr gen(Constraint);
@@ -37,6 +38,7 @@ public:
     CGStmt gen(FunctionCall f);
     CGStmt gen(FunctionSignature f, CGStmt body);
     CGExpr gen(const Grid::Dim &p);
+    CGStmt declDim(const Grid::Dim &p, Expr val);
 
     // Assign in used to track all the variables
     // that have been declared during lowering. The
@@ -96,6 +98,7 @@ private:
     std::set<std::string> includes;
     std::set<std::string> libs;
     std::vector<std::string> argument_order;
+    std::map<Grid::Dim, Expr> dims_defined;
 
     LaunchArguments grid_dim;
     LaunchArguments block_dim;

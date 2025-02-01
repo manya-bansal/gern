@@ -189,6 +189,10 @@ void CodeGenerator::visit(const AssertNode *op) {
     code = VoidCall::make(Call::make(name, {condition}));
 }
 
+void CodeGenerator::visit(const GridDeclNode *op) {
+    code = declDim(op->dim, op->v);
+}
+
 void CodeGenerator::visit(const BlankNode *) {
     code = CGStmt();
 }
@@ -235,6 +239,41 @@ CGExpr CodeGenerator::gen(const Grid::Dim &p) {
         throw error::InternalError("Undefined Grid Dim Passed!");
     }
     return gen(Expr(1));
+}
+
+CGStmt CodeGenerator::declDim(const Grid::Dim &p, Expr val) {
+    if (dims_defined.contains(p)) {
+        auto temp = code;
+        visit(new const AssertNode(p == val, false));  // Generate an assert.
+        auto lowered = code;
+        code = temp;  // Restore.
+        return lowered;
+    } else {
+        dims_defined[p] = val;
+        switch (p) {
+        case Grid::Dim::BLOCK_DIM_X:
+            block_dim.x = val;
+            break;
+        case Grid::Dim::BLOCK_DIM_Y:
+            block_dim.y = val;
+            break;
+        case Grid::Dim::BLOCK_DIM_Z:
+            block_dim.z = val;
+            break;
+        case Grid::Dim::GRID_DIM_X:
+            grid_dim.x = val;
+            break;
+        case Grid::Dim::GRID_DIM_Y:
+            grid_dim.y = val;
+            break;
+        case Grid::Dim::GRID_DIM_Z:
+            grid_dim.y = val;
+            break;
+        default:
+            throw error::InternalError("Undefined Grid Dim Passed!");
+        }
+    }
+    return BlankLine::make();
 }
 
 #define VISIT_AND_DECLARE(op)          \
@@ -564,22 +603,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     Expr ceil = (divisor + dividend - 1) / divisor;
 
     // Store the grid dimension that correspond with this mapping.
-    if (unit == Grid::Unit::BLOCK_X) {
-        grid_dim.x = ceil;
-    } else if (unit == Grid::Unit::BLOCK_Y) {
-        grid_dim.y = ceil;
-    } else if (unit == Grid::Unit::BLOCK_Z) {
-        grid_dim.z = ceil;
-    } else if (unit == Grid::Unit::THREAD_X) {
-        block_dim.x = ceil;
-    } else if (unit == Grid::Unit::THREAD_Y) {
-        block_dim.y = ceil;
-    } else if (unit == Grid::Unit::THREAD_Z) {
-        block_dim.z = ceil;
-    } else {
-        throw error::InternalError("Unreachable");
-    }
-
+    declDim(getDim(unit), ceil);
     // Actually declare the variable to use the grid.
     return VarAssign::make(
         declVar(interval_var, false),
