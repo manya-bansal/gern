@@ -17,9 +17,11 @@ enum Access {
 };
 
 struct LaunchArguments {
-    Expr x = Expr(1);
-    Expr y = Expr(1);
-    Expr z = Expr(1);
+    Expr x = Expr();
+    Expr y = Expr();
+    Expr z = Expr();
+
+    LaunchArguments constructDefaults() const;
 };
 
 // For making an actual function call.

@@ -432,8 +432,8 @@ CGStmt CodeGenerator::gen(FunctionCall f) {
         std::string grid_name = getUniqueName("grid");
         std::string block_name = getUniqueName("block");
 
-        LaunchArguments grid = f.grid;
-        LaunchArguments block = f.block;
+        LaunchArguments grid = f.grid.constructDefaults();
+        LaunchArguments block = f.block.constructDefaults();
         CGExpr dim3_type = Type::make("dim3");
 
         // Define the grid dimensions.

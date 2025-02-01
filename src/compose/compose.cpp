@@ -7,6 +7,24 @@
 
 namespace gern {
 
+LaunchArguments LaunchArguments::constructDefaults() const {
+    LaunchArguments args{
+        .x = Expr(1),
+        .y = Expr(1),
+        .z = Expr(1),
+    };
+    if (x.defined()) {
+        args.x = x;
+    }
+    if (y.defined()) {
+        args.y = y;
+    }
+    if (z.defined()) {
+        args.z = z;
+    }
+    return args;
+}
+
 LaunchArguments LaunchParameters::constructCall() const {
     LaunchArguments args;
     if (x.defined()) {

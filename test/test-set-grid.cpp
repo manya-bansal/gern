@@ -42,3 +42,19 @@ TEST(SetGrid, SimpleSet) {
             {{Grid::Dim::BLOCK_DIM_Y, step}}),
         error::UserError);
 }
+
+// Try running a program that requires the grid to be set.
+TEST(SetGrid, RunWithParam) {
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
+
+    annot::AddArrayThreads add_1;
+    Variable v("v");
+    Variable step("step");
+
+    Composable program =
+        Global(
+            Tile(outputDS["size"], step)(
+                add_1(inputDS, outputDS)),
+            {{Grid::Dim::BLOCK_DIM_X, step}});
+}
