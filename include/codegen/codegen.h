@@ -36,12 +36,14 @@ public:
     CGExpr gen(AbstractDataTypePtr);
     CGStmt gen(FunctionCall f);
     CGStmt gen(FunctionSignature f, CGStmt body);
+    CGExpr gen(const Grid::Dim &p);
 
     // Assign in used to track all the variables
     // that have been declared during lowering. The
     // const_expr tracks whether the assignment is
     // to a const_expr variable.
     CGStmt gen(Assign, bool const_expr);
+    CGStmt gen(Expr a, Expr b);
     /**
      * @brief  Generate code expressions for Arguments.
      * This also tracks the input and output
@@ -90,7 +92,7 @@ private:
     FunctionSignature compute_func;
     CGStmt code;
 
-    std::set<std::string> headers;
+    std::set<std::string> headers{"cassert"};  // add cassert, definitely using this.
     std::set<std::string> includes;
     std::set<std::string> libs;
     std::vector<std::string> argument_order;

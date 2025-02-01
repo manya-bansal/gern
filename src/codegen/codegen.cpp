@@ -185,7 +185,7 @@ void CodeGenerator::visit(const DefNode *op) {
 
 void CodeGenerator::visit(const AssertNode *op) {
     CGExpr condition = gen(op->constraint);
-    std::string name = (op->compile_time) ? "std::static_assert" : "std::dynamic_assert";
+    std::string name = (op->compile_time) ? "std::static_assert" : "dynamic_assert";
     code = VoidCall::make(Call::make(name, {condition}));
 }
 
@@ -211,24 +211,30 @@ void CodeGenerator::visit(const FunctionBoundary *op) {
     code = gen(cg.getComputeFunctionSignature().constructCall());
 }
 
-static CGExpr genDim(const Grid::Dim &p) {
-    switch (p) {
+#define CHECK_AND_GEN(dim) \
+    if ((dim).defined()) { \
+        return gen(dim);   \
+    }                      \
+    break;
 
+CGExpr CodeGenerator::gen(const Grid::Dim &p) {
+    switch (p) {
     case Grid::Dim::BLOCK_DIM_X:
-        return EscapeCGExpr::make("blockDim.x");
+        CHECK_AND_GEN(block_dim.x);
     case Grid::Dim::BLOCK_DIM_Y:
-        return EscapeCGExpr::make("blockDim.y");
+        CHECK_AND_GEN(block_dim.y);
     case Grid::Dim::BLOCK_DIM_Z:
-        return EscapeCGExpr::make("blockDim.z");
+        CHECK_AND_GEN(block_dim.z);
     case Grid::Dim::GRID_DIM_X:
-        return EscapeCGExpr::make("gridDim.x");
+        CHECK_AND_GEN(grid_dim.x);
     case Grid::Dim::GRID_DIM_Y:
-        return EscapeCGExpr::make("gridDim.y");
+        CHECK_AND_GEN(grid_dim.y);
     case Grid::Dim::GRID_DIM_Z:
-        return EscapeCGExpr::make("blockDim.z");
+        CHECK_AND_GEN(grid_dim.z);
     default:
         throw error::InternalError("Undefined Grid Dim Passed!");
     }
+    return gen(Expr(1));
 }
 
 #define VISIT_AND_DECLARE(op)          \
@@ -257,7 +263,7 @@ CGExpr CodeGenerator::gen(Expr e) {
             cg->insertInUsed(op);
         }
         void visit(const GridDimNode *node) {
-            cg_e = genDim(node->dim);
+            cg_e = cg->gen(node->dim);
         }
         VISIT_AND_DECLARE(Add);
         VISIT_AND_DECLARE(Sub);

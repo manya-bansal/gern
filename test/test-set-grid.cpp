@@ -54,7 +54,36 @@ TEST(SetGrid, RunWithParam) {
 
     Composable program =
         Global(
-            Tile(outputDS["size"], step)(
+            Tile(outputDS["size"], step)(  // This tile is useless,
+                                           // though should not result in incorrect code.
                 add_1(inputDS, outputDS)),
             {{Grid::Dim::BLOCK_DIM_X, step}});
+
+    Runner run(program);
+    run.compile(test::gpuRunner("array"));
+
+    impl::ArrayGPU a(10);
+    a.ascending();
+    impl::ArrayGPU b(10);
+    int64_t step_val = 5;
+
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+        {step.getName(), &step_val},
+    }));
+
+    // impl::ArrayCPU result = b.get();
+    // Make sure we got the correct answer.
+    impl::ArrayCPU result = b.get();
+    impl::ArrayCPU a_host = a.get();
+
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(result.data[i] == (a_host.data[i] + 1));
+    }
+
+    a.destroy();
+    b.destroy();
+    result.destroy();
+    a_host.destroy();
 }
