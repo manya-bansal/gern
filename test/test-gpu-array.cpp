@@ -24,10 +24,9 @@ TEST(LoweringGPU, SingleElemFunctionNoBind) {
     // this implementation runs the entire computation on a
     // single thread.
     Composable program =
-        Tile(outputDS["size"], step)(
-            add_1(inputDS, outputDS));
+        Global(Tile(outputDS["size"], step)(
+            add_1(inputDS, outputDS)));
 
-    program.callAtDevice();
     Runner run(program);
 
     run.compile(test::gpuRunner("array"));
@@ -85,10 +84,9 @@ TEST(LoweringGPU, SingleElemFunctionBind) {
     Variable blk("blk");
 
     Composable program =
-        (Tile(outputDS["size"], step) || Grid::Unit::BLOCK_X)(
-            add_1(inputDS, outputDS));
+        Global((Tile(outputDS["size"], step) || Grid::Unit::BLOCK_X)(
+            add_1(inputDS, outputDS)));
 
-    program.callAtDevice();
     Runner run(program);
     run.compile(test::gpuRunner("array"));
     // Now, actually run the function.
@@ -125,11 +123,11 @@ TEST(LoweringGPU, DoubleBind) {
     Variable blk("blk");
 
     Composable program =
-        (Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_X)(
-            (Tile(outputDS["size"], step) || Grid::Unit::THREAD_X)(
-                add_1(inputDS, outputDS)));
+        Global(
+            (Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_X)(
+                (Tile(outputDS["size"], step) || Grid::Unit::THREAD_X)(
+                    add_1(inputDS, outputDS))));
 
-    program.callAtDevice();
     Runner run(program);
     run.compile(test::gpuRunner("array"));
     // Now, actually run the function.
@@ -170,12 +168,11 @@ TEST(LoweringGPU, MultiArray) {
     Variable blk("blk");
 
     Composable program =
-        (Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_X)(
+        Global((Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_X)(
             (Tile(outputDS["size"], step.bindToInt64(1)) || Grid::Unit::THREAD_X)(
                 add_1(inputDS, tempDS),
-                add_1(tempDS, outputDS)));
+                add_1(tempDS, outputDS))));
 
-    program.callAtDevice();
     Runner run(program);
     run.compile(test::gpuRunner("array"));
 

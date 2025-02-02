@@ -68,7 +68,9 @@ void LowerPrinter::visit(const BlankNode *op) {
 }
 
 void LowerPrinter::visit(const AssertNode *op) {
-    os << ((op->compile_time) ? "static_assert" : "dynamic_assert")
+    bool static_check = isConstExpr(op->constraint.getA()) &&
+                        isConstExpr(op->constraint.getB());
+    os << ((static_check) ? "static_assert" : "assert")
        << op->constraint;
 }
 
@@ -88,6 +90,11 @@ void LowerPrinter::visit(const BlockNode *node) {
         this->visit(ir);
         os << "\n";
     }
+}
+
+void LowerPrinter::visit(const GridDeclNode *node) {
+    util::printIdent(os, ident);
+    os << node->dim << " = " << node->v;
 }
 
 }  // namespace gern

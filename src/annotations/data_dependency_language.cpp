@@ -232,17 +232,13 @@ std::set<Variable> Stmt::getIntervalVariables() const {
     match(*this,
           std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
                                                                            Matcher *ctx) {
-              ctx->match(op->start.getA());
+              vars.insert(to<Variable>(op->start.getA()));
               ctx->match(op->body);
           }),
           std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
                                                                            Matcher *ctx) {
-              ctx->match(op->start.getA());
+              vars.insert(to<Variable>(op->start.getA()));
               ctx->match(op->body);
-          }),
-          std::function<void(const VariableNode *op, Matcher *ctx)>([&](const VariableNode *op,
-                                                                        Matcher *) {
-              vars.insert(op);
           }));
     return vars;
 }
@@ -476,9 +472,11 @@ Annotation annotate(Pattern p) {
 }
 
 Annotation Annotation::assumes(std::vector<Constraint> constraints) const {
+
     auto annotVars = getVariables(getPattern());
     auto legalDims = getDims(getOccupiedUnits());       // Dimensions of the grid the function can actually control.
-    auto current_level = getLevel(getOccupiedUnits());  // Dimensions of the grid the function can actually control.
+    auto current_level = getLevel(getOccupiedUnits());  // Level at which the function is at.
+
     for (const auto &c : constraints) {
         auto constraintVars = getVariables(c);
         if (!std::includes(annotVars.begin(), annotVars.end(), constraintVars.begin(),
@@ -488,8 +486,7 @@ Annotation Annotation::assumes(std::vector<Constraint> constraints) const {
         }
         auto constraintDims = getDims(c);
         for (const auto &c_dim : constraintDims) {
-            if (!legalDims.contains(c_dim) &&
-                getLevel(c_dim) >= current_level) {
+            if (!isDimInScope(c_dim, legalDims)) {
                 throw error::UserError(" Cannot constrain " +
                                        util::str(c_dim) + " at " +
                                        util::str(current_level));

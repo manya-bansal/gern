@@ -1,10 +1,38 @@
 #include "compose/composable.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "compose/composable_visitor.h"
 #include "compose/compose.h"
 #include "utils/printer.h"
 
 namespace gern {
+
+GlobalNode::GlobalNode(Composable program,
+                       std::map<Grid::Dim, Variable> launch_args)
+    : program(program), launch_args(launch_args) {
+
+    auto legal_dims = getDims(program.getAnnotation().getOccupiedUnits());
+    for (const auto &arg : launch_args) {
+        if (!isDimInScope(arg.first, legal_dims)) {
+            throw error::UserError("Cannot specify the size of " +
+                                   util::str(arg.first) + ".");
+        }
+    }
+}
+
+Annotation GlobalNode::getAnnotation() const {
+    return program.getAnnotation();
+}
+
+void GlobalNode::accept(ComposableVisitorStrict *v) const {
+    v->visit(this);
+}
+
+// Wrap a function in a global interface, mostly for a nicety.
+Composable Global(Composable program,
+                  std::map<Grid::Dim, Variable> launch_args) {
+    return new const GlobalNode(program, launch_args);
+}
 
 Computation::Computation(std::vector<Composable> composed)
     : composed(composed) {
@@ -17,18 +45,8 @@ Computation::Computation(std::vector<Composable> composed)
                 consumer_functions[input.getDS()].insert(c);
             }
         }
-        init_args();
-        init_template_args();
         init_annotation();
     }
-}
-
-std::set<Variable> Computation::getVariableArgs() const {
-    return variable_args;
-}
-
-std::set<Variable> Computation::getTemplateArgs() const {
-    return template_args;
 }
 
 Annotation Computation::getAnnotation() const {
@@ -37,20 +55,6 @@ Annotation Computation::getAnnotation() const {
 
 void Computation::accept(ComposableVisitorStrict *v) const {
     v->visit(this);
-}
-
-void Computation::init_args() {
-    for (const auto &c : composed) {
-        std::set<Variable> nested_variable_args = c.getVariableArgs();
-        variable_args.insert(nested_variable_args.begin(), nested_variable_args.end());
-    }
-}
-
-void Computation::init_template_args() {
-    for (const auto &c : composed) {
-        std::set<Variable> nested_variable_args = c.getTemplateArgs();
-        template_args.insert(nested_variable_args.begin(), nested_variable_args.end());
-    }
 }
 
 void Computation::infer_relationships(AbstractDataTypePtr output,
@@ -144,14 +148,6 @@ TiledComputation::TiledComputation(ADTMember adt_member,
     init_binding();
 }
 
-std::set<Variable> TiledComputation::getVariableArgs() const {
-    return tiled.getVariableArgs();
-}
-
-std::set<Variable> TiledComputation::getTemplateArgs() const {
-    return tiled.getTemplateArgs();
-}
-
 Annotation TiledComputation::getAnnotation() const {
     return _annotation;
 }
@@ -184,13 +180,6 @@ void TiledComputation::init_binding() {
     step = std::get<2>(value);
 }
 
-std::set<Variable> Composable::getVariableArgs() const {
-    if (!defined()) {
-        return {};
-    }
-    return ptr->getVariableArgs();
-}
-
 Composable::Composable(const ComposableNode *n)
     : util::IntrusivePtr<const ComposableNode>(n) {
     LegalToCompose check_legal;
@@ -199,13 +188,6 @@ Composable::Composable(const ComposableNode *n)
 
 Composable::Composable(std::vector<Composable> composed)
     : Composable(new const Computation(composed)) {
-}
-
-std::set<Variable> Composable::getTemplateArgs() const {
-    if (!defined()) {
-        return {};
-    }
-    return ptr->getTemplateArgs();
 }
 
 Annotation Composable::getAnnotation() const {
@@ -220,6 +202,10 @@ void Composable::accept(ComposableVisitorStrict *v) const {
         return;
     }
     ptr->accept(v);
+}
+
+bool Composable::isDeviceLaunch() const {
+    return isa<GlobalNode>(ptr);
 }
 
 TileDummy Tile(ADTMember member, Variable v) {

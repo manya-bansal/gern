@@ -31,6 +31,10 @@ void InsertNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 
+void GridDeclNode::accept(LowerIRVisitor *v) const {
+    v->visit(this);
+}
+
 void QueryNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
@@ -104,7 +108,7 @@ LowerIR ComposableLower::generate_definitions(Assign definition) const {
 LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraints) const {
     std::vector<LowerIR> lowered;
     for (const auto &c : constraints) {
-        lowered.push_back(new const AssertNode(c, false));  // Need to add logic for lowering constraints.
+        lowered.push_back(new const AssertNode(c));  // Need to add logic for lowering constraints.
     }
     return new const BlockNode(lowered);
 }
@@ -295,12 +299,8 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         }
     }
 
-    FunctionCall new_call{
-        .name = call.name,
-        .args = new_args,
-        .template_args = call.template_args,
-        .output = call.output,
-    };
+    FunctionCall new_call = call;
+    new_call.args = new_args;
 
     lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
     // Free any the queried subsets.
@@ -308,6 +308,16 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         lowered.push_back(new const FreeNode(ds));
     }
 
+    lowerIR = new const BlockNode(lowered);
+}
+
+void ComposableLower::visit(const GlobalNode *node) {
+    std::vector<LowerIR> lowered;
+    for (const auto &def : node->launch_args) {
+        lowered.push_back(new const GridDeclNode(def.first, def.second));
+    }
+    this->visit(node->program);  // Just visit the program.
+    lowered.push_back(lowerIR);
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -362,19 +372,19 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     // Now, set up the args.
     std::vector<Argument> new_args;
     for (auto const &a : f.args) {
-        new_args.push_back(Argument(mappings[to<VarArg>(a)->getVar()]));
+        new_args.push_back(Argument(mappings.at(to<VarArg>(a)->getVar())));
     }
     // set up the templated args.
     std::vector<Expr> template_args;
     for (auto const &a : f.template_args) {
-        template_args.push_back(mappings[a]);
+        template_args.push_back(mappings.at(a));
     }
 
-    FunctionCall f_new{
-        .name = f.name,
-        .args = new_args,
-        .template_args = template_args,
-    };
+    FunctionCall f_new = f.constructCall();
+    f_new.args = new_args;
+    f_new.template_args = template_args;
+    f_new.grid = LaunchArguments();
+    f_new.block = LaunchArguments();
 
     return f_new;
 }

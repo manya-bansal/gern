@@ -22,7 +22,7 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     std::vector<CGStmt> hook_body;
     // Emit the const expr definitions.
     for (const auto &const_v : compute_func.template_args) {
-        hook_body.push_back(gen(const_v = Expr(const_v.getInt64Val()), true));
+        hook_body.push_back(gen(const_v = Expr(const_v.getInt64Val())));
     }
 
     DeclProperties properties{
@@ -30,6 +30,7 @@ CGStmt CodeGenerator::generate_code(Composable c) {
         .num_ref = 1,
         .num_ptr = 0,
     };
+
     // Get all the arguments out of a void**.
     for (size_t i = 0; i < compute_func.args.size(); i++) {
         Parameter param = compute_func.args[i];
@@ -41,20 +42,6 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     }
     // Now, call the compute function.
     CGStmt hook_call = gen(compute_func.constructCall());
-    if (is_device_call) {
-        // Declare the grid and block dimensions.
-        hook_body.push_back(EscapeCGStmt::make("dim3 __grid_dim__(" + grid_dim.str() + ");"));
-        hook_body.push_back(EscapeCGStmt::make("dim3 __block_dim__(" + block_dim.str() + ");"));
-        std::vector<CGExpr> hook_args;
-        for (auto const &a : compute_func.args) {
-            hook_args.push_back(gen(a));
-        }
-        std::vector<CGExpr> call_template_vars;
-        for (auto const &a : compute_func.template_args) {
-            call_template_vars.push_back(gen(a));
-        }
-        hook_call = KernelLaunch::make(name, hook_args, call_template_vars, Var::make("__grid_dim__"), Var::make("__block_dim__"));
-    }
     hook_body.push_back(hook_call);
 
     // Finally ready to generate the full file.
@@ -124,6 +111,14 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
     compute_func.args = parameters;
     compute_func.template_args = template_arguments;
     compute_func.device = is_device_launch;
+    compute_func.block = block_dim;
+    compute_func.grid = grid_dim;
+
+    if (is_device_launch) {
+        compute_func.access = GLOBAL;
+    } else {
+        compute_func.access = HOST;
+    }
 
     // This generate the function declaration with the body.
     code = gen(compute_func, code);
@@ -190,8 +185,16 @@ void CodeGenerator::visit(const DefNode *op) {
 
 void CodeGenerator::visit(const AssertNode *op) {
     CGExpr condition = gen(op->constraint);
-    std::string name = (op->compile_time) ? "std::static_assert" : "std::dynamic_assert";
+    Constraint constraint = op->constraint;
+    std::string name = (isConstExpr(constraint.getA()) &&
+                        isConstExpr(constraint.getB())) ?
+                           "assert" :  // No static rn.
+                           "assert";
     code = VoidCall::make(Call::make(name, {condition}));
+}
+
+void CodeGenerator::visit(const GridDeclNode *op) {
+    code = declDim(op->dim, op->v);
 }
 
 void CodeGenerator::visit(const BlankNode *) {
@@ -216,24 +219,66 @@ void CodeGenerator::visit(const FunctionBoundary *op) {
     code = gen(cg.getComputeFunctionSignature().constructCall());
 }
 
-static CGExpr genDim(const Grid::Dim &p) {
-    switch (p) {
+#define CHECK_AND_GEN(dim) \
+    if ((dim).defined()) { \
+        return gen(dim);   \
+    }                      \
+    break;
 
+CGExpr CodeGenerator::gen(const Grid::Dim &p) {
+    switch (p) {
     case Grid::Dim::BLOCK_DIM_X:
-        return EscapeCGExpr::make("blockDim.x");
+        CHECK_AND_GEN(block_dim.x);
     case Grid::Dim::BLOCK_DIM_Y:
-        return EscapeCGExpr::make("blockDim.y");
+        CHECK_AND_GEN(block_dim.y);
     case Grid::Dim::BLOCK_DIM_Z:
-        return EscapeCGExpr::make("blockDim.z");
+        CHECK_AND_GEN(block_dim.z);
     case Grid::Dim::GRID_DIM_X:
-        return EscapeCGExpr::make("gridDim.x");
+        CHECK_AND_GEN(grid_dim.x);
     case Grid::Dim::GRID_DIM_Y:
-        return EscapeCGExpr::make("gridDim.y");
+        CHECK_AND_GEN(grid_dim.y);
     case Grid::Dim::GRID_DIM_Z:
-        return EscapeCGExpr::make("blockDim.z");
+        CHECK_AND_GEN(grid_dim.z);
     default:
         throw error::InternalError("Undefined Grid Dim Passed!");
     }
+    return gen(Expr(1));
+}
+
+CGStmt CodeGenerator::declDim(const Grid::Dim &p, Expr val) {
+    if (dims_defined.contains(p)) {
+        auto temp = code;
+        Expr cur_val = dims_defined.at(p);
+        visit(new const AssertNode(cur_val == val));  // Generate an assert.
+        auto lowered = code;
+        code = temp;  // Restore.
+        return lowered;
+    } else {
+        dims_defined[p] = val;
+        switch (p) {
+        case Grid::Dim::BLOCK_DIM_X:
+            block_dim.x = val;
+            break;
+        case Grid::Dim::BLOCK_DIM_Y:
+            block_dim.y = val;
+            break;
+        case Grid::Dim::BLOCK_DIM_Z:
+            block_dim.z = val;
+            break;
+        case Grid::Dim::GRID_DIM_X:
+            grid_dim.x = val;
+            break;
+        case Grid::Dim::GRID_DIM_Y:
+            grid_dim.y = val;
+            break;
+        case Grid::Dim::GRID_DIM_Z:
+            grid_dim.y = val;
+            break;
+        default:
+            throw error::InternalError("Undefined Grid Dim Passed!");
+        }
+    }
+    return BlankLine::make();
 }
 
 #define VISIT_AND_DECLARE(op)          \
@@ -262,7 +307,7 @@ CGExpr CodeGenerator::gen(Expr e) {
             cg->insertInUsed(op);
         }
         void visit(const GridDimNode *node) {
-            cg_e = genDim(node->dim);
+            cg_e = cg->gen(node->dim);
         }
         VISIT_AND_DECLARE(Add);
         VISIT_AND_DECLARE(Sub);
@@ -353,7 +398,7 @@ CGStmt CodeGenerator::gen(Assign a, bool const_expr) {
     }
 
     return VarAssign::make(
-        declVar(to_declare, const_expr),
+        declVar(to_declare, isConstExpr(a.getB()) && const_expr),
         gen(a.getB()));
 }
 
@@ -431,10 +476,35 @@ CGStmt CodeGenerator::gen(FunctionCall f) {
     }
 
     CGExpr call = Call::make(f.name, args, template_args);
-    if (f.output.defined()) {
-        return VarAssign::make(declParameter(f.output, true), call);
+    std::vector<CGStmt> stmt;
+    // If it is a global function, then also set up the grid.
+    if (f.access == GLOBAL) {
+        std::string grid_name = getUniqueName("grid");
+        std::string block_name = getUniqueName("block");
+
+        LaunchArguments grid = f.grid.constructDefaults();
+        LaunchArguments block = f.block.constructDefaults();
+        CGExpr dim3_type = Type::make("dim3");
+
+        // Define the grid dimensions.
+        stmt.push_back(VarAssign::make(
+            VarDecl::make(dim3_type, grid_name, DeclProperties()),
+            Call::make("dim3", {gen(grid.x), gen(grid.y), gen(grid.z)})));
+        // Define the block dimensions.
+        stmt.push_back(VarAssign::make(
+            VarDecl::make(dim3_type, block_name, DeclProperties()),
+            Call::make("dim3", {gen(block.x), gen(block.y), gen(block.z)})));
+        call = KernelLaunch::make(f.name, args, template_args,
+                                  Var::make(grid_name), Var::make(block_name));
     }
-    return VoidCall::make(call);
+
+    if (f.output.defined()) {
+        stmt.push_back(VarAssign::make(declParameter(f.output, true), call));
+    } else {
+        stmt.push_back(VoidCall::make(call));
+    }
+
+    return Block::make(stmt);
 }
 
 CGStmt CodeGenerator::gen(FunctionSignature f, CGStmt body) {
@@ -533,27 +603,12 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     Grid::Unit unit = op->p;
 
     // This only works for ceiling.
-    CGExpr divisor = gen(op->step);
-    CGExpr dividend = gen(op->end) - gen(op->start.getB());
-    auto ceil = (divisor + dividend - 1) / divisor;
+    Expr divisor = op->step;
+    Expr dividend = op->end - op->start.getB();
+    Expr ceil = (divisor + dividend - 1) / divisor;
 
     // Store the grid dimension that correspond with this mapping.
-    if (unit == Grid::Unit::BLOCK_X) {
-        grid_dim.x = ceil;
-    } else if (unit == Grid::Unit::BLOCK_Y) {
-        grid_dim.y = ceil;
-    } else if (unit == Grid::Unit::BLOCK_Z) {
-        grid_dim.z = ceil;
-    } else if (unit == Grid::Unit::THREAD_X) {
-        block_dim.x = ceil;
-    } else if (unit == Grid::Unit::THREAD_Y) {
-        block_dim.y = ceil;
-    } else if (unit == Grid::Unit::THREAD_Z) {
-        block_dim.z = ceil;
-    } else {
-        throw error::InternalError("Unreachable");
-    }
-
+    declDim(getDim(unit), ceil);
     // Actually declare the variable to use the grid.
     return VarAssign::make(
         declVar(interval_var, false),

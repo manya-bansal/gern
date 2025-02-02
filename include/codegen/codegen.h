@@ -30,18 +30,22 @@ public:
     void visit(const AssertNode *);
     void visit(const BlockNode *);
     void visit(const FunctionBoundary *);
+    void visit(const GridDeclNode *);
 
-    CGExpr gen(Expr);  // Is this part of the LHS of a const_expr?
+    CGExpr gen(Expr);
     CGExpr gen(Constraint);
     CGExpr gen(AbstractDataTypePtr);
     CGStmt gen(FunctionCall f);
     CGStmt gen(FunctionSignature f, CGStmt body);
+    CGExpr gen(const Grid::Dim &p);
+    CGStmt declDim(const Grid::Dim &p, Expr val);
 
     // Assign in used to track all the variables
     // that have been declared during lowering. The
     // const_expr tracks whether the assignment is
     // to a const_expr variable.
-    CGStmt gen(Assign, bool const_expr);
+    CGStmt gen(Assign, bool const_expr = true);
+    CGStmt gen(Expr a, Expr b);
     /**
      * @brief  Generate code expressions for Arguments.
      * This also tracks the input and output
@@ -90,25 +94,14 @@ private:
     FunctionSignature compute_func;
     CGStmt code;
 
-    std::set<std::string> headers;
+    std::set<std::string> headers{"cassert"};  // add cassert, definitely using this.
     std::set<std::string> includes;
     std::set<std::string> libs;
     std::vector<std::string> argument_order;
+    std::map<Grid::Dim, Expr> dims_defined;
 
-    // To track kernel launch parameters.
-    struct cg_dim3 {
-        CGExpr x = Literal::make(1);
-        CGExpr y = Literal::make(1);
-        CGExpr z = Literal::make(1);
-        std::string str() {
-            return x.str() + ", " +
-                   y.str() + ", " +
-                   z.str();
-        }
-    };
-
-    cg_dim3 grid_dim;
-    cg_dim3 block_dim;
+    LaunchArguments grid_dim;
+    LaunchArguments block_dim;
 };
 
 }  // namespace codegen

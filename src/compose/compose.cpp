@@ -7,12 +7,47 @@
 
 namespace gern {
 
+LaunchArguments LaunchArguments::constructDefaults() const {
+    LaunchArguments args{
+        .x = Expr(1),
+        .y = Expr(1),
+        .z = Expr(1),
+    };
+    if (x.defined()) {
+        args.x = x;
+    }
+    if (y.defined()) {
+        args.y = y;
+    }
+    if (z.defined()) {
+        args.z = z;
+    }
+    return args;
+}
+
+LaunchArguments LaunchParameters::constructCall() const {
+    LaunchArguments args;
+    if (x.defined()) {
+        args.x = x;
+    }
+    if (y.defined()) {
+        args.y = y;
+    }
+    if (z.defined()) {
+        args.z = z;
+    }
+    return args;
+}
+
 FunctionCall FunctionSignature::constructCall() const {
     FunctionCall f_call{
         .name = name,
         .args = std::vector<Argument>(args.begin(), args.end()),
         .template_args = std::vector<Expr>(template_args.begin(), template_args.end()),
         .output = output,
+        .grid = grid,
+        .block = block,
+        .access = access,
     };
     return f_call;
 }
@@ -44,31 +79,6 @@ std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
     }
     os << ")";
     return os;
-}
-
-std::set<Variable> ComputeFunctionCall::getVariableArgs() const {
-    std::set<Variable> arg_variables;
-    for (const auto &arg : call.args) {
-        if (isa<VarArg>(arg)) {
-            arg_variables.insert(to<VarArg>(arg)->getVar());
-        }
-    }
-    for (const auto &arg : call.template_args) {
-        if (isa<Variable>(arg)) {
-            arg_variables.insert(to<Variable>(arg));
-        }
-    }
-    return arg_variables;
-}
-
-std::set<Variable> ComputeFunctionCall::getTemplateArgs() const {
-    std::set<Variable> arg_variables;
-    for (const auto &arg : call.template_args) {
-        if (isa<Variable>(arg)) {
-            arg_variables.insert(to<Variable>(arg));
-        }
-    }
-    return arg_variables;
 }
 
 ComputeFunctionCallPtr ComputeFunctionCall::refreshVariable() const {

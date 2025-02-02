@@ -63,6 +63,7 @@ private:
     void lower(const TiledComputation *);
 
     void visit(const ComputeFunctionCall *);
+    void visit(const GlobalNode *);
 
     /**
      * @brief common pulls out functionality used to define output.
@@ -128,6 +129,15 @@ struct InsertNode : public LowerIRNode {
     void accept(LowerIRVisitor *) const;
     AbstractDataTypePtr parent;
     FunctionCall f;
+};
+
+struct GridDeclNode : public LowerIRNode {
+    GridDeclNode(const Grid::Dim &dim, Variable v)
+        : dim(dim), v(v) {
+    }
+    void accept(LowerIRVisitor *) const;
+    Grid::Dim dim;
+    Variable v;
 };
 
 // IR Node that marks a query
@@ -202,13 +212,12 @@ struct DefNode : public LowerIRNode {
 
 // Node to declare definitions of variables.
 struct AssertNode : public LowerIRNode {
-    AssertNode(Constraint constraint, bool compile_time)
-        : constraint(constraint), compile_time(compile_time) {
+    AssertNode(Constraint constraint)
+        : constraint(constraint) {
     }
 
     void accept(LowerIRVisitor *) const;
     Constraint constraint;
-    bool compile_time;  // Track whether this is a actually a constexpr definition.
 };
 
 // Filler Node to manipulate objects (like vectors, etc)
