@@ -140,8 +140,10 @@ ADTMember::ADTMember(const ADTMemberNode *op)
     : Expr(op) {
 }
 
-ADTMember::ADTMember(AbstractDataTypePtr ds, const std::string &member)
-    : ADTMember(new ADTMemberNode(ds, member)) {
+ADTMember::ADTMember(AbstractDataTypePtr ds,
+                     const std::string &member,
+                     bool const_expr)
+    : ADTMember(new ADTMemberNode(ds, member, const_expr)) {
 }
 
 AbstractDataTypePtr ADTMember::getDS() const {
@@ -179,9 +181,11 @@ bool isConstExpr(Expr e) {
                       is_const_expr = false;
                   }
               }),
-          std::function<void(const ADTMemberNode *)>(
-              [&](const ADTMemberNode *) {
-                  is_const_expr = false;
+          std::function<void(const ADTMemberNode *op)>(
+              [&](const ADTMemberNode *op) {
+                  if (!op->const_expr) {
+                      is_const_expr = false;
+                  }
               }));
     return is_const_expr;
 }
@@ -592,7 +596,7 @@ bool AbstractDataTypePtr::freeAlloc() const {
 }
 
 ADTMember AbstractDataTypePtr::operator[](std::string member) const {
-    return ADTMember(*this, member);
+    return ADTMember(*this, member, false);
 }
 
 std::string AbstractDataTypePtr::str() const {

@@ -71,4 +71,59 @@ private:
     bool temp;
 };
 
+class StaticArray : public AbstractDataType {
+public:
+    StaticArray(const std::string &name,
+                bool temp = true)
+        : name(name), temp(temp) {
+    }
+
+    std::string getName() const override {
+        return name;
+    }
+
+    std::string getType() const override {
+        if (temp) {
+            return "auto";
+        }
+        return "impl::StaticArray";
+    }
+    std::vector<Variable> getFields() const {
+        return {x, len};
+    }
+
+    FunctionSignature getAllocateFunction() const override {
+        return FunctionSignature{
+            .name = "impl::allocate_static_array",
+            .template_args = {len},
+        };
+    }
+    FunctionSignature getFreeFunction() const override {
+        return FunctionSignature{
+            .name = "dummy",
+        };
+    }
+
+    FunctionSignature getInsertFunction() const override {
+        return FunctionSignature{
+            .name = "dummy",
+        };
+    }
+
+    FunctionSignature getQueryFunction() const override {
+        return FunctionSignature{
+            .name = "dummy",
+        };
+    }
+    bool freeAlloc() const override {
+        return false;
+    }
+
+private:
+    std::string name;
+    Variable x{"x"};
+    Variable len{"size", true};
+    bool temp;
+};
+
 };  // namespace annot

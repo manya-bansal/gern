@@ -41,7 +41,7 @@ inline T replaceADTs(T annot,
 
         void visit(const ADTMemberNode *op) {
             if (rw_ds.contains(op->ds)) {
-                expr = ADTMember(rw_ds.at(op->ds), op->member);
+                expr = ADTMember(rw_ds.at(op->ds), op->member, op->const_expr);
             } else {
                 expr = op;
             }

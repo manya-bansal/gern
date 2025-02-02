@@ -96,7 +96,8 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
         }
         if (v.isConstExpr()) {
             if (!v.isBoundToInt64()) {
-                throw error::UserError(v.getName() + " must be bound to an int64_t, it is a template parameter");
+                throw error::UserError(v.getName() +
+                                       " must be bound to an int64_t, it is a template parameter");
             }
             template_arguments.push_back(v);
             continue;

@@ -247,7 +247,7 @@ class ADTMember : public Expr {
 public:
     ADTMember() = default;
     ADTMember(const ADTMemberNode *);
-    ADTMember(AbstractDataTypePtr ds, const std::string &field);
+    ADTMember(AbstractDataTypePtr ds, const std::string &field, bool const_expr);
     AbstractDataTypePtr getDS() const;
     std::string getMember() const;
     typedef ADTMemberNode Node;

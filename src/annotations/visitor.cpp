@@ -316,7 +316,7 @@ void Rewriter::visit(const VariableNode *op) {
 }
 
 void Rewriter::visit(const ADTMemberNode *op) {
-    expr = ADTMember(op->ds, op->member);
+    expr = ADTMember(op->ds, op->member, op->const_expr);
 }
 
 void Rewriter::visit(const LiteralNode *op) {

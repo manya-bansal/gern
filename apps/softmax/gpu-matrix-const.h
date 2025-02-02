@@ -11,6 +11,12 @@ struct holder {
     static constexpr int size = Size;
 };
 
+template<int Size>
+struct StaticArray {
+    float val[Size];
+    static constexpr int size = Size;
+};
+
 template<int NumRow, int NumCol>
 struct StaticMatrix {
     float4 array[NumRow * NumCol];
@@ -161,6 +167,11 @@ public:
 template<int64_t num_row, int64_t num_col>
 __device__ StaticMatrix<num_row, num_col / 4> allocate_static() {
     return StaticMatrix<num_row, num_col / 4>();
+}
+
+template<int64_t len>
+__device__ StaticArray<len> allocate_static_array() {
+    return StaticArray<len>();
 }
 
 [[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const MatrixCPU &m) {
