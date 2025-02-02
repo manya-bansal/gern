@@ -93,7 +93,8 @@ __global__ void softmax_kernel_gern_like(T a,
     int x = blockIdx.x;
     int y = threadIdx.y;
 
-    constexpr int64_t num_cols_in = CEILING(a.row / tile_col, 4);
+    constexpr int64_t num_cols_q = CEILING(a.row, tile_col);
+    constexpr int64_t num_cols_in = CEILING(a.row, tile_col) / 4;
     constexpr int64_t num_rows_in = tile_row;
 
     // if (y < h)
@@ -101,11 +102,11 @@ __global__ void softmax_kernel_gern_like(T a,
     // StaticMatrix<num_rows_in, num_cols_in> reg_array_big;
     // query<tile_col>(a, x, y, reg_array_big);
 
-    auto reg_array_big = a.template query_obj<num_rows_in, num_cols_in, tile_col>(x, y);
+    auto reg_array_big = a.template query<num_rows_in, num_cols_q>(x, y);
     holder<num_rows_in> hold;
     max_shuffle<tile_col>(hold, reg_array_big);
 
-    auto reg_query_2 = a.template query_obj<num_rows_in, num_cols_in, tile_col>(x, y);
+    auto reg_query_2 = a.template query<num_rows_in, num_cols_q>(x, y);
     StaticMatrix<num_rows_in, num_cols_in> reg_array_subs;
     subtract_vec(hold, reg_query_2, reg_array_subs);
 
@@ -117,7 +118,7 @@ __global__ void softmax_kernel_gern_like(T a,
 
     StaticMatrix<num_rows_in, num_cols_in> reg_array_final;
     divide_vec(hold_2, reg_array_exp, reg_array_final);
-    insert<tile_col>(b, x, y, reg_array_final);
+    b.insert_obj(x, y, reg_array_final);
     // }
 }
 
@@ -137,8 +138,9 @@ constexpr int kernel_repeats = 5;
 int main() {
     constexpr int64_t h = WIDTH;
     constexpr int64_t w = WIDTH;
+    constexpr int tile_col = BLOCK_DIM_Y;
 
-    using MatrixType = gern::impl::MatrixGPU<h, w, h>;
+    using MatrixType = gern::impl::MatrixGPU<h, w, h, tile_col>;
     std::cout << WIDTH << std::endl;
 
     MatrixType in;
@@ -150,7 +152,6 @@ int main() {
     dim3 grid_size = dim3(h, 1, 1);
 
     constexpr int tile_row = 1;
-    constexpr int tile_col = BLOCK_DIM_Y;
 
     cudaStream_t stream = NULL;
 
