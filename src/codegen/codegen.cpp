@@ -198,7 +198,7 @@ void CodeGenerator::visit(const GridDeclNode *op) {
 }
 
 void CodeGenerator::visit(const BlankNode *) {
-    code = CGStmt();
+    code = BlankLine::make();
 }
 
 void CodeGenerator::visit(const BlockNode *op) {

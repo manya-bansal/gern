@@ -96,13 +96,16 @@ LowerIR ComposableLower::lower() {
 
 LowerIR ComposableLower::generate_definitions(Assign definition) const {
     Variable v = to<Variable>(definition.getA());
+    // if (parents.contains(v)) {
+    //     return new const BlankNode();
+    // }
     if (isConstExpr(v) && !isConstExpr(definition.getB())) {
         throw error::UserError("Binding const expr " + v.getName() + " to a non-const expr.");
     }
     if (v.isBound()) {
         throw error::UserError(v.getName() + " is determined by the pipeline and cannot be bound.");
     }
-    return new const DefNode(definition, v.isConstExpr());
+    return new const DefNode(definition, isConstExpr(definition.getB()));
 }
 
 LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraints) const {
@@ -138,6 +141,11 @@ void ComposableLower::lower(const TiledComputation *node) {
     current_ds.unscope();
     parents.unscope();
     tiled_vars.unscope();
+
+    // std::vector<LowerIR> lowered;
+    // lowered.push_back(generate_definitions(Assign(node->step, node->v)));
+    // lowered.push_back(lowerIR);
+    // lowerIR = new const BlockNode(lowered);
 
     bool has_parent = parents.contains(node->v);
     lowerIR = new const IntervalNode(
