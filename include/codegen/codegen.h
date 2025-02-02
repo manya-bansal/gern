@@ -32,7 +32,7 @@ public:
     void visit(const FunctionBoundary *);
     void visit(const GridDeclNode *);
 
-    CGExpr gen(Expr);  // Is this part of the LHS of a const_expr?
+    CGExpr gen(Expr);
     CGExpr gen(Constraint);
     CGExpr gen(AbstractDataTypePtr);
     CGStmt gen(FunctionCall f);
@@ -44,7 +44,7 @@ public:
     // that have been declared during lowering. The
     // const_expr tracks whether the assignment is
     // to a const_expr variable.
-    CGStmt gen(Assign, bool const_expr);
+    CGStmt gen(Assign, bool const_expr = true);
     CGStmt gen(Expr a, Expr b);
     /**
      * @brief  Generate code expressions for Arguments.

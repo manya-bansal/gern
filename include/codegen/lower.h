@@ -212,13 +212,12 @@ struct DefNode : public LowerIRNode {
 
 // Node to declare definitions of variables.
 struct AssertNode : public LowerIRNode {
-    AssertNode(Constraint constraint, bool compile_time)
-        : constraint(constraint), compile_time(compile_time) {
+    AssertNode(Constraint constraint)
+        : constraint(constraint) {
     }
 
     void accept(LowerIRVisitor *) const;
     Constraint constraint;
-    bool compile_time;  // Track whether this is a actually a constexpr definition.
 };
 
 // Filler Node to manipulate objects (like vectors, etc)

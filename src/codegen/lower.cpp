@@ -108,7 +108,7 @@ LowerIR ComposableLower::generate_definitions(Assign definition) const {
 LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraints) const {
     std::vector<LowerIR> lowered;
     for (const auto &c : constraints) {
-        lowered.push_back(new const AssertNode(c, false));  // Need to add logic for lowering constraints.
+        lowered.push_back(new const AssertNode(c));  // Need to add logic for lowering constraints.
     }
     return new const BlockNode(lowered);
 }

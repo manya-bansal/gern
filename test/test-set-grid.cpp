@@ -87,3 +87,23 @@ TEST(SetGrid, RunWithParam) {
     result.destroy();
     a_host.destroy();
 }
+
+TEST(SetGrid, CatchStatic) {
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
+
+    annot::AddArrayThreads add_1;
+    Variable v("v");
+    Variable step("step");
+    Variable block_x_dim("block_x_dim");
+
+    Composable program =
+        Global(
+            Tile(outputDS["size"], step.bindToInt64(2))(  // This tile is useless,
+                                                          // though should not result in incorrect code.
+                add_1(inputDS, outputDS)),
+            {{Grid::Dim::BLOCK_DIM_X, block_x_dim.bindToInt64(5)}});
+
+    Runner run(program);
+    run.compile(test::gpuRunner("array"));
+}

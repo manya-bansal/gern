@@ -22,7 +22,7 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     std::vector<CGStmt> hook_body;
     // Emit the const expr definitions.
     for (const auto &const_v : compute_func.template_args) {
-        hook_body.push_back(gen(const_v = Expr(const_v.getInt64Val()), true));
+        hook_body.push_back(gen(const_v = Expr(const_v.getInt64Val())));
     }
 
     DeclProperties properties{
@@ -185,7 +185,11 @@ void CodeGenerator::visit(const DefNode *op) {
 
 void CodeGenerator::visit(const AssertNode *op) {
     CGExpr condition = gen(op->constraint);
-    std::string name = (op->compile_time) ? "static_assert" : "assert";
+    Constraint constraint = op->constraint;
+    std::string name = (isConstExpr(constraint.getA()) &&
+                        isConstExpr(constraint.getB())) ?
+                           "assert" :  // No static rn.
+                           "assert";
     code = VoidCall::make(Call::make(name, {condition}));
 }
 
@@ -244,7 +248,8 @@ CGExpr CodeGenerator::gen(const Grid::Dim &p) {
 CGStmt CodeGenerator::declDim(const Grid::Dim &p, Expr val) {
     if (dims_defined.contains(p)) {
         auto temp = code;
-        visit(new const AssertNode(p == val, false));  // Generate an assert.
+        Expr cur_val = dims_defined.at(p);
+        visit(new const AssertNode(cur_val == val));  // Generate an assert.
         auto lowered = code;
         code = temp;  // Restore.
         return lowered;
@@ -393,7 +398,7 @@ CGStmt CodeGenerator::gen(Assign a, bool const_expr) {
     }
 
     return VarAssign::make(
-        declVar(to_declare, const_expr),
+        declVar(to_declare, isConstExpr(a.getB()) && const_expr),
         gen(a.getB()));
 }
 
