@@ -101,11 +101,11 @@ __global__ void softmax_kernel_gern_like(T a,
     // StaticMatrix<num_rows_in, num_cols_in> reg_array_big;
     // query<tile_col>(a, x, y, reg_array_big);
 
-    auto reg_array_big = a.template query_obj<num_rows_in, tile_col>(x, y);
+    auto reg_array_big = a.template query_obj<num_rows_in, num_cols_in, tile_col>(x, y);
     holder<num_rows_in> hold;
     max_shuffle<tile_col>(hold, reg_array_big);
 
-    auto reg_query_2 = a.template query_obj<num_rows_in, tile_col>(x, y);
+    auto reg_query_2 = a.template query_obj<num_rows_in, num_cols_in, tile_col>(x, y);
     StaticMatrix<num_rows_in, num_cols_in> reg_array_subs;
     subtract_vec(hold, reg_query_2, reg_array_subs);
 

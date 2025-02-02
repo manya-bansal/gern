@@ -48,9 +48,8 @@ public:
         cudaMalloc(&data, lda * col * sizeof(float));
     }
 
-    template<int64_t num_row, int64_t stride>
-    __device__ StaticMatrix<num_row, CEILING((Col / stride), 4)> query_obj(int64_t x, int64_t y) {
-        constexpr int64_t num_col = CEILING((Col / stride), 4);
+    template<int64_t num_row, int64_t num_col, int64_t stride>
+    __device__ StaticMatrix<num_row, num_col> query_obj(int64_t x, int64_t y) {
         StaticMatrix<num_row, num_col> matrix;
         auto &matrix_data = matrix.array;
         float4 *val_ptr = reinterpret_cast<float4 *>(&data[x * row + y * 4]);
