@@ -30,7 +30,6 @@ set(TEST_SOURCES
     test-nodes.cpp
     test-pipeline.cpp
     test-set-unit.cpp
-    test-set-grid.cpp
     # test-resolve-constraints.cpp
     test-runner.cpp
 )
@@ -46,6 +45,7 @@ if (Gern_CUDA_ARCH)
     # Adding all the GPU test.
     list(APPEND TEST_SOURCES
     test-gpu-array.cpp
+    test-set-grid.cpp
     test-gpu-matrix.cpp)
 endif()
 
