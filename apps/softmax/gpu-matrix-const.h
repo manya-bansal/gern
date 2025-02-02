@@ -1,7 +1,6 @@
 #pragma once
 
-#include "cpu-matrix.h"
-#include "library/array/impl/gpu-array.h"
+#include "library/matrix/impl/cpu-matrix.h"
 
 #include <cstring>
 #include <cuda_runtime.h>
@@ -27,7 +26,6 @@ constexpr int URF{UNROLL_FACTOR};
 
 #define CEILING(x, y) (((x) + (y) - 1) / (y))
 
-namespace gern {
 namespace impl {
 
 /**
@@ -67,9 +65,9 @@ public:
     }
 
     template<typename T2>
-    __device__ void insert_obj(int x,
-                               int y,
-                               T2 &reg_array_big) {
+    __device__ void insert(int x,
+                           int y,
+                           T2 &reg_array_big) {
         auto &reg_array = reg_array_big.array;
         constexpr int64_t num_row = reg_array_big.rows;
         constexpr int64_t num_col = reg_array_big.cols_by_4;
@@ -86,8 +84,8 @@ public:
         }
     }
 
-    MatrixCPU get() {
-        MatrixCPU cpu(row, col, lda);
+    gern::impl::MatrixCPU get() {
+        gern::impl::MatrixCPU cpu(row, col, lda);
         cudaMemcpy(cpu.data, data, lda * col * sizeof(float), cudaMemcpyDeviceToHost);
         return cpu;
     }
@@ -97,14 +95,14 @@ public:
     }
 
     void vvals(float f) {
-        MatrixCPU tmp(row, col, lda);
+        gern::impl::MatrixCPU tmp(row, col, lda);
         tmp.vvals(f);
         cudaMemcpy(data, tmp.data, lda * col * sizeof(float), cudaMemcpyHostToDevice);
         tmp.destroy();
     }
 
     void ascending() {
-        ArrayCPU tmp(lda * col);
+        gern::impl::ArrayCPU tmp(lda * col);
         tmp.ascending();
         cudaMemcpy(data, tmp.data, lda * col * sizeof(float), cudaMemcpyHostToDevice);
         tmp.destroy();
@@ -117,9 +115,8 @@ public:
 };
 
 template<int64_t num_row, int64_t num_col>
-__device__ StaticMatrix<num_row, num_col / 4> allocate() {
+__device__ StaticMatrix<num_row, num_col / 4> allocate_static() {
     return StaticMatrix<num_row, num_col / 4>();
 }
 
 }  // namespace impl
-}  // namespace gern

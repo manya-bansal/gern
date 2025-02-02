@@ -97,29 +97,23 @@ __global__ void softmax_kernel_gern_like(T a,
     constexpr int64_t num_cols_in = CEILING(a.row, tile_col) / 4;
     constexpr int64_t num_rows_in = tile_row;
 
-    // if (y < h)
-    // {
-    // StaticMatrix<num_rows_in, num_cols_in> reg_array_big;
-    // query<tile_col>(a, x, y, reg_array_big);
-
     auto reg_array_big = a.template query<num_rows_in, num_cols_q>(x, y);
     holder<num_rows_in> hold;
     max_shuffle<tile_col>(hold, reg_array_big);
 
     auto reg_query_2 = a.template query<num_rows_in, num_cols_q>(x, y);
-    StaticMatrix<num_rows_in, num_cols_in> reg_array_subs;
+    auto reg_array_subs = gern::impl::allocate_static<num_rows_in, num_cols_q>();
     subtract_vec(hold, reg_query_2, reg_array_subs);
 
-    StaticMatrix<num_rows_in, num_cols_in> reg_array_exp;
+    auto reg_array_exp = gern::impl::allocate_static<num_rows_in, num_cols_q>();
     exp_matrix(reg_array_subs, reg_array_exp);
 
     holder<num_rows_in> hold_2;
     sum_row<tile_col>(hold_2, reg_array_exp);
 
-    StaticMatrix<num_rows_in, num_cols_in> reg_array_final;
+    auto reg_array_final = gern::impl::allocate_static<num_rows_in, num_cols_q>();
     divide_vec(hold_2, reg_array_exp, reg_array_final);
     b.insert_obj(x, y, reg_array_final);
-    // }
 }
 
 constexpr int warm_up_runs = 5;
