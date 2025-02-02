@@ -19,16 +19,19 @@ set(LIB_HEADERS
 )
 
 set(TEST_SOURCES
-    test-nodes.cpp
-    test-pipeline.cpp
-    # test-resolve-constraints.cpp
-    test-runner.cpp
-    test-functions.cpp
+    test-composable.cpp
     test-cpu-array.cpp
     test-cpu-matrix.cpp
     test-cpu-static-store.cpp
     test-cpu-reduction.cpp
-    test-composable.cpp
+    test-functions.cpp
+    test-grid-constraints.cpp
+    test-map-grid.cpp
+    test-nodes.cpp
+    test-pipeline.cpp
+    test-set-unit.cpp
+    # test-resolve-constraints.cpp
+    test-runner.cpp
 )
 
 
@@ -42,6 +45,7 @@ if (Gern_CUDA_ARCH)
     # Adding all the GPU test.
     list(APPEND TEST_SOURCES
     test-gpu-array.cpp
+    test-set-grid.cpp
     test-gpu-matrix.cpp)
 endif()
 

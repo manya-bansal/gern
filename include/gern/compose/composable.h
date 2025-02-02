@@ -20,9 +20,7 @@ public:
     ComposableNode() = default;
     virtual ~ComposableNode() = default;
     virtual void accept(ComposableVisitorStrict *) const = 0;
-    virtual std::set<Variable> getVariableArgs() const = 0;
-    virtual std::set<Variable> getTemplateArgs() const = 0;
-    virtual Pattern getAnnotation() const = 0;
+    virtual Annotation getAnnotation() const = 0;
 };
 
 /**
@@ -34,24 +32,29 @@ public:
     Composable()
         : util::IntrusivePtr<const ComposableNode>(nullptr) {
     }
+
     Composable(const ComposableNode *n);
     Composable(std::vector<Composable> composed);
-    std::set<Variable> getVariableArgs() const;
-    std::set<Variable> getTemplateArgs() const;
-    Pattern getAnnotation() const;
+    Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *v) const;
-    bool isDeviceLaunch() const {
-        return call_at_device;
-    }
-    void callAtDevice() {
-        call_at_device = true;
-    }
-
-private:
-    bool call_at_device = false;
+    bool isDeviceLaunch() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Composable &f);
+
+class GlobalNode : public ComposableNode {
+public:
+    GlobalNode(Composable program,
+               std::map<Grid::Dim, Variable> launch_args);
+    Annotation getAnnotation() const override;
+    void accept(ComposableVisitorStrict *) const override;
+    Composable program;
+    std::map<Grid::Dim, Variable> launch_args;
+};
+
+// Wrap a function in a global interface, mostly for a nicety.
+Composable Global(Composable program,
+                  std::map<Grid::Dim, Variable> launch_args = {});
 
 /**
  * @brief Computation contains a vector of composable objects.
@@ -60,17 +63,11 @@ std::ostream &operator<<(std::ostream &os, const Composable &f);
 class Computation : public ComposableNode {
 public:
     Computation(std::vector<Composable> composed);
-
-    std::set<Variable> getVariableArgs() const;
-    std::set<Variable> getTemplateArgs() const;
-
-    Pattern getAnnotation() const;
-    void accept(ComposableVisitorStrict *) const;
+    Annotation getAnnotation() const override;
+    void accept(ComposableVisitorStrict *) const override;
 
     void check_legal();
-    void init_args();
     void init_annotation();
-    void init_template_args();
     void infer_relationships(AbstractDataTypePtr output,
                              std::vector<Variable> output_fields);
 
@@ -78,11 +75,8 @@ public:
     std::vector<Composable> composed;
     std::vector<Assign> declarations;
 
-    std::set<Variable> variable_args;
-    std::set<Variable> template_args;
-
     std::map<AbstractDataTypePtr, std::set<Composable>> consumer_functions;
-    Pattern _annotation;
+    Annotation _annotation;
 };
 
 class TiledComputation : public ComposableNode {
@@ -90,11 +84,10 @@ public:
     TiledComputation(ADTMember member,
                      Variable v,
                      Composable body,
-                     Grid::Property property,
+                     Grid::Unit unit,
                      bool reduce);
-    std::set<Variable> getVariableArgs() const;
-    std::set<Variable> getTemplateArgs() const;
-    Pattern getAnnotation() const;
+
+    Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *) const;
 
     void init_binding();
@@ -107,31 +100,10 @@ public:
     Expr start;
     ADTMember end;
     Variable step;
-    Grid::Property property{Grid::Property::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
+    Annotation _annotation;
+    Grid::Unit unit{Grid::Unit::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
     bool reduce = false;
 };
-
-// class TileComputationWrapper : public Composable {
-//     TileComputationWrapper() = default;
-//     TileComputationWrapper(const TiledComputation *);
-//     std::set<Variable> getVariableArgs() const;
-//     std::set<Variable> getTemplateArgs() const;
-//     Pattern getAnnotation() const;
-// };
-
-// class ReductionLoop : public ComposableNode {
-// public:
-//     ReductionLoop(Composable computation)
-//         : computation(computation) {
-//     }
-
-//     std::set<Variable> getVariableArgs() const;
-//     std::set<Variable> getTemplateArgs() const;
-//     Pattern getAnnotation() const;
-//     void accept(ComposableVisitorStrict *) const;
-
-//     TiledComputation computation;
-// }
 
 // This class only exists for the overload.
 struct TileDummy {
@@ -139,6 +111,8 @@ struct TileDummy {
               bool reduce)
         : member(member), v(v), reduce(reduce) {
     }
+
+    Composable operator()(Composable c);
 
     template<typename First, typename Second, typename... ToCompose>
     Composable operator()(First first, Second second, ToCompose... c) {
@@ -150,21 +124,14 @@ struct TileDummy {
         static_assert((std::is_same_v<Second, Composable>),
                       "All arguments must be of type Composable");
         std::vector<Composable> to_compose{first, second, c...};
-
-        Composable new_program = new const TiledComputation(member, v,
-                                                            Composable(new const Computation(to_compose)),
-                                                            property, reduce);
-
-        return new_program;
+        return operator()(Composable(new const Computation(to_compose)));
     }
 
-    TileDummy operator||(Grid::Property p);
-    Composable operator()(Composable c);
-
+    TileDummy operator||(Grid::Unit p);
     ADTMember member;
     Variable v;
     bool reduce;
-    Grid::Property property{Grid::Property::UNDEFINED};
+    Grid::Unit unit{Grid::Unit::UNDEFINED};
 };
 
 TileDummy Tile(ADTMember member, Variable v);

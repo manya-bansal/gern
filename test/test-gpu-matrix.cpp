@@ -20,12 +20,12 @@ TEST(LoweringGPU, MatrixGPUAddNoBind) {
     Variable l_x("l_x");
     Variable l_y("l_y");
 
-    Composable program = {
-        Tile(outputDS["row"], l_x)(
-            Tile(outputDS["col"], l_y)(
-                add(inputDS, outputDS)))};
+    Composable program =
+        Global(
+            Tile(outputDS["row"], l_x)(
+                Tile(outputDS["col"], l_y)(
+                    add(inputDS, outputDS))));
 
-    program.callAtDevice();
     Runner run(program);
 
     run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));
@@ -80,12 +80,11 @@ TEST(LoweringGPU, MatrixGPUAddSingleBind) {
     Variable l_x("l_x");
     Variable l_y("l_y");
 
-    Composable program = {
-        (Tile(outputDS["row"], l_x) || Grid::Property::BLOCK_ID_X)(
+    Composable program = Global(
+        (Tile(outputDS["row"], l_x) || Grid::Unit::BLOCK_X)(
             Tile(outputDS["col"], l_y)(
-                add(inputDS, outputDS)))};
+                add(inputDS, outputDS))));
 
-    program.callAtDevice();
     Runner run(program);
 
     run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));
@@ -140,12 +139,11 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     Variable l_x("l_x");
     Variable l_y("l_y");
 
-    Composable program = {
-        (Tile(outputDS["row"], l_x) || Grid::Property::BLOCK_ID_X)(
-            (Tile(outputDS["col"], l_y) || Grid::Property::BLOCK_ID_Y)(
-                add(inputDS, outputDS)))};
+    Composable program =
+        Global((Tile(outputDS["row"], l_x) || Grid::Unit::BLOCK_X)(
+            (Tile(outputDS["col"], l_y) || Grid::Unit::BLOCK_Y)(
+                add(inputDS, outputDS))));
 
-    program.callAtDevice();
     Runner run(program);
 
     run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));

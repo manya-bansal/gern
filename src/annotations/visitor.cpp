@@ -40,7 +40,7 @@ void Printer::visit(const LiteralNode *op) {
 }
 void Printer::visit(const VariableNode *op) {
     os << op->name;
-    if (isGridPropertySet(op->p)) {
+    if (isLegalUnit(op->p)) {
         os << op->p;
     }
 }
@@ -48,6 +48,10 @@ void Printer::visit(const VariableNode *op) {
 void Printer::visit(const ADTMemberNode *op) {
     os << op->ds
        << "." << op->member;
+}
+
+void Printer::visit(const GridDimNode *op) {
+    os << op->dim;
 }
 
 #define DEFINE_PRINTER_METHOD(CLASS_NAME, OPERATOR)      \
@@ -175,6 +179,19 @@ void Printer::visit(const PatternNode *op) {
     (void)op;
 }
 
+void Printer::visit(const AnnotationNode *op) {
+    this->visit(op->p);
+    os << " @ ";
+    util::iterable_printer(os, op->occupied, 0);
+    util::printIdent(os, ident);
+    os << " with constraints {";
+    ident++;
+    util::iterable_printer(os, op->constraints, ident, "\n");
+    ident--;
+    util::printIdent(os, ident);
+    os << "}";
+}
+
 #define DEFINE_BINARY_VISITOR_METHOD(CLASS_NAME)     \
     void AnnotVisitor::visit(const CLASS_NAME *op) { \
         this->visit(op->a);                          \
@@ -183,6 +200,10 @@ void Printer::visit(const PatternNode *op) {
 
 void AnnotVisitor::visit(const LiteralNode *) {
 }
+
+void AnnotVisitor::visit(const GridDimNode *) {
+}
+
 DEFINE_BINARY_VISITOR_METHOD(AddNode)
 DEFINE_BINARY_VISITOR_METHOD(SubNode)
 DEFINE_BINARY_VISITOR_METHOD(DivNode)
@@ -231,6 +252,10 @@ void AnnotVisitor::visit(const PatternNode *op) {
     (void)op;
 }
 
+void AnnotVisitor::visit(const AnnotationNode *op) {
+    this->visit(op->p);
+}
+
 void AnnotVisitor::visit(const AllocatesNode *op) {
     this->visit(op->reg);
     this->visit(op->smem);
@@ -269,8 +294,6 @@ Expr Rewriter::rewrite(Expr e) {
 Stmt Rewriter::rewrite(Stmt s) {
     if (s.defined()) {
         s.accept(this);
-        Constraint rw_where = this->rewrite(s.getConstraint());
-        stmt = stmt.whereStmt(rw_where);
     } else {
         stmt = Stmt();
     }
@@ -296,6 +319,10 @@ void Rewriter::visit(const ADTMemberNode *op) {
 
 void Rewriter::visit(const LiteralNode *op) {
     expr = op;
+}
+
+void Rewriter::visit(const GridDimNode *op) {
+    expr = GridDim(op->dim);
 }
 
 void Rewriter::visit(const ConsumesNode *op) {
@@ -367,6 +394,16 @@ void Rewriter::visit(const ComputesNode *op) {
     } else {
         stmt = Computes(rw_produces, rw_consumes);
     }
+}
+
+void Rewriter::visit(const AnnotationNode *op) {
+    Pattern rw_pattern = to<Pattern>(this->rewrite(op->p));
+    std::vector<Constraint> op_constraints = op->constraints;
+    std::vector<Constraint> rw_constraints;
+    for (const auto &c : op_constraints) {
+        rw_constraints.push_back(this->rewrite(c));
+    }
+    stmt = Annotation(rw_pattern, op->occupied, rw_constraints);
 }
 
 #define DEFINE_BINARY_REWRITER_METHOD(CLASS_NAME, PARENT, VAR) \

@@ -1,34 +1,93 @@
 #pragma once
 
 #include <iostream>
+#include <set>
 
 namespace gern {
 
 namespace Grid {
-enum Property {
+enum Unit {
+    UNDEFINED,  // For variables that are not bound to the grid.
 
-    BLOCK_ID_X,
-    BLOCK_ID_Y,
-    BLOCK_ID_Z,
+    SCALAR_UNIT,
 
-    THREAD_ID_X,
-    THREAD_ID_Y,
-    THREAD_ID_Z,
+    THREAD_X,
+    THREAD_Y,
+    THREAD_Z,
+
+    BLOCK_X,
+    BLOCK_Y,
+    BLOCK_Z,
+};
+
+enum Dim {
+    GRID_DIM_X,
+    GRID_DIM_Y,
+    GRID_DIM_Z,
 
     BLOCK_DIM_X,
     BLOCK_DIM_Y,
     BLOCK_DIM_Z,
 
-    UNDEFINED,  // For variables that are not bound to the grid.
+    NULL_DIM,
 };
 
-}
+enum Level {
+    NULL_LEVEL,
 
-std::ostream &operator<<(std::ostream &, const Grid::Property &);
+    SCALAR,
+    THREADS,
+    WARPS,
+    BLOCK,
+    BLOCK_CLUSTER,
+    GRID,
+};
 
-bool isGridPropertySet(const Grid::Property &);
+}  // namespace Grid
+
+std::ostream &operator<<(std::ostream &, const Grid::Unit &);
+std::ostream &operator<<(std::ostream &, const Grid::Dim &);
+std::ostream &operator<<(std::ostream &, const Grid::Level &);
+
+bool isLegalUnit(const Grid::Unit &);
 // Indicates whether the property chances over the
 // same kernel launch.
-bool isPropertyStable(const Grid::Property &);
+
+/**
+ * @brief isLegalLevel checks whether the grid unit is legal for the GPU.
+ *
+ * @param u unit to check.
+ * @return true
+ * @return false
+ */
+bool isLegalLevel(const Grid::Level &u);
+
+/**
+ * @brief This function checks whether the unit can be distributed over
+ *        a grid's property.
+ *
+ * @param u
+ * @param p
+ * @return true
+ * @return false
+ */
+bool legalToDistribute(const std::set<Grid::Unit> &u, const Grid::Unit &p);
+
+/**
+ * @brief Get the unit assosciated with a particular property.
+ *
+ * @param p
+ * @return Grid::Level
+ */
+Grid::Level getLevel(const Grid::Unit &p);
+Grid::Level getLevel(const std::set<Grid::Unit> &p);
+
+Grid::Level getLevel(const Grid::Dim &dim);
+Grid::Level getLevel(const std::set<Grid::Dim> &dims);
+
+Grid::Dim getDim(const Grid::Unit &unit);
+std::set<Grid::Dim> getDims(const std::set<Grid::Unit> &unit);
+
+bool isDimInScope(const Grid::Dim &dim, const std::set<Grid::Dim> &dims);
 
 }  // namespace gern

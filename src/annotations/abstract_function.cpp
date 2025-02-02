@@ -1,6 +1,7 @@
 #include "annotations/abstract_function.h"
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "utils/name_generator.h"
 #include <map>
@@ -24,6 +25,9 @@ FunctionCall FunctionCall::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDa
         .args = new_args,
         .template_args = template_args,
         .output = output,
+        .grid = grid,
+        .block = block,
+        .access = access,
     };
     return new_call;
 }
@@ -63,7 +67,7 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
         fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()), true);
     }
 
-    auto annotation = getAnnotation();
+    Annotation annotation = getAnnotation();
     auto old_vars = getVariables(annotation);
     // Convert all variables to fresh names for each
     // individual callsite.
@@ -89,51 +93,37 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
         template_args.push_back(fresh_names.at(v));
     }
 
-    Pattern rw_annotation = to<Pattern>(annotation
-                                            .replaceDSArgs(abstract_to_concrete_adt)
-                                            .replaceVariables(fresh_names));
+    Annotation rw_annotation = replaceVariables(            // Replace all variables with concrete vars.
+        replaceADTs(annotation, abstract_to_concrete_adt),  // Replace all abstract ADTs with concrete ADTs.
+        fresh_names);
+
+    LaunchArguments grid;
+    LaunchArguments block;
+
+    // Replace all the grid and block variables.
+    grid.x = replaceVariables(f.grid.x, fresh_names);
+    grid.y = replaceVariables(f.grid.y, fresh_names);
+    grid.z = replaceVariables(f.grid.z, fresh_names);
+    block.x = replaceVariables(f.block.x, fresh_names);
+    block.y = replaceVariables(f.block.y, fresh_names);
+    block.z = replaceVariables(f.block.z, fresh_names);
+
     FunctionCall call{
         .name = f.name,
         .args = concrete_arguments,
         .template_args = template_args,
         .output = f.output,
+        .grid = grid,
+        .block = block,
+        .access = f.access,
     };
 
-    return Composable(new const ComputeFunctionCall(call, rw_annotation, getHeader()));
+    return Composable(new const ComputeFunctionCall(call,
+                                                    rw_annotation,
+                                                    getHeader()));
 }
 
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {
-
-    std::set<Variable> defined_vars = getAnnotation().getDefinedVariables();
-    std::set<Variable> interval_vars = getAnnotation().getIntervalVariables();
-
-    std::set<std::string> names_defined_vars;
-    std::set<std::string> names_interval_vars;
-
-    for (const auto &v : defined_vars) {
-        names_defined_vars.insert(v.getName());
-    }
-    for (const auto &v : interval_vars) {
-        names_interval_vars.insert(v.getName());
-    }
-
-    for (const auto &binding : replacements) {
-        bool is_interval_var = names_interval_vars.count(binding.first) > 0;
-
-        if (binding.second.isBoundToGrid()) {
-            Grid::Property gp = binding.second.getBoundProperty();
-            // The the property is not stable over the
-            // course of the grid launch, and we have not bound it
-            // to an interval var, then we cannot proceed.
-            if (!isPropertyStable(gp) && !is_interval_var) {
-                throw error::UserError(binding.first + " cannot be bound to an unstable property");
-            }
-
-            if (isPropertyStable(gp) && is_interval_var) {
-                throw error::UserError(binding.first + " cannot be bound to an stable property, it is an interval var");
-            }
-        }
-    }
 
     bindings.insert(replacements.begin(), replacements.end());
 }

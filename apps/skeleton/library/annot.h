@@ -6,8 +6,8 @@ using namespace gern;
 
 class Hello : public AbstractFunction {
 public:
-    Pattern getAnnotation() override {
-        return Pattern();
+    Annotation getAnnotation() override {
+        return Annotation();
     }
 
     std::vector<std::string> getHeader() override {

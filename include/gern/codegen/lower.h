@@ -63,6 +63,7 @@ private:
     void lower(const TiledComputation *);
 
     void visit(const ComputeFunctionCall *);
+    void visit(const GlobalNode *);
 
     /**
      * @brief common pulls out functionality used to define output.
@@ -76,6 +77,7 @@ private:
 
     LowerIR define_loop_var(Assign start, ADTMember end, Variable step) const;
     LowerIR generate_definitions(Assign definition) const;
+    LowerIR generate_constraints(std::vector<Constraint> constraints) const;  // Generate constraints.
     LowerIR declare_computes(Pattern annotation) const;
     LowerIR declare_consumes(Pattern annotation) const;
 
@@ -129,6 +131,15 @@ struct InsertNode : public LowerIRNode {
     FunctionCall f;
 };
 
+struct GridDeclNode : public LowerIRNode {
+    GridDeclNode(const Grid::Dim &dim, Variable v)
+        : dim(dim), v(v) {
+    }
+    void accept(LowerIRVisitor *) const;
+    Grid::Dim dim;
+    Variable v;
+};
+
 // IR Node that marks a query
 // The child data structure is produced
 // from the parent data-structure corresponding to
@@ -166,7 +177,7 @@ struct BlockNode : public LowerIRNode {
 // for the pipeline.
 struct IntervalNode : public LowerIRNode {
 public:
-    IntervalNode(Assign start, Expr end, Expr step, LowerIR body, Grid::Property p)
+    IntervalNode(Assign start, Expr end, Expr step, LowerIR body, Grid::Unit p)
         : start(start), end(end), step(step), body(body), p(p) {
     }
     void accept(LowerIRVisitor *) const;
@@ -185,7 +196,7 @@ public:
     Expr end;
     Expr step;
     LowerIR body;
-    Grid::Property p;
+    Grid::Unit p;
 };
 
 // Node to declare definitions of variables.
@@ -197,6 +208,16 @@ struct DefNode : public LowerIRNode {
     void accept(LowerIRVisitor *) const;
     Assign assign;
     bool const_expr;  // Track whether this is a actually a constexpr definition.
+};
+
+// Node to declare definitions of variables.
+struct AssertNode : public LowerIRNode {
+    AssertNode(Constraint constraint)
+        : constraint(constraint) {
+    }
+
+    void accept(LowerIRVisitor *) const;
+    Constraint constraint;
 };
 
 // Filler Node to manipulate objects (like vectors, etc)

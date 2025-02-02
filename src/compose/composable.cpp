@@ -1,9 +1,38 @@
 #include "compose/composable.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "compose/composable_visitor.h"
 #include "compose/compose.h"
+#include "utils/printer.h"
 
 namespace gern {
+
+GlobalNode::GlobalNode(Composable program,
+                       std::map<Grid::Dim, Variable> launch_args)
+    : program(program), launch_args(launch_args) {
+
+    auto legal_dims = getDims(program.getAnnotation().getOccupiedUnits());
+    for (const auto &arg : launch_args) {
+        if (!isDimInScope(arg.first, legal_dims)) {
+            throw error::UserError("Cannot specify the size of " +
+                                   util::str(arg.first) + ".");
+        }
+    }
+}
+
+Annotation GlobalNode::getAnnotation() const {
+    return program.getAnnotation();
+}
+
+void GlobalNode::accept(ComposableVisitorStrict *v) const {
+    v->visit(this);
+}
+
+// Wrap a function in a global interface, mostly for a nicety.
+Composable Global(Composable program,
+                  std::map<Grid::Dim, Variable> launch_args) {
+    return new const GlobalNode(program, launch_args);
+}
 
 Computation::Computation(std::vector<Composable> composed)
     : composed(composed) {
@@ -11,45 +40,21 @@ Computation::Computation(std::vector<Composable> composed)
     if (!composed.empty()) {
         // Set up consumer functions.
         for (const auto &c : composed) {
-            std::vector<SubsetObj> inputs = c.getAnnotation().getInputs();
+            std::vector<SubsetObj> inputs = c.getAnnotation().getPattern().getInputs();
             for (const auto &input : inputs) {
                 consumer_functions[input.getDS()].insert(c);
             }
         }
-        init_args();
-        init_template_args();
         init_annotation();
     }
 }
 
-std::set<Variable> Computation::getVariableArgs() const {
-    return variable_args;
-}
-
-std::set<Variable> Computation::getTemplateArgs() const {
-    return template_args;
-}
-
-Pattern Computation::getAnnotation() const {
+Annotation Computation::getAnnotation() const {
     return _annotation;
 }
 
 void Computation::accept(ComposableVisitorStrict *v) const {
     v->visit(this);
-}
-
-void Computation::init_args() {
-    for (const auto &c : composed) {
-        std::set<Variable> nested_variable_args = c.getVariableArgs();
-        variable_args.insert(nested_variable_args.begin(), nested_variable_args.end());
-    }
-}
-
-void Computation::init_template_args() {
-    for (const auto &c : composed) {
-        std::set<Variable> nested_variable_args = c.getTemplateArgs();
-        template_args.insert(nested_variable_args.begin(), nested_variable_args.end());
-    }
 }
 
 void Computation::infer_relationships(AbstractDataTypePtr output,
@@ -64,7 +69,7 @@ void Computation::infer_relationships(AbstractDataTypePtr output,
         }
         // Loop through all the consumers, and set up the definitions.
         for (const auto &consumer : consumers) {
-            std::vector<Expr> consumer_fields = consumer.getAnnotation().getRequirement(output);
+            std::vector<Expr> consumer_fields = consumer.getAnnotation().getPattern().getRequirement(output);
             for (size_t i = 0; i < consumer_fields.size(); i++) {
                 declarations.push_back(output_fields[i] = consumer_fields[i]);
             }
@@ -80,25 +85,33 @@ void Computation::init_annotation() {
     auto it = composed.rbegin();
     auto end = composed.rend();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> new_ds;
-    Pattern last_annotation = it->getAnnotation();
-    Produces produces = Produces::Subset(last_annotation.getOutput().getDS(),
-                                         last_annotation.getProducesField());
+    Pattern last_pattern = it->getAnnotation().getPattern();
+    Produces produces = Produces::Subset(last_pattern.getOutput().getDS(),
+                                         last_pattern.getProducesField());
     // Now that we have generated a produces, it's time to generate all the
     // allocations in reverse order, and note the subset relationships.
     std::vector<SubsetObj> input_subsets;
     std::set<AbstractDataTypePtr> intermediates;
     for (; it < end; ++it) {
         Composable c = *it;
-        Pattern c_annotation = c.getAnnotation();
-        AbstractDataTypePtr intermediate = c_annotation.getOutput().getDS();
+        Pattern c_pattern = c.getAnnotation().getPattern();
+        AbstractDataTypePtr intermediate = c_pattern.getOutput().getDS();
         // Declare all the relationships btw inputs and outputs.
-        infer_relationships(intermediate, c_annotation.getProducesField());
+        infer_relationships(intermediate, c_pattern.getProducesField());
         intermediates.insert(intermediate);
     }
 
     // Now add the consumes for the pure inputs.
+    std::set<Grid::Unit> occupied;
+    std::vector<Constraint> constraints;
     for (const auto &c : composed) {
-        std::vector<SubsetObj> inputs = c.getAnnotation().getInputs();
+        Annotation annotation = c.getAnnotation();
+        std::set<Grid::Unit> c_units = annotation.getOccupiedUnits();
+        std::vector<Constraint> c_constraints = annotation.getConstraints();
+        occupied.insert(c_units.begin(), c_units.end());
+        std::vector<SubsetObj>
+            inputs = annotation.getPattern().getInputs();
+        constraints.insert(constraints.begin(), c_constraints.begin(), c_constraints.end());
         for (const auto &input : inputs) {
             // The the input is not an intermediate, add.
             if (!intermediates.contains(input.getDS())) {
@@ -107,8 +120,9 @@ void Computation::init_annotation() {
         }
     }
 
-    Consumes consumes = mimicConsumes(last_annotation, input_subsets);
-    _annotation = mimicComputes(last_annotation, Computes(produces, consumes));
+    Consumes consumes = mimicConsumes(last_pattern, input_subsets);
+    Pattern p = mimicComputes(last_pattern, Computes(produces, consumes));
+    _annotation = Annotation(p, occupied, constraints);
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {
@@ -118,31 +132,30 @@ void TiledComputation::accept(ComposableVisitorStrict *v) const {
 TiledComputation::TiledComputation(ADTMember adt_member,
                                    Variable v,
                                    Composable tiled,
-                                   Grid::Property property,
+                                   Grid::Unit unit,
                                    bool reduce)
     : adt_member(adt_member),
       v(v),
       tiled(tiled),
-      property(property),
+      unit(unit),
       reduce(reduce) {
+    auto annotation = tiled.getAnnotation();
+    auto body_units = annotation.getOccupiedUnits();
+    body_units.insert(unit);
+    // Assume the highest ranking unit.
+    _annotation = resetUnit(annotation,
+                            body_units);
     init_binding();
 }
 
-std::set<Variable> TiledComputation::getVariableArgs() const {
-    return tiled.getVariableArgs();
-}
-
-std::set<Variable> TiledComputation::getTemplateArgs() const {
-    return tiled.getTemplateArgs();
-}
-
-Pattern TiledComputation::getAnnotation() const {
-    return tiled.getAnnotation();
+Annotation TiledComputation::getAnnotation() const {
+    return _annotation;
 }
 
 void TiledComputation::init_binding() {
-    Pattern annotation = getAnnotation();
-    SubsetObj output_subset = annotation.getOutput();
+    Annotation annotation = getAnnotation();
+    Pattern pattern = annotation.getPattern();
+    SubsetObj output_subset = pattern.getOutput();
     AbstractDataTypePtr adt = output_subset.getDS();
 
     std::string field_to_find = adt_member.getMember();
@@ -151,9 +164,9 @@ void TiledComputation::init_binding() {
     std::map<ADTMember, std::tuple<Variable, Expr, Variable>> loops;
 
     if (reduce) {
-        loops = annotation.getReducableFields();
+        loops = pattern.getReducableFields();
     } else {
-        loops = annotation.getTileableFields();
+        loops = pattern.getTileableFields();
     }
 
     if (!loops.contains(adt_member)) {
@@ -167,13 +180,6 @@ void TiledComputation::init_binding() {
     step = std::get<2>(value);
 }
 
-std::set<Variable> Composable::getVariableArgs() const {
-    if (!defined()) {
-        return {};
-    }
-    return ptr->getVariableArgs();
-}
-
 Composable::Composable(const ComposableNode *n)
     : util::IntrusivePtr<const ComposableNode>(n) {
     LegalToCompose check_legal;
@@ -184,16 +190,9 @@ Composable::Composable(std::vector<Composable> composed)
     : Composable(new const Computation(composed)) {
 }
 
-std::set<Variable> Composable::getTemplateArgs() const {
+Annotation Composable::getAnnotation() const {
     if (!defined()) {
-        return {};
-    }
-    return ptr->getTemplateArgs();
-}
-
-Pattern Composable::getAnnotation() const {
-    if (!defined()) {
-        return Pattern{};
+        return Annotation{};
     }
     return ptr->getAnnotation();
 }
@@ -203,6 +202,10 @@ void Composable::accept(ComposableVisitorStrict *v) const {
         return;
     }
     ptr->accept(v);
+}
+
+bool Composable::isDeviceLaunch() const {
+    return isa<GlobalNode>(ptr);
 }
 
 TileDummy Tile(ADTMember member, Variable v) {
@@ -219,8 +222,8 @@ std::ostream &operator<<(std::ostream &os, const Composable &f) {
     return os;
 }
 
-TileDummy TileDummy::operator||(Grid::Property p) {
-    property = p;
+TileDummy TileDummy::operator||(Grid::Unit p) {
+    unit = p;
     return *this;
 }
 
@@ -229,7 +232,21 @@ Composable TileDummy::operator()(Composable c) {
     if (isa<ComputeFunctionCall>(c.ptr)) {
         nested = new const Computation({c});
     }
-    return new const TiledComputation(member, v, nested, property, reduce);
+
+    if (isLegalUnit(unit)) {
+        // If unit is set, then make sure that the compose has a reasonable
+        // grid unit.
+        std::set<Grid::Unit> occupied = c.getAnnotation().getOccupiedUnits();
+        if (occupied.empty()) {
+            throw error::UserError("The function does not have a legal unit for the current GPU");
+        }
+        if (!legalToDistribute(occupied, unit)) {
+            throw error::UserError("Trying to distribute " + util::str(getLevel(occupied)) + " over unit " +
+                                   util::str(unit) + " using " + util::str(unit));
+        }
+    }
+
+    return new const TiledComputation(member, v, nested, unit, reduce);
 }
 
 }  // namespace gern

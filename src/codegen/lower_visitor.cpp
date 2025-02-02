@@ -67,6 +67,13 @@ void LowerPrinter::visit(const BlankNode *op) {
     DEBUG("BLANK!");
 }
 
+void LowerPrinter::visit(const AssertNode *op) {
+    bool static_check = isConstExpr(op->constraint.getA()) &&
+                        isConstExpr(op->constraint.getB());
+    os << ((static_check) ? "static_assert" : "assert")
+       << op->constraint;
+}
+
 void LowerPrinter::visit(const FunctionBoundary *node) {
     util::printIdent(os, ident);
     os << "Function {" << "\n";
@@ -83,6 +90,11 @@ void LowerPrinter::visit(const BlockNode *node) {
         this->visit(ir);
         os << "\n";
     }
+}
+
+void LowerPrinter::visit(const GridDeclNode *node) {
+    util::printIdent(os, ident);
+    os << node->dim << " = " << node->v;
 }
 
 }  // namespace gern

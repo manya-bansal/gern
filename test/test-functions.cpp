@@ -38,17 +38,6 @@ TEST(Functions, CallFunctions) {
     ASSERT_NO_THROW(add_with_size(inputDS, outputDS, Variable{"x"}));
 }
 
-TEST(Functions, Binding) {
-    // Try to incorrectly bind variables to the grid.
-    annot::add_1 add_1;
-    AbstractDataTypePtr inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
-    Variable x("x");
-    ASSERT_THROW((add_1[{
-                     {"x", x.bindToGrid(Grid::Property::BLOCK_DIM_X)},
-                 }](inputDS, inputDS)),
-                 error::UserError);
-}
-
 TEST(Functions, ReplaceWithFreshVars) {
     AbstractDataTypePtr inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
     AbstractDataTypePtr outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
@@ -60,25 +49,25 @@ TEST(Functions, ReplaceWithFreshVars) {
     Composable c2 = add_1(outputDS, output_2_DS);
 
     // Test that all variables were replaced
-    std::set<Variable> abstract_vars = getVariables(add_1.getAnnotation());
-    std::set<Variable> concrete_vars_1 = getVariables(c1.getAnnotation());
-    std::set<Variable> concrete_vars_2 = getVariables(c2.getAnnotation());
+    std::set<Variable> abstract_vars = getVariables(add_1.getAnnotation().getPattern());
+    std::set<Variable> concrete_vars_1 = getVariables(c1.getAnnotation().getPattern());
+    std::set<Variable> concrete_vars_2 = getVariables(c2.getAnnotation().getPattern());
 
     // All the variables should now be different.
     ASSERT_TRUE(test::areDisjoint(concrete_vars_1, abstract_vars));
     ASSERT_TRUE(test::areDisjoint(concrete_vars_2, abstract_vars));
     ASSERT_TRUE(test::areDisjoint(concrete_vars_2, concrete_vars_1));
 
-    AbstractDataTypePtr output_1 = c1.getAnnotation().getOutput().getDS();
+    AbstractDataTypePtr output_1 = c1.getAnnotation().getPattern().getOutput().getDS();
     ASSERT_TRUE(output_1 == outputDS);
-    AbstractDataTypePtr output_2 = c2.getAnnotation().getOutput().getDS();
+    AbstractDataTypePtr output_2 = c2.getAnnotation().getPattern().getOutput().getDS();
     ASSERT_TRUE(output_2 == output_2_DS);
 
-    std::vector<SubsetObj> all_inputs = c1.getAnnotation().getInputs();
+    std::vector<SubsetObj> all_inputs = c1.getAnnotation().getPattern().getInputs();
     ASSERT_TRUE(all_inputs.size() == 1);
     ASSERT_TRUE(all_inputs.begin()->getDS() == inputDS);
 
-    std::vector<SubsetObj> all_inputs_2 = c2.getAnnotation().getInputs();
+    std::vector<SubsetObj> all_inputs_2 = c2.getAnnotation().getPattern().getInputs();
     ASSERT_TRUE(all_inputs_2.size() == 1);
     ASSERT_TRUE(all_inputs_2.begin()->getDS() == outputDS);
 }

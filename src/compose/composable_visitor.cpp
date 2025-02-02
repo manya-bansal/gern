@@ -36,9 +36,21 @@ void ComposablePrinter::visit(const ComputeFunctionCall *op) {
     os << (*op);
 }
 
+void ComposablePrinter::visit(const GlobalNode *node) {
+    util::printIdent(os, ident);
+    os << "Global {\n";
+    ident++;
+    ComposablePrinter printer(os, ident);
+    printer.visit(node->program);
+    os << "\n";
+    ident--;
+    util::printIdent(os, ident);
+    os << "}";
+}
+
 void LegalToCompose::isLegal(Composable c) {
     c.accept(this);
-    auto output = c.getAnnotation().getOutput().getDS();
+    auto output = c.getAnnotation().getPattern().getOutput().getDS();
 
     for (const auto &write : all_writes) {
         if (!all_reads.contains(write) && write != output) {
@@ -53,22 +65,24 @@ void LegalToCompose::visit(const Computation *node) {
     auto composed = node->composed;
     for (auto const &c : composed) {
         c.accept(this);
-        in_scope.insert(c.getAnnotation().getOutput().getDS());
+        in_scope.insert(c.getAnnotation().getPattern().getOutput().getDS());
     }
 }
 
 void LegalToCompose::visit(const TiledComputation *node) {
+
     in_scope.scope();
     node->tiled.accept(this);
 
-    auto inputs = getADTSet(node->getAnnotation().getInputs());
-    auto output = node->getAnnotation().getOutput().getDS();
+    Annotation annotation = node->getAnnotation();
+    Pattern pattern = annotation.getPattern();
+    auto inputs = getADTSet(pattern.getInputs());
+    auto output = pattern.getOutput().getDS();
 
     for (const auto &input : inputs) {
         if (all_writes.contains(input) &&
-            input != output &&
             !in_scope.contains(input)) {
-            throw error::UserError("Nested pipeline is writing to our intermediate " +
+            throw error::UserError("Nested pipeline is writing to input " +
                                    input.getName() +
                                    " from nested pipeline");
         }
@@ -79,9 +93,14 @@ void LegalToCompose::visit(const TiledComputation *node) {
 }
 
 void LegalToCompose::visit(const ComputeFunctionCall *node) {
-    auto inputs = getADTSet(node->getAnnotation().getInputs());
-    auto output = node->getAnnotation().getOutput().getDS();
+    Pattern pattern = node->getAnnotation().getPattern();
+    auto inputs = getADTSet(pattern.getInputs());
+    auto output = pattern.getOutput().getDS();
     common(inputs, output);
+}
+
+void LegalToCompose::visit(const GlobalNode *op) {
+    this->visit(op->program);
 }
 
 void LegalToCompose::common(std::set<AbstractDataTypePtr> inputs, AbstractDataTypePtr output) {
@@ -112,6 +131,10 @@ void ComposableVisitor::visit(const TiledComputation *node) {
 }
 
 void ComposableVisitor::visit(const ComputeFunctionCall *) {
+}
+
+void ComposableVisitor::visit(const GlobalNode *node) {
+    this->visit(node->program);
 }
 
 }  // namespace gern

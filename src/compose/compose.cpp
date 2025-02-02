@@ -1,10 +1,43 @@
 #include "compose/compose.h"
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "compose/composable_visitor.h"
 
 namespace gern {
+
+LaunchArguments LaunchArguments::constructDefaults() const {
+    LaunchArguments args{
+        .x = Expr(1),
+        .y = Expr(1),
+        .z = Expr(1),
+    };
+    if (x.defined()) {
+        args.x = x;
+    }
+    if (y.defined()) {
+        args.y = y;
+    }
+    if (z.defined()) {
+        args.z = z;
+    }
+    return args;
+}
+
+LaunchArguments LaunchParameters::constructCall() const {
+    LaunchArguments args;
+    if (x.defined()) {
+        args.x = x;
+    }
+    if (y.defined()) {
+        args.y = y;
+    }
+    if (z.defined()) {
+        args.z = z;
+    }
+    return args;
+}
 
 FunctionCall FunctionSignature::constructCall() const {
     FunctionCall f_call{
@@ -12,6 +45,9 @@ FunctionCall FunctionSignature::constructCall() const {
         .args = std::vector<Argument>(args.begin(), args.end()),
         .template_args = std::vector<Expr>(template_args.begin(), template_args.end()),
         .output = output,
+        .grid = grid,
+        .block = block,
+        .access = access,
     };
     return f_call;
 }
@@ -45,31 +81,6 @@ std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
     return os;
 }
 
-std::set<Variable> ComputeFunctionCall::getVariableArgs() const {
-    std::set<Variable> arg_variables;
-    for (const auto &arg : call.args) {
-        if (isa<VarArg>(arg)) {
-            arg_variables.insert(to<VarArg>(arg)->getVar());
-        }
-    }
-    for (const auto &arg : call.template_args) {
-        if (isa<Variable>(arg)) {
-            arg_variables.insert(to<Variable>(arg));
-        }
-    }
-    return arg_variables;
-}
-
-std::set<Variable> ComputeFunctionCall::getTemplateArgs() const {
-    std::set<Variable> arg_variables;
-    for (const auto &arg : call.template_args) {
-        if (isa<Variable>(arg)) {
-            arg_variables.insert(to<Variable>(arg));
-        }
-    }
-    return arg_variables;
-}
-
 ComputeFunctionCallPtr ComputeFunctionCall::refreshVariable() const {
     std::set<Variable> arg_variables;
     for (const auto &arg : call.args) {
@@ -93,9 +104,11 @@ ComputeFunctionCallPtr ComputeFunctionCall::refreshVariable() const {
         // Otherwise, generate a new name.
         fresh_names[v] = getUniqueName("_gern_" + v.getName());
     }
-    Pattern rw_annotation = to<Pattern>(annotation
-                                            .replaceVariables(fresh_names));
-    return new const ComputeFunctionCall(getCall(), rw_annotation, header);
+    Annotation rw_annotation = replaceVariables(annotation,
+                                                fresh_names);
+    return new const ComputeFunctionCall(getCall(),
+                                         rw_annotation,
+                                         header);
 }
 
 void ComputeFunctionCall::accept(ComposableVisitorStrict *v) const {

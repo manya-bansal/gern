@@ -31,6 +31,10 @@ void InsertNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 
+void GridDeclNode::accept(LowerIRVisitor *v) const {
+    v->visit(this);
+}
+
 void QueryNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
@@ -47,8 +51,12 @@ void DefNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 
+void AssertNode::accept(LowerIRVisitor *v) const {
+    v->visit(this);
+}
+
 bool IntervalNode::isMappedToGrid() const {
-    return p != Grid::Property::UNDEFINED;
+    return p != Grid::Unit::UNDEFINED;
 }
 
 Variable IntervalNode::getIntervalVariable() const {
@@ -71,11 +79,11 @@ void BlockNode::accept(LowerIRVisitor *v) const {
 LowerIR ComposableLower::lower() {
     // Add the inputs and output to the current scope.
     // these will come directly from the user.
-    auto annotation = composable.getAnnotation();
-    AbstractDataTypePtr output = annotation.getOutput().getDS();
+    auto pattern = composable.getAnnotation().getPattern();
+    AbstractDataTypePtr output = pattern.getOutput().getDS();
     current_ds.insert(output, output);
 
-    auto inputs_subsets = annotation.getInputs();
+    auto inputs_subsets = pattern.getInputs();
 
     for (const auto &subset : inputs_subsets) {
         AbstractDataTypePtr input = subset.getDS();
@@ -97,8 +105,15 @@ LowerIR ComposableLower::generate_definitions(Assign definition) const {
     return new const DefNode(definition, v.isConstExpr());
 }
 
-void ComposableLower::lower(const TiledComputation *node) {
+LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraints) const {
     std::vector<LowerIR> lowered;
+    for (const auto &c : constraints) {
+        lowered.push_back(new const AssertNode(c));  // Need to add logic for lowering constraints.
+    }
+    return new const BlockNode(lowered);
+}
+
+void ComposableLower::lower(const TiledComputation *node) {
     // First, add the value of the captured value.
     Variable captured = node->captured;
     Variable loop_index(getUniqueName("_i_"));
@@ -109,7 +124,7 @@ void ComposableLower::lower(const TiledComputation *node) {
         current_value = current_value + tiled_vars.at(captured);
     }
 
-    AbstractDataTypePtr output = node->getAnnotation().getOutput().getDS();
+    AbstractDataTypePtr output = node->getAnnotation().getPattern().getOutput().getDS();
     current_ds.scope();
     if (node->reduce) {
         current_ds.insert(output, getCurrent(output));
@@ -129,13 +144,14 @@ void ComposableLower::lower(const TiledComputation *node) {
         has_parent ? Expr(parents.at(node->step)) : Expr(node->end),
         node->v,
         lowerIR,
-        node->property);
+        node->unit);
 }
 
 template<typename T>
 void ComposableLower::common(const T *node) {
     std::vector<LowerIR> lowered;
-    SubsetObj output_subset = node->getAnnotation().getOutput();
+    Pattern pattern = node->getAnnotation().getPattern();
+    SubsetObj output_subset = pattern.getOutput();
     AbstractDataTypePtr output = output_subset.getDS();
     std::vector<Expr> fields = output_subset.getFields();
 
@@ -181,7 +197,7 @@ void ComposableLower::lower(const Computation *node) {
     std::vector<Composable> composed = node->composed;
     size_t size_funcs = composed.size();
     for (size_t i = 0; i < size_funcs - 1; i++) {
-        SubsetObj temp_subset = composed[i].getAnnotation().getOutput();
+        SubsetObj temp_subset = composed[i].getAnnotation().getPattern().getOutput();
         AbstractDataTypePtr temp = temp_subset.getDS();
         if (!current_ds.contains(temp)) {
             lowered.push_back(constructAllocNode(temp, temp_subset.getFields()));
@@ -207,8 +223,8 @@ void ComposableLower::lower(const Computation *node) {
 
 void ComposableLower::visit(const Computation *node) {
     std::vector<LowerIR> lowered;
-    lowered.push_back(declare_computes(node->getAnnotation()));
-    lowered.push_back(declare_consumes(node->getAnnotation()));
+    lowered.push_back(declare_computes(node->getAnnotation().getPattern()));
+    lowered.push_back(declare_consumes(node->getAnnotation().getPattern()));
     for (const auto &decl : node->declarations) {
         lowered.push_back(generate_definitions(decl));
     }
@@ -221,10 +237,11 @@ void ComposableLower::visit(const TiledComputation *node) {
 
     if (node->reduce) {  // Declares the output.
         std::vector<LowerIR> lowered;
-        SubsetObj output_subset = node->getAnnotation().getOutput();
+        Pattern pattern = node->getAnnotation().getPattern();
+        SubsetObj output_subset = pattern.getOutput();
         AbstractDataTypePtr output = output_subset.getDS();
         if (!current_ds.contains_in_current_scope(output)) {
-            lowered.push_back(declare_computes(node->getAnnotation()));  // Declare anything that's necessary for the queries.
+            lowered.push_back(declare_computes(pattern));  // Declare anything that's necessary for the queries.
         }
         common(node);
         lowered.push_back(lowerIR);
@@ -242,9 +259,12 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
 
     std::vector<LowerIR> lowered;
 
+    // Generate the constraints now.
+    lowered.push_back(generate_constraints(node->getAnnotation().getConstraints()));
+
     std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
-    Pattern annotation = node->getAnnotation();
-    std::vector<SubsetObj> inputs = annotation.getInputs();
+    Pattern pattern = node->getAnnotation().getPattern();
+    std::vector<SubsetObj> inputs = pattern.getInputs();
     // Query the inputs if they are not an intermediate of the current pipeline.
     for (auto const &input : inputs) {
         // If the current DS is not in scope
@@ -279,12 +299,8 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         }
     }
 
-    FunctionCall new_call{
-        .name = call.name,
-        .args = new_args,
-        .template_args = call.template_args,
-        .output = call.output,
-    };
+    FunctionCall new_call = call;
+    new_call.args = new_args;
 
     lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
     // Free any the queried subsets.
@@ -292,6 +308,16 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         lowered.push_back(new const FreeNode(ds));
     }
 
+    lowerIR = new const BlockNode(lowered);
+}
+
+void ComposableLower::visit(const GlobalNode *node) {
+    std::vector<LowerIR> lowered;
+    for (const auto &def : node->launch_args) {
+        lowered.push_back(new const GridDeclNode(def.first, def.second));
+    }
+    this->visit(node->program);  // Just visit the program.
+    lowered.push_back(lowerIR);
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -346,19 +372,19 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     // Now, set up the args.
     std::vector<Argument> new_args;
     for (auto const &a : f.args) {
-        new_args.push_back(Argument(mappings[to<VarArg>(a)->getVar()]));
+        new_args.push_back(Argument(mappings.at(to<VarArg>(a)->getVar())));
     }
     // set up the templated args.
     std::vector<Expr> template_args;
     for (auto const &a : f.template_args) {
-        template_args.push_back(mappings[a]);
+        template_args.push_back(mappings.at(a));
     }
 
-    FunctionCall f_new{
-        .name = f.name,
-        .args = new_args,
-        .template_args = template_args,
-    };
+    FunctionCall f_new = f.constructCall();
+    f_new.args = new_args;
+    f_new.template_args = template_args;
+    f_new.grid = LaunchArguments();
+    f_new.block = LaunchArguments();
 
     return f_new;
 }

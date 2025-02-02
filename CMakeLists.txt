@@ -57,6 +57,7 @@ target_sources(
         include/gern/annotations/datatypes.h
         include/gern/annotations/grid.h
         include/gern/annotations/lang_nodes.h
+        include/gern/annotations/rewriter_helpers.h
         include/gern/annotations/visitor.h
         # includgern/e/resolve_constraints/resolve_constraints.h
         include/gern/compose/compose.h

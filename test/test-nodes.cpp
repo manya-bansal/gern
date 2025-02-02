@@ -61,15 +61,13 @@ TEST(Annotations, ConstrainPatterns) {
     ASSERT_NO_THROW(For(v = Expr(0), TestDSCPU["dummy"], v,
                         Computes(Produces::Subset(TestDSCPU, {v, v}),
                                  Consumes(SubsetObjMany(s))))
-                        .where(v == 1));
+                        .assumes(Constraint(v == 1)));
     ASSERT_THROW(For(v = Expr(0), TestDSCPU["dummy"], v,
                      Computes(
                          Produces::Subset(TestDSCPU, {v, v}),
                          Consumes(SubsetObjMany(s))))
-                     .where(v1 == 1),
+                     .assumes(Constraint(v1 == 1)),
                  error::UserError);
-    ASSERT_NO_THROW(s.where(v == 1));
-    ASSERT_THROW(s.where(v1 == 1), error::UserError);
 }
 
 TEST(Annotations, NullNode) {

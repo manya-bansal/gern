@@ -16,9 +16,11 @@ public:
     virtual void visit(const ComputeNode *) = 0;
     virtual void visit(const IntervalNode *) = 0;
     virtual void visit(const DefNode *) = 0;
+    virtual void visit(const AssertNode *) = 0;
     virtual void visit(const BlankNode *) = 0;
     virtual void visit(const FunctionBoundary *) = 0;
     virtual void visit(const BlockNode *) = 0;
+    virtual void visit(const GridDeclNode *) = 0;
 };
 
 class LowerPrinter : LowerIRVisitor {
@@ -36,8 +38,10 @@ public:
     void visit(const IntervalNode *);
     void visit(const DefNode *);
     void visit(const BlankNode *);
+    void visit(const AssertNode *);
     void visit(const FunctionBoundary *);
     void visit(const BlockNode *);
+    void visit(const GridDeclNode *);
 
 private:
     std::ostream &os;
