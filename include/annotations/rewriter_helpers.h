@@ -4,6 +4,7 @@
 #include "annotations/lang_nodes.h"
 #include "annotations/visitor.h"
 #include <map>
+#include <set>
 
 namespace gern {
 
@@ -17,8 +18,8 @@ inline T replaceVariables(T annot,
         using Rewriter::rewrite;
 
         void visit(const VariableNode *op) {
-            if (rw_vars.find(op) != rw_vars.end()) {
-                expr = rw_vars[op];
+            if (rw_vars.contains(op)) {
+                expr = rw_vars.at(op);
             } else {
                 expr = op;
             }
@@ -70,6 +71,24 @@ inline std::set<Grid::Dim> getDims(T annot) {
     match(annot, std::function<void(const GridDimNode *)>(
                      [&](const GridDimNode *op) { dims.insert(op->dim); }));
     return dims;
+}
+
+inline Annotation refreshVariables(Annotation annot) {
+    // Only refresh output side variables.
+    auto output_var_vec = annot.getPattern().getProducesField();
+    auto interval_vars = annot.getIntervalVariables();
+    std::set<Variable> output_var_set{output_var_vec.begin(), output_var_vec.end()};
+    std::set<Variable> old_vars = getVariables(annot);
+    std::map<Variable, Variable> fresh_names;
+    for (const auto &v : old_vars) {
+        std::cout << v << std::endl;
+        if (output_var_set.contains(v) && !interval_vars.contains(v)) {
+            std::cout << "Inside" << v << std::endl;
+            // Otherwise, generate a new name.
+            fresh_names[v] = getUniqueName("_gern_" + v.getName());
+        }
+    }
+    return replaceVariables(annot, fresh_names);
 }
 
 }  // namespace gern

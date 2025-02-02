@@ -1,4 +1,5 @@
 #include "compose/composable.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "compose/composable_visitor.h"
 #include "compose/compose.h"

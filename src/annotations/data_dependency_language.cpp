@@ -232,17 +232,13 @@ std::set<Variable> Stmt::getIntervalVariables() const {
     match(*this,
           std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
                                                                            Matcher *ctx) {
-              ctx->match(op->start.getA());
+              vars.insert(to<Variable>(op->start.getA()));
               ctx->match(op->body);
           }),
           std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
                                                                            Matcher *ctx) {
-              ctx->match(op->start.getA());
+              vars.insert(to<Variable>(op->start.getA()));
               ctx->match(op->body);
-          }),
-          std::function<void(const VariableNode *op, Matcher *ctx)>([&](const VariableNode *op,
-                                                                        Matcher *) {
-              vars.insert(op);
           }));
     return vars;
 }
