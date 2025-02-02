@@ -42,15 +42,18 @@ int main() {
     }];
 
     Composable program = {
-        Global((Tile(b["row"], row.bindToInt64(4)) || Grid::Unit::BLOCK_Y)(
-            (Tile(b["col"], col_val.bindToInt64(w))(
-                max_row_specialize->operator()(max_row_out, a),
-                subtract_vec(max_row_out, a, sub_temp),
-                exp_matrix(sub_temp, exp_temp),
-                sum_row_specialize->operator()(sum_row_out, exp_temp),
-                divide_vec(sum_row_out, exp_temp, b)
+        Global((Tile(b["row"], row.bindToInt64(4)) || Grid::Unit::BLOCK_X)(
+                   (Tile(b["col"], col_val.bindToInt64(w))(
+                       max_row_specialize->operator()(max_row_out, a),
+                       subtract_vec(max_row_out, a, sub_temp),
+                       exp_matrix(sub_temp, exp_temp),
+                       sum_row_specialize->operator()(sum_row_out, exp_temp),
+                       divide_vec(sum_row_out, exp_temp, b)
 
-                    ))))};
+                           ))),
+               {
+                   {Grid::Dim::BLOCK_DIM_Y, stride_val.bindToInt64(block_size)},
+               })};
 
     Runner run(program);
     Runner::Options options;

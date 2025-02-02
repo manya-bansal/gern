@@ -149,7 +149,7 @@ Grid::Level getLevel(const Grid::Dim &dim) {
     case Grid::Dim::GRID_DIM_Z:
         return Grid::Level::BLOCK;
     default:
-        throw error::UserError("Unimplemented Dimension");
+        return Grid::Level::NULL_LEVEL;
     }
 }
 

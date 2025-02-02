@@ -63,9 +63,10 @@ public:
         Variable l_y("l_y", true);
         Variable col{"col", true};
 
-        return annotate(For(x = Expr(0), ADTMember(output, "size", true), l_x,
-                            Produces::Subset(output, {x, l_x}),
-                            Consumes::Subset(input, {x, 0, l_x, col})));
+        return For(x = Expr(0), ADTMember(output, "size", true), l_x,
+                   Produces::Subset(output, {x, l_x}),
+                   Consumes::Subset(input, {x, 0, l_x, col}))
+            .occupies({Grid::Unit::BLOCK_Y});
     }
 
     std::vector<std::string> getHeader() override {
