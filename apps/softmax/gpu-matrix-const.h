@@ -116,5 +116,10 @@ public:
     static constexpr int64_t lda = LDA;
 };
 
+template<int64_t num_row, int64_t num_col>
+__device__ StaticMatrix<num_row, num_col / 4> allocate() {
+    return StaticMatrix<num_row, num_col / 4>()
+}
+
 }  // namespace impl
 }  // namespace gern
