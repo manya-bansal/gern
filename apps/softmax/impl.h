@@ -15,10 +15,10 @@ exp_matrix(const T &input,
 #pragma unroll URF
     for (int m = 0; m < num_row * num_col; m++) {
         float4 val = input_data[m];
-        val.x = __expf(val.x);
-        val.y = __expf(val.y);
-        val.z = __expf(val.z);
-        val.w = __expf(val.w);
+        // val.x = __expf(val.x);
+        // val.y = __expf(val.y);
+        // val.z = __expf(val.z);
+        // val.w = __expf(val.w);
         output_data[m] = val;
     }
 }

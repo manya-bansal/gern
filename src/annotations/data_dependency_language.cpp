@@ -180,7 +180,7 @@ bool isConstExpr(Expr e) {
                   }
               }),
           std::function<void(const ADTMemberNode *)>(
-              [&](const ADTMemberNode *op) {
+              [&](const ADTMemberNode *) {
                   is_const_expr = false;
               }));
     return is_const_expr;

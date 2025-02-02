@@ -155,8 +155,8 @@ void ComposableLower::lower(const TiledComputation *node) {
         lowerIR,
         node->unit);
 
-    std::cout << "Generated  ------" << std::endl
-              << lowerIR << std::endl;
+    // std::cout << "Generated  ------" << std::endl
+    //           << lowerIR << std::endl;
 }
 
 template<typename T>
@@ -402,7 +402,6 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
 }
 
 LowerIR ComposableLower::declare_computes(Pattern annotation) const {
-    std::cout << annotation << std::endl;
     std::vector<LowerIR> lowered;
     match(annotation, std::function<void(const ComputesForNode *, Matcher *)>(
                           [&](const ComputesForNode *op, Matcher *ctx) {
@@ -411,12 +410,8 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                               if (tiled_vars.contains(v)) {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(v = tiled_vars.at(v)));
-                                  std::cout << tiled_vars << std::endl;
-                                  std::cout << parents << std::endl;
-                                  std::cout << "Steps" << op->step << std::endl;
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->step = parents.at(op->step)));
-                                  std::cout << "Def here " << std::endl;
                               } else {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->start));
@@ -428,7 +423,6 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
 }
 
 LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
-    std::cout << annotation << std::endl;
     std::vector<LowerIR> lowered;
     match(annotation, std::function<void(const ConsumesForNode *, Matcher *)>(
                           [&](const ConsumesForNode *op, Matcher *ctx) {
@@ -437,12 +431,8 @@ LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
                               if (tiled_vars.contains(v)) {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(v = tiled_vars.at(v)));
-                                  std::cout << tiled_vars << std::endl;
-                                  std::cout << parents << std::endl;
-                                  std::cout << "Steps" << op->step << std::endl;
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->step = parents.at(op->step)));
-                                  std::cout << "Def here " << std::endl;
                               } else {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->start));
