@@ -82,7 +82,7 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
             continue;
         }
         // Otherwise, generate a new name.
-        fresh_names[v] = getUniqueName("_gern_" + v.getName());
+        fresh_names[v] = Variable(getUniqueName("_gern_" + v.getName()), false);
     }
 
     // The binding is only valid for one use, erase it now.

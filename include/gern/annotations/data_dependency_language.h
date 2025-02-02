@@ -272,7 +272,7 @@ namespace std {
 template<>
 struct less<gern::Variable> {
     bool operator()(const gern::Variable &a, const gern::Variable &b) const {
-        return a.ptr < b.ptr;
+        return a.getName() < b.getName();
     }
 };
 

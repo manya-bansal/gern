@@ -324,7 +324,7 @@ SubsetObj::SubsetObj(const SubsetNode *n)
 
 SubsetObj::SubsetObj(AbstractDataTypePtr data,
                      std::vector<Expr> mdFields)
-    : Stmt(new const SubsetNode(data, mdFields)) {
+    : SubsetObj(new const SubsetNode(data, mdFields)) {
 }
 
 std::vector<Expr> SubsetObj::getFields() const {

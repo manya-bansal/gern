@@ -142,7 +142,6 @@ TiledComputation::TiledComputation(ADTMember adt_member,
     auto annotation = tiled.getAnnotation();
     auto body_units = annotation.getOccupiedUnits();
     body_units.insert(unit);
-    // Assume the highest ranking unit.
     _annotation = resetUnit(annotation,
                             body_units);
     init_binding();
@@ -178,6 +177,11 @@ void TiledComputation::init_binding() {
     start = std::get<1>(value);
     end = adt_member;
     step = std::get<2>(value);
+
+    // Refresh the variable that just got mapped.
+    Variable new_step = getUniqueName("_gern_" + step.getName());
+    _annotation = replaceVariables(_annotation,
+                                   {{step, v}});
 }
 
 Composable::Composable(const ComposableNode *n)
