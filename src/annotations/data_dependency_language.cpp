@@ -493,7 +493,6 @@ Annotation Annotation::assumes(std::vector<Constraint> constraints) const {
             }
         }
     }
-
     return Annotation(getPattern(), getOccupiedUnits(), constraints);
 }
 

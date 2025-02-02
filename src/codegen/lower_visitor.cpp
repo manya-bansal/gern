@@ -70,7 +70,7 @@ void LowerPrinter::visit(const BlankNode *op) {
 void LowerPrinter::visit(const AssertNode *op) {
     bool static_check = isConstExpr(op->constraint.getA()) &&
                         isConstExpr(op->constraint.getB());
-    os << ((static_check) ? "static_assert" : "dynamic_assert")
+    os << ((static_check) ? "static_assert" : "assert")
        << op->constraint;
 }
 
