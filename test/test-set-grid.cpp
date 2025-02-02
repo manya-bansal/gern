@@ -106,4 +106,5 @@ TEST(SetGrid, CatchStatic) {
 
     Runner run(program);
     run.compile(test::gpuRunner("array"));
+    ASSERT_TRUE(false);
 }
