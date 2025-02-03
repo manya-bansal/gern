@@ -186,3 +186,22 @@ max_shuffle(T1 &output, const T2 &input) {
         output.val[r] = maxval;
     }
 }
+
+template<typename T>
+__device__ void
+blur_x(const T &input,
+       T &output) {
+    auto &input_data = input.array;
+    auto &output_data = output.array;
+    constexpr int64_t num_row = input.rows;
+    constexpr int64_t num_col = input.cols_by_4;
+#pragma unroll URF
+    for (int m = 0; m < num_row * num_col; m++) {
+        float4 val = input_data[m];
+        val.x = __expf(val.x);
+        val.y = __expf(val.y);
+        val.z = __expf(val.z);
+        val.w = __expf(val.w);
+        output_data[m] = val;
+    }
+}

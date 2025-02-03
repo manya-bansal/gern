@@ -97,19 +97,20 @@ public:
     }
 
     template<int64_t num_row, int64_t num_col>
-    __device__ StaticMatrix<num_row, num_col / 4> query(int64_t x, int64_t y) {
-        StaticMatrix<num_row, num_col / 4> matrix;
+    __device__ StaticMatrix<num_row, CEILING(num_col, 4)> query(int64_t x, int64_t y) {
+        constexpr int64_t col_to_return = CEILING(num_col, 4);
+        StaticMatrix<num_row, col_to_return> matrix;
         auto matrix_data = matrix.array;
         float4 *val_ptr = reinterpret_cast<float4 *>(&data[x * row + y]);
 
         for (int m = 0; m < num_row; m++) {
 #pragma unroll URF
-            for (int i = 0; i < num_col / 4; i += stride) {
+            for (int i = 0; i < col_to_return; i += stride) {
                 float4 val = val_ptr[i];
                 matrix_data[i] = val;
             }
             val_ptr += (LDA / 4);
-            matrix_data += num_col / 4;
+            matrix_data += col_to_return;
         }
         return matrix;
     }
@@ -165,8 +166,8 @@ public:
 };
 
 template<int64_t num_row, int64_t num_col>
-__device__ StaticMatrix<num_row, num_col / 4> allocate_static() {
-    return StaticMatrix<num_row, num_col / 4>();
+__device__ StaticMatrix<num_row, CEILING(num_col, 4)> allocate_static() {
+    return StaticMatrix<num_row, CEILING(num_col, 4)>();
 }
 
 template<int64_t len>
