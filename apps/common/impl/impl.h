@@ -187,21 +187,28 @@ max_shuffle(T1 &output, const T2 &input) {
     }
 }
 
-template<typename T>
+template<int64_t stride, typename T1, typename T2>
 __device__ void
-blur_x(const T &input,
-       T &output) {
-    auto &input_data = input.array;
-    auto &output_data = output.array;
-    constexpr int64_t num_row = input.rows;
-    constexpr int64_t num_col = input.cols_by_4;
+blur_x(const T1 &input,
+       T2 &output) {
+    // Treat as normal float arrays.
+    const float *input_data = reinterpret_cast<const float *>(input.array);
+    float *output_data = reinterpret_cast<float *>(output.array);
+    constexpr int64_t num_row = output.rows;
+    constexpr int64_t num_col = output.cols_by_4 * 4;
+    constexpr int64_t input_num_col = input.cols_by_4 * 4;
+
 #pragma unroll URF
-    for (int m = 0; m < num_row * num_col; m++) {
-        float4 val = input_data[m];
-        val.x = __expf(val.x);
-        val.y = __expf(val.y);
-        val.z = __expf(val.z);
-        val.w = __expf(val.w);
-        output_data[m] = val;
+
+    for (int m = 0; m < num_row; m++) {
+        for (int n = 0; n < num_col; n++) {
+            float sum = 0;
+            for (int s = 0; s < stride; s++) {
+                sum += input_data[s + n];
+            }
+            output_data[n] = sum / stride;
+        }
+        output_data += num_col;
+        input_data += input_num_col;
     }
 }
