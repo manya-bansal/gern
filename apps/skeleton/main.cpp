@@ -1,4 +1,3 @@
-#include "library/annot.h"
 #include <compose/composable.h>
 #include <compose/runner.h>
 
@@ -7,12 +6,7 @@
 using namespace gern;
 
 int main() {
-    Hello hi;
-
-    Composable program(hi());
-    Runner run(program);
-
-    run.compile(Runner::Options());
+    std::cout << "Hello!" << std::endl;
     // run.evaluate({});
 
     return 0;

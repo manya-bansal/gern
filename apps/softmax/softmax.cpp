@@ -2,7 +2,7 @@
 #include "annot/functions.h"
 #include "compose/composable.h"
 #include "compose/runner.h"
-#include "gpu-matrix-const.h"
+#include "impl/gpu-matrix-const.h"
 
 int main() {
     constexpr int64_t h = 32 * 4;
@@ -58,7 +58,7 @@ int main() {
     Runner run(program);
     Runner::Options options;
 
-    options.include = "-I /home/manya/gern/apps/"
+    options.include = "-I /home/manya/gern/apps/common"
                       " -I /home/manya/gern/test/";
     options.arch = "89";
 
