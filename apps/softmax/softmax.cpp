@@ -1,13 +1,14 @@
 #include "annot/adt.h"
 #include "annot/functions.h"
+#include "benchmark.h"
 #include "compose/composable.h"
 #include "compose/runner.h"
 #include "impl/gpu-matrix-const.h"
 
 int main() {
-    constexpr int64_t h = 32 * 4;
-    constexpr int64_t w = 32 * 4;
-    constexpr int64_t block_size = 32;
+    constexpr int64_t h = 16384;
+    constexpr int64_t w = 16384;
+    constexpr int64_t block_size = 1024;
     constexpr int64_t num_cols_q = h / 32;
 
     using MatrixType = impl::MatrixGPU<h, w, h, block_size>;
@@ -48,9 +49,7 @@ int main() {
                        subtract_vec(max_row_out, a, sub_temp),
                        exp_matrix(sub_temp, exp_temp),
                        sum_row_specialize->operator()(sum_row_out, exp_temp),
-                       divide_vec(sum_row_out, exp_temp, b)
-
-                           ))),
+                       divide_vec(sum_row_out, exp_temp, b)))),
                {
                    {Grid::Dim::BLOCK_DIM_Y, stride_val.bindToInt64(block_size)},
                })};
@@ -69,10 +68,18 @@ int main() {
     MatrixType out;
     out.vvals(0.0f);
 
-    run.evaluate({
-        {a.getName(), &in},
-        {b.getName(), &out},
-    });
+    auto func = [&]() {
+        run.evaluate({
+            {a.getName(), &in},
+            {b.getName(), &out},
+        });
+    };
+
+    auto time = my_benchmark::benchmark(5, 5, func);
+
+    double gflops = sizeof(float) * h * w * 2 * 1e-9;
+
+    std::cout << (gflops / time) << std::endl;
 
     auto cpu_result = out.get();
     auto a_result = in.get();
