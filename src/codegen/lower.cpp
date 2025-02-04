@@ -96,11 +96,8 @@ LowerIR ComposableLower::lower() {
 
 LowerIR ComposableLower::generate_definitions(Assign definition) const {
     Variable v = to<Variable>(definition.getA());
-    // if (parents.contains(v)) {
-    //     return new const BlankNode();
-    // }
     if (isConstExpr(v) && !isConstExpr(definition.getB())) {
-        // throw error::UserError("Binding const expr " + v.getName() + " to a non-const expr.");
+        throw error::UserError("Binding const expr " + v.getName() + " to a non-const expr.");
     }
     if (v.isBound()) {
         throw error::UserError(v.getName() + " is determined by the pipeline and cannot be bound.");
@@ -118,14 +115,9 @@ LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraint
 
 void ComposableLower::lower(const TiledComputation *node) {
     // First, add the value of the captured value.
+    const std::map<Variable, Variable> &new_vars = node->getNewNames();
     Variable captured = node->captured;
-    Variable loop_index(getUniqueName("_i_"));
-
-    // Track the fact that this field is being tiled.
-    Expr current_value = loop_index;
-    if (tiled_vars.contains(captured)) {
-        current_value = current_value + tiled_vars.at(captured);
-    }
+    Variable loop_index = new_vars.at(node->captured);
 
     AbstractDataTypePtr output = node->getAnnotation().getPattern().getOutput().getDS();
     current_ds.scope();
@@ -136,8 +128,8 @@ void ComposableLower::lower(const TiledComputation *node) {
     parents.scope();
     tiled_vars.scope();
     parents.insert(captured, node->v);
-    tiled_vars.insert(captured, current_value);
-    std::cout << parents << std::endl;
+    tiled_vars.insert(captured, loop_index);
+    std::cout << "Here" << parents << std::endl;
     std::cout << tiled_vars << std::endl;
     this->visit(node->tiled);  // Visit the actual object.
     current_ds.unscope();
@@ -149,10 +141,10 @@ void ComposableLower::lower(const TiledComputation *node) {
     // lowered.push_back(lowerIR);
     // lowerIR = new const BlockNode(lowered);
 
-    bool has_parent = parents.contains(captured);
+    bool has_parent = parents.contains(loop_index);
     lowerIR = new const IntervalNode(
         has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
-        has_parent ? Expr(parents.at(captured)) : Expr(node->end),
+        has_parent ? Expr(parents.at(loop_index)) : Expr(node->end),
         node->v,
         lowerIR,
         node->unit);
@@ -403,6 +395,22 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     return f_new;
 }
 
+template<typename T1>
+static Expr getValue(const util::ScopedMap<T1, T1> &map, T1 entry) {
+    if (!map.contains(entry)) {
+        return Expr();
+    }
+
+    Expr base = map.at(entry);  // Initialize the base.
+    entry = map.at(entry);
+
+    while (map.contains(entry)) {  // While we have the entry, go find it.
+        base = base + map.at(entry);
+        entry = map.at(entry);
+    }
+    return base;
+}
+
 LowerIR ComposableLower::declare_computes(Pattern annotation) const {
     std::vector<LowerIR> lowered;
     std::cout << "-----" << std::endl;
@@ -414,13 +422,14 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                               ctx->match(op->body);
                               Variable v = to<Variable>(op->start.getA());
                               if (tiled_vars.contains(v)) {
+                                  Expr rhs = getValue(tiled_vars, v);
                                   lowered.insert(lowered.begin(),
-                                                 generate_definitions(v = tiled_vars.at(v)));
+                                                 generate_definitions(v = rhs));
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->step = parents.at(v)));
                               } else {
                                   lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->start));
+                                                 new const DefNode(op->start, false));  // this will never be a constexpr.
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->step = op->end));
                               }
@@ -431,18 +440,24 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
 
 LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
     std::vector<LowerIR> lowered;
+    std::cout << " Cosnumes -----" << std::endl;
+    std::cout << parents << std::endl;
+    std::cout << tiled_vars << std::endl;
+    std::cout << annotation << std::endl;
+    std::cout << " Cosnumes-----" << std::endl;
     match(annotation, std::function<void(const ConsumesForNode *, Matcher *)>(
                           [&](const ConsumesForNode *op, Matcher *ctx) {
                               ctx->match(op->body);
-                              Variable v = to<Variable>(op->step);
+                              Variable v = to<Variable>(op->start.getA());
                               if (tiled_vars.contains(v)) {
+                                  Expr rhs = getValue(tiled_vars, v);
                                   lowered.insert(lowered.begin(),
-                                                 generate_definitions(v = tiled_vars.at(v)));
+                                                 generate_definitions(v = rhs));
                                   lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = parents.at(op->step)));
+                                                 generate_definitions(op->step = parents.at(v)));
                               } else {
                                   lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->start));
+                                                 new const DefNode(op->start, false));  // this will never be a constexpr.
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->step = op->end));
                               }

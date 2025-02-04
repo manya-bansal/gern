@@ -73,7 +73,7 @@ inline std::set<Grid::Dim> getDims(T annot) {
     return dims;
 }
 
-inline Annotation refreshVariables(Annotation annot) {
+inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable> &new_vars) {
     // Only refresh output side variables.
     auto output_var_vec = annot.getPattern().getProducesField();
     auto interval_vars = annot.getIntervalVariables();
@@ -82,12 +82,13 @@ inline Annotation refreshVariables(Annotation annot) {
     std::map<Variable, Variable> fresh_names;
     for (const auto &v : old_vars) {
         // std::cout << v << std::endl;
-        if (output_var_set.contains(v)) {
-            // std::cout << "Inside" << v << std::endl;
-            // Otherwise, generate a new name.
-            fresh_names[v] = Variable(getUniqueName("_gern_" + v.getName()), v.isConstExpr());
-                }
+        // if (output_var_set.contains(v)) {
+        // std::cout << "Inside" << v << std::endl;
+        // Otherwise, generate a new name.
+        fresh_names[v] = Variable(getUniqueName("_gern_" + v.getName()), v.isConstExpr());
+        // }
     }
+    new_vars = fresh_names;
     return replaceVariables(annot, fresh_names);
 }
 

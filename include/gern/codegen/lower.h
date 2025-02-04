@@ -93,7 +93,7 @@ private:
     AbstractDataTypePtr getCurrent(AbstractDataTypePtr) const;
 
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
-    util::ScopedMap<Variable, Expr> tiled_vars;
+    util::ScopedMap<Variable, Variable> tiled_vars;
     util::ScopedMap<Variable, Variable> parents;  // Used for splits.
 
     LowerIR lowerIR;
