@@ -135,6 +135,53 @@ public:
         }
     }
 
+    template<
+        typename T2>
+    __device__ void insert_new(
+        int x,
+        int y,
+        T2 &reg_array_big) {
+        auto &reg_array = reg_array_big.array;
+        constexpr int64_t num_row = reg_array_big.rows;
+        constexpr int64_t num_col = reg_array_big.cols_by_4;
+        float4 *val_ptr = reinterpret_cast<float4 *>(&data[x * row + y * 4]);
+
+        int index = 0;
+        for (int m = 0; m < num_row; m++) {
+#pragma unroll URF
+            for (int i = 0; i < num_col; i++) {
+                float4 val = reg_array[i];
+                val_ptr[index] = val;
+                index += stride;
+            }
+        }
+    }
+
+    template<
+        typename T2>
+    __device__ void query_new(
+        int x,
+        int y,
+        T2 &reg_array_big) {
+        // constexpr int64_t col_to_return = CEILING(num_col, 4);
+        // StaticMatrix<num_rows_in, col_to_return> reg_array_big;
+        auto &reg_array = reg_array_big.array;
+        float4 *val_ptr = reinterpret_cast<float4 *>(&data[x * row + y * 4]);
+
+        constexpr int64_t num_row = reg_array_big.rows;
+        constexpr int64_t num_col = reg_array_big.cols_by_4;
+
+        int index = 0;
+        for (int m = 0; m < num_row; m++) {
+#pragma unroll URF
+            for (int i = 0; i < num_col; i++) {
+                float4 val = val_ptr[index];
+                reg_array[i] = val;
+                index += stride;
+            }
+        }
+    }
+
     MatrixCPU get() {
         MatrixCPU cpu(row, col, lda);
         cudaMemcpy(cpu.data, data, lda * col * sizeof(float), cudaMemcpyDeviceToHost);

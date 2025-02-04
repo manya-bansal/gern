@@ -80,4 +80,65 @@ inline double benchmark_new(uint64_t samples, uint64_t iterations,
 
 }  // namespace my_benchmark
 
+#include <iostream>
+#include <random>
+#include <vector>
+
+#ifndef CUBLAS_CHECK_AND_EXIT
+#define CUBLAS_CHECK_AND_EXIT(error)                                                \
+    {                                                                               \
+        auto status = static_cast<cublasStatus_t>(error);                           \
+        if (status != CUBLAS_STATUS_SUCCESS) {                                      \
+            std::cout << status << " " << __FILE__ << ":" << __LINE__ << std::endl; \
+            std::exit(status);                                                      \
+        }                                                                           \
+    }
+#endif  // CUBLAS_CHECK_AND_EXIT
+
+#ifndef CUDA_CHECK_AND_EXIT
+#define CUDA_CHECK_AND_EXIT(error)                                                                      \
+    {                                                                                                   \
+        auto status = static_cast<cudaError_t>(error);                                                  \
+        if (status != cudaSuccess) {                                                                    \
+            std::cout << cudaGetErrorString(status) << " " << __FILE__ << ":" << __LINE__ << std::endl; \
+            std::exit(status);                                                                          \
+        }                                                                                               \
+    }
+#endif
+
+namespace benchmark {
+
+struct measure {
+    // Returns execution time in ms.
+    template<typename Kernel>
+    static float execution(Kernel &&kernel, const unsigned int warm_up_runs, const unsigned int runs, cudaStream_t stream) {
+        cudaEvent_t startEvent, stopEvent;
+        CUDA_CHECK_AND_EXIT(cudaEventCreate(&startEvent));
+        CUDA_CHECK_AND_EXIT(cudaEventCreate(&stopEvent));
+        CUDA_CHECK_AND_EXIT(cudaDeviceSynchronize());
+
+        for (unsigned int i = 0; i < warm_up_runs; i++) {
+            kernel(stream);
+        }
+
+        CUDA_CHECK_AND_EXIT(cudaGetLastError());
+        CUDA_CHECK_AND_EXIT(cudaDeviceSynchronize());
+
+        CUDA_CHECK_AND_EXIT(cudaEventRecord(startEvent, stream));
+        for (unsigned int i = 0; i < runs; i++) {
+            kernel(stream);
+        }
+        CUDA_CHECK_AND_EXIT(cudaEventRecord(stopEvent, stream));
+        CUDA_CHECK_AND_EXIT(cudaDeviceSynchronize());
+
+        float time;
+        CUDA_CHECK_AND_EXIT(cudaEventElapsedTime(&time, startEvent, stopEvent));
+        CUDA_CHECK_AND_EXIT(cudaEventDestroy(startEvent));
+        CUDA_CHECK_AND_EXIT(cudaEventDestroy(stopEvent));
+        return time / (float)runs;
+    }
+};
+
+};  // namespace benchmark
+
 #endif

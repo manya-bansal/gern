@@ -79,7 +79,7 @@ int main() {
 
     double gflops = sizeof(float) * h * w * 2 * 1e-9;
 
-    std::cout << (gflops / time) << std::endl;
+    std::cout << (gflops / (time / 5)) << std::endl;
 
     auto cpu_result = out.get();
     auto a_result = in.get();

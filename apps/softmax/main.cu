@@ -1,7 +1,7 @@
 // From https:github.com/SzymonOzog/FastSoftmax.git
 
 #include "benchmark.h"
-#include "gpu-matrix-const.h"
+#include "impl/gpu-matrix-const.h"
 #include <cassert>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -58,7 +58,7 @@ __device__ StaticMatrix<num_row, num_col> allocate_local() {
     return StaticMatrix<num_row, num_col>();
 }
 
-#include "impl.h"
+#include "impl/impl.h"
 
 template<int tile_row,
          int tile_col,
@@ -97,23 +97,27 @@ __global__ void softmax_kernel_gern_like(T a,
     constexpr int64_t num_cols_in = CEILING(a.row, tile_col) / 4;
     constexpr int64_t num_rows_in = tile_row;
 
-    auto reg_array_big = a.template query<num_rows_in, num_cols_q>(x, y);
-    holder<num_rows_in> hold;
-    max_shuffle<tile_col>(hold, reg_array_big);
+    StaticMatrix<num_rows_in, num_cols_in> reg_array_big;
+    a.query_new(x, y, reg_array_big);
 
-    auto reg_query_2 = a.template query<num_rows_in, num_cols_q>(x, y);
-    auto reg_array_subs = gern::impl::allocate_static<num_rows_in, num_cols_q>();
-    subtract_vec(hold, reg_query_2, reg_array_subs);
+    StaticMatrix<num_rows_in, num_cols_in> output_query;
+    b.query_new(x, y, output_query);
 
-    auto reg_array_exp = gern::impl::allocate_static<num_rows_in, num_cols_q>();
-    exp_matrix(reg_array_subs, reg_array_exp);
+    holder<num_rows_in> max_row_out;
+    max_shuffle<tile_col>(max_row_out, reg_array_big);
 
-    holder<num_rows_in> hold_2;
-    sum_row<tile_col>(hold_2, reg_array_exp);
+    auto sub_temp = impl::allocate_static<num_rows_in, num_cols_q>();
+    subtract_vec(max_row_out, reg_array_big, sub_temp);
 
-    auto reg_array_final = gern::impl::allocate_static<num_rows_in, num_cols_q>();
-    divide_vec(hold_2, reg_array_exp, reg_array_final);
-    b.insert_obj(x, y, reg_array_final);
+    auto exp_temp = impl::allocate_static<num_rows_in, num_cols_q>();
+    exp_matrix(sub_temp, exp_temp);
+
+    holder<num_rows_in> sum_row_out;
+    sum_row<tile_col>(sum_row_out, exp_temp);
+
+    divide_vec(sum_row_out, exp_temp, output_query);
+
+    b.insert_new(x, y, output_query);
 }
 
 constexpr int warm_up_runs = 5;
@@ -134,7 +138,7 @@ int main() {
     constexpr int64_t w = WIDTH;
     constexpr int tile_col = BLOCK_DIM_Y;
 
-    using MatrixType = gern::impl::MatrixGPU<h, w, h, tile_col>;
+    using MatrixType = impl::MatrixGPU<h, w, h, tile_col>;
     std::cout << WIDTH << std::endl;
 
     MatrixType in;
@@ -150,12 +154,12 @@ int main() {
     cudaStream_t stream = NULL;
 
     softmax_kernel10<float><<<grid_size, block_size>>>(in.data, out.data, w, h);
-    gern::impl::MatrixCPU reference = out.get();
+    impl::MatrixCPU reference = out.get();
     out.vvals(0.0f);
 
     auto specialized = softmax_kernel_gern_like<tile_row, tile_col, MatrixType>;
     specialized<<<grid_size, block_size>>>(in, out);
-    gern::impl::MatrixCPU gern = out.get();
+    impl::MatrixCPU gern = out.get();
 
     for (int64_t i = 0; i < h * w; i++)
         assert(reference.data[i] == gern.data[i]);
