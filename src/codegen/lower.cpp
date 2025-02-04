@@ -213,12 +213,12 @@ void ComposableLower::lower(const Computation *node) {
     std::vector<LowerIR> lowered;
     std::set<AbstractDataTypePtr> to_free;
 
-    // Construct the allocations and track whether the allocations
-    // need to be freed.
     std::vector<Composable> composed = node->composed;
-    size_t size_funcs = composed.size();
-    for (size_t i = 0; i < size_funcs - 1; i++) {
-        SubsetObj temp_subset = composed[i].getAnnotation().getPattern().getOutput();
+    // Now, we are ready to lower the composable objects that make up the body.
+    for (const auto &function : composed) {
+        // Construct the allocations and track whether the allocations
+        // need to be freed.
+        SubsetObj temp_subset = function.getAnnotation().getPattern().getOutput();
         AbstractDataTypePtr temp = temp_subset.getDS();
         if (!current_ds.contains(temp)) {
             lowered.push_back(constructAllocNode(temp, temp_subset.getFields()));
@@ -227,10 +227,6 @@ void ComposableLower::lower(const Computation *node) {
                 to_free.insert(temp);
             }
         }
-    }
-
-    // Now, we are ready to lower the composable objects that make up the body.
-    for (const auto &function : node->composed) {
         this->visit(function);
         lowered.push_back(lowerIR);
     }
