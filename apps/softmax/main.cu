@@ -85,6 +85,57 @@ __global__ void softmax_kernel_mine(T a,
     // }
 }
 
+template<int64_t col, int64_t col_val, int64_t row, int64_t stride_val>
+__global__ void function_39(impl::MatrixGPU<16384, 16384, 16384, 1024> input,
+                            impl::MatrixGPU<16384, 16384, 16384, 1024> output) {
+
+    int64_t _gern_x_3_24_35 = ((blockIdx.x * row) + 0);
+    // for (int64_t _gern_y_4_26 = 0; (_gern_y_4_26 < output.col); _gern_y_4_26 = (_gern_y_4_26 + col_val)) {
+
+    int64_t _gern_y_4 = threadIdx.y;
+    constexpr int64_t _gern_l_y_2 = col_val;
+    int64_t _gern_x_3 = _gern_x_3_24_35;
+    constexpr int64_t _gern_l_x_1 = row;
+
+    int64_t _gern_x_6 = _gern_x_3;
+    constexpr int64_t _gern_l_x_5 = _gern_l_x_1;
+    int64_t _gern_x_9 = _gern_x_3;
+    int64_t _gern_y_10 = _gern_y_4;
+    constexpr int64_t _gern_l_x_7 = _gern_l_x_1;
+    constexpr int64_t _gern_l_y_8 = _gern_l_y_2;
+    int64_t _gern_x_13 = _gern_x_9;
+    int64_t _gern_y_14 = _gern_y_10;
+    constexpr int64_t _gern_l_x_11 = _gern_l_x_7;
+    constexpr int64_t _gern_l_y_12 = _gern_l_y_8;
+    int64_t _gern_x_16 = _gern_x_13;
+    constexpr int64_t _gern_l_x_15 = _gern_l_x_11;
+
+    auto _query_output_40 = output.query_new<_gern_l_x_1, _gern_l_y_2>(_gern_x_3, _gern_y_4);
+
+    auto max_row_out = impl::allocate_static_array<_gern_l_x_15>();
+
+    auto _query_input_41 = input.query_new<_gern_l_x_15, col>(_gern_x_16, 0);
+
+    max_shuffle<stride_val>(max_row_out, _query_input_41);
+
+    auto sub_temp = impl::allocate_static<_gern_l_x_11, _gern_l_y_12>();
+
+    subtract_vec(max_row_out, _query_input_41, sub_temp);
+
+    auto exp_temp = impl::allocate_static<_gern_l_x_7, _gern_l_y_8>();
+
+    exp_matrix(sub_temp, exp_temp);
+
+    auto sum_row_out = impl::allocate_static_array<_gern_l_x_5>();
+
+    sum_row<stride_val>(sum_row_out, exp_temp);
+
+    divide_vec(sum_row_out, exp_temp, _query_output_40);
+
+    output.insert_new(_gern_x_3, _gern_y_4, _query_output_40);
+    // }
+}
+
 template<int tile_row,
          int tile_col,
          typename T>
@@ -94,16 +145,12 @@ __global__ void softmax_kernel_gern_like(T a,
     int y = threadIdx.y;
 
     constexpr int64_t num_cols_q = CEILING(a.row, tile_col);
-    constexpr int64_t num_cols_in = CEILING(a.row, tile_col) / 4;
     constexpr int64_t num_rows_in = tile_row;
 
-    StaticMatrix<num_rows_in, num_cols_in> reg_array_big;
-    a.query_new(x, y, reg_array_big);
+    auto reg_array_big = a.template query_new<num_rows_in, num_cols_q>(x, y);
+    auto output_query = b.template query_new<num_rows_in, num_cols_q>(x, y);
 
-    StaticMatrix<num_rows_in, num_cols_in> output_query;
-    b.query_new(x, y, output_query);
-
-    holder<num_rows_in> max_row_out;
+    auto max_row_out = impl::allocate_static_array<num_rows_in>();
     max_shuffle<tile_col>(max_row_out, reg_array_big);
 
     auto sub_temp = impl::allocate_static<num_rows_in, num_cols_q>();
@@ -112,7 +159,7 @@ __global__ void softmax_kernel_gern_like(T a,
     auto exp_temp = impl::allocate_static<num_rows_in, num_cols_q>();
     exp_matrix(sub_temp, exp_temp);
 
-    holder<num_rows_in> sum_row_out;
+    auto sum_row_out = impl::allocate_static_array<num_rows_in>();
     sum_row<tile_col>(sum_row_out, exp_temp);
 
     divide_vec(sum_row_out, exp_temp, output_query);
@@ -124,7 +171,7 @@ constexpr int warm_up_runs = 5;
 constexpr int kernel_repeats = 5;
 
 #ifndef WIDTH
-#define WIDTH 8192
+#define WIDTH 16384
 #endif
 
 #ifndef BLOCK_DIM_Y
@@ -158,6 +205,7 @@ int main() {
     out.vvals(0.0f);
 
     auto specialized = softmax_kernel_gern_like<tile_row, tile_col, MatrixType>;
+    // auto specialized = function_39<w, w, 1, tile_col>;
     specialized<<<grid_size, block_size>>>(in, out);
     impl::MatrixCPU gern = out.get();
 

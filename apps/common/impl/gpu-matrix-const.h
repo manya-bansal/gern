@@ -157,14 +157,13 @@ public:
         }
     }
 
-    template<
-        typename T2>
-    __device__ void query_new(
+    template<int64_t num_row_t, int64_t num_col_t>
+    __device__ StaticMatrix<num_row_t, CEILING(num_col_t, 4)> query_new(
         int x,
-        int y,
-        T2 &reg_array_big) {
-        // constexpr int64_t col_to_return = CEILING(num_col, 4);
-        // StaticMatrix<num_rows_in, col_to_return> reg_array_big;
+        int y) {
+        constexpr int64_t col_to_return = CEILING(num_col_t, 4);
+        StaticMatrix<num_row_t, col_to_return> reg_array_big;
+
         auto &reg_array = reg_array_big.array;
         float4 *val_ptr = reinterpret_cast<float4 *>(&data[x * row + y * 4]);
 
@@ -180,6 +179,7 @@ public:
                 index += stride;
             }
         }
+        return reg_array_big;
     }
 
     MatrixCPU get() {

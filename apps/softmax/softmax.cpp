@@ -43,7 +43,7 @@ int main() {
     }];
 
     Composable program = {
-        Global((Tile(b["row"], row.bindToInt64(4)) || Grid::Unit::BLOCK_X)(
+        Global((Tile(b["row"], row.bindToInt64(1)) || Grid::Unit::BLOCK_X)(
                    (Tile(b["col"], col_val.bindToInt64(w))(
                        max_row_specialize->operator()(max_row_out, a),
                        subtract_vec(max_row_out, a, sub_temp),
