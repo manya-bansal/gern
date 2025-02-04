@@ -418,6 +418,7 @@ static T1 getFirstValue(const util::ScopedMap<T1, T1> &rel,
         if (map.contains(entry)) {
             return map.at(entry);  // Just set up the first value.
         }
+        entry = rel.at(entry);
     }
     return T1();
 }
@@ -446,22 +447,6 @@ static Expr getValue(const util::ScopedMap<T1, T1> &rel,
     return e;
 }
 
-template<typename T1>
-static Expr getValue(const util::ScopedMap<T1, T1> &map, T1 entry) {
-    if (!map.contains(entry)) {
-        return Expr();
-    }
-
-    Expr base = map.at(entry);  // Initialize the base.
-    entry = map.at(entry);
-
-    while (map.contains(entry)) {  // While we have the entry, go find it.
-        base = base + map.at(entry);
-        entry = map.at(entry);
-    }
-    return base;
-}
-
 LowerIR ComposableLower::declare_computes(Pattern annotation) const {
     std::vector<LowerIR> lowered;
     match(annotation, std::function<void(const ComputesForNode *, Matcher *)>(
@@ -469,19 +454,17 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                               ctx->match(op->body);
                               Variable v = to<Variable>(op->start.getA());
                               Expr rhs = getValue(all_relationships, tiled_vars, v);
-                              //   std::cout << rhs << std::endl;
                               if (rhs.defined()) {
-                              }
-                              if (tiled_vars.contains(v)) {
                                   lowered.push_back(generate_definitions(v = rhs));
-                                  //   Expr rhs = getValue(all_relationships, tiled_vars, v);
-                                  //   lowered.insert(lowered.begin(),
-                                  //                  generate_definitions(v = rhs));
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = parents.at(v)));
                               } else {
-                                  lowered.insert(lowered.begin(),
-                                                 new const DefNode(op->start, false));  // this will never be a constexpr.
+                                  lowered.push_back(
+                                      new const DefNode(op->start, false));
+                              }
+                              Variable step_val = getFirstValue(all_relationships, parents, v);
+                              if (step_val.defined()) {
+                                  lowered.push_back(
+                                      generate_definitions(op->step = step_val));
+                              } else {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->step = op->end));
                               }
@@ -495,15 +478,18 @@ LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
                           [&](const ConsumesForNode *op, Matcher *ctx) {
                               ctx->match(op->body);
                               Variable v = to<Variable>(op->start.getA());
-                              if (tiled_vars.contains(v)) {
-                                  Expr rhs = getValue(tiled_vars, v);
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(v = rhs));
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = parents.at(v)));
+                              Expr rhs = getValue(all_relationships, tiled_vars, v);
+                              if (rhs.defined()) {
+                                  lowered.push_back(generate_definitions(v = rhs));
                               } else {
-                                  lowered.insert(lowered.begin(),
-                                                 new const DefNode(op->start, false));  // this will never be a constexpr.
+                                  lowered.push_back(
+                                      new const DefNode(op->start, false));
+                              }
+                              Variable step_val = getFirstValue(all_relationships, parents, v);
+                              if (step_val.defined()) {
+                                  lowered.push_back(
+                                      generate_definitions(op->step = step_val));
+                              } else {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->step = op->end));
                               }
