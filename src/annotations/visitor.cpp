@@ -310,9 +310,7 @@ Constraint Rewriter::rewrite(Constraint c) {
 }
 
 void Rewriter::visit(const VariableNode *op) {
-    expr = Variable(new VariableNode(op->name, op->p,
-                                     op->type, op->const_expr,
-                                     op->bound, op->val));
+    expr = op;
 }
 
 void Rewriter::visit(const ADTMemberNode *op) {

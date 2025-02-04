@@ -123,7 +123,7 @@ void Computation::init_annotation() {
     Consumes consumes = mimicConsumes(last_pattern, input_subsets);
     Pattern p = mimicComputes(last_pattern, Computes(produces, consumes));
     _annotation = Annotation(p, occupied, constraints);
-    // _annotation = Annotation(p, occupied, constraints);
+    // _annotation = refreshVariables(Annotation(p, occupied, constraints));
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {
@@ -181,8 +181,9 @@ void TiledComputation::init_binding() {
 
     // Refresh the variable that just got mapped.
     Variable new_step = getUniqueName("_gern_" + step.getName());
-    _annotation = replaceVariables(_annotation,
-                                   {{step, v}});
+    // _annotation = replaceVariables(_annotation,
+    //                                {{step, v}});
+    _annotation = refreshVariables(_annotation);
 }
 
 Composable::Composable(const ComposableNode *n)

@@ -33,7 +33,9 @@ public:
     }
 
     void destroy() {
+        std::cout << "in" << std::endl;
         free(data);
+        std::cout << "out " << std::endl;
     }
 
     void vvals(float f) {

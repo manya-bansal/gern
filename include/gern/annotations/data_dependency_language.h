@@ -3,6 +3,7 @@
 #include "annotations/abstract_nodes.h"
 #include "annotations/grid.h"
 #include "utils/error.h"
+#include "utils/name_generator.h"
 #include "utils/uncopyable.h"
 #include <cassert>
 #include <map>
@@ -135,8 +136,8 @@ class Assign;
 // All variables are current ints.
 class Variable : public Expr {
 public:
-    Variable() = default;
     Variable(const std::string &name);
+    Variable() = default;
     Variable(const std::string &name, bool const_expr);
     Variable(const VariableNode *);
 

@@ -100,7 +100,7 @@ LowerIR ComposableLower::generate_definitions(Assign definition) const {
     //     return new const BlankNode();
     // }
     if (isConstExpr(v) && !isConstExpr(definition.getB())) {
-        throw error::UserError("Binding const expr " + v.getName() + " to a non-const expr.");
+        // throw error::UserError("Binding const expr " + v.getName() + " to a non-const expr.");
     }
     if (v.isBound()) {
         throw error::UserError(v.getName() + " is determined by the pipeline and cannot be bound.");
@@ -135,8 +135,10 @@ void ComposableLower::lower(const TiledComputation *node) {
 
     parents.scope();
     tiled_vars.scope();
-    parents.insert(node->step, node->v);
+    parents.insert(captured, node->v);
     tiled_vars.insert(captured, current_value);
+    std::cout << parents << std::endl;
+    std::cout << tiled_vars << std::endl;
     this->visit(node->tiled);  // Visit the actual object.
     current_ds.unscope();
     parents.unscope();
@@ -147,10 +149,10 @@ void ComposableLower::lower(const TiledComputation *node) {
     // lowered.push_back(lowerIR);
     // lowerIR = new const BlockNode(lowered);
 
-    bool has_parent = parents.contains(node->v);
+    bool has_parent = parents.contains(captured);
     lowerIR = new const IntervalNode(
         has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
-        has_parent ? Expr(parents.at(node->v)) : Expr(node->end),
+        has_parent ? Expr(parents.at(captured)) : Expr(node->end),
         node->v,
         lowerIR,
         node->unit);
@@ -403,6 +405,10 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
 
 LowerIR ComposableLower::declare_computes(Pattern annotation) const {
     std::vector<LowerIR> lowered;
+    std::cout << "-----" << std::endl;
+    std::cout << parents << std::endl;
+    std::cout << tiled_vars << std::endl;
+    std::cout << annotation << std::endl;
     match(annotation, std::function<void(const ComputesForNode *, Matcher *)>(
                           [&](const ComputesForNode *op, Matcher *ctx) {
                               ctx->match(op->body);
@@ -411,7 +417,7 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(v = tiled_vars.at(v)));
                                   lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = parents.at(op->step)));
+                                                 generate_definitions(op->step = parents.at(v)));
                               } else {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->start));
@@ -419,6 +425,7 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                                                  generate_definitions(op->step = op->end));
                               }
                           }));
+    std::cout << "-----" << std::endl;
     return new const BlockNode(lowered);
 }
 
@@ -427,7 +434,7 @@ LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
     match(annotation, std::function<void(const ConsumesForNode *, Matcher *)>(
                           [&](const ConsumesForNode *op, Matcher *ctx) {
                               ctx->match(op->body);
-                              Variable v = to<Variable>(op->start.getA());
+                              Variable v = to<Variable>(op->step);
                               if (tiled_vars.contains(v)) {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(v = tiled_vars.at(v)));

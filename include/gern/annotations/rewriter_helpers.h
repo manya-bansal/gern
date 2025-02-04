@@ -82,11 +82,11 @@ inline Annotation refreshVariables(Annotation annot) {
     std::map<Variable, Variable> fresh_names;
     for (const auto &v : old_vars) {
         // std::cout << v << std::endl;
-        if (output_var_set.contains(v) && !interval_vars.contains(v)) {
+        if (output_var_set.contains(v)) {
             // std::cout << "Inside" << v << std::endl;
             // Otherwise, generate a new name.
-            fresh_names[v] = getUniqueName("_gern_" + v.getName());
-        }
+            fresh_names[v] = Variable(getUniqueName("_gern_" + v.getName()), v.isConstExpr());
+                }
     }
     return replaceVariables(annot, fresh_names);
 }
