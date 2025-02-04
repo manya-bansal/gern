@@ -81,7 +81,7 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
     std::set<Variable> old_vars = getVariables(annot);
     std::map<Variable, Variable> fresh_names;
     for (const auto &v : old_vars) {
-        fresh_names[v] = Variable(getUniqueName("_gern_" + v.getName()), v.isConstExpr());
+        fresh_names[v] = Variable(getUniqueName(v.getName()), v.isConstExpr());
     }
     new_vars = fresh_names;
     return replaceVariables(annot, fresh_names);
