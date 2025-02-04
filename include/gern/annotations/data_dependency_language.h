@@ -61,15 +61,6 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &os, const Expr &);
-/**
- * @brief isConstExpr returns whether an expression is a
- *        constant expression (can be evaluated at program
- *        compile time).
- *
- * @return true
- * @return false
- */
-bool isConstExpr(Expr);
 
 class Constraint : public util::IntrusivePtr<const ConstraintNode> {
 public:
@@ -79,12 +70,7 @@ public:
     Constraint(const ConstraintNode *n)
         : util::IntrusivePtr<const ConstraintNode>(n) {
     }
-    virtual Expr getA() const {
-        return Expr();
-    }
-    virtual Expr getB() const {
-        return Expr();
-    }
+
     std::string str() const;
     void accept(ConstraintVisitorStrict *v) const;
 };

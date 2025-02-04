@@ -1,5 +1,6 @@
 #include "codegen/lower.h"
 #include "annotations/lang_nodes.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "codegen/lower_visitor.h"
 #include "utils/name_generator.h"
@@ -117,6 +118,8 @@ void ComposableLower::lower(const TiledComputation *node) {
     // First, add the value of the captured value.
     Variable captured = node->captured;
     Variable loop_index = node->loop_index;
+    auto old_to_new = node->old_to_new;
+    std::vector<LowerIR> lowered;
 
     AbstractDataTypePtr output = node->getAnnotation().getPattern().getOutput().getDS();
     current_ds.scope();
@@ -126,10 +129,18 @@ void ComposableLower::lower(const TiledComputation *node) {
 
     parents.scope();
     tiled_vars.scope();
+    all_relationships.scope();
+
+    // Track all the relationships.
+    for (const auto &var : old_to_new) {
+        all_relationships.insert(var.first, var.second);
+    }
+
     parents.insert(captured, node->v);
     tiled_vars.insert(captured, loop_index);
     this->visit(node->tiled);  // Visit the actual object.
     current_ds.unscope();
+    all_relationships.unscope();
     parents.unscope();
     tiled_vars.unscope();
 
@@ -140,6 +151,21 @@ void ComposableLower::lower(const TiledComputation *node) {
         node->v,
         lowerIR,
         node->unit);
+}
+
+LowerIR ComposableLower::constructADTForCurrentScope(AbstractDataTypePtr d, std::vector<Expr> fields) {
+    LowerIR ir = new const BlankNode();
+    // If the data-stucture is in the current scope, skip.
+    if (current_ds.contains_in_current_scope(d)) {
+        return ir;
+    }
+    // If the adt is in the outer scope, generate a query.
+    if (current_ds.contains(d)) {
+        return constructQueryNode(d, fields);
+    }
+
+    // Otherwise generate an alloc.
+    return constructAllocNode(d, fields);
 }
 
 template<typename T>
@@ -385,6 +411,42 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
 }
 
 template<typename T1>
+static T1 getFirstValue(const util::ScopedMap<T1, T1> &rel,
+                        const util::ScopedMap<T1, T1> &map,
+                        T1 entry) {
+    while (rel.contains(entry)) {  // While we have the entry, go find it.
+        if (map.contains(entry)) {
+            return map.at(entry);  // Just set up the first value.
+        }
+    }
+    return T1();
+}
+
+template<typename T1>
+static Expr getValue(const util::ScopedMap<T1, T1> &rel,
+                     const util::ScopedMap<T1, T1> &map,
+                     T1 entry) {
+    Expr e;
+    while (rel.contains(entry)) {  // While we have the entry, go find it.
+        if (map.contains(entry)) {
+            e = map.at(entry);  // Just set up the first value.
+            entry = rel.at(entry);
+            break;
+        } else {
+            entry = rel.at(entry);
+        }
+    }
+
+    while (rel.contains(entry)) {  // While we have the entry, go find it.
+        if (map.contains(entry)) {
+            e = e + map.at(entry);
+        }
+        entry = rel.at(entry);
+    }
+    return e;
+}
+
+template<typename T1>
 static Expr getValue(const util::ScopedMap<T1, T1> &map, T1 entry) {
     if (!map.contains(entry)) {
         return Expr();
@@ -406,10 +468,15 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                           [&](const ComputesForNode *op, Matcher *ctx) {
                               ctx->match(op->body);
                               Variable v = to<Variable>(op->start.getA());
+                              Expr rhs = getValue(all_relationships, tiled_vars, v);
+                              //   std::cout << rhs << std::endl;
+                              if (rhs.defined()) {
+                              }
                               if (tiled_vars.contains(v)) {
-                                  Expr rhs = getValue(tiled_vars, v);
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(v = rhs));
+                                  lowered.push_back(generate_definitions(v = rhs));
+                                  //   Expr rhs = getValue(all_relationships, tiled_vars, v);
+                                  //   lowered.insert(lowered.begin(),
+                                  //                  generate_definitions(v = rhs));
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->step = parents.at(v)));
                               } else {

@@ -181,9 +181,8 @@ void TiledComputation::init_binding() {
 
     // Refresh the variable that just got mapped,
     // and track this relationship in a map.
-    std::map<Variable, Variable> new_to_old;
-    _annotation = refreshVariables(_annotation, new_to_old);
-    loop_index = new_to_old[captured];  // What's the new loop index?
+    _annotation = refreshVariables(_annotation, old_to_new);
+    loop_index = old_to_new[captured];  // What's the new loop index?
 }
 
 Composable::Composable(const ComposableNode *n)

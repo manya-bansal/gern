@@ -3,6 +3,7 @@
 #include "annotations/data_dependency_language.h"
 #include "annotations/grid.h"
 #include "annotations/lang_nodes.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "codegen/lower.h"
 #include "utils/debug.h"
@@ -187,10 +188,12 @@ void CodeGenerator::visit(const DefNode *op) {
 void CodeGenerator::visit(const AssertNode *op) {
     CGExpr condition = gen(op->constraint);
     Constraint constraint = op->constraint;
-    std::string name = (isConstExpr(constraint.getA()) &&
-                        isConstExpr(constraint.getB())) ?
-                           "assert" :  // No static rn.
-                           "assert";
+    // std::cout << isConstExpr(constraint.getA()) << std::endl;
+    std::cout << constraint << std::endl;
+    // std::cout << isConstExpr(constraint.getB()) << std::endl;
+    std::string name = (isConstExpr(constraint)) ?
+                           "static_assert" :  // If both A and B are const exprs, generate a static assert.
+                           "assert";          // Otherwise generate a normal assert.
     code = VoidCall::make(Call::make(name, {condition}));
 }
 

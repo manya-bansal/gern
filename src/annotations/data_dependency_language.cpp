@@ -172,24 +172,6 @@ std::ostream &operator<<(std::ostream &os, const Expr &e) {
     return os;
 }
 
-bool isConstExpr(Expr e) {
-    bool is_const_expr = true;
-    match(e,
-          std::function<void(const VariableNode *)>(
-              [&](const VariableNode *op) {
-                  if (!op->const_expr) {
-                      is_const_expr = false;
-                  }
-              }),
-          std::function<void(const ADTMemberNode *op)>(
-              [&](const ADTMemberNode *op) {
-                  if (!op->const_expr) {
-                      is_const_expr = false;
-                  }
-              }));
-    return is_const_expr;
-}
-
 std::ostream &operator<<(std::ostream &os, const Constraint &c) {
     Printer p{os};
     p.visit(c);

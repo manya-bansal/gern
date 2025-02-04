@@ -87,4 +87,31 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
     return replaceVariables(annot, fresh_names);
 }
 
+/**
+ * @brief isConstExpr returns whether an expression is a
+ *        constant expression (can be evaluated at program
+ *        compile time).
+ *
+ * @return true
+ * @return false
+ */
+template<typename T>
+bool isConstExpr(T e) {
+    bool is_const_expr = true;
+    match(e,
+          std::function<void(const VariableNode *)>(
+              [&](const VariableNode *op) {
+                  if (!op->const_expr) {
+                      is_const_expr = false;
+                  }
+              }),
+          std::function<void(const ADTMemberNode *op)>(
+              [&](const ADTMemberNode *op) {
+                  if (!op->const_expr) {
+                      is_const_expr = false;
+                  }
+              }));
+    return is_const_expr;
+}
+
 }  // namespace gern

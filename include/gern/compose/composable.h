@@ -102,6 +102,7 @@ public:
     ADTMember end;
     Variable step;
     Annotation _annotation;
+    std::map<Variable, Variable> old_to_new;
     Grid::Unit unit{Grid::Unit::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
     bool reduce = false;
 };
