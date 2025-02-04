@@ -89,7 +89,6 @@ public:
 
     Annotation getAnnotation() const;
     void accept(ComposableVisitorStrict *) const;
-    std::map<Variable, Variable> getNewNames() const;
 
     void init_binding();
 
@@ -98,11 +97,11 @@ public:
                            // parameter for the computation.
     Composable tiled;
     Variable captured;
+    Variable loop_index;  // New loop index.
     Expr start;
     ADTMember end;
     Variable step;
     Annotation _annotation;
-    std::map<Variable, Variable> new_to_old;
     Grid::Unit unit{Grid::Unit::UNDEFINED};  // Tracks whether the grid is mapped over a grid.
     bool reduce = false;
 };

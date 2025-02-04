@@ -148,10 +148,6 @@ TiledComputation::TiledComputation(ADTMember adt_member,
     init_binding();
 }
 
-std::map<Variable, Variable> TiledComputation::getNewNames() const {
-    return new_to_old;
-}
-
 Annotation TiledComputation::getAnnotation() const {
     return _annotation;
 }
@@ -177,19 +173,17 @@ void TiledComputation::init_binding() {
         throw error::UserError("Cannot tile " + adt_member.str());
     }
 
-    std::cout << annotation << std::endl;
-
     auto value = loops.at(adt_member);
     captured = std::get<0>(value);
     start = std::get<1>(value);
     end = adt_member;
     step = std::get<2>(value);
 
-    // Refresh the variable that just got mapped.
-    // _annotation = replaceVariables(_annotation,
-    //                                {{step, v}});
+    // Refresh the variable that just got mapped,
+    // and track this relationship in a map.
+    std::map<Variable, Variable> new_to_old;
     _annotation = refreshVariables(_annotation, new_to_old);
-    std::cout << _annotation << std::endl;
+    loop_index = new_to_old[captured];  // What's the new loop index?
 }
 
 Composable::Composable(const ComposableNode *n)

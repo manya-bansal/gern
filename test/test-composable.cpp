@@ -25,8 +25,6 @@ TEST(ComposableTest, NoFusion) {
             add_1(tempDS, outputDS),
         });
 
-    std::cout << call.getAnnotation() << std::endl;
-
     impl::ArrayCPU a(10);
     a.ascending();
     impl::ArrayCPU b(10);
@@ -85,13 +83,8 @@ TEST(ComposableTest, NestedFusion) {
         ASSERT_TRUE(b.data[i] == (a.data[i] + 2));
     }
 
-    std::cout << "?" << std::endl;
-
     a.destroy();
-    std::cout << "???" << std::endl;
-
     b.destroy();
-    std::cout << "????????" << std::endl;
 }
 
 TEST(ComposableTest, FusionSameScope) {
