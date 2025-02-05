@@ -41,7 +41,7 @@ inline T replaceADTs(T annot,
 
         void visit(const ADTMemberNode *op) {
             if (rw_ds.contains(op->ds)) {
-                expr = ADTMember(rw_ds.at(op->ds), op->member);
+                expr = ADTMember(rw_ds.at(op->ds), op->member, op->const_expr);
             } else {
                 expr = op;
             }
@@ -73,7 +73,7 @@ inline std::set<Grid::Dim> getDims(T annot) {
     return dims;
 }
 
-inline Annotation refreshVariables(Annotation annot) {
+inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable> &new_vars) {
     // Only refresh output side variables.
     auto output_var_vec = annot.getPattern().getProducesField();
     auto interval_vars = annot.getIntervalVariables();
@@ -81,14 +81,57 @@ inline Annotation refreshVariables(Annotation annot) {
     std::set<Variable> old_vars = getVariables(annot);
     std::map<Variable, Variable> fresh_names;
     for (const auto &v : old_vars) {
-        // std::cout << v << std::endl;
-        if (output_var_set.contains(v) && !interval_vars.contains(v)) {
-            // std::cout << "Inside" << v << std::endl;
-            // Otherwise, generate a new name.
-            fresh_names[v] = getUniqueName("_gern_" + v.getName());
-        }
+        fresh_names[v] = Variable(getUniqueName(v.getName()), v.isConstExpr());
     }
+    new_vars = fresh_names;
     return replaceVariables(annot, fresh_names);
+}
+template<typename T>
+inline T replaceDim(T annot, const std::map<Grid::Dim, Expr> &rw_dims) {
+    struct rewriteDS : public Rewriter {
+        rewriteDS(const std::map<Grid::Dim, Expr> &rw_dims)
+            : rw_dims(rw_dims) {
+        }
+        using Rewriter::rewrite;
+
+        void visit(const GridDimNode *op) {
+            if (rw_dims.contains(op->dim)) {
+                expr = rw_dims.at(op->dim);
+            } else {
+                expr = op;
+            }
+        }
+        const std::map<Grid::Dim, Expr> &rw_dims;
+    };
+    rewriteDS rw{rw_dims};
+    return to<T>(rw.rewrite(annot));
+}
+
+/**
+ * @brief isConstExpr returns whether an expression is a
+ *        constant expression (can be evaluated at program
+ *        compile time).
+ *
+ * @return true
+ * @return false
+ */
+template<typename T>
+bool isConstExpr(T e) {
+    bool is_const_expr = true;
+    match(e,
+          std::function<void(const VariableNode *)>(
+              [&](const VariableNode *op) {
+                  if (!op->const_expr) {
+                      is_const_expr = false;
+                  }
+              }),
+          std::function<void(const ADTMemberNode *op)>(
+              [&](const ADTMemberNode *op) {
+                  if (!op->const_expr) {
+                      is_const_expr = false;
+                  }
+              }));
+    return is_const_expr;
 }
 
 }  // namespace gern

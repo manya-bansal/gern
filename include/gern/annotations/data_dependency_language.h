@@ -3,6 +3,7 @@
 #include "annotations/abstract_nodes.h"
 #include "annotations/grid.h"
 #include "utils/error.h"
+#include "utils/name_generator.h"
 #include "utils/uncopyable.h"
 #include <cassert>
 #include <map>
@@ -60,15 +61,6 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &os, const Expr &);
-/**
- * @brief isConstExpr returns whether an expression is a
- *        constant expression (can be evaluated at program
- *        compile time).
- *
- * @return true
- * @return false
- */
-bool isConstExpr(Expr);
 
 class Constraint : public util::IntrusivePtr<const ConstraintNode> {
 public:
@@ -78,12 +70,7 @@ public:
     Constraint(const ConstraintNode *n)
         : util::IntrusivePtr<const ConstraintNode>(n) {
     }
-    virtual Expr getA() const {
-        return Expr();
-    }
-    virtual Expr getB() const {
-        return Expr();
-    }
+
     std::string str() const;
     void accept(ConstraintVisitorStrict *v) const;
 };
@@ -135,8 +122,8 @@ class Assign;
 // All variables are current ints.
 class Variable : public Expr {
 public:
-    Variable() = default;
     Variable(const std::string &name);
+    Variable() = default;
     Variable(const std::string &name, bool const_expr);
     Variable(const VariableNode *);
 
@@ -247,7 +234,7 @@ class ADTMember : public Expr {
 public:
     ADTMember() = default;
     ADTMember(const ADTMemberNode *);
-    ADTMember(AbstractDataTypePtr ds, const std::string &field);
+    ADTMember(AbstractDataTypePtr ds, const std::string &field, bool const_expr);
     AbstractDataTypePtr getDS() const;
     std::string getMember() const;
     typedef ADTMemberNode Node;
@@ -272,7 +259,7 @@ namespace std {
 template<>
 struct less<gern::Variable> {
     bool operator()(const gern::Variable &a, const gern::Variable &b) const {
-        return a.ptr < b.ptr;
+        return a.getName() < b.getName();
     }
 };
 

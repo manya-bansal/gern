@@ -140,8 +140,10 @@ ADTMember::ADTMember(const ADTMemberNode *op)
     : Expr(op) {
 }
 
-ADTMember::ADTMember(AbstractDataTypePtr ds, const std::string &member)
-    : ADTMember(new ADTMemberNode(ds, member)) {
+ADTMember::ADTMember(AbstractDataTypePtr ds,
+                     const std::string &member,
+                     bool const_expr)
+    : ADTMember(new ADTMemberNode(ds, member, const_expr)) {
 }
 
 AbstractDataTypePtr ADTMember::getDS() const {
@@ -168,18 +170,6 @@ std::ostream &operator<<(std::ostream &os, const Expr &e) {
     Printer p{os};
     p.visit(e);
     return os;
-}
-
-bool isConstExpr(Expr e) {
-    bool is_const_expr = true;
-    match(e,
-          std::function<void(const VariableNode *)>(
-              [&](const VariableNode *op) {
-                  if (!op->const_expr) {
-                      is_const_expr = false;
-                  }
-              }));
-    return is_const_expr;
 }
 
 std::ostream &operator<<(std::ostream &os, const Constraint &c) {
@@ -324,7 +314,7 @@ SubsetObj::SubsetObj(const SubsetNode *n)
 
 SubsetObj::SubsetObj(AbstractDataTypePtr data,
                      std::vector<Expr> mdFields)
-    : Stmt(new const SubsetNode(data, mdFields)) {
+    : SubsetObj(new const SubsetNode(data, mdFields)) {
 }
 
 std::vector<Expr> SubsetObj::getFields() const {
@@ -588,7 +578,7 @@ bool AbstractDataTypePtr::freeAlloc() const {
 }
 
 ADTMember AbstractDataTypePtr::operator[](std::string member) const {
-    return ADTMember(*this, member);
+    return ADTMember(*this, member, false);
 }
 
 std::string AbstractDataTypePtr::str() const {

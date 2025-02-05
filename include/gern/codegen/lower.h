@@ -80,6 +80,7 @@ private:
     LowerIR generate_constraints(std::vector<Constraint> constraints) const;  // Generate constraints.
     LowerIR declare_computes(Pattern annotation) const;
     LowerIR declare_consumes(Pattern annotation) const;
+    LowerIR constructADTForCurrentScope(AbstractDataTypePtr d, std::vector<Expr> fields);
 
     // Helper methods to generate calls.
     FunctionCall constructFunctionCall(FunctionSignature f,
@@ -93,8 +94,9 @@ private:
     AbstractDataTypePtr getCurrent(AbstractDataTypePtr) const;
 
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
-    util::ScopedMap<Variable, Expr> tiled_vars;
-    util::ScopedMap<Variable, Variable> parents;  // Used for splits.
+    util::ScopedMap<Variable, Variable> tiled_vars;
+    util::ScopedMap<Variable, Variable> parents;            // Used for splits.
+    util::ScopedMap<Variable, Variable> all_relationships;  // Used to track all relationships.
 
     LowerIR lowerIR;
     Composable composable;

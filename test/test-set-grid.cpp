@@ -87,3 +87,5 @@ TEST(SetGrid, RunWithParam) {
     result.destroy();
     a_host.destroy();
 }
+
+// This should now generate a static assert.

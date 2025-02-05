@@ -123,6 +123,7 @@ void Computation::init_annotation() {
     Consumes consumes = mimicConsumes(last_pattern, input_subsets);
     Pattern p = mimicComputes(last_pattern, Computes(produces, consumes));
     _annotation = Annotation(p, occupied, constraints);
+    // _annotation = refreshVariables(Annotation(p, occupied, constraints));
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {
@@ -142,7 +143,6 @@ TiledComputation::TiledComputation(ADTMember adt_member,
     auto annotation = tiled.getAnnotation();
     auto body_units = annotation.getOccupiedUnits();
     body_units.insert(unit);
-    // Assume the highest ranking unit.
     _annotation = resetUnit(annotation,
                             body_units);
     init_binding();
@@ -178,6 +178,11 @@ void TiledComputation::init_binding() {
     start = std::get<1>(value);
     end = adt_member;
     step = std::get<2>(value);
+
+    // Refresh the variable that just got mapped,
+    // and track this relationship in a map.
+    _annotation = refreshVariables(_annotation, old_to_new);
+    loop_index = old_to_new[captured];  // What's the new loop index?
 }
 
 Composable::Composable(const ComposableNode *n)
@@ -233,7 +238,7 @@ Composable TileDummy::operator()(Composable c) {
         nested = new const Computation({c});
     }
 
-    if (isLegalUnit(unit)) {
+    if (isLegalUnit(unit) && !reduce) {
         // If unit is set, then make sure that the compose has a reasonable
         // grid unit.
         std::set<Grid::Unit> occupied = c.getAnnotation().getOccupiedUnits();

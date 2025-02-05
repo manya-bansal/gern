@@ -3,6 +3,7 @@
 #include "annotations/data_dependency_language.h"
 #include "annotations/grid.h"
 #include "annotations/lang_nodes.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "codegen/lower.h"
 #include "utils/debug.h"
@@ -96,7 +97,8 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
         }
         if (v.isConstExpr()) {
             if (!v.isBoundToInt64()) {
-                throw error::UserError(v.getName() + " must be bound to an int64_t, it is a template parameter");
+                throw error::UserError(v.getName() +
+                                       " must be bound to an int64_t, it is a template parameter");
             }
             template_arguments.push_back(v);
             continue;
@@ -184,13 +186,11 @@ void CodeGenerator::visit(const DefNode *op) {
 }
 
 void CodeGenerator::visit(const AssertNode *op) {
-    CGExpr condition = gen(op->constraint);
-    Constraint constraint = op->constraint;
-    std::string name = (isConstExpr(constraint.getA()) &&
-                        isConstExpr(constraint.getB())) ?
-                           "assert" :  // No static rn.
-                           "assert";
-    code = VoidCall::make(Call::make(name, {condition}));
+    Constraint rw_constraint = replaceDim(op->constraint, dims_defined);
+    std::string name = (isConstExpr(rw_constraint)) ?
+                           "static_assert" :  // If both A and B are const exprs, generate a static assert.
+                           "assert";          // Otherwise generate a normal assert.
+    code = VoidCall::make(Call::make(name, {gen(rw_constraint)}));
 }
 
 void CodeGenerator::visit(const GridDeclNode *op) {
@@ -198,7 +198,7 @@ void CodeGenerator::visit(const GridDeclNode *op) {
 }
 
 void CodeGenerator::visit(const BlankNode *) {
-    code = CGStmt();
+    code = BlankLine::make();
 }
 
 void CodeGenerator::visit(const BlockNode *op) {
@@ -219,30 +219,28 @@ void CodeGenerator::visit(const FunctionBoundary *op) {
     code = gen(cg.getComputeFunctionSignature().constructCall());
 }
 
-#define CHECK_AND_GEN(dim) \
-    if ((dim).defined()) { \
-        return gen(dim);   \
-    }                      \
-    break;
-
-CGExpr CodeGenerator::gen(const Grid::Dim &p) {
+Expr CodeGenerator::getExpr(const Grid::Dim &p) const {
     switch (p) {
     case Grid::Dim::BLOCK_DIM_X:
-        CHECK_AND_GEN(block_dim.x);
+        return block_dim.x;
     case Grid::Dim::BLOCK_DIM_Y:
-        CHECK_AND_GEN(block_dim.y);
+        return block_dim.y;
     case Grid::Dim::BLOCK_DIM_Z:
-        CHECK_AND_GEN(block_dim.z);
+        return block_dim.z;
     case Grid::Dim::GRID_DIM_X:
-        CHECK_AND_GEN(grid_dim.x);
+        return grid_dim.x;
     case Grid::Dim::GRID_DIM_Y:
-        CHECK_AND_GEN(grid_dim.y);
+        return grid_dim.y;
     case Grid::Dim::GRID_DIM_Z:
-        CHECK_AND_GEN(grid_dim.z);
+        return grid_dim.z;
     default:
         throw error::InternalError("Undefined Grid Dim Passed!");
     }
-    return gen(Expr(1));
+    return Expr(1);
+}
+
+CGExpr CodeGenerator::gen(const Grid::Dim &p) {
+    return gen(getExpr(p));
 }
 
 CGStmt CodeGenerator::declDim(const Grid::Dim &p, Expr val) {

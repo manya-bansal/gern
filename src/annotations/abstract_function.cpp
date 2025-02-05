@@ -64,6 +64,10 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
     }
 
     for (const auto &template_arg : f.template_args) {
+        if (bindings.contains(template_arg.getName())) {
+            fresh_names[template_arg] = bindings.at(template_arg.getName());
+            continue;
+        }
         fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()), true);
     }
 
@@ -82,7 +86,8 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
             continue;
         }
         // Otherwise, generate a new name.
-        fresh_names[v] = getUniqueName("_gern_" + v.getName());
+        fresh_names[v] = Variable(getUniqueName("_gern_" + v.getName()),
+                                  v.isConstExpr());
     }
 
     // The binding is only valid for one use, erase it now.

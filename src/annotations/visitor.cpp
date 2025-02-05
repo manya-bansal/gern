@@ -310,11 +310,11 @@ Constraint Rewriter::rewrite(Constraint c) {
 }
 
 void Rewriter::visit(const VariableNode *op) {
-    expr = Variable(op);
+    expr = op;
 }
 
 void Rewriter::visit(const ADTMemberNode *op) {
-    expr = ADTMember(op);
+    expr = ADTMember(op->ds, op->member, op->const_expr);
 }
 
 void Rewriter::visit(const LiteralNode *op) {

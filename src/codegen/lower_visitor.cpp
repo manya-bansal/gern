@@ -1,4 +1,5 @@
 #include "codegen/lower_visitor.h"
+#include "annotations/rewriter_helpers.h"
 #include "utils/debug.h"
 #include "utils/printer.h"
 
@@ -68,8 +69,7 @@ void LowerPrinter::visit(const BlankNode *op) {
 }
 
 void LowerPrinter::visit(const AssertNode *op) {
-    bool static_check = isConstExpr(op->constraint.getA()) &&
-                        isConstExpr(op->constraint.getB());
+    bool static_check = isConstExpr(op->constraint);
     os << ((static_check) ? "static_assert" : "assert")
        << op->constraint;
 }

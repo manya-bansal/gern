@@ -53,8 +53,8 @@ TEST(ComposableTest, NestedFusion) {
     auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
 
     annot::add_1 add_1;
-    Variable v("v");
-    Variable v1("v1");
+    Variable v("x");
+    Variable v1("y");
 
     Composable program =
         Tile(outputDS["size"], v)(
