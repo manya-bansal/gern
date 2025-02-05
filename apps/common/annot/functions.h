@@ -65,8 +65,12 @@ public:
 
         return For(x = Expr(0), ADTMember(output, "size", true), l_x,
                    Produces::Subset(output, {x, l_x}),
-                   Consumes::Subset(input, {x, 0, l_x, col}))
-            .occupies({Grid::Unit::BLOCK_Y});
+                   Consumes::Subsets(
+                       Reduce(y = Expr(0), ADTMember(input, "col", true), l_y,
+                              SubsetObjMany({
+                                  SubsetObj(input, {x, y, l_x, col}),
+                              }))))
+            .occupies({Grid::Unit::SCALAR_UNIT});
     }
 
     std::vector<std::string> getHeader() override {

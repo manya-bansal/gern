@@ -238,7 +238,7 @@ Composable TileDummy::operator()(Composable c) {
         nested = new const Computation({c});
     }
 
-    if (isLegalUnit(unit)) {
+    if (isLegalUnit(unit) && !reduce) {
         // If unit is set, then make sure that the compose has a reasonable
         // grid unit.
         std::set<Grid::Unit> occupied = c.getAnnotation().getOccupiedUnits();

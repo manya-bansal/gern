@@ -86,54 +86,68 @@ __global__ void softmax_kernel_mine(T a,
 }
 
 template<int64_t col, int64_t col_val, int64_t row, int64_t stride_val>
-__global__ void function_39(impl::MatrixGPU<16384, 16384, 16384, 1024> input,
-                            impl::MatrixGPU<16384, 16384, 16384, 1024> output) {
+__global__ void function_39(impl::MatrixGPU<16384, 16384, 16384, 1024> input, impl::MatrixGPU<16384, 16384, 16384, 1024> output) {
 
-    int64_t _gern_x_3_24_35 = ((blockIdx.x * row) + 0);
-    // for (int64_t _gern_y_4_26 = 0; (_gern_y_4_26 < output.col); _gern_y_4_26 = (_gern_y_4_26 + col_val)) {
-
-    int64_t _gern_y_4 = threadIdx.y;
+    int64_t _gern_x_3_38_50 = ((blockIdx.x * row) + 0);
+    int64_t _gern_y_4_41 = ((threadIdx.y * col_val) + 0);  // MB: CHANGE 1:  threadIdx.x -> threadIdx.y
+    int64_t _gern_y_4 = _gern_y_4_41;
     constexpr int64_t _gern_l_y_2 = col_val;
-    int64_t _gern_x_3 = _gern_x_3_24_35;
+    int64_t _gern_x_3 = _gern_x_3_38_50;
     constexpr int64_t _gern_l_x_1 = row;
 
-    int64_t _gern_x_6 = _gern_x_3;
-    constexpr int64_t _gern_l_x_5 = _gern_l_x_1;
-    int64_t _gern_x_9 = _gern_x_3;
-    int64_t _gern_y_10 = _gern_y_4;
-    constexpr int64_t _gern_l_x_7 = _gern_l_x_1;
-    constexpr int64_t _gern_l_y_8 = _gern_l_y_2;
-    int64_t _gern_x_13 = _gern_x_9;
-    int64_t _gern_y_14 = _gern_y_10;
-    constexpr int64_t _gern_l_x_11 = _gern_l_x_7;
-    constexpr int64_t _gern_l_y_12 = _gern_l_y_8;
-    int64_t _gern_x_16 = _gern_x_13;
-    constexpr int64_t _gern_l_x_15 = _gern_l_x_11;
+    int64_t _gern_x_7_11 = _gern_x_3;
+    constexpr int64_t _gern_l_x_5_9 = _gern_l_x_1;
+    int64_t _gern_x_16 = _gern_x_3;
+    int64_t _gern_y_17 = _gern_y_4;
+    constexpr int64_t _gern_l_x_14 = _gern_l_x_1;
+    constexpr int64_t _gern_l_y_15 = _gern_l_y_2;
+    int64_t _gern_x_20 = _gern_x_16;
+    int64_t _gern_y_21 = _gern_y_17;
+    constexpr int64_t _gern_l_x_18 = _gern_l_x_14;
+    constexpr int64_t _gern_l_y_19 = _gern_l_y_15;
+    int64_t _gern_x_24_28 = _gern_x_20;
+    constexpr int64_t _gern_l_x_22_26 = _gern_l_x_18;
+    auto _query_output_56 = output.template query_new<_gern_l_x_1, _gern_l_y_2>(_gern_x_3, _gern_y_4);
 
-    auto _query_output_40 = output.query_new<_gern_l_x_1, _gern_l_y_2>(_gern_x_3, _gern_y_4);
+    auto max_row_out = impl::allocate_static_array<_gern_l_x_22_26>();
 
-    auto max_row_out = impl::allocate_static_array<_gern_l_x_15>();
+    int64_t _gern_y_25_29 = ((threadIdx.y * col_val) + 0);
+    constexpr int64_t _gern_l_x_22 = max_row_out.size;
+    int64_t _gern_x_24 = _gern_x_3;  // Change #2, this is set up as zero for some godforsaken reason.
 
-    auto _query_input_41 = input.query_new<_gern_l_x_15, col>(_gern_x_16, 0);
+    int64_t _gern_y_25 = _gern_y_25_29;
+    constexpr int64_t _gern_l_y_23 = col_val;
 
-    max_shuffle<stride_val>(max_row_out, _query_input_41);
+    auto _query_input_57 = input.template query_new<_gern_l_x_22, col>(_gern_x_24, _gern_y_25);
 
-    auto sub_temp = impl::allocate_static<_gern_l_x_11, _gern_l_y_12>();
+    max_shuffle<stride_val>(max_row_out, _query_input_57);
 
-    subtract_vec(max_row_out, _query_input_41, sub_temp);
+    auto sub_temp = impl::allocate_static<_gern_l_x_18, _gern_l_y_19>();
 
-    auto exp_temp = impl::allocate_static<_gern_l_x_7, _gern_l_y_8>();
+    auto _query_input_58 = input.template query_new<_gern_l_x_18, _gern_l_y_19>(_gern_x_20, _gern_y_21);
+
+    subtract_vec(max_row_out, _query_input_58, sub_temp);
+
+    auto exp_temp = impl::allocate_static<_gern_l_x_14, _gern_l_y_15>();
 
     exp_matrix(sub_temp, exp_temp);
 
-    auto sum_row_out = impl::allocate_static_array<_gern_l_x_5>();
+    auto sum_row_out = impl::allocate_static_array<_gern_l_x_5_9>();
 
-    sum_row<stride_val>(sum_row_out, exp_temp);
+    int64_t _gern_y_8_12 = ((threadIdx.y * col_val) + 0);
+    constexpr int64_t _gern_l_x_5 = sum_row_out.size;
+    int64_t _gern_x_7 = 0;
 
-    divide_vec(sum_row_out, exp_temp, _query_output_40);
+    int64_t _gern_y_8 = _gern_y_8_12;
+    constexpr int64_t _gern_l_y_6 = col_val;
 
-    output.insert_new(_gern_x_3, _gern_y_4, _query_output_40);
-    // }
+    auto _query_exp_temp_59 = exp_temp.template query_new<_gern_l_x_5, col>(_gern_x_7, _gern_y_8);
+
+    sum_row<stride_val>(sum_row_out, _query_exp_temp_59);
+
+    divide_vec(sum_row_out, exp_temp, _query_output_56);
+
+    output.template insert_new(_gern_x_3, _gern_y_4, _query_output_56);
 }
 
 template<int tile_row,
@@ -147,8 +161,8 @@ __global__ void softmax_kernel_gern_like(T a,
     constexpr int64_t num_cols_q = CEILING(a.row, tile_col);
     constexpr int64_t num_rows_in = tile_row;
 
-    auto reg_array_big = a.template query_new<num_rows_in, num_cols_q>(x, y);
-    auto output_query = b.template query_new<num_rows_in, num_cols_q>(x, y);
+    auto reg_array_big = query<num_rows_in, num_cols_q>(a, x, y);
+    auto output_query = query<num_rows_in, num_cols_q>(b, x, y);
 
     auto max_row_out = impl::allocate_static_array<num_rows_in>();
     max_shuffle<tile_col>(max_row_out, reg_array_big);
@@ -164,7 +178,7 @@ __global__ void softmax_kernel_gern_like(T a,
 
     divide_vec(sum_row_out, exp_temp, output_query);
 
-    b.insert_new(x, y, output_query);
+    insert(b, x, y, output_query);
 }
 
 constexpr int warm_up_runs = 5;
@@ -204,8 +218,8 @@ int main() {
     impl::MatrixCPU reference = out.get();
     out.vvals(0.0f);
 
-    auto specialized = softmax_kernel_gern_like<tile_row, tile_col, MatrixType>;
-    // auto specialized = function_39<w, w, 1, tile_col>;
+    // auto specialized = softmax_kernel_gern_like<tile_row, tile_col, MatrixType>;
+    auto specialized = function_39<w / tile_col, w / tile_col, 1, tile_col>;
     specialized<<<grid_size, block_size>>>(in, out);
     impl::MatrixCPU gern = out.get();
 

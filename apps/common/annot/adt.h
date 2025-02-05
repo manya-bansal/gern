@@ -44,13 +44,13 @@ public:
     }
     FunctionSignature getInsertFunction() const {
         return FunctionSignature{
-            .name = "template insert",
+            .name = "template insert_new",
             .args = {x, y},
         };
     }
     FunctionSignature getQueryFunction() const {
         return FunctionSignature{
-            .name = "template query",
+            .name = "template query_new",
             .args = {x, y},
             .template_args = {row, col},
         };

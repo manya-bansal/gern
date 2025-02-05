@@ -80,6 +80,7 @@ inline double benchmark_new(uint64_t samples, uint64_t iterations,
 
 }  // namespace my_benchmark
 
+#include <cuda_runtime.h>
 #include <iostream>
 #include <random>
 #include <vector>

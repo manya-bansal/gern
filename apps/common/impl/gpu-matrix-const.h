@@ -22,6 +22,10 @@ struct StaticMatrix {
     float4 array[NumRow * NumCol];
     static constexpr int rows = NumRow;
     static constexpr int cols_by_4 = NumCol;
+    template<int num_row, int num_col>
+    __device__ StaticMatrix<num_row, num_col / 4> query_new(int64_t x, int64_t y) {
+        return *this;
+    }
 };
 
 #ifndef UNROLL_FACTOR
@@ -141,6 +145,7 @@ public:
         int x,
         int y,
         T2 &reg_array_big) {
+        y = y / (col / stride);
         auto &reg_array = reg_array_big.array;
         constexpr int64_t num_row = reg_array_big.rows;
         constexpr int64_t num_col = reg_array_big.cols_by_4;
@@ -161,6 +166,7 @@ public:
     __device__ StaticMatrix<num_row_t, CEILING(num_col_t, 4)> query_new(
         int x,
         int y) {
+        y = y / (col / stride);
         constexpr int64_t col_to_return = CEILING(num_col_t, 4);
         StaticMatrix<num_row_t, col_to_return> reg_array_big;
 

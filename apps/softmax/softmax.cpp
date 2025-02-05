@@ -9,7 +9,7 @@ int main() {
     constexpr int64_t h = 16384;
     constexpr int64_t w = 16384;
     constexpr int64_t block_size = 1024;
-    constexpr int64_t num_cols_q = h / 32;
+    constexpr int64_t num_cols_q = w / block_size;
 
     using MatrixType = impl::MatrixGPU<h, w, h, block_size>;
 
@@ -34,21 +34,23 @@ int main() {
 
     Variable col_bound = col.bindToInt64(num_cols_q);
     auto max_row_specialize = &max_row[{
-        {"col", col.bindToInt64(w)},
-        {"stride", stride_val.bindToInt64(block_size)},
+        {"col", col.bindToInt64(num_cols_q)},
+        {"stride", stride_val.bindToInt64(num_cols_q)},
     }];
     auto sum_row_specialize = &sum_row[{
-        {"col", col.bindToInt64(w)},
-        {"stride", stride_val.bindToInt64(block_size)},
+        {"col", col.bindToInt64(num_cols_q)},
+        {"stride", stride_val.bindToInt64(num_cols_q)},
     }];
 
     Composable program = {
         Global((Tile(b["row"], row.bindToInt64(1)) || Grid::Unit::BLOCK_X)(
-                   (Tile(b["col"], col_val.bindToInt64(w))(
-                       max_row_specialize->operator()(max_row_out, a),
+                   ((Tile(b["col"], col_val.bindToInt64(num_cols_q)) || Grid::Unit::THREAD_X)(
+                       ((Reduce(a["col"], col_val.bindToInt64(num_cols_q))) || Grid::Unit::THREAD_Y)(
+                           max_row_specialize->operator()(max_row_out, a)),
                        subtract_vec(max_row_out, a, sub_temp),
                        exp_matrix(sub_temp, exp_temp),
-                       sum_row_specialize->operator()(sum_row_out, exp_temp),
+                       ((Reduce(exp_temp["col"], col_val.bindToInt64(num_cols_q))) || Grid::Unit::THREAD_Y)(
+                           sum_row_specialize->operator()(sum_row_out, exp_temp)),
                        divide_vec(sum_row_out, exp_temp, b)))),
                {
                    {Grid::Dim::BLOCK_DIM_Y, stride_val.bindToInt64(block_size)},
