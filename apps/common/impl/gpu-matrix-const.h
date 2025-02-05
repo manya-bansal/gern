@@ -44,7 +44,7 @@ public:
     }
 
     MatrixCPU(int64_t row, int64_t col, int64_t lda)
-        : MatrixCPU((float *)malloc(sizeof(float) * row * col), row, col, lda) {
+        : MatrixCPU((float *)malloc(sizeof(float) * lda * row), row, col, lda) {
     }
 
     static MatrixCPU allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
@@ -68,7 +68,7 @@ public:
     }
 
     void ascending() {
-        for (int64_t i = 0; i < row * col; i++) {
+        for (int64_t i = 0; i < lda * row; i++) {
             data[i] = i;
         }
     }
@@ -93,11 +93,25 @@ public:
     int64_t lda;
 };
 
+[[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const MatrixCPU &m) {
+    float *data_tmp;
+    os << "[" << "\n";
+    for (int64_t i = 0; i < m.row; i++) {
+        data_tmp = m.data + (i * m.lda);
+        for (int64_t j = 0; j < m.col; j++) {
+            os << data_tmp[j] << " ";
+        }
+        os << "\n";
+    }
+    os << "]";
+    return os;
+}
+
 template<int64_t Row, int64_t Col, int64_t LDA, int64_t stride>
 class MatrixGPU {
 public:
     MatrixGPU() {
-        cudaMalloc(&data, lda * col * sizeof(float));
+        cudaMalloc(&data, lda * row * sizeof(float));
     }
 
     template<int64_t num_row, int64_t num_col>
@@ -105,7 +119,8 @@ public:
         constexpr int64_t col_to_return = CEILING(num_col, 4);
         StaticMatrix<num_row, col_to_return> matrix;
         auto matrix_data = matrix.array;
-        float4 *val_ptr = reinterpret_cast<float4 *>(&data[x * row + y]);
+        float *data_ptr = &data[x * row + y];
+        float4 *val_ptr = reinterpret_cast<float4 *>(data_ptr);
 
         for (int m = 0; m < num_row; m++) {
 #pragma unroll URF
@@ -113,7 +128,8 @@ public:
                 float4 val = val_ptr[i];
                 matrix_data[i] = val;
             }
-            val_ptr += (LDA / 4);
+            val_ptr += LDA / 4;
+
             matrix_data += col_to_return;
         }
         return matrix;
@@ -190,7 +206,7 @@ public:
 
     MatrixCPU get() {
         MatrixCPU cpu(row, col, lda);
-        cudaMemcpy(cpu.data, data, lda * col * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(cpu.data, data, lda * row * sizeof(float), cudaMemcpyDeviceToHost);
         return cpu;
     }
 
@@ -201,14 +217,14 @@ public:
     void vvals(float f) {
         MatrixCPU tmp(row, col, lda);
         tmp.vvals(f);
-        cudaMemcpy(data, tmp.data, lda * col * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(data, tmp.data, lda * row * sizeof(float), cudaMemcpyHostToDevice);
         tmp.destroy();
     }
 
     void ascending() {
         MatrixCPU tmp(row, col, lda);
         tmp.ascending();
-        cudaMemcpy(data, tmp.data, lda * col * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(data, tmp.data, lda * row * sizeof(float), cudaMemcpyHostToDevice);
         tmp.destroy();
     }
 
@@ -226,20 +242,6 @@ __device__ StaticMatrix<num_row, CEILING(num_col, 4)> allocate_static() {
 template<int64_t len>
 __device__ StaticArray<len> allocate_static_array() {
     return StaticArray<len>();
-}
-
-[[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const MatrixCPU &m) {
-    float *data_tmp;
-    os << "[" << "\n";
-    for (int64_t i = 0; i < m.row; i++) {
-        data_tmp = m.data + (i * m.lda);
-        for (int64_t j = 0; j < m.col; j++) {
-            os << data_tmp[j] << " ";
-        }
-        os << "\n";
-    }
-    os << "]";
-    return os;
 }
 
 }  // namespace impl

@@ -212,3 +212,37 @@ blur_x(const T1 &input,
         input_data += input_num_col;
     }
 }
+
+template<int64_t stride, typename T1, typename T2>
+__device__ void
+blur_y(const T1 &input,
+       T2 &output) {
+    // Treat as normal float arrays.
+    auto input_data = input.array;
+    auto output_data = output.array;
+    constexpr int64_t num_row = output.rows;
+    constexpr int64_t num_col = output.cols_by_4;
+    constexpr int64_t input_num_col = input.cols_by_4;
+
+#pragma unroll URF
+
+    for (int m = 0; m < num_row; m++) {
+        for (int n = 0; n < num_col; n++) {
+            float4 temp = {0};
+            for (int s = 0; s < stride; s++) {
+                float4 input_val = input_data[n + (input_num_col * s)];
+                temp.x += input_val.x;
+                temp.y += input_val.y;
+                temp.z += input_val.z;
+                temp.w += input_val.w;
+            }
+            temp.x /= stride;
+            temp.y /= stride;
+            temp.z /= stride;
+            temp.w /= stride;
+            output_data[n] = temp;
+        }
+        output_data += num_col;
+        input_data += input_num_col;
+    }
+}

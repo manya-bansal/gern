@@ -22,7 +22,7 @@ public:
             return "impl::MatrixGPU<" +
                    std::to_string(Row) + "," +
                    std::to_string(Col) + "," +
-                   std::to_string(Row) + "," +
+                   std::to_string(Col) + "," +
                    std::to_string(Stride) +
                    ">";
         }

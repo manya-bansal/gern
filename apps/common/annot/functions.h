@@ -209,4 +209,41 @@ protected:
     Variable stride{"stride", true};
 };
 
+class BlurY : public AbstractFunction {
+public:
+    BlurY(AbstractDataTypePtr input, AbstractDataTypePtr output)
+        : input(input), output(output) {
+    }
+    Annotation getAnnotation() override {
+        Variable x("x");
+        Variable y("y");
+        Variable l_x("l_x", true);
+        Variable l_y("l_y", true);
+
+        return annotate(For(x = Expr(0), ADTMember(output, "row", true), l_x,
+                            For(y = Expr(0), ADTMember(output, "col", true), l_y,
+                                Produces::Subset(output, {x, y, l_x, l_y}),
+                                Consumes::Subset(
+                                    input, {x, y, l_x + stride - 1, l_y}))));
+    }
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "blur_y";
+        f.args = {Parameter(input), Parameter(output)};
+        f.template_args = {stride};
+        return f;
+    }
+    std::vector<std::string> getHeader() override {
+        return {
+            "impl/gpu-matrix-const.h",
+            "impl/impl.h",
+        };
+    }
+
+protected:
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
+    Variable stride{"stride", true};
+};
+
 }  // namespace annot
