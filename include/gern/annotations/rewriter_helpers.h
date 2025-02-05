@@ -86,6 +86,26 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
     new_vars = fresh_names;
     return replaceVariables(annot, fresh_names);
 }
+template<typename T>
+inline T replaceDim(T annot, const std::map<Grid::Dim, Expr> &rw_dims) {
+    struct rewriteDS : public Rewriter {
+        rewriteDS(const std::map<Grid::Dim, Expr> &rw_dims)
+            : rw_dims(rw_dims) {
+        }
+        using Rewriter::rewrite;
+
+        void visit(const GridDimNode *op) {
+            if (rw_dims.contains(op->dim)) {
+                expr = rw_dims.at(op->dim);
+            } else {
+                expr = op;
+            }
+        }
+        const std::map<Grid::Dim, Expr> &rw_dims;
+    };
+    rewriteDS rw{rw_dims};
+    return to<T>(rw.rewrite(annot));
+}
 
 /**
  * @brief isConstExpr returns whether an expression is a

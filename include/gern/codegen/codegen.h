@@ -38,7 +38,7 @@ public:
     CGStmt gen(FunctionCall f);
     CGStmt gen(FunctionSignature f, CGStmt body);
     CGExpr gen(const Grid::Dim &p);
-    CGStmt declDim(const Grid::Dim &p, Expr val);
+    Expr getExpr(const Grid::Dim &p) const;
 
     // Assign in used to track all the variables
     // that have been declared during lowering. The
@@ -73,6 +73,7 @@ public:
     CGExpr declParameter(Parameter a,
                          bool track = true,
                          DeclProperties = DeclProperties());
+    CGStmt declDim(const Grid::Dim &p, Expr val);
 
     std::string getName() const;
     std::string getHeaders() const;
