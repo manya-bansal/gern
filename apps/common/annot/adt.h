@@ -62,13 +62,34 @@ public:
         return false;
     }
 
-private:
+protected:
     std::string name;
     Variable x{"x"};
     Variable y{"y"};
     Variable row{"row", true};
     Variable col{"col", true};
     bool temp;
+};
+
+template<int Row, int Col, int Stride>
+class MatrixGPUSequential : public MatrixGPU<Row, Col, Stride> {
+public:
+    MatrixGPUSequential(const std::string &name, bool temp)
+        : MatrixGPU<Row, Col, Stride>(name, temp) {
+    }
+    FunctionSignature getQueryFunction() const {
+        return FunctionSignature{
+            .name = "template query",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+    FunctionSignature getInsertFunction() const {
+        return FunctionSignature{
+            .name = "template insert",
+            .args = {this->x, this->y},
+        };
+    }
 };
 
 class StaticArray : public AbstractDataType {

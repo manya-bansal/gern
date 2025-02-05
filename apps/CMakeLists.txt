@@ -8,4 +8,4 @@ include_directories(common)
 add_subdirectory(skeleton)
 # All the apps.
 add_subdirectory(blur)
-add_subdirectory(softmax)
+# add_subdirectory(softmax)

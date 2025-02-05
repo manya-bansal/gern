@@ -21,9 +21,9 @@ int main() {
     constexpr int64_t block_size = 1;
 
     using OutputType = impl::MatrixGPU<row_val, col_val, row_val, block_size>;
-    using OutputTypeAnnot = annot::MatrixGPU<row_val, col_val, block_size>;
+    using OutputTypeAnnot = annot::MatrixGPUSequential<row_val, col_val, block_size>;
     using InputType = impl::MatrixGPU<row_val_in, col_val_in, row_val_in, block_size>;
-    using InputTypeAnnot = annot::MatrixGPU<row_val_in, col_val_in, block_size>;
+    using InputTypeAnnot = annot::MatrixGPUSequential<row_val_in, col_val_in, block_size>;
 
     auto input = AbstractDataTypePtr(new const InputTypeAnnot("input", false));
     auto output = AbstractDataTypePtr(new const OutputTypeAnnot("output", false));

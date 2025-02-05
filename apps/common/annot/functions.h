@@ -69,7 +69,9 @@ public:
                        Reduce(y = Expr(0), ADTMember(input, "col", true), l_y,
                               SubsetObjMany({
                                   SubsetObj(input, {x, y, l_x, col}),
-                              }))))
+                              })
+
+                                  )))
             .occupies({Grid::Unit::SCALAR_UNIT});
     }
 
