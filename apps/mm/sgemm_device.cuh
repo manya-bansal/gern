@@ -236,10 +236,20 @@ template<const int BM, const int BN, const int BK, const int WM, const int WN,
          const int WMITER, const int WNITER, const int WSUBM, const int WSUBN,
          const int TM, const int TN>
 __device__ void
-matrix_multiply(float *regM, float *regN, float *threadResults, const float *As,
-                const float *Bs, const uint warpRow, const uint warpCol,
-                const uint threadRowInWarp, const uint threadColInWarp) {
+matrix_multiply(float *threadResults, const float *As,
+                const float *Bs) {
 
+    const uint threadIdxInWarp = threadIdx.x % WARPSIZE;          // [0, 31]
+    const uint threadColInWarp = threadIdxInWarp % (WSUBN / TN);  // i%(16/4)
+    const uint threadRowInWarp = threadIdxInWarp / (WSUBN / TN);  // i/4
+
+    // Placement of the warp in the threadblock tile
+    const uint warpIdx = threadIdx.x / WARPSIZE;  // the warp this thread is in
+    const uint warpCol = warpIdx % (BN / WN);
+    const uint warpRow = warpIdx / (BN / WN);
+
+    float regM[WMITER * TM] = {0.0};
+    float regN[WNITER * TN] = {0.0};
     for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
         // populate registers for whole warptile
         for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
@@ -286,8 +296,6 @@ __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float be
     constexpr int64_t K = A_DS.col;
     constexpr int64_t N = B_DS.col;
 
-    const float *A = A_DS.data;
-    const float *B = B_DS.data;
     float *C = C_DS.data;
 
     const uint cRow = blockIdx.y;
@@ -304,43 +312,35 @@ __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float be
     constexpr uint WSUBN = WN / WNITER;  // 32/2=16
 
     // Placement of the thread in the warp subtile
-    const uint threadIdxInWarp = threadIdx.x % WARPSIZE;          // [0, 31]
-    const uint threadColInWarp = threadIdxInWarp % (WSUBN / TN);  // i%(16/4)
-    const uint threadRowInWarp = threadIdxInWarp / (WSUBN / TN);  // i/4
 
     // allocate space for the current blocktile in SMEM
-    __shared__ float As[BM * BK];
-    __shared__ float Bs[BK * BN];
 
-    // Move blocktile to beginning of A's row and B's column
-    A += cRow * BM * K;
-    B += cCol * BN;
     // Move C_ptr to warp's output tile
     C += (cRow * BM + warpRow * WM) * N + cCol * BN + warpCol * WN;
-
     // calculating the indices that this thread will load into SMEM
     // we'll load 128bit / 32bit = 4 elements per thread at each step
 
     // allocate thread-local cache for results in registerfile
     float threadResults[WMITER * TM * WNITER * TN] = {0.0};
     // we cache into registers on the warptile level
-    float regM[WMITER * TM] = {0.0};
-    float regN[WNITER * TN] = {0.0};
 
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
-        // blk::loadIntoSharedNew<BM, BK, NUM_THREADS>(As, A, K);
+        __shared__ float As[BM * BK];
+        __shared__ float Bs[BK * BN];
         blk::loadIntoSharedNew<BM, BK, NUM_THREADS>(As, A_DS, cRow * BM, bkIdx);
-        // __syncthreads();
         blk::loadIntoSharedNew<BK, BN, NUM_THREADS>(Bs, B_DS, bkIdx, cCol * BN);
         __syncthreads();
         blk::matrix_multiply<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
-                             TN>(regM, regN, threadResults, As, Bs, warpRow, warpCol,
-                                 threadRowInWarp, threadColInWarp);
-        A += BK;      // move BK columns to right
-        B += BK * N;  // move BK rows down
+                             TN>(threadResults, As, Bs);
+        // A += BK;      // move BK columns to right
+        // B += BK * N;  // move BK rows down
         __syncthreads();
     }
+
+    const uint threadIdxInWarp = threadIdx.x % WARPSIZE;          // [0, 31]
+    const uint threadColInWarp = threadIdxInWarp % (WSUBN / TN);  // i%(16/4)
+    const uint threadRowInWarp = threadIdxInWarp / (WSUBN / TN);  // i/4
 
     for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
         for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
