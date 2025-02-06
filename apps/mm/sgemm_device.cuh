@@ -14,11 +14,12 @@
 const int WARPSIZE = 32;  // warpSize is not constexpr
 
 namespace wt {
+
 template<const int BM, const int BN, const int BK, const int rowStrideA,
          const int rowStrideB>
-__device__ void loadFromGmem(int N, int K, const float *A, const float *B,
-                             float *As, float *Bs, int innerRowA, int innerColA,
-                             int innerRowB, int innerColB) {
+inline __device__ void loadFromGmem(int N, int K, const float *A, const float *B,
+                                    float *As, float *Bs, int innerRowA, int innerColA,
+                                    int innerRowB, int innerColB) {
     for (uint offset = 0; offset + rowStrideA <= BM; offset += rowStrideA) {
         const float4 tmp = reinterpret_cast<const float4 *>(
             &A[(innerRowA + offset) * K + innerColA * 4])[0];
@@ -195,34 +196,52 @@ __global__ void __launch_bounds__(NUM_THREADS)
 }
 
 namespace blk {
+
+template<const int NumRow, const int NumCol, int NUM_THREADS>
+__device__ void loadIntoSharedNew(float *As, const float *A, int K) {
+
+    const uint innerRow = threadIdx.x / (NumCol / 4);
+    const uint innerCol = threadIdx.x % (NumCol / 4);
+    constexpr uint rowStride = (NUM_THREADS * 4) / NumCol;
+
+    for (uint offset = 0; offset + rowStride <= NumRow; offset += rowStride) {
+        const float4 tmp = reinterpret_cast<const float4 *>(
+            &A[(innerRow + offset) * K + innerCol * 4])[0];
+        As[(innerCol * 4 + 0) * NumRow + innerRow + offset] = tmp.x;
+        As[(innerCol * 4 + 1) * NumRow + innerRow + offset] = tmp.y;
+        As[(innerCol * 4 + 2) * NumRow + innerRow + offset] = tmp.z;
+        As[(innerCol * 4 + 3) * NumRow + innerRow + offset] = tmp.w;
+    }
+}
+
 template<const int BM, const int BN, const int BK, int NUM_THREADS>
 __device__ void loadIntoShared(int N, int K, const float *A, const float *B,
                                float *As, float *Bs) {
 
-    const uint innerRowA = threadIdx.x / (BK / 4);
-    const uint innerColA = threadIdx.x % (BK / 4);
-    constexpr uint rowStrideA = (NUM_THREADS * 4) / BK;
+    // const uint innerRowA = threadIdx.x / (BK / 4);
+    // const uint innerColA = threadIdx.x % (BK / 4);
+    // constexpr uint rowStrideA = (NUM_THREADS * 4) / BK;
     const uint innerRowB = threadIdx.x / (BN / 4);
     const uint innerColB = threadIdx.x % (BN / 4);
     constexpr uint rowStrideB = NUM_THREADS / (BN / 4);
 
-    for (uint offset = 0; offset + rowStrideA <= BM; offset += rowStrideA) {
-        const float4 tmp = reinterpret_cast<const float4 *>(
-            &A[(innerRowA + offset) * K + innerColA * 4])[0];
-        // float4 tmp;
-        // asm("ld.global.nc.v4.f32 {%0, %1, %2, %3}, [%4];"
-        //     : "=f"(tmp.x), "=f"(tmp.y), "=f"(tmp.z), "=f"(tmp.w)
-        //     : "l"(&A[(innerRowA + offset) * K + innerColA * 4]));
-        As[(innerColA * 4 + 0) * BM + innerRowA + offset] = tmp.x;
-        As[(innerColA * 4 + 1) * BM + innerRowA + offset] = tmp.y;
-        As[(innerColA * 4 + 2) * BM + innerRowA + offset] = tmp.z;
-        As[(innerColA * 4 + 3) * BM + innerRowA + offset] = tmp.w;
+    // for (uint offset = 0; offset + rowStrideA <= BM; offset += rowStrideA) {
+    //     const float4 tmp = reinterpret_cast<const float4 *>(
+    //         &A[(innerRowA + offset) * K + innerColA * 4])[0];
+    //     // float4 tmp;
+    //     // asm("ld.global.nc.v4.f32 {%0, %1, %2, %3}, [%4];"
+    //     //     : "=f"(tmp.x), "=f"(tmp.y), "=f"(tmp.z), "=f"(tmp.w)
+    //     //     : "l"(&A[(innerRowA + offset) * K + innerColA * 4]));
+    //     As[(innerColA * 4 + 0) * BM + innerRowA + offset] = tmp.x;
+    //     As[(innerColA * 4 + 1) * BM + innerRowA + offset] = tmp.y;
+    //     As[(innerColA * 4 + 2) * BM + innerRowA + offset] = tmp.z;
+    //     As[(innerColA * 4 + 3) * BM + innerRowA + offset] = tmp.w;
 
-        // reinterpret_cast<float4 *>(
-        //     &As[(innerRowA + offset) * BM + innerRowA * 4])[0] =
-        //     reinterpret_cast<const float4 *>(
-        //         &A[(innerRowA + offset) * K + innerColA * 4])[0];
-    }
+    //     // reinterpret_cast<float4 *>(
+    //     //     &As[(innerRowA + offset) * BM + innerRowA * 4])[0] =
+    //     //     reinterpret_cast<const float4 *>(
+    //     //         &A[(innerRowA + offset) * K + innerColA * 4])[0];
+    // }
 
     for (uint offset = 0; offset + rowStrideB <= BK; offset += rowStrideB) {
         reinterpret_cast<float4 *>(
@@ -292,8 +311,8 @@ __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float be
 
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
-        blk::loadIntoShared<BM, BN, BK, NUM_THREADS>(  // Immediately amenable to the GERN interface!
-            N, K, A, B, As, Bs);
+        blk::loadIntoSharedNew<BM, BK, NUM_THREADS>(As, A, K);
+        blk::loadIntoSharedNew<BM, BK, NUM_THREADS>(Bs, B, N);
         __syncthreads();
         wt::processFromSmem<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
                             TN>(regM, regN, threadResults, As, Bs, warpRow, warpCol,

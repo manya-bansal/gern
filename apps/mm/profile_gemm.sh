@@ -1,7 +1,7 @@
 #!/bin/bash
 
 filename=sgemm
-impls=("cublas" "device")
+impls=("cublas" "device" "gern")
 data=data
 
 if [ $# -eq 0 ]; then

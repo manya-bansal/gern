@@ -6,70 +6,10 @@
 
 #include "benchmark.h"
 #include "sgemm_device.cuh"
+#include "shims.h"
 
 constexpr int warm_up_runs = 10;
 constexpr int kernel_repeats = 10;
-
-void runSgemmWarptiling(int M, int N, int K, float alpha, float *A, float *B,
-                        float beta, float *C) {
-    const uint K10_NUM_THREADS = 128;
-    const uint K10_BN = 128;
-    const uint K10_BM = 128;
-    const uint K10_BK = 16;
-    const uint K10_WN = 64;
-    const uint K10_WM = 64;
-    const uint K10_WNITER = 4;
-    const uint K10_TN = 4;
-    const uint K10_TM = 8;
-
-    dim3 blockDim(K10_NUM_THREADS);
-
-    constexpr uint NUM_WARPS = K10_NUM_THREADS / 32;
-
-    // warptile in threadblocktile
-    static_assert((K10_BN % K10_WN == 0) and (K10_BM % K10_WM == 0));
-    static_assert((K10_BN / K10_WN) * (K10_BM / K10_WM) == NUM_WARPS);
-
-    // threads in warpsubtile
-    static_assert((K10_WM * K10_WN) % (WARPSIZE * K10_TM * K10_TN * K10_WNITER) ==
-                  0);
-    constexpr uint K10_WMITER =
-        (K10_WM * K10_WN) / (32 * K10_TM * K10_TN * K10_WNITER);
-    // warpsubtile in warptile
-    static_assert((K10_WM % K10_WMITER == 0) and (K10_WN % K10_WNITER == 0));
-
-    static_assert((K10_NUM_THREADS * 4) % K10_BK == 0,
-                  "NUM_THREADS*4 must be multiple of K9_BK to avoid quantization "
-                  "issues during GMEM->SMEM tiling (loading only parts of the "
-                  "final row of Bs during each iteraion)");
-    static_assert((K10_NUM_THREADS * 4) % K10_BN == 0,
-                  "NUM_THREADS*4 must be multiple of K9_BN to avoid quantization "
-                  "issues during GMEM->SMEM tiling (loading only parts of the "
-                  "final row of As during each iteration)");
-    static_assert(K10_BN % (16 * K10_TN) == 0,
-                  "BN must be a multiple of 16*TN to avoid quantization effects");
-    static_assert(K10_BM % (16 * K10_TM) == 0,
-                  "BM must be a multiple of 16*TM to avoid quantization effects");
-    static_assert((K10_BM * K10_BK) % (4 * K10_NUM_THREADS) == 0,
-                  "BM*BK must be a multiple of 4*256 to vectorize loads");
-    static_assert((K10_BN * K10_BK) % (4 * K10_NUM_THREADS) == 0,
-                  "BN*BK must be a multiple of 4*256 to vectorize loads");
-
-    dim3 gridDim(CEIL_DIV(N, K10_BN), CEIL_DIV(M, K10_BM));
-
-    double time = benchmark::measure::execution(
-        [&](cudaStream_t stream) {
-            sgemmWarptiling<K10_BM, K10_BN, K10_BK, K10_WM, K10_WN, K10_WNITER, K10_TM,
-                            K10_TN, K10_NUM_THREADS>
-                <<<gridDim, blockDim>>>(M, N, K, alpha, A, B, beta, C);
-        },
-        warm_up_runs,
-        kernel_repeats,
-        0);
-
-    double gflops = (2.0 * M * N * K) * 1e-9;
-    std::cout << gflops / (time / 1000) << std::endl;
-}
 
 int main(int argc, char **argv) {
     long max_size = 5120;
@@ -143,7 +83,26 @@ int main(int argc, char **argv) {
         std::cout << gflops / (time / 1000) << std::endl;
 
     } else if (impl == "device") {
-        runSgemmWarptiling(max_size, max_size, max_size, alpha, dA, dB, beta, dC);
+        runSgemmWarptiling(max_size, max_size, max_size, alpha, dA, dB, beta, dC, true);
+    } else if (impl == "gern") {
+        constexpr int M = 16384;
+        constexpr int N = 16384;
+        constexpr int K = 16384;
+        constexpr int dummy = 2;
+        float alpha = 0.5f;
+        float beta = 3.0f;
+
+        using MatrixTypeA = impl::MatrixGPU<M, K, K, dummy>;
+        MatrixTypeA a;
+        a.ascending();
+        using MatrixTypeB = impl::MatrixGPU<K, N, N, dummy>;
+        MatrixTypeB b;
+        b.ascending();
+        using MatrixTypeC = impl::MatrixGPU<M, N, N, dummy>;
+        MatrixTypeC c;
+        c.vvals(0.0f);
+
+        runSgemmGern(a, b, c, alpha, beta, true);
     } else {
         std::cout << "Invalid Execution param [cublas, device]!" << std::endl;
         return 1;
