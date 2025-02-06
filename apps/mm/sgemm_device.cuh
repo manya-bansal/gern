@@ -239,6 +239,7 @@ __device__ void
 matrix_multiply(float *regM, float *regN, float *threadResults, const float *As,
                 const float *Bs, const uint warpRow, const uint warpCol,
                 const uint threadRowInWarp, const uint threadColInWarp) {
+
     for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
         // populate registers for whole warptile
         for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
