@@ -193,3 +193,100 @@ __global__ void __launch_bounds__(NUM_THREADS)
         }
     }
 }
+
+template<typename T1,
+         typename T2,
+         typename T3, const int BM, const int BN, const int BK, const int WM, const int WN,
+         const int WNITER, const int TM, const int TN, const int NUM_THREADS>
+__global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float beta) {
+
+    constexpr int64_t M = A_DS.row;
+    constexpr int64_t K = A_DS.col;
+    constexpr int64_t N = B_DS.col;
+
+    const float *A = A_DS.data;
+    const float *B = B_DS.data;
+    float *C = C_DS.data;
+
+    const uint cRow = blockIdx.y;
+    const uint cCol = blockIdx.x;
+
+    // Placement of the warp in the threadblock tile
+    const uint warpIdx = threadIdx.x / WARPSIZE;  // the warp this thread is in
+    const uint warpCol = warpIdx % (BN / WN);
+    const uint warpRow = warpIdx / (BN / WN);
+
+    // size of the warp subtile
+    constexpr uint WMITER = (WM * WN) / (WARPSIZE * TM * TN * WNITER);
+    constexpr uint WSUBM = WM / WMITER;  // 64/2=32
+    constexpr uint WSUBN = WN / WNITER;  // 32/2=16
+
+    // Placement of the thread in the warp subtile
+    const uint threadIdxInWarp = threadIdx.x % WARPSIZE;          // [0, 31]
+    const uint threadColInWarp = threadIdxInWarp % (WSUBN / TN);  // i%(16/4)
+    const uint threadRowInWarp = threadIdxInWarp / (WSUBN / TN);  // i/4
+
+    // allocate space for the current blocktile in SMEM
+    __shared__ float As[BM * BK];
+    __shared__ float Bs[BK * BN];
+
+    // Move blocktile to beginning of A's row and B's column
+    A += cRow * BM * K;
+    B += cCol * BN;
+    // Move C_ptr to warp's output tile
+    C += (cRow * BM + warpRow * WM) * N + cCol * BN + warpCol * WN;
+
+    // calculating the indices that this thread will load into SMEM
+    // we'll load 128bit / 32bit = 4 elements per thread at each step
+    const uint innerRowA = threadIdx.x / (BK / 4);
+    const uint innerColA = threadIdx.x % (BK / 4);
+    constexpr uint rowStrideA = (NUM_THREADS * 4) / BK;
+    const uint innerRowB = threadIdx.x / (BN / 4);
+    const uint innerColB = threadIdx.x % (BN / 4);
+    constexpr uint rowStrideB = NUM_THREADS / (BN / 4);
+
+    // allocate thread-local cache for results in registerfile
+    float threadResults[WMITER * TM * WNITER * TN] = {0.0};
+    // we cache into registers on the warptile level
+    float regM[WMITER * TM] = {0.0};
+    float regN[WNITER * TN] = {0.0};
+
+    // outer-most loop over block tiles
+    for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
+        wt::loadFromGmem<BM, BN, BK, rowStrideA, rowStrideB>(  // Immediately amenable to the GERN interface!
+            N, K, A, B, As, Bs, innerRowA, innerColA, innerRowB, innerColB);
+        __syncthreads();
+        wt::processFromSmem<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
+                            TN>(regM, regN, threadResults, As, Bs, warpRow, warpCol,
+                                threadRowInWarp, threadColInWarp);
+        A += BK;      // move BK columns to right
+        B += BK * N;  // move BK rows down
+        __syncthreads();
+    }
+
+    for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
+        for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+            // move C pointer to current warp subtile
+            float *C_interim = C + (wSubRowIdx * WSUBM) * N + wSubColIdx * WSUBN;
+            for (uint resIdxM = 0; resIdxM < TM; resIdxM += 1) {
+                for (uint resIdxN = 0; resIdxN < TN; resIdxN += 4) {
+                    // load C vector into registers
+                    float4 tmp = reinterpret_cast<float4 *>(
+                        &C_interim[(threadRowInWarp * TM + resIdxM) * N +
+                                   threadColInWarp * TN + resIdxN])[0];
+                    // perform GEMM update in reg
+                    const int i = (wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
+                                  wSubColIdx * TN + resIdxN;
+                    tmp.x = alpha * threadResults[i + 0] + beta * tmp.x;
+                    tmp.y = alpha * threadResults[i + 1] + beta * tmp.y;
+                    tmp.z = alpha * threadResults[i + 2] + beta * tmp.z;
+                    tmp.w = alpha * threadResults[i + 3] + beta * tmp.w;
+                    // write back
+                    reinterpret_cast<float4 *>(
+                        &C_interim[(threadRowInWarp * TM + resIdxM) * N +
+                                   threadColInWarp * TN + resIdxN])[0] = tmp;
+                }
+            }
+        }
+    }
+}
