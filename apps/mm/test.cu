@@ -6,10 +6,40 @@
 
 #include "benchmark.h"
 #include "sgemm_device.cuh"
-#include "shims.h"
+#include "shims.cuh"
+
+__host__ void querySharedMemory(int deviceId = 0) {
+    cudaDeviceProp deviceProp;
+    cudaError_t error = cudaGetDeviceProperties(&deviceProp, deviceId);
+
+    if (error != cudaSuccess) {
+        printf("Error getting device properties: %s\n", cudaGetErrorString(error));
+        return;
+    }
+
+    // Get shared memory per block in bytes
+    size_t sharedMemPerBlock = deviceProp.sharedMemPerBlock;
+
+    // Get maximum shared memory per block in bytes (for newer architectures)
+    size_t sharedMemPerBlockOptin = deviceProp.sharedMemPerBlockOptin;
+
+    printf("Device %d: %s\n", deviceId, deviceProp.name);
+    printf("Default Shared Memory per Block: %zu bytes (%.2f KB)\n",
+           sharedMemPerBlock, sharedMemPerBlock / 1024.0);
+    printf("Maximum Shared Memory per Block: %zu bytes (%.2f KB)\n",
+           sharedMemPerBlockOptin, sharedMemPerBlockOptin / 1024.0);
+
+    // Get current shared memory configuration
+    int currentSharedMem;
+    cudaDeviceGetAttribute(&currentSharedMem,
+                           cudaDevAttrMaxSharedMemoryPerBlockOptin,
+                           deviceId);
+    printf("Current Shared Memory Configuration: %zu bytes (%.2f KB)\n",
+           currentSharedMem, currentSharedMem / 1024.0);
+}
 
 int main(int argc, char **argv) {
-
+    querySharedMemory();
     constexpr int M = 1024;
     constexpr int N = 1024;
     constexpr int K = 1024;

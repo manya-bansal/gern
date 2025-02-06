@@ -8,7 +8,7 @@ include Makefile.inc
 
 LDFLAGS +=-L $(CUBLAS_DIR)  -lcublas
 INCLUDE +=-I /home/manya/gern/apps/common
-CUFLAG += -ffast-math
+CUFLAG += -ffast-math -G -g -Xcompiler -rdynamic -lineinfo 
 
 test: $(FILENAME).run
 

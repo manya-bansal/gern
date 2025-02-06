@@ -6,7 +6,7 @@
 
 #include "benchmark.h"
 #include "sgemm_device.cuh"
-#include "shims.h"
+#include "shims.cuh"
 
 constexpr int warm_up_runs = 10;
 constexpr int kernel_repeats = 10;

@@ -30,6 +30,10 @@ $(DATA):
 	$(CUDA_OBJDUMP) -sass $(BUILD)/$*.cubin > $(BUILD)/$*.d
 	$(NVDIASM) -hex $(BUILD)/$*.cubin > $(BUILD)/$*.elf
 
+%.profile: %.cu %.bin
+	sudo -E /opt/nvidia/nsight-compute/2023.3.1//ncu \
+	--set full -f -o profile $(BUILD)/$* gern
+
 clean: 
 	rm -rf $(BUILD)
 

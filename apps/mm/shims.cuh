@@ -13,6 +13,16 @@ void runSgemmGern(T1 A, T2 B, T3 C, float alpha, float beta, bool benchmark = fa
     constexpr int64_t K = A.col;
     constexpr int64_t N = B.col;
 
+    // const uint K10_NUM_THREADS = 128;
+    // const uint K10_BN = 64;
+    // const uint K10_BM = 64;
+    // const uint K10_BK = 16;
+    // const uint K10_WN = 32;
+    // const uint K10_WM = 32;
+    // const uint K10_WNITER = 2;
+    // const uint K10_TN = 4;
+    // const uint K10_TM = 4;
+
     const uint K10_NUM_THREADS = 128;
     const uint K10_BN = 128;
     const uint K10_BM = 128;
@@ -58,16 +68,32 @@ void runSgemmGern(T1 A, T2 B, T3 C, float alpha, float beta, bool benchmark = fa
 
     dim3 gridDim(CEIL_DIV(N, K10_BN), CEIL_DIV(M, K10_BM));
 
-    sgemmGernShared<T1, T2, T3, K10_BM, K10_BN, K10_BK, K10_WM, K10_WN, K10_WNITER, K10_TM,
-                    K10_TN, K10_NUM_THREADS>
-        <<<gridDim, blockDim>>>(A, B, C, alpha, beta);
+    auto specialized = sgemmGernShared<T1, T2, T3, K10_BM, K10_BN, K10_BK, K10_WM, K10_WN, K10_WNITER, K10_TM,
+                                       K10_TN, K10_NUM_THREADS>;
+
+    CUDA_CHECK_AND_EXIT(cudaFuncSetAttribute(specialized,
+                                             cudaFuncAttributeMaxDynamicSharedMemorySize,
+                                             cudaDevAttrMaxSharedMemoryPerBlockOptin));
+
+    // cudaFuncAttributes attr;
+    // cudaFuncGetAttributes(&attr, specialized);
+    // printf("Registers per thread: %d\n", attr.numRegs);
+    // printf("Shared memory per block: %d bytes\n", attr.sharedSizeBytes);
+    // printf("gridDim=(%d,%d,%d), blockDim=(%d,%d,%d)\n",
+    //        gridDim.x, gridDim.y, gridDim.z,
+    //        blockDim.x, blockDim.y, blockDim.z);
+
+    specialized<<<gridDim, blockDim>>>(A, B, C, alpha, beta);
 
     if (benchmark) {
         double time = benchmark::measure::execution(
             [&](cudaStream_t stream) {
-                sgemmGernShared<T1, T2, T3, K10_BM, K10_BN, K10_BK, K10_WM, K10_WN, K10_WNITER, K10_TM,
-                                K10_TN, K10_NUM_THREADS>
-                    <<<gridDim, blockDim>>>(A, B, C, alpha, beta);
+                specialized<<<gridDim, blockDim>>>(A, B, C, alpha, beta);
+                cudaError_t err = cudaGetLastError();
+                if (err != cudaSuccess) {
+                    printf("Benchmark kernel launch error: %s\n", cudaGetErrorString(err));
+                    exit(EXIT_FAILURE);
+                }
             },
             warm_up_runs,
             kernel_repeats,

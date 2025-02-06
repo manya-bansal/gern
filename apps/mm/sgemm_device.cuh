@@ -111,6 +111,9 @@ template<const int BM, const int BN, const int BK, const int WM, const int WN,
 __global__ void __launch_bounds__(NUM_THREADS)
     sgemmWarptiling(int M, int N, int K, float alpha, float *A, float *B,
                     float beta, float *C) {
+    extern __shared__ char sharedMem_ex[];
+    float *sharedMem = (float *)sharedMem_ex;
+
     const uint cRow = blockIdx.y;
     const uint cCol = blockIdx.x;
 
@@ -130,9 +133,13 @@ __global__ void __launch_bounds__(NUM_THREADS)
     const uint threadRowInWarp = threadIdxInWarp / (WSUBN / TN);  // i/4
 
     // allocate space for the current blocktile in SMEM
-    __shared__ float As[BM * BK];
-    __shared__ float Bs[BK * BN];
+    // extern __shared__ float As[BM * BK];
+    // __shared__ float Bs[BK * BN];
 
+    float *As = sharedMem;
+    sharedMem += BM * BK;
+    float *Bs = sharedMem;
+    sharedMem += BN * BK;
     // Move blocktile to beginning of A's row and B's column
     A += cRow * BM * K;
     B += cCol * BN;
@@ -291,6 +298,8 @@ template<typename T1,
          typename T3, const int BM, const int BN, const int BK, const int WM, const int WN,
          const int WNITER, const int TM, const int TN, const int NUM_THREADS>
 __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float beta) {
+    extern __shared__ char sharedMem_ex[];
+    float *sharedMem = (float *)sharedMem_ex;
 
     constexpr int64_t M = A_DS.row;
     constexpr int64_t K = A_DS.col;
@@ -322,19 +331,23 @@ __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float be
 
     // allocate thread-local cache for results in registerfile
     float threadResults[WMITER * TM * WNITER * TN] = {0.0};
-    // we cache into registers on the warptile level
 
+    float *As = sharedMem;
+    sharedMem += BM * BK;
+    float *Bs = sharedMem;
+    sharedMem += BN * BK;
+    // __shared__ float Cs[BM * BN];
+    // blk::loadIntoSharedNew<BM, BN, NUM_THREADS>(Cs, C_DS, cRow * BM, cCol * BN);
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
-        __shared__ float As[BM * BK];
-        __shared__ float Bs[BK * BN];
         blk::loadIntoSharedNew<BM, BK, NUM_THREADS>(As, A_DS, cRow * BM, bkIdx);
         blk::loadIntoSharedNew<BK, BN, NUM_THREADS>(Bs, B_DS, bkIdx, cCol * BN);
         __syncthreads();
-        blk::matrix_multiply<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
-                             TN>(threadResults, As, Bs);
-        // A += BK;      // move BK columns to right
-        // B += BK * N;  // move BK rows down
+        blk::matrix_multiply<BM, BN, BK,
+                             WM, WN,
+                             WMITER, WNITER,
+                             WSUBM, WSUBN,
+                             TM, TN>(threadResults, As, Bs);
         __syncthreads();
     }
 
