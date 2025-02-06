@@ -194,6 +194,51 @@ __global__ void __launch_bounds__(NUM_THREADS)
     }
 }
 
+namespace blk {
+template<const int BM, const int BN, const int BK, int NUM_THREADS>
+__device__ void loadIntoShared(int N, int K, const float *A, const float *B,
+                               float *As, float *Bs) {
+
+    const uint innerRowA = threadIdx.x / (BK / 4);
+    const uint innerColA = threadIdx.x % (BK / 4);
+    constexpr uint rowStrideA = (NUM_THREADS * 4) / BK;
+    const uint innerRowB = threadIdx.x / (BN / 4);
+    const uint innerColB = threadIdx.x % (BN / 4);
+    constexpr uint rowStrideB = NUM_THREADS / (BN / 4);
+
+    for (uint offset = 0; offset + rowStrideA <= BM; offset += rowStrideA) {
+        const float4 tmp = reinterpret_cast<const float4 *>(
+            &A[(innerRowA + offset) * K + innerColA * 4])[0];
+        // float4 tmp;
+        // asm("ld.global.nc.v4.f32 {%0, %1, %2, %3}, [%4];"
+        //     : "=f"(tmp.x), "=f"(tmp.y), "=f"(tmp.z), "=f"(tmp.w)
+        //     : "l"(&A[(innerRowA + offset) * K + innerColA * 4]));
+        As[(innerColA * 4 + 0) * BM + innerRowA + offset] = tmp.x;
+        As[(innerColA * 4 + 1) * BM + innerRowA + offset] = tmp.y;
+        As[(innerColA * 4 + 2) * BM + innerRowA + offset] = tmp.z;
+        As[(innerColA * 4 + 3) * BM + innerRowA + offset] = tmp.w;
+
+        // reinterpret_cast<float4 *>(
+        //     &As[(innerRowA + offset) * BM + innerRowA * 4])[0] =
+        //     reinterpret_cast<const float4 *>(
+        //         &A[(innerRowA + offset) * K + innerColA * 4])[0];
+    }
+
+    for (uint offset = 0; offset + rowStrideB <= BK; offset += rowStrideB) {
+        reinterpret_cast<float4 *>(
+            &Bs[(innerRowB + offset) * BN + innerColB * 4])[0] =
+            reinterpret_cast<const float4 *>(
+                &B[(innerRowB + offset) * N + innerColB * 4])[0];
+        // asm("ld.global.v4.f32 {%0, %1, %2, %3}, [%4];"
+        //     : "=f"(Bs[(innerRowB + offset) * BN + innerColB * 4 + 0]),
+        //       "=f"(Bs[(innerRowB + offset) * BN + innerColB * 4 + 1]),
+        //       "=f"(Bs[(innerRowB + offset) * BN + innerColB * 4 + 2]),
+        //       "=f"(Bs[(innerRowB + offset) * BN + innerColB * 4 + 3])
+        //     : "l"(&B[(innerRowB + offset) * N + innerColB * 4]));
+    }
+}
+}  // namespace blk
+
 template<typename T1,
          typename T2,
          typename T3, const int BM, const int BN, const int BK, const int WM, const int WN,
@@ -238,12 +283,6 @@ __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float be
 
     // calculating the indices that this thread will load into SMEM
     // we'll load 128bit / 32bit = 4 elements per thread at each step
-    const uint innerRowA = threadIdx.x / (BK / 4);
-    const uint innerColA = threadIdx.x % (BK / 4);
-    constexpr uint rowStrideA = (NUM_THREADS * 4) / BK;
-    const uint innerRowB = threadIdx.x / (BN / 4);
-    const uint innerColB = threadIdx.x % (BN / 4);
-    constexpr uint rowStrideB = NUM_THREADS / (BN / 4);
 
     // allocate thread-local cache for results in registerfile
     float threadResults[WMITER * TM * WNITER * TN] = {0.0};
@@ -253,8 +292,8 @@ __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float be
 
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
-        wt::loadFromGmem<BM, BN, BK, rowStrideA, rowStrideB>(  // Immediately amenable to the GERN interface!
-            N, K, A, B, As, Bs, innerRowA, innerColA, innerRowB, innerColB);
+        blk::loadIntoShared<BM, BN, BK, NUM_THREADS>(  // Immediately amenable to the GERN interface!
+            N, K, A, B, As, Bs);
         __syncthreads();
         wt::processFromSmem<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
                             TN>(regM, regN, threadResults, As, Bs, warpRow, warpCol,
