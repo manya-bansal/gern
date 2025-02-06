@@ -231,6 +231,48 @@ __device__ void loadIntoSharedNew(float *As, const T &A_DS, uint x, uint y) {
         }
     }
 }
+
+template<const int BM, const int BN, const int BK, const int WM, const int WN,
+         const int WMITER, const int WNITER, const int WSUBM, const int WSUBN,
+         const int TM, const int TN>
+__device__ void
+matrix_multiply(float *regM, float *regN, float *threadResults, const float *As,
+                const float *Bs, const uint warpRow, const uint warpCol,
+                const uint threadRowInWarp, const uint threadColInWarp) {
+    for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
+        // populate registers for whole warptile
+        for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
+            for (uint i = 0; i < TM; ++i) {
+                regM[wSubRowIdx * TM + i] =
+                    As[(dotIdx * BM) + warpRow * WM + wSubRowIdx * WSUBM +
+                       threadRowInWarp * TM + i];
+            }
+        }
+        for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+            for (uint i = 0; i < TN; ++i) {
+                regN[wSubColIdx * TN + i] =
+                    Bs[(dotIdx * BN) + warpCol * WN + wSubColIdx * WSUBN +
+                       threadColInWarp * TN + i];
+            }
+        }
+
+        // execute warptile matmul
+        for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
+            for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+                // calculate per-thread results
+                for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
+                    for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
+                        threadResults[(wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
+                                      (wSubColIdx * TN) + resIdxN] +=
+                            regM[wSubRowIdx * TM + resIdxM] *
+                            regN[wSubColIdx * TN + resIdxN];
+                    }
+                }
+            }
+        }
+    }
+}
+
 }  // namespace blk
 
 template<typename T1,
@@ -288,11 +330,12 @@ __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float be
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
         // blk::loadIntoSharedNew<BM, BK, NUM_THREADS>(As, A, K);
         blk::loadIntoSharedNew<BM, BK, NUM_THREADS>(As, A_DS, cRow * BM, bkIdx);
+        // __syncthreads();
         blk::loadIntoSharedNew<BK, BN, NUM_THREADS>(Bs, B_DS, bkIdx, cCol * BN);
         __syncthreads();
-        wt::processFromSmem<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
-                            TN>(regM, regN, threadResults, As, Bs, warpRow, warpCol,
-                                threadRowInWarp, threadColInWarp);
+        blk::matrix_multiply<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
+                             TN>(regM, regN, threadResults, As, Bs, warpRow, warpCol,
+                                 threadRowInWarp, threadColInWarp);
         A += BK;      // move BK columns to right
         B += BK * N;  // move BK rows down
         __syncthreads();
