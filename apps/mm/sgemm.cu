@@ -1,3 +1,4 @@
+#include "impl/gpu-matrix-const.h"
 #include <cmath>
 #include <cstdio>
 #include <fstream>

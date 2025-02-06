@@ -30,6 +30,11 @@ __device__ void loadFromGmem(int N, int K, const float *A, const float *B,
         As[(innerColA * 4 + 1) * BM + innerRowA + offset] = tmp.y;
         As[(innerColA * 4 + 2) * BM + innerRowA + offset] = tmp.z;
         As[(innerColA * 4 + 3) * BM + innerRowA + offset] = tmp.w;
+
+        // reinterpret_cast<float4 *>(
+        //     &As[(innerRowA + offset) * BM + innerRowA * 4])[0] =
+        //     reinterpret_cast<const float4 *>(
+        //         &A[(innerRowA + offset) * K + innerColA * 4])[0];
     }
 
     for (uint offset = 0; offset + rowStrideB <= BK; offset += rowStrideB) {
@@ -150,7 +155,7 @@ __global__ void __launch_bounds__(NUM_THREADS)
 
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
-        wt::loadFromGmem<BM, BN, BK, rowStrideA, rowStrideB>(
+        wt::loadFromGmem<BM, BN, BK, rowStrideA, rowStrideB>(  // Immediately amenable to the GERN interface!
             N, K, A, B, As, Bs, innerRowA, innerColA, innerRowB, innerColB);
         __syncthreads();
         wt::processFromSmem<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
