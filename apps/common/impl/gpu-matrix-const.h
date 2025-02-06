@@ -107,101 +107,11 @@ public:
     return os;
 }
 
-template<int64_t Row, int64_t Col, int64_t LDA, int64_t stride>
+template<int64_t Row, int64_t Col, int64_t LDA, bool RowMajor>
 class MatrixGPU {
 public:
     MatrixGPU() {
         cudaMalloc(&data, lda * row * sizeof(float));
-    }
-
-    template<int64_t num_row, int64_t num_col>
-    __device__ StaticMatrix<num_row, CEILING(num_col, 4)> query(int64_t x, int64_t y) {
-        constexpr int64_t col_to_return = CEILING(num_col, 4);
-        StaticMatrix<num_row, col_to_return> matrix;
-        auto matrix_data = matrix.array;
-        float *data_ptr = &data[x * row + y];
-        float4 *val_ptr = reinterpret_cast<float4 *>(data_ptr);
-
-        for (int m = 0; m < num_row; m++) {
-#pragma unroll URF
-            for (int i = 0; i < col_to_return; i += stride) {
-                float4 val = val_ptr[i];
-                matrix_data[i] = val;
-            }
-            val_ptr += LDA / 4;
-
-            matrix_data += col_to_return;
-        }
-        return matrix;
-    }
-
-    template<typename T2>
-    __device__ void insert(int x,
-                           int y,
-                           T2 &reg_array_big) {
-        auto matrix_data = reg_array_big.array;
-        constexpr int64_t num_row = reg_array_big.rows;
-        constexpr int64_t num_col = reg_array_big.cols_by_4;
-        float4 *val_ptr = reinterpret_cast<float4 *>(&data[x * row + y]);
-
-        for (int m = 0; m < num_row; m++) {
-#pragma unroll URF
-            for (int i = 0; i < num_col; i += stride) {
-                float4 val = matrix_data[i];
-                val_ptr[i] = val;
-            }
-            val_ptr += (LDA / 4);
-            matrix_data += num_col;
-        }
-    }
-
-    template<
-        typename T2>
-    __device__ void insert_new(
-        int x,
-        int y,
-        T2 &reg_array_big) {
-        y = y / (col / stride);
-        auto &reg_array = reg_array_big.array;
-        constexpr int64_t num_row = reg_array_big.rows;
-        constexpr int64_t num_col = reg_array_big.cols_by_4;
-        float4 *val_ptr = reinterpret_cast<float4 *>(&data[x * row + y * 4]);
-
-        int index = 0;
-        for (int m = 0; m < num_row; m++) {
-#pragma unroll URF
-            for (int i = 0; i < num_col; i++) {
-                float4 val = reg_array[i];
-                val_ptr[index] = val;
-                index += stride;
-            }
-        }
-    }
-
-    template<int64_t num_row_t, int64_t num_col_t>
-    __device__ StaticMatrix<num_row_t, CEILING(num_col_t, 4)> query_new(
-        int x,
-        int y) {
-        y = y / (col / stride);
-        constexpr int64_t col_to_return = CEILING(num_col_t, 4);
-        StaticMatrix<num_row_t, col_to_return> reg_array_big;
-
-        auto &reg_array = reg_array_big.array;
-        float4 *val_ptr = reinterpret_cast<float4 *>(&data[x * row + y * 4]);
-
-        constexpr int64_t num_row = reg_array_big.rows;
-        constexpr int64_t num_col = reg_array_big.cols_by_4;
-
-        int index = 0;
-        for (int m = 0; m < num_row; m++) {
-#pragma unroll URF
-            for (int i = 0; i < num_col; i++) {
-                float4 val = val_ptr[index];
-                reg_array[i] = val;
-                index += stride;
-            }
-        }
-        return reg_array_big;
     }
 
     MatrixCPU get() {
@@ -232,6 +142,7 @@ public:
     static constexpr int64_t row = Row;
     static constexpr int64_t col = Col;
     static constexpr int64_t lda = LDA;
+    static constexpr bool row_major = RowMajor;
 };
 
 template<int64_t num_row, int64_t num_col>

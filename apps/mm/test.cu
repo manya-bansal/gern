@@ -13,17 +13,17 @@ int main(int argc, char **argv) {
     constexpr int M = 1024;
     constexpr int N = 1024;
     constexpr int K = 1024;
-    constexpr int dummy = 2;
+    constexpr int row_major = true;
     float alpha = 0.5f;
     float beta = 3.0f;
 
-    using MatrixTypeA = impl::MatrixGPU<M, K, K, dummy>;
+    using MatrixTypeA = impl::MatrixGPU<M, K, K, !row_major>;
     MatrixTypeA a;
     a.ascending();
-    using MatrixTypeB = impl::MatrixGPU<K, N, N, dummy>;
+    using MatrixTypeB = impl::MatrixGPU<K, N, N, row_major>;
     MatrixTypeB b;
     b.ascending();
-    using MatrixTypeC = impl::MatrixGPU<M, N, N, dummy>;
+    using MatrixTypeC = impl::MatrixGPU<M, N, N, row_major>;
     MatrixTypeC c;
     c.vvals(0.0f);
 
