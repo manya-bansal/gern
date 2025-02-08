@@ -246,4 +246,59 @@ protected:
     Variable stride{"stride", true};
 };
 
+template<int K>
+class MatrixMultiply : public AbstractFunction {
+public:
+    MatrixMultiply(AbstractDataTypePtr A,
+                   AbstractDataTypePtr B,
+                   AbstractDataTypePtr C)
+        : A(A), B(B), C(C) {
+        k = k.bindToInt64(K);
+    }
+    Annotation getAnnotation() override {
+        Variable i("i");
+        Variable j("j");
+        Variable k("k");
+
+        Variable ti("ti", true);
+        Variable tj("tj", true);
+        Variable tk("tk", true);
+
+        return annotate(For(i = Expr(0), ADTMember(C, "row", true), ti,
+                            For(j = Expr(0), ADTMember(C, "col", true), tj,
+                                Produces::Subset(C, {i, j, ti, tj}),
+                                Consumes::Subsets(
+                                    Reduce(k = Expr(0), ADTMember(C, "reduce", true), tk,
+                                           SubsetObjMany({
+                                               SubsetObj(A, {i, k, ti, tk}),
+                                               SubsetObj(B, {k, j, tk, tj}),
+                                           })
+
+                                               )))));
+    }
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "matrix_multiply";
+        f.args = {
+            Parameter(A),
+            Parameter(B),
+            Parameter(C),
+        };
+        f.template_args = {k};
+        return f;
+    }
+    std::vector<std::string> getHeader() override {
+        return {
+            "impl/gpu-matrix-const.h",
+            "impl/impl.h",
+        };
+    }
+
+protected:
+    AbstractDataTypePtr A;
+    AbstractDataTypePtr B;
+    AbstractDataTypePtr C;
+    Variable k{"k"};
+};
+
 }  // namespace annot

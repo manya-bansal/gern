@@ -7,6 +7,6 @@ include_directories(common)
 #Add the skeleton directory.
 add_subdirectory(skeleton)
 # All the apps.
-add_subdirectory(blur)
+# add_subdirectory(blur)
 add_subdirectory(mm)
 # add_subdirectory(softmax)

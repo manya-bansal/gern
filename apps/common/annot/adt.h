@@ -6,7 +6,7 @@ using namespace gern;
 
 namespace annot {
 
-template<int Row, int Col, int Stride>
+template<int Row, int Col, int LDA, bool RowMajor>
 class MatrixGPU : public AbstractDataType {
 public:
     MatrixGPU(const std::string &name, bool temp)
@@ -22,8 +22,8 @@ public:
             return "impl::MatrixGPU<" +
                    std::to_string(Row) + "," +
                    std::to_string(Col) + "," +
-                   std::to_string(Col) + "," +
-                   std::to_string(Stride) +
+                   std::to_string(LDA) + "," +
+                   std::to_string(RowMajor) +
                    ">";
         }
     }
@@ -71,26 +71,26 @@ protected:
     bool temp;
 };
 
-template<int Row, int Col, int Stride>
-class MatrixGPUSequential : public MatrixGPU<Row, Col, Stride> {
-public:
-    MatrixGPUSequential(const std::string &name, bool temp)
-        : MatrixGPU<Row, Col, Stride>(name, temp) {
-    }
-    FunctionSignature getQueryFunction() const {
-        return FunctionSignature{
-            .name = "template query",
-            .args = {this->x, this->y},
-            .template_args = {this->row, this->col},
-        };
-    }
-    FunctionSignature getInsertFunction() const {
-        return FunctionSignature{
-            .name = "template insert",
-            .args = {this->x, this->y},
-        };
-    }
-};
+// template<int Row, int Col, int Stride>
+// class MatrixGPUSequential : public MatrixGPU<Row, Col, Stride> {
+// public:
+//     MatrixGPUSequential(const std::string &name, bool temp)
+//         : MatrixGPU<Row, Col, Stride>(name, temp) {
+//     }
+//     FunctionSignature getQueryFunction() const {
+//         return FunctionSignature{
+//             .name = "template query",
+//             .args = {this->x, this->y},
+//             .template_args = {this->row, this->col},
+//         };
+//     }
+//     FunctionSignature getInsertFunction() const {
+//         return FunctionSignature{
+//             .name = "template insert",
+//             .args = {this->x, this->y},
+//         };
+//     }
+// };
 
 class StaticArray : public AbstractDataType {
 public:

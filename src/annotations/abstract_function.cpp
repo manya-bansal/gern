@@ -69,6 +69,9 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
             continue;
         }
         fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()), true);
+        if (template_arg.isBoundToInt64()) {
+            fresh_names[template_arg] = fresh_names[template_arg].bindToInt64(template_arg.getInt64Val());
+        }
     }
 
     Annotation annotation = getAnnotation();
