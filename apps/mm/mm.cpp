@@ -25,12 +25,17 @@ int main() {
     auto B = AbstractDataTypePtr(new const Annot_MatrixTypeB("B", false));
     auto C = AbstractDataTypePtr(new const Annot_MatrixTypeC("C", false));
 
-    annot::MatrixMultiply matrix_multiply{A, B, C};
-
     Variable tj{"tj"};
     Variable ti{"ti"};
     Variable tk{"tk"};
     Variable tk2{"tk2"};
+    Variable k("k");
+
+    annot::MatrixMultiply matrix_multiply{A, B, C};
+
+    auto matrix_multiply_s = &matrix_multiply[{
+        {"k", k.bindToInt64(8)},
+    }];
 
     // For the inner mm
     // Composable program = {
@@ -46,13 +51,14 @@ int main() {
     //                 Reduce(C["reduce"], tk.bindToInt64(16))(
     //                     matrix_multiply(A, B, C)))))};
 
-    // The outer mm
+    // For the middle mm
     Composable program = {
+        // Additionally tile using warps.
         Global(
-            Reduce(C["reduce"], tk.bindToInt64(16))(
-                (Tile(C["row"], ti.bindToInt64(128)) || Grid::Unit::BLOCK_Y)(
-                    (Tile(C["col"], tj.bindToInt64(128)) || Grid::Unit::BLOCK_X)(
-                        matrix_multiply(A, B, C)))))};
+            (Tile(C["row"], ti.bindToInt64(8)) || Grid::Unit::THREAD_X)(
+                (Tile(C["col"], tj.bindToInt64(4)) || Grid::Unit::THREAD_Y)(
+                    matrix_multiply(A, B, C)))),
+    };
 
     Runner run(program);
     Runner::Options options;

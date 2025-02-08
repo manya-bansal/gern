@@ -274,7 +274,7 @@ public:
                                   })
 
                                       ))))
-            .occupies({Grid::Unit::THREAD_X});
+            .occupies({Grid::Unit::SCALAR_UNIT});
     }
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;

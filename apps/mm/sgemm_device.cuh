@@ -252,6 +252,23 @@ __device__ void inner_kernel(const float *regM, const float *regN, float *result
     }
 }
 
+// template<const int NumRow,
+//          const int NumCol,
+//          const int M,
+//          const int N>
+// __device__ query_shared(const float *shared, float *reg, int i, int j) {
+
+//     shared += (i * N) + j;  // move the pointer to the correct place.
+//     for (uint wSubRowIdx = 0; wSubRowIdx < NumRow; ++wSubRowIdx) {
+//         for (uint i = 0; i < NumCol; ++i) {
+//             reg[i] =
+//                 shared[i];
+//         }
+//         shared += N;
+//         reg += NumCol;
+//     }
+// }
+
 template<const int BM, const int BN, const int BK, const int WM, const int WN,
          const int WMITER, const int WNITER, const int WSUBM, const int WSUBN,
          const int TM, const int TN>
@@ -268,94 +285,39 @@ matrix_multiply(float *threadResults, const float *As,
     const uint warpCol = warpIdx % (BN / WN);
     const uint warpRow = warpIdx / (BN / WN);
 
+    // This is the distribution over warps.
+    As += warpRow * WM;  // 0 in coloumn space! // Tiled by WSUBM
+    Bs += warpCol * WN;  // 0 in row dimension!  // Tiled by WSUBN
+
+    // This is the distribution over threads now.
+    As += threadRowInWarp * TM;  // 0 in coloumn space!
+    Bs += threadColInWarp * TN;  // 0 in coloumn space!
+
     float regM[WMITER * TM] = {0.0};
     float regN[WNITER * TN] = {0.0};
 
     for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
+        // query_shared<WMITER, TM, BM, BN>(regM, As, dotIdx);
         // populate registers for whole warptile
+        As += dotIdx * BM;  // Go to the correct row. (START) makes query at (dotIdx, 0)
+        Bs += dotIdx * BN;  // Go to the correct row. (START) makes query at (dotIdx, 0)
+
         for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
             for (uint i = 0; i < TM; ++i) {
-                regM[wSubRowIdx * TM + i] =
-                    As[(dotIdx * BM) + warpRow * WM + wSubRowIdx * WSUBM +
-                       threadRowInWarp * TM + i];
+                regM[wSubRowIdx * TM + i] =      // This obviously makes sense.
+                    As[wSubRowIdx * WSUBM + i];  // To skip to the correct coloumn. // BK is tiled by WSUBM
             }
         }
         for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
             for (uint i = 0; i < TN; ++i) {
                 regN[wSubColIdx * TN + i] =
-                    Bs[(dotIdx * BN) + warpCol * WN + wSubColIdx * WSUBN +
-                       threadColInWarp * TN + i];
+                    Bs[wSubColIdx * WSUBN + i];
             }
         }
 
         // execute warptile matmul
         inner_kernel<WMITER, WNITER, TM, TN>(regM, regN, threadResults);
     }
-}
-
-// template<int64_t ti, int64_t tj, int64_t tk,
-//          typename T1,
-//          typename T2,
-//          typename T3>
-// __global__ void gern_gen(T1 A, T2 B, T3 C) {
-
-//     int64_t _gern_i_2_7_13_19 = ((blockIdx.y * ti) + 0);
-//     int64_t _gern_j_3_8_14 = ((blockIdx.x * tj) + 0);
-//     int64_t _gern_j_3_8 = _gern_j_3_8_14;
-//     constexpr int64_t _gern_tj_5_11 = tj;
-//     int64_t _gern_i_2_7 = _gern_i_2_7_13_19;
-//     constexpr int64_t _gern_ti_4_10 = ti;
-
-//     float threadResults[ti * tj] = {0.0};
-
-//     for (int64_t _gern_k_1_9 = 0; (_gern_k_1_9 < C.reduce); _gern_k_1_9 = (_gern_k_1_9 + tk)) {
-
-//         int64_t _gern_j_3 = _gern_j_3_8_14;
-//         constexpr int64_t _gern_tj_5 = tj;
-//         int64_t _gern_i_2 = _gern_i_2_7_13_19;
-//         constexpr int64_t _gern_ti_4 = ti;
-
-//         constexpr int64_t _gern_k_1 = _gern_k_1_9;
-//         constexpr int64_t _gern_tk_6 = tk;
-
-//         auto _query_A_27 = A.template query_new<_gern_ti_4, _gern_tk_6>(_gern_i_2, _gern_k_1);
-
-//         auto _query_B_28 = B.template query_new<_gern_tk_6, _gern_tj_5>(_gern_k_1, _gern_j_3);
-
-//         matrix_multiply<_gern_k_1>(_query_A_27, _query_B_28, _query_C_26);
-//     }
-
-//     C.template insert_new(_gern_i_2_7, _gern_j_3_8, _query_C_26);
-// }
-
-template<const int BM, const int BN,
-         const int BK, const int WM,
-         const int WN,
-         const int WNITER,
-         const int TM, const int TN,
-         int K,
-         typename T>
-__device__ void
-matrix_multiply_shared(T C_DS, const float *As,
-                       const float *Bs) {
-
-    constexpr int64_t M = C_DS.row;
-    constexpr int64_t N = C_DS.col;
-
-    const uint cRow = blockIdx.y;
-    const uint cCol = blockIdx.x;
-
-    // Placement of the warp in the threadblock tile
-    const uint warpIdx = threadIdx.x / WARPSIZE;  // the warp this thread is in
-    const uint warpCol = warpIdx % (BN / WN);
-    const uint warpRow = warpIdx / (BN / WN);
-
-    // size of the warp subtile
-    constexpr uint WMITER = (WM * WN) / (WARPSIZE * TM * TN * WNITER);
-    constexpr uint WSUBM = WM / WMITER;  // 64/2=32
-    constexpr uint WSUBN = WN / WNITER;  // 32/2=16
-
-    C += (cRow * BM + warpRow * WM) * N + cCol * BN + warpCol * WN;
 }
 
 }  // namespace blk
@@ -399,7 +361,6 @@ __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float be
     // we cache into registers on the warptile level
 
     // outer-most loop over block tiles
-    float *C_temp = cRow * BM * N + cCol * BN;
 
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
         __shared__ float As[BM * BK];
