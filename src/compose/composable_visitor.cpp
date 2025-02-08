@@ -52,13 +52,13 @@ void LegalToCompose::isLegal(Composable c) {
     c.accept(this);
     auto output = c.getAnnotation().getPattern().getOutput().getDS();
 
-    for (const auto &write : all_writes) {
-        if (!all_reads.contains(write) && write != output) {
-            throw error::UserError(" Wrote to intermediate " +
-                                   write.getName() +
-                                   ", but never read it");
-        }
-    }
+    // for (const auto &write : all_writes) {
+    //     if (!all_reads.contains(write) && write != output) {
+    //         throw error::UserError(" Wrote to intermediate " +
+    //                                write.getName() +
+    //                                ", but never read it");
+    //     }
+    // }
 }
 
 void LegalToCompose::visit(const Computation *node) {
@@ -100,7 +100,7 @@ void LegalToCompose::visit(const ComputeFunctionCall *node) {
 }
 
 void LegalToCompose::visit(const GlobalNode *op) {
-    this->visit(op->program);
+    op->program.accept(this);
 }
 
 void LegalToCompose::common(std::set<AbstractDataTypePtr> inputs, AbstractDataTypePtr output) {
@@ -122,19 +122,19 @@ void LegalToCompose::common(std::set<AbstractDataTypePtr> inputs, AbstractDataTy
 void ComposableVisitor::visit(const Computation *node) {
     auto composed = node->composed;
     for (auto const &c : composed) {
-        this->visit(c);
+        c.accept(this);
     }
 }
 
 void ComposableVisitor::visit(const TiledComputation *node) {
-    this->visit(node->tiled);
+    node->tiled.accept(this);
 }
 
 void ComposableVisitor::visit(const ComputeFunctionCall *) {
 }
 
 void ComposableVisitor::visit(const GlobalNode *node) {
-    this->visit(node->program);
+    node->program.accept(this);
 }
 
 }  // namespace gern

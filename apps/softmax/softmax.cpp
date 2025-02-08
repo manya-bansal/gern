@@ -56,6 +56,21 @@ int main() {
                    {Grid::Dim::BLOCK_DIM_Y, stride_val.bindToInt64(block_size)},
                })};
 
+    // Composable program = {
+    //     Global((Tile(b["row"], row.bindToInt64(1)) || Grid::Unit::BLOCK_X)(
+    //                ((Reduce(a["col"], col_val.bindToInt64(num_cols_q))) || Grid::Unit::THREAD_Y)(
+    //                    max_row_specialize->operator()(max_row_out, a)),
+    //                ((Tile(exp_temp["col"], col_val.bindToInt64(num_cols_q)) || Grid::Unit::THREAD_Y)(
+    //                     subtract_vec(max_row_out, a, sub_temp),
+    //                     exp_matrix(sub_temp, exp_temp)),
+    //                 ((Reduce(exp_temp["col"], col_val.bindToInt64(num_cols_q))) || Grid::Unit::THREAD_Y)(
+    //                     sum_row_specialize->operator()(sum_row_out, exp_temp)),
+    //                 ((Tile(b["col"], col_val.bindToInt64(num_cols_q)) || Grid::Unit::THREAD_Y)(
+    //                     divide_vec(sum_row_out, exp_temp, b))))),
+    //            {
+    //                {Grid::Dim::BLOCK_DIM_Y, stride_val.bindToInt64(block_size)},
+    //            })};
+
     Runner run(program);
     Runner::Options options;
 

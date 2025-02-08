@@ -125,14 +125,15 @@ public:
         Variable l_x("l_x", true);
         Variable l_y("l_y", true);
 
-        return annotate(For(x = Expr(0), ADTMember(output, "row", true), l_x,
-                            For(y = Expr(0), ADTMember(output, "col", true), l_y,
-                                Produces::Subset(output, {x, y, l_x, l_y}),
-                                Consumes::Subsets(
-                                    SubsetObjMany({
-                                        SubsetObj(input, {x, y, l_x, l_y}),
-                                        SubsetObj(vec, {x, l_x}),
-                                    })))));
+        return For(x = Expr(0), ADTMember(output, "row", true), l_x,
+                   For(y = Expr(0), ADTMember(output, "col", true), l_y,
+                       Produces::Subset(output, {x, y, l_x, l_y}),
+                       Consumes::Subsets(
+                           SubsetObjMany({
+                               SubsetObj(input, {x, y, l_x, l_y}),
+                               SubsetObj(vec, {x, l_x}),
+                           }))))
+            .occupies({Grid::Unit::SCALAR_UNIT});
     }
 
     virtual FunctionSignature getFunction() override {
