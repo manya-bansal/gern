@@ -139,6 +139,7 @@ TEST(LoweringGPU, MatrixGPUAddDoubleBind) {
     Variable l_x("l_x");
     Variable l_y("l_y");
 
+    smem[threadIdx.x] = threadIdx.x;
     Composable program =
         Global((Tile(outputDS["row"], l_x) || Grid::Unit::BLOCK_X)(
             (Tile(outputDS["col"], l_y) || Grid::Unit::BLOCK_Y)(
