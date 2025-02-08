@@ -51,22 +51,6 @@ inline __device__ void loadFromGmem(int N, int K, const float *A, const float *B
         //     : "l"(&B[(innerRowB + offset) * N + innerColB * 4]));
     }
 }
-template<const int WMITER, const int WNITER, const int TM, const int TN>
-__device__ void matrix_multiply(const float *regM, const float *regN, float *result) {
-    for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
-        for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
-            // calculate per-thread results
-            for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
-                for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
-                    result[(wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
-                           (wSubColIdx * TN) + resIdxN] +=
-                        regM[wSubRowIdx * TM + resIdxM] *
-                        regN[wSubColIdx * TN + resIdxN];
-                }
-            }
-        }
-    }
-}
 
 template<const int BM, const int BN, const int BK, const int WM, const int WN,
          const int WMITER, const int WNITER, const int WSUBM, const int WSUBN,
@@ -88,6 +72,9 @@ processFromSmem(float *threadResults, const float *As,
                        threadRowInWarp * TM + i];
             }
         }
+
+        // loadIntoReg(As, )
+
         for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
             for (uint i = 0; i < TN; ++i) {
                 regN[wSubColIdx * TN + i] =
@@ -96,7 +83,19 @@ processFromSmem(float *threadResults, const float *As,
             }
         }
 
-        matrix_multiply<WMITER, WNITER, TM, TN>(regM, regN, threadResults);
+        for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
+            for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+                // calculate per-thread results
+                for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
+                    for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
+                        threadResults[(wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
+                                      (wSubColIdx * TN) + resIdxN] +=
+                            regM[wSubRowIdx * TM + resIdxM] *
+                            regN[wSubColIdx * TN + resIdxN];
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -236,6 +235,23 @@ __device__ void loadIntoSharedNew(float *As, const T &A_DS, uint x, uint y) {
     }
 }
 
+template<const int WMITER, const int WNITER, const int TM, const int TN>
+__device__ void inner_kernel(const float *regM, const float *regN, float *result) {
+    for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
+        for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+            // calculate per-thread results
+            for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
+                for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
+                    result[(wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
+                           (wSubColIdx * TN) + resIdxN] +=
+                        regM[wSubRowIdx * TM + resIdxM] *
+                        regN[wSubColIdx * TN + resIdxN];
+                }
+            }
+        }
+    }
+}
+
 template<const int BM, const int BN, const int BK, const int WM, const int WN,
          const int WMITER, const int WNITER, const int WSUBM, const int WSUBN,
          const int TM, const int TN>
@@ -254,6 +270,7 @@ matrix_multiply(float *threadResults, const float *As,
 
     float regM[WMITER * TM] = {0.0};
     float regN[WNITER * TN] = {0.0};
+
     for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
         // populate registers for whole warptile
         for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
@@ -272,20 +289,73 @@ matrix_multiply(float *threadResults, const float *As,
         }
 
         // execute warptile matmul
-        for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
-            for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
-                // calculate per-thread results
-                for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
-                    for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
-                        threadResults[(wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
-                                      (wSubColIdx * TN) + resIdxN] +=
-                            regM[wSubRowIdx * TM + resIdxM] *
-                            regN[wSubColIdx * TN + resIdxN];
-                    }
-                }
-            }
-        }
+        inner_kernel<WMITER, WNITER, TM, TN>(regM, regN, threadResults);
     }
+}
+
+// template<int64_t ti, int64_t tj, int64_t tk,
+//          typename T1,
+//          typename T2,
+//          typename T3>
+// __global__ void gern_gen(T1 A, T2 B, T3 C) {
+
+//     int64_t _gern_i_2_7_13_19 = ((blockIdx.y * ti) + 0);
+//     int64_t _gern_j_3_8_14 = ((blockIdx.x * tj) + 0);
+//     int64_t _gern_j_3_8 = _gern_j_3_8_14;
+//     constexpr int64_t _gern_tj_5_11 = tj;
+//     int64_t _gern_i_2_7 = _gern_i_2_7_13_19;
+//     constexpr int64_t _gern_ti_4_10 = ti;
+
+//     float threadResults[ti * tj] = {0.0};
+
+//     for (int64_t _gern_k_1_9 = 0; (_gern_k_1_9 < C.reduce); _gern_k_1_9 = (_gern_k_1_9 + tk)) {
+
+//         int64_t _gern_j_3 = _gern_j_3_8_14;
+//         constexpr int64_t _gern_tj_5 = tj;
+//         int64_t _gern_i_2 = _gern_i_2_7_13_19;
+//         constexpr int64_t _gern_ti_4 = ti;
+
+//         constexpr int64_t _gern_k_1 = _gern_k_1_9;
+//         constexpr int64_t _gern_tk_6 = tk;
+
+//         auto _query_A_27 = A.template query_new<_gern_ti_4, _gern_tk_6>(_gern_i_2, _gern_k_1);
+
+//         auto _query_B_28 = B.template query_new<_gern_tk_6, _gern_tj_5>(_gern_k_1, _gern_j_3);
+
+//         matrix_multiply<_gern_k_1>(_query_A_27, _query_B_28, _query_C_26);
+//     }
+
+//     C.template insert_new(_gern_i_2_7, _gern_j_3_8, _query_C_26);
+// }
+
+template<const int BM, const int BN,
+         const int BK, const int WM,
+         const int WN,
+         const int WNITER,
+         const int TM, const int TN,
+         int K,
+         typename T>
+__device__ void
+matrix_multiply_shared(T C_DS, const float *As,
+                       const float *Bs) {
+
+    constexpr int64_t M = C_DS.row;
+    constexpr int64_t N = C_DS.col;
+
+    const uint cRow = blockIdx.y;
+    const uint cCol = blockIdx.x;
+
+    // Placement of the warp in the threadblock tile
+    const uint warpIdx = threadIdx.x / WARPSIZE;  // the warp this thread is in
+    const uint warpCol = warpIdx % (BN / WN);
+    const uint warpRow = warpIdx / (BN / WN);
+
+    // size of the warp subtile
+    constexpr uint WMITER = (WM * WN) / (WARPSIZE * TM * TN * WNITER);
+    constexpr uint WSUBM = WM / WMITER;  // 64/2=32
+    constexpr uint WSUBN = WN / WNITER;  // 32/2=16
+
+    C += (cRow * BM + warpRow * WM) * N + cCol * BN + warpCol * WN;
 }
 
 }  // namespace blk
@@ -329,6 +399,8 @@ __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float be
     // we cache into registers on the warptile level
 
     // outer-most loop over block tiles
+    float *C_temp = cRow * BM * N + cCol * BN;
+
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
         __shared__ float As[BM * BK];
         __shared__ float Bs[BK * BN];
@@ -337,8 +409,9 @@ __global__ void sgemmGernShared(T1 A_DS, T2 B_DS, T3 C_DS, float alpha, float be
         __syncthreads();
         blk::matrix_multiply<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
                              TN>(threadResults, As, Bs);
-        // A += BK;      // move BK columns to right
-        // B += BK * N;  // move BK rows down
+        // blk::matrix_multiply_shared<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
+        //                             TN>(C_temp, As, Bs);
+
         __syncthreads();
     }
 

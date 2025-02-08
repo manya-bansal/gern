@@ -246,14 +246,13 @@ protected:
     Variable stride{"stride", true};
 };
 
-template<int K>
 class MatrixMultiply : public AbstractFunction {
 public:
     MatrixMultiply(AbstractDataTypePtr A,
                    AbstractDataTypePtr B,
                    AbstractDataTypePtr C)
         : A(A), B(B), C(C) {
-        k = k.bindToInt64(K);
+        // k = k.bindToInt64(K);
     }
     Annotation getAnnotation() override {
         Variable i("i");
@@ -264,17 +263,18 @@ public:
         Variable tj("tj", true);
         Variable tk("tk", true);
 
-        return annotate(For(i = Expr(0), ADTMember(C, "row", true), ti,
-                            For(j = Expr(0), ADTMember(C, "col", true), tj,
-                                Produces::Subset(C, {i, j, ti, tj}),
-                                Consumes::Subsets(
-                                    Reduce(k = Expr(0), ADTMember(C, "reduce", true), tk,
-                                           SubsetObjMany({
-                                               SubsetObj(A, {i, k, ti, tk}),
-                                               SubsetObj(B, {k, j, tk, tj}),
-                                           })
+        return For(i = Expr(0), ADTMember(C, "row", true), ti,
+                   For(j = Expr(0), ADTMember(C, "col", true), tj,
+                       Produces::Subset(C, {i, j, ti, tj}),
+                       Consumes::Subsets(
+                           Reduce(k = Expr(0), ADTMember(C, "reduce", true), tk,
+                                  SubsetObjMany({
+                                      SubsetObj(A, {i, k, ti, tk}),
+                                      SubsetObj(B, {k, j, tk, tj}),
+                                  })
 
-                                               )))));
+                                      ))))
+            .occupies({Grid::Unit::THREAD_X});
     }
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
