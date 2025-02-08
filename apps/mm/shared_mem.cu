@@ -32,7 +32,7 @@ int main() {
     std::cout << "Absolute max shared memory per multiprocessor: " << sharedMemMaxPossible << " bytes\n";
 
     int threadsPerBlock = 256;
-    int excessiveSharedMemSize = sharedMemPerBlockDefault;  // Try exceeding the default limit
+    int excessiveSharedMemSize = sharedMemPerBlockDefault + 1;  // Try exceeding the default limit
 
     // Attempt to set a higher shared memory limit
     cudaError_t err = cudaFuncSetAttribute(excessSharedMemKernel, cudaFuncAttributeMaxDynamicSharedMemorySize, excessiveSharedMemSize);
