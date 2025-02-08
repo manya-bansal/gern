@@ -51,14 +51,34 @@ inline __device__ void loadFromGmem(int N, int K, const float *A, const float *B
         //     : "l"(&B[(innerRowB + offset) * N + innerColB * 4]));
     }
 }
+template<const int WMITER, const int WNITER, const int TM, const int TN>
+__device__ void matrix_multiply(const float *regM, const float *regN, float *result) {
+    for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
+        for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+            // calculate per-thread results
+            for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
+                for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
+                    result[(wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
+                           (wSubColIdx * TN) + resIdxN] +=
+                        regM[wSubRowIdx * TM + resIdxM] *
+                        regN[wSubColIdx * TN + resIdxN];
+                }
+            }
+        }
+    }
+}
 
 template<const int BM, const int BN, const int BK, const int WM, const int WN,
          const int WMITER, const int WNITER, const int WSUBM, const int WSUBN,
          const int TM, const int TN>
 __device__ void
-processFromSmem(float *regM, float *regN, float *threadResults, const float *As,
+processFromSmem(float *threadResults, const float *As,
                 const float *Bs, const uint warpRow, const uint warpCol,
                 const uint threadRowInWarp, const uint threadColInWarp) {
+
+    float regM[WMITER * TM] = {0.0};
+    float regN[WNITER * TN] = {0.0};
+
     for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
         // populate registers for whole warptile
         for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
@@ -76,20 +96,7 @@ processFromSmem(float *regM, float *regN, float *threadResults, const float *As,
             }
         }
 
-        // execute warptile matmul
-        for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
-            for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
-                // calculate per-thread results
-                for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
-                    for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
-                        threadResults[(wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
-                                      (wSubColIdx * TN) + resIdxN] +=
-                            regM[wSubRowIdx * TM + resIdxM] *
-                            regN[wSubColIdx * TN + resIdxN];
-                    }
-                }
-            }
-        }
+        matrix_multiply<WMITER, WNITER, TM, TN>(regM, regN, threadResults);
     }
 }
 
@@ -150,9 +157,6 @@ __global__ void __launch_bounds__(NUM_THREADS)
 
     // allocate thread-local cache for results in registerfile
     float threadResults[WMITER * TM * WNITER * TN] = {0.0};
-    // we cache into registers on the warptile level
-    float regM[WMITER * TM] = {0.0};
-    float regN[WNITER * TN] = {0.0};
 
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
@@ -160,7 +164,7 @@ __global__ void __launch_bounds__(NUM_THREADS)
             N, K, A, B, As, Bs, innerRowA, innerColA, innerRowB, innerColB);
         __syncthreads();
         wt::processFromSmem<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
-                            TN>(regM, regN, threadResults, As, Bs, warpRow, warpCol,
+                            TN>(threadResults, As, Bs, warpRow, warpCol,
                                 threadRowInWarp, threadColInWarp);
         A += BK;      // move BK columns to right
         B += BK * N;  // move BK rows down
