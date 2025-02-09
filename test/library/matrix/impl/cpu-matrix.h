@@ -106,6 +106,46 @@ inline void add(MatrixCPU a, MatrixCPU b) {
     }
 }
 
+inline void transpose(MatrixCPU a, MatrixCPU b) {
+	float *a_data;
+	float *b_data_j_i;	
+	for (int64_t i = 0; i < a.row; i++) {
+		a_data = a.data + (i * a.lda);
+		for (int64_t j = 0; j < a.col; j++) {
+			b_data_j_i = b.data + (j * b.lda) + i;
+			*b_data_j_i = a_data[j];
+		}
+	}
+}
+
+inline void softmax(MatrixCPU a, MatrixCPU b) {
+	float *a_data;
+	float *b_data;
+	for (int64_t i = 0; i < a.row; i++) {
+		a_data = a.data + (i * a.lda);
+        b_data = b.data + (i * b.lda);	
+		float exp_sum = 0;
+		for (int64_t j = 0; j < a.col; j++) {
+			exp_sum += expf(a_data[j]);
+		}
+		for (int64_t j = 0; j < a.col; j++) {
+			b_data[j] = expf(a_data[j]) / exp_sum;
+		}
+	}
+}
+
+inline void mmul(MatrixCPU a, MatrixCPU b, MatrixCPU out, int64_t shared_len) {
+	for (int i = 0; i < a.row; i++) {
+		for (int j = 0; j < b.col; j++) {
+			float acc = 0;
+			for (int k = 0; k < a.col; k++) {
+				acc += *(a.data + (i * a.lda) + k) * *(b.data + (k * b.lda) + j);
+			}
+			*(out.data + (i * out.lda) + j) = acc;
+		}
+    }
+}
+
 inline void exp_matrix(MatrixCPU a, MatrixCPU b) {
     float *a_data;
     float *b_data;

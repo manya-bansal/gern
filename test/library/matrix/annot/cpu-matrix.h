@@ -5,6 +5,7 @@
 #include "library/array/annot/cpu-array.h"
 #include "test-utils.h"
 #include <iostream>
+#include "annotations/lang_nodes.h"
 
 namespace gern {
 namespace annot {
@@ -106,6 +107,149 @@ protected:
     AbstractDataTypePtr output;
     Variable end{"end"};
 };
+
+class MatrixSoftmax : public AbstractFunction {
+public:
+    MatrixSoftmax()
+        : input(new const MatrixCPU("input")),
+          output(new const MatrixCPU("output")) {
+    }
+    std::string getName() {
+        return "gern::impl::softmax";
+    }
+
+    Annotation getAnnotation() override {
+
+        Variable x("x");
+        Variable y("y");
+        Variable l_x("l_x");
+        Variable l_y("l_y");
+
+        Variable row("row");
+        Variable col("col");
+
+        return annotate(For(x = Expr(0), output["row"], l_x,
+                            For(y = Expr(0), output["col"], l_y,
+                                Produces::Subset(output, {x, y, l_x, l_y}),
+                                Consumes::Subset(input, {x, y, l_x, l_y}))));
+    }
+
+    std::vector<std::string> getHeader() override {
+        return {
+            "cpu-matrix.h",
+        };
+    }
+
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::softmax";
+        f.args = {Parameter(input), Parameter(output)};
+        return f;
+    }
+
+protected:
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
+    Variable end{"end"};
+};
+
+class MatrixTranspose : public AbstractFunction {
+public:
+    MatrixTranspose()
+        : input(new const MatrixCPU("input")),
+          output(new const MatrixCPU("output")) {
+    }
+    std::string getName() {
+        return "gern::impl::transpose";
+    }
+
+    Annotation getAnnotation() override {
+
+        Variable x("x");
+        Variable y("y");
+        Variable l_x("l_x");
+        Variable l_y("l_y");
+
+        Variable row("row");
+        Variable col("col");
+
+        return annotate(For(x = Expr(0), output["row"], l_x,
+                            For(y = Expr(0), output["col"], l_y,
+                                Produces::Subset(output, {x, y, l_x, l_y}),
+                                Consumes::Subset(input, {y, x, l_y, l_x}))));
+    }
+
+    std::vector<std::string> getHeader() override {
+        return {
+            "cpu-matrix.h",
+        };
+    }
+
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::transpose";
+        f.args = {Parameter(input), Parameter(output)};
+        return f;
+    }
+
+protected:
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
+    Variable end{"end"};
+};
+
+class MatrixMultiply : public AbstractFunction {
+public:
+    MatrixMultiply()
+        : a(new const MatrixCPU("inputA")),
+		  b(new const MatrixCPU("inputB")),
+          output(new const MatrixCPU("output")) {
+    }
+    std::string getName() {
+        return "gern::impl::mmul";
+    }
+
+    Annotation getAnnotation() override {
+
+        Variable x("x");
+        Variable y("y");
+        Variable l_x("l_x");
+        Variable l_y("l_y");
+
+        Variable row("row");
+        Variable col("col");
+
+        return annotate(For(x = Expr(0), output["row"], l_x,
+                            For(y = Expr(0), output["col"], l_y,
+                                Produces::Subset(output, {x, y, l_x, l_y}),
+                                Consumes::Subsets(
+									SubsetObjMany({
+										SubsetObj(a, {x, 0, l_x, shared_len}),
+										SubsetObj(b, {0, y, shared_len, l_y})
+									})))));
+    }
+
+    std::vector<std::string> getHeader() override {
+        return {
+            "cpu-matrix.h",
+        };
+    }
+
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::mmul";
+        f.args = {Parameter(a), Parameter(b), Parameter(output), Parameter(shared_len)};
+        return f;
+    }
+
+protected:
+    AbstractDataTypePtr a;
+    AbstractDataTypePtr b;
+    AbstractDataTypePtr output;
+	Variable shared_len{"shared_len"};
+    Variable end{"end"};
+};
+
 
 class SumRow : public AbstractFunction {
 public:
