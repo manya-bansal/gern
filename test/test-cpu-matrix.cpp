@@ -173,6 +173,52 @@ TEST(LoweringCPU, Transpose) {
 	}
 }
 
+TEST(LoweringCPU, Softmax) {
+	auto sm_in = AbstractDataTypePtr(new const annot::MatrixCPU("sm_in"));
+	auto sm_out = AbstractDataTypePtr(new const annot::MatrixCPU("sm_out"));
+
+	int64_t row_val = 10;
+    int64_t col_val = 20;
+
+	Variable l_x("l_x");
+	Variable col("col");
+
+	annot::MatrixSoftmax softmax;
+	auto softmax_specialize = &softmax[{
+        {"col", col.bindToInt64(col_val)}
+    }];
+
+	Composable program = {
+		Tile(sm_out["row"], l_x)(
+			softmax_specialize->operator()(sm_in, sm_out)
+		)
+	};
+
+	// Runner run(program);
+
+	// run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+	
+
+	// impl::MatrixCPU a(row_val, col_val, col_val);
+	// a.random_fill();
+	// impl::MatrixCPU b(col_val, row_val, row_val);
+
+	// impl::MatrixCPU reference(col_val, row_val, row_val);
+	// gern::impl::softmax(a, reference);
+
+	// int64_t l_x_val = 5;
+
+	// ASSERT_NO_THROW(run.evaluate({
+    //     {sm_in.getName(), &a},
+    //     {sm_out.getName(), &b},
+    //     {l_x.getName(), &l_x_val},
+    // }));
+
+	// for (int i = 0; i < row_val * col_val; i++) {
+	// 	ASSERT_EQ(b.data[i], reference.data[i]);
+	// }
+}
+
 // TEST(LoweringCPU, Softmax) {
 
 //     auto inputDS = AbstractDataTypePtr(new const annot::MatrixCPU("input"));
