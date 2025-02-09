@@ -82,6 +82,12 @@ target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
 target_compile_features(Gern_Gern PUBLIC cxx_std_20)
 target_link_libraries(Gern_Gern PRIVATE ${CMAKE_DL_LIBS})
 
+include_directories(/Users/maggie/.pyenv/versions/3.12.5/lib/python3.12/site-packages/pybind11/include)
+set(pybind11_DIR /Users/maggie/.pyenv/versions/3.12.5/lib/python3.12/site-packages/pybind11/share/cmake/pybind11)
+find_package(pybind11 REQUIRED)
+pybind11_add_module(gern_py src/python_bindings/bindings.cpp)
+set_target_properties(gern_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY "../../python")
+
 ##
 # Testing
 
