@@ -166,13 +166,13 @@ public:
 
     Annotation getAnnotation() override {
         Variable x("x");
+		Variable y("y");
         Variable l_x("l_x");
-
-        Variable col("col");
+		Variable l_y("l_y");
 
         return annotate(For(x = Expr(0), output["row"], l_x,
-                            Produces::Subset(output, {x, 0, l_x, col}),
-                            Consumes::Subset(input, {x, 0, l_x, col})));
+                            Produces::Subset(output, {x, y, l_x, l_y}),
+                            Consumes::Subset(input, {x, y, l_x, l_y})));
     }
 
     std::vector<std::string> getHeader() override {

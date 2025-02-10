@@ -69,154 +69,156 @@ TEST(LoweringCPU, MatrixCPUAdd) {
 }
 
 TEST(LoweringCPU, MatrixMultiply) {
-	auto inA = AbstractDataTypePtr(new const annot::MatrixCPU("a"));
-	auto inB = AbstractDataTypePtr(new const annot::MatrixCPU("b"));	
-	auto output = AbstractDataTypePtr(new const annot::MatrixCPU("output"));	
+    auto inA = AbstractDataTypePtr(new const annot::MatrixCPU("a"));
+    auto inB = AbstractDataTypePtr(new const annot::MatrixCPU("b"));	
+    auto output = AbstractDataTypePtr(new const annot::MatrixCPU("output"));	
 
-	annot::MatrixMultiply matmul;
+    annot::MatrixMultiply matmul;
 
-	Variable l_x("l_x");
-	Variable l_y("l_y");
-	Variable shared_len("shared_len");
+    Variable l_x("l_x");
+    Variable l_y("l_y");
+    Variable shared_len("shared_len");
 
-	Composable program = {
-		Tile(output["row"], l_x)(
-			Tile(output["col"], l_y)(
-				matmul(inA, inB, output, shared_len)
-			)
-		)
-	};
+    Composable program = {
+        Tile(output["row"], l_x)(
+            Tile(output["col"], l_y)(
+                matmul(inA, inB, output, shared_len)
+            )
+        )
+    };
 
-	Runner run(program);
+    Runner run(program);
 
-	run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
 
-	int64_t m = 5;
+    int64_t m = 5;
     int64_t n = 5;
-	int64_t k = 5;
+    int64_t k = 5;
 
-	impl::MatrixCPU a(m, k, k);
-	a.random_fill();
-	impl::MatrixCPU b(k, n, n);
-	b.random_fill();
-	impl::MatrixCPU out(m, n, n);
-	impl::MatrixCPU reference(m, n, n);
+    impl::MatrixCPU a(m, k, k);
+    a.random_fill();
+    impl::MatrixCPU b(k, n, n);
+    b.random_fill();
+    impl::MatrixCPU out(m, n, n);
+    impl::MatrixCPU reference(m, n, n);
 
-	int64_t l_x_val = 1;
-	int64_t l_y_val = 1;
+    int64_t l_x_val = 1;
+    int64_t l_y_val = 1;
 
-	gern::impl::mmul(a, b, reference, k);
-	std::cout << "SHARED_LEN GETNAME " << shared_len.getName() << std::endl;
+    gern::impl::mmul(a, b, reference, k);
+    std::cout << "SHARED_LEN GETNAME " << shared_len.getName() << std::endl;
 
-	ASSERT_NO_THROW(run.evaluate({
+    ASSERT_NO_THROW(run.evaluate({
         {inA.getName(), &a},
         {inB.getName(), &b},
-		{output.getName(), &out},
+        {output.getName(), &out},
         {l_x.getName(), &l_x_val},
-		{l_y.getName(), &l_y_val},
-		{shared_len.getName(), &k}
+        {l_y.getName(), &l_y_val},
+        {shared_len.getName(), &k}
     }));
-	
-	std::cout << a << std::endl;
-	std::cout << b << std::endl;
-	std::cout << out << std::endl;
-	std::cout << reference << std::endl;
+    
+    std::cout << a << std::endl;
+    std::cout << b << std::endl;
+    std::cout << out << std::endl;
+    std::cout << reference << std::endl;
 }
 
 TEST(LoweringCPU, Transpose) {
-	auto q = AbstractDataTypePtr(new const annot::MatrixCPU("q"));
-	auto k = AbstractDataTypePtr(new const annot::MatrixCPU("k"));
-	auto v = AbstractDataTypePtr(new const annot::MatrixCPU("v"));
+    auto q = AbstractDataTypePtr(new const annot::MatrixCPU("q"));
+    auto k = AbstractDataTypePtr(new const annot::MatrixCPU("k"));
+    auto v = AbstractDataTypePtr(new const annot::MatrixCPU("v"));
 
-	auto kt = AbstractDataTypePtr(new const annot::MatrixCPU("kt"));
+    auto kt = AbstractDataTypePtr(new const annot::MatrixCPU("kt"));
     auto outputDS = AbstractDataTypePtr(new const annot::MatrixCPU("output"));	
 
-	annot::MatrixTranspose transpose;
-	annot::MatrixSoftmax softmax;
-	Variable l_x("l_x");
-	Variable l_y("l_y");
+    annot::MatrixTranspose transpose;
+    annot::MatrixSoftmax softmax;
+    Variable l_x("l_x");
+    Variable l_y("l_y");
 
-	Composable program = {
-		Tile(kt["row"], l_x)(
-			Tile(kt["col"], l_y)(
-				transpose(k, kt)
-			)
-		)
-	};
+    Composable program = {
+        Tile(kt["row"], l_x)(
+            Tile(kt["col"], l_y)(
+                transpose(k, kt)
+            )
+        )
+    };
 
-	Runner run(program);
+    Runner run(program);
 
-	run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
 
-	int64_t row_val = 10;
+    int64_t row_val = 10;
     int64_t col_val = 20;
 
-	impl::MatrixCPU a(row_val, col_val, col_val);
-	a.random_fill();
-	impl::MatrixCPU b(col_val, row_val, row_val);
+    impl::MatrixCPU a(row_val, col_val, col_val);
+    a.random_fill();
+    impl::MatrixCPU b(col_val, row_val, row_val);
 
-	impl::MatrixCPU reference(col_val, row_val, row_val);
-	gern::impl::transpose(a, reference);
+    impl::MatrixCPU reference(col_val, row_val, row_val);
+    gern::impl::transpose(a, reference);
 
-	int64_t l_x_val = 5;
-	int64_t l_y_val = 5;
+    int64_t l_x_val = 5;
+    int64_t l_y_val = 5;
 
-	ASSERT_NO_THROW(run.evaluate({
+    ASSERT_NO_THROW(run.evaluate({
         {k.getName(), &a},
         {kt.getName(), &b},
         {l_x.getName(), &l_x_val},
-		{l_y.getName(), &l_y_val}
+        {l_y.getName(), &l_y_val}
     }));
 
-	for (int i = 0; i < row_val * col_val; i++) {
-		ASSERT_EQ(b.data[i], reference.data[i]);
-	}
+    for (int i = 0; i < row_val * col_val; i++) {
+        ASSERT_EQ(b.data[i], reference.data[i]);
+    }
 }
 
 TEST(LoweringCPU, Softmax) {
-	auto sm_in = AbstractDataTypePtr(new const annot::MatrixCPU("sm_in"));
-	auto sm_out = AbstractDataTypePtr(new const annot::MatrixCPU("sm_out"));
+    auto sm_in = AbstractDataTypePtr(new const annot::MatrixCPU("sm_in"));
+    auto sm_out = AbstractDataTypePtr(new const annot::MatrixCPU("sm_out"));
 
-	int64_t row_val = 10;
+    int64_t row_val = 10;
     int64_t col_val = 20;
 
-	Variable l_x("l_x");
-	Variable col("col");
+    Variable l_x("l_x");
+    Variable l_y("l_y");
+    Variable y("y");
 
-	annot::MatrixSoftmax softmax;
-	auto softmax_specialize = &softmax[{
-        {"col", col.bindToInt64(col_val)}
+    annot::MatrixSoftmax softmax;
+    auto softmax_specialize = &softmax[{
+        {"y", y.bindToInt64(0)},
+        {"l_y", l_y.bindToInt64(col_val)}
     }];
 
-	Composable program = {
-		Tile(sm_out["row"], l_x)(
-			softmax_specialize->operator()(sm_in, sm_out)
-		)
-	};
+    Composable program = {
+        Tile(sm_out["row"], l_x)(
+            softmax_specialize->operator()(sm_in, sm_out)
+        )
+    };
 
-	// Runner run(program);
+    Runner run(program);
 
-	// run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
-	
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+    
 
-	// impl::MatrixCPU a(row_val, col_val, col_val);
-	// a.random_fill();
-	// impl::MatrixCPU b(col_val, row_val, row_val);
+    impl::MatrixCPU a(row_val, col_val, col_val);
+    a.random_fill();
+    impl::MatrixCPU b(row_val, col_val, col_val);
 
-	// impl::MatrixCPU reference(col_val, row_val, row_val);
-	// gern::impl::softmax(a, reference);
+    impl::MatrixCPU reference(row_val, col_val, col_val);
+    gern::impl::softmax(a, reference);
 
-	// int64_t l_x_val = 5;
+    int64_t l_x_val = 5;
 
-	// ASSERT_NO_THROW(run.evaluate({
-    //     {sm_in.getName(), &a},
-    //     {sm_out.getName(), &b},
-    //     {l_x.getName(), &l_x_val},
-    // }));
+    ASSERT_NO_THROW(run.evaluate({
+        {sm_in.getName(), &a},
+        {sm_out.getName(), &b},
+        {l_x.getName(), &l_x_val},
+    }));
 
-	// for (int i = 0; i < row_val * col_val; i++) {
-	// 	ASSERT_EQ(b.data[i], reference.data[i]);
-	// }
+    for (int i = 0; i < row_val * col_val; i++) {
+        ASSERT_EQ(b.data[i], reference.data[i]);
+    }
 }
 
 // TEST(LoweringCPU, Softmax) {
