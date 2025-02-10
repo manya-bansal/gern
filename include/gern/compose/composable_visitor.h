@@ -9,6 +9,7 @@ namespace gern {
 
 class Computation;
 class TiledComputation;
+class GlobalNode;
 
 class ComposableVisitorStrict {
 public:
@@ -16,6 +17,7 @@ public:
     virtual void visit(const Computation *) = 0;
     virtual void visit(const TiledComputation *) = 0;
     virtual void visit(const ComputeFunctionCall *) = 0;
+    virtual void visit(const GlobalNode *) = 0;
 };
 
 class ComposablePrinter : public ComposableVisitorStrict {
@@ -29,6 +31,7 @@ public:
     void visit(const Computation *);
     void visit(const TiledComputation *);
     void visit(const ComputeFunctionCall *);
+    void visit(const GlobalNode *);
 
 private:
     std::ostream &os;
@@ -42,6 +45,7 @@ public:
     void visit(const Computation *);
     void visit(const TiledComputation *);
     void visit(const ComputeFunctionCall *);
+    void visit(const GlobalNode *);
 
 private:
     void common(std::set<AbstractDataTypePtr> input, AbstractDataTypePtr output);
@@ -56,6 +60,7 @@ public:
     void visit(const Computation *);
     void visit(const TiledComputation *);
     void visit(const ComputeFunctionCall *);
+    void visit(const GlobalNode *);
 };
 
 #define COMPOSABLE_RULE(Rule)                                                     \

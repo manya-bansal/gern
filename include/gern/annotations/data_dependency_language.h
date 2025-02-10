@@ -3,6 +3,7 @@
 #include "annotations/abstract_nodes.h"
 #include "annotations/grid.h"
 #include "utils/error.h"
+#include "utils/name_generator.h"
 #include "utils/uncopyable.h"
 #include <cassert>
 #include <map>
@@ -60,15 +61,6 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &os, const Expr &);
-/**
- * @brief isConstExpr returns whether an expression is a
- *        constant expression (can be evaluated at program
- *        compile time).
- *
- * @return true
- * @return false
- */
-bool isConstExpr(Expr);
 
 class Constraint : public util::IntrusivePtr<const ConstraintNode> {
 public:
@@ -242,7 +234,7 @@ class ADTMember : public Expr {
 public:
     ADTMember() = default;
     ADTMember(const ADTMemberNode *);
-    ADTMember(AbstractDataTypePtr ds, const std::string &field);
+    ADTMember(AbstractDataTypePtr ds, const std::string &field, bool const_expr);
     AbstractDataTypePtr getDS() const;
     std::string getMember() const;
     typedef ADTMemberNode Node;
@@ -267,7 +259,7 @@ namespace std {
 template<>
 struct less<gern::Variable> {
     bool operator()(const gern::Variable &a, const gern::Variable &b) const {
-        return a.ptr < b.ptr;
+        return a.getName() < b.getName();
     }
 };
 
@@ -336,8 +328,12 @@ inline bool isa(const T &e) {
 
 template<typename E, typename T>
 inline const E to(const T &e) {
-    assert(isa<E>(e));
-    return E(static_cast<const typename E::Node *>(e.ptr));
+    if constexpr (std::is_same_v<E, T>) {
+        return e;
+    } else {
+        assert(isa<E>(e));
+        return E(static_cast<const typename E::Node *>(e.ptr));
+    }
 }
 
 DEFINE_BINARY_CLASS(Assign, Stmt)

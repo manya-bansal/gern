@@ -177,9 +177,8 @@ TEST(LoweringCPU, MixReductionStrategy) {
                 Reduce(outputDS["size"], v)(
                     Reduce(outputDS["size"], v1)(
                         add_1(inputDS, tempDS),
-                        reduction(tempDS, outputDS))
+                        reduction(tempDS, outputDS))))));
 
-                        ))));
     Runner run_1(program);
     run_1.compile(test::cpuRunner("array"));
 

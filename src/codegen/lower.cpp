@@ -1,5 +1,6 @@
 #include "codegen/lower.h"
 #include "annotations/lang_nodes.h"
+#include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "codegen/lower_visitor.h"
 #include "utils/name_generator.h"
@@ -28,6 +29,10 @@ void FreeNode::accept(LowerIRVisitor *v) const {
 }
 
 void InsertNode::accept(LowerIRVisitor *v) const {
+    v->visit(this);
+}
+
+void GridDeclNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 
@@ -98,13 +103,13 @@ LowerIR ComposableLower::generate_definitions(Assign definition) const {
     if (v.isBound()) {
         throw error::UserError(v.getName() + " is determined by the pipeline and cannot be bound.");
     }
-    return new const DefNode(definition, v.isConstExpr());
+    return new const DefNode(definition, isConstExpr(definition.getB()));
 }
 
 LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraints) const {
     std::vector<LowerIR> lowered;
     for (const auto &c : constraints) {
-        lowered.push_back(new const AssertNode(c, false));  // Need to add logic for lowering constraints.
+        lowered.push_back(new const AssertNode(c));  // Need to add logic for lowering constraints.
     }
     return new const BlockNode(lowered);
 }
@@ -112,35 +117,55 @@ LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraint
 void ComposableLower::lower(const TiledComputation *node) {
     // First, add the value of the captured value.
     Variable captured = node->captured;
-    Variable loop_index(getUniqueName("_i_"));
-
-    // Track the fact that this field is being tiled.
-    Expr current_value = loop_index;
-    if (tiled_vars.contains(captured)) {
-        current_value = current_value + tiled_vars.at(captured);
-    }
+    Variable loop_index = node->loop_index;
+    auto old_to_new = node->old_to_new;
+    std::vector<LowerIR> lowered;
 
     AbstractDataTypePtr output = node->getAnnotation().getPattern().getOutput().getDS();
     current_ds.scope();
     if (node->reduce) {
         current_ds.insert(output, getCurrent(output));
     }
+
     parents.scope();
     tiled_vars.scope();
-    parents.insert(node->step, node->v);
-    tiled_vars.insert(captured, current_value);
+    all_relationships.scope();
+
+    // Track all the relationships.
+    for (const auto &var : old_to_new) {
+        all_relationships.insert(var.first, var.second);
+    }
+
+    parents.insert(captured, node->v);
+    tiled_vars.insert(captured, loop_index);
     this->visit(node->tiled);  // Visit the actual object.
     current_ds.unscope();
+    all_relationships.unscope();
     parents.unscope();
     tiled_vars.unscope();
 
-    bool has_parent = parents.contains(node->step);
+    bool has_parent = parents.contains(loop_index);
     lowerIR = new const IntervalNode(
         has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
-        has_parent ? Expr(parents.at(node->step)) : Expr(node->end),
+        has_parent ? Expr(parents.at(loop_index)) : Expr(node->end),
         node->v,
         lowerIR,
         node->unit);
+}
+
+LowerIR ComposableLower::constructADTForCurrentScope(AbstractDataTypePtr d, std::vector<Expr> fields) {
+    LowerIR ir = new const BlankNode();
+    // If the data-stucture is in the current scope, skip.
+    if (current_ds.contains_in_current_scope(d)) {
+        return ir;
+    }
+    // If the adt is in the outer scope, generate a query.
+    if (current_ds.contains(d)) {
+        return constructQueryNode(d, fields);
+    }
+
+    // Otherwise generate an alloc.
+    return constructAllocNode(d, fields);
 }
 
 template<typename T>
@@ -188,12 +213,12 @@ void ComposableLower::lower(const Computation *node) {
     std::vector<LowerIR> lowered;
     std::set<AbstractDataTypePtr> to_free;
 
-    // Construct the allocations and track whether the allocations
-    // need to be freed.
     std::vector<Composable> composed = node->composed;
-    size_t size_funcs = composed.size();
-    for (size_t i = 0; i < size_funcs - 1; i++) {
-        SubsetObj temp_subset = composed[i].getAnnotation().getPattern().getOutput();
+    // Now, we are ready to lower the composable objects that make up the body.
+    for (const auto &function : composed) {
+        // Construct the allocations and track whether the allocations
+        // need to be freed.
+        SubsetObj temp_subset = function.getAnnotation().getPattern().getOutput();
         AbstractDataTypePtr temp = temp_subset.getDS();
         if (!current_ds.contains(temp)) {
             lowered.push_back(constructAllocNode(temp, temp_subset.getFields()));
@@ -202,10 +227,6 @@ void ComposableLower::lower(const Computation *node) {
                 to_free.insert(temp);
             }
         }
-    }
-
-    // Now, we are ready to lower the composable objects that make up the body.
-    for (const auto &function : node->composed) {
         this->visit(function);
         lowered.push_back(lowerIR);
     }
@@ -295,12 +316,8 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         }
     }
 
-    FunctionCall new_call{
-        .name = call.name,
-        .args = new_args,
-        .template_args = call.template_args,
-        .output = call.output,
-    };
+    FunctionCall new_call = call;
+    new_call.args = new_args;
 
     lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
     // Free any the queried subsets.
@@ -308,6 +325,16 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         lowered.push_back(new const FreeNode(ds));
     }
 
+    lowerIR = new const BlockNode(lowered);
+}
+
+void ComposableLower::visit(const GlobalNode *node) {
+    std::vector<LowerIR> lowered;
+    for (const auto &def : node->launch_args) {
+        lowered.push_back(new const GridDeclNode(def.first, def.second));
+    }
+    this->visit(node->program);  // Just visit the program.
+    lowered.push_back(lowerIR);
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -362,21 +389,58 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     // Now, set up the args.
     std::vector<Argument> new_args;
     for (auto const &a : f.args) {
-        new_args.push_back(Argument(mappings[to<VarArg>(a)->getVar()]));
+        new_args.push_back(Argument(mappings.at(to<VarArg>(a)->getVar())));
     }
     // set up the templated args.
     std::vector<Expr> template_args;
     for (auto const &a : f.template_args) {
-        template_args.push_back(mappings[a]);
+        template_args.push_back(mappings.at(a));
     }
 
-    FunctionCall f_new{
-        .name = f.name,
-        .args = new_args,
-        .template_args = template_args,
-    };
+    FunctionCall f_new = f.constructCall();
+    f_new.args = new_args;
+    f_new.template_args = template_args;
+    f_new.grid = LaunchArguments();
+    f_new.block = LaunchArguments();
 
     return f_new;
+}
+
+template<typename T1>
+static T1 getFirstValue(const util::ScopedMap<T1, T1> &rel,
+                        const util::ScopedMap<T1, T1> &map,
+                        T1 entry) {
+    while (rel.contains(entry)) {  // While we have the entry, go find it.
+        if (map.contains(entry)) {
+            return map.at(entry);  // Just set up the first value.
+        }
+        entry = rel.at(entry);
+    }
+    return T1();
+}
+
+template<typename T1>
+static Expr getValue(const util::ScopedMap<T1, T1> &rel,
+                     const util::ScopedMap<T1, T1> &map,
+                     T1 entry) {
+    Expr e;
+    while (rel.contains(entry)) {  // While we have the entry, go find it.
+        if (map.contains(entry)) {
+            e = map.at(entry);  // Just set up the first value.
+            entry = rel.at(entry);
+            break;
+        } else {
+            entry = rel.at(entry);
+        }
+    }
+
+    while (rel.contains(entry)) {  // While we have the entry, go find it.
+        if (map.contains(entry)) {
+            e = e + map.at(entry);
+        }
+        entry = rel.at(entry);
+    }
+    return e;
 }
 
 LowerIR ComposableLower::declare_computes(Pattern annotation) const {
@@ -385,14 +449,18 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                           [&](const ComputesForNode *op, Matcher *ctx) {
                               ctx->match(op->body);
                               Variable v = to<Variable>(op->start.getA());
-                              if (tiled_vars.contains(v)) {
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(v = tiled_vars.at(v)));
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = parents.at(op->step)));
+                              Expr rhs = getValue(all_relationships, tiled_vars, v);
+                              if (rhs.defined()) {
+                                  lowered.push_back(generate_definitions(v = rhs));
                               } else {
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->start));
+                                  lowered.push_back(
+                                      new const DefNode(op->start, false));
+                              }
+                              Variable step_val = getFirstValue(all_relationships, parents, v);
+                              if (step_val.defined()) {
+                                  lowered.push_back(
+                                      generate_definitions(op->step = step_val));
+                              } else {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->step = op->end));
                               }
@@ -406,14 +474,18 @@ LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
                           [&](const ConsumesForNode *op, Matcher *ctx) {
                               ctx->match(op->body);
                               Variable v = to<Variable>(op->start.getA());
-                              if (tiled_vars.contains(v)) {
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(v = tiled_vars.at(v)));
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = parents.at(op->step)));
+                              Expr rhs = getValue(all_relationships, tiled_vars, v);
+                              if (rhs.defined()) {
+                                  lowered.push_back(generate_definitions(v = rhs));
                               } else {
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->start));
+                                  lowered.push_back(
+                                      new const DefNode(op->start, false));
+                              }
+                              Variable step_val = getFirstValue(all_relationships, parents, v);
+                              if (step_val.defined()) {
+                                  lowered.push_back(
+                                      generate_definitions(op->step = step_val));
+                              } else {
                                   lowered.insert(lowered.begin(),
                                                  generate_definitions(op->step = op->end));
                               }

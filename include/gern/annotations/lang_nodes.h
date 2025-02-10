@@ -48,11 +48,14 @@ struct VariableNode : public ExprNode {
 };
 
 struct ADTMemberNode : public ExprNode {
-    ADTMemberNode(AbstractDataTypePtr ds, const std::string &member)
-        : ds(ds), member(member) {
+    ADTMemberNode(AbstractDataTypePtr ds,
+                  const std::string &member,
+                  bool const_expr)
+        : ds(ds), member(member), const_expr(const_expr) {
     }
     AbstractDataTypePtr ds;
     std::string member;
+    bool const_expr;
     void accept(ExprVisitorStrict *v) const override {
         v->visit(this);
     }

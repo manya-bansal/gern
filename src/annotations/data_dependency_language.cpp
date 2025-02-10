@@ -140,8 +140,10 @@ ADTMember::ADTMember(const ADTMemberNode *op)
     : Expr(op) {
 }
 
-ADTMember::ADTMember(AbstractDataTypePtr ds, const std::string &member)
-    : ADTMember(new ADTMemberNode(ds, member)) {
+ADTMember::ADTMember(AbstractDataTypePtr ds,
+                     const std::string &member,
+                     bool const_expr)
+    : ADTMember(new ADTMemberNode(ds, member, const_expr)) {
 }
 
 AbstractDataTypePtr ADTMember::getDS() const {
@@ -168,18 +170,6 @@ std::ostream &operator<<(std::ostream &os, const Expr &e) {
     Printer p{os};
     p.visit(e);
     return os;
-}
-
-bool isConstExpr(Expr e) {
-    bool is_const_expr = true;
-    match(e,
-          std::function<void(const VariableNode *)>(
-              [&](const VariableNode *op) {
-                  if (!op->const_expr) {
-                      is_const_expr = false;
-                  }
-              }));
-    return is_const_expr;
 }
 
 std::ostream &operator<<(std::ostream &os, const Constraint &c) {
@@ -232,17 +222,13 @@ std::set<Variable> Stmt::getIntervalVariables() const {
     match(*this,
           std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
                                                                            Matcher *ctx) {
-              ctx->match(op->start.getA());
+              vars.insert(to<Variable>(op->start.getA()));
               ctx->match(op->body);
           }),
           std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
                                                                            Matcher *ctx) {
-              ctx->match(op->start.getA());
+              vars.insert(to<Variable>(op->start.getA()));
               ctx->match(op->body);
-          }),
-          std::function<void(const VariableNode *op, Matcher *ctx)>([&](const VariableNode *op,
-                                                                        Matcher *) {
-              vars.insert(op);
           }));
     return vars;
 }
@@ -328,7 +314,7 @@ SubsetObj::SubsetObj(const SubsetNode *n)
 
 SubsetObj::SubsetObj(AbstractDataTypePtr data,
                      std::vector<Expr> mdFields)
-    : Stmt(new const SubsetNode(data, mdFields)) {
+    : SubsetObj(new const SubsetNode(data, mdFields)) {
 }
 
 std::vector<Expr> SubsetObj::getFields() const {
@@ -476,9 +462,11 @@ Annotation annotate(Pattern p) {
 }
 
 Annotation Annotation::assumes(std::vector<Constraint> constraints) const {
+
     auto annotVars = getVariables(getPattern());
     auto legalDims = getDims(getOccupiedUnits());       // Dimensions of the grid the function can actually control.
-    auto current_level = getLevel(getOccupiedUnits());  // Dimensions of the grid the function can actually control.
+    auto current_level = getLevel(getOccupiedUnits());  // Level at which the function is at.
+
     for (const auto &c : constraints) {
         auto constraintVars = getVariables(c);
         if (!std::includes(annotVars.begin(), annotVars.end(), constraintVars.begin(),
@@ -488,8 +476,7 @@ Annotation Annotation::assumes(std::vector<Constraint> constraints) const {
         }
         auto constraintDims = getDims(c);
         for (const auto &c_dim : constraintDims) {
-            if (!legalDims.contains(c_dim) &&
-                getLevel(c_dim) >= current_level) {
+            if (!isDimInScope(c_dim, legalDims)) {
                 throw error::UserError(" Cannot constrain " +
                                        util::str(c_dim) + " at " +
                                        util::str(current_level));
@@ -591,7 +578,7 @@ bool AbstractDataTypePtr::freeAlloc() const {
 }
 
 ADTMember AbstractDataTypePtr::operator[](std::string member) const {
-    return ADTMember(*this, member);
+    return ADTMember(*this, member, false);
 }
 
 std::string AbstractDataTypePtr::str() const {

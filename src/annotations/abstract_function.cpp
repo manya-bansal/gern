@@ -25,6 +25,9 @@ FunctionCall FunctionCall::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDa
         .args = new_args,
         .template_args = template_args,
         .output = output,
+        .grid = grid,
+        .block = block,
+        .access = access,
     };
     return new_call;
 }
@@ -61,6 +64,10 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
     }
 
     for (const auto &template_arg : f.template_args) {
+        if (bindings.contains(template_arg.getName())) {
+            fresh_names[template_arg] = bindings.at(template_arg.getName());
+            continue;
+        }
         fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()),
                                              template_arg.getDatatype(),
                                              true);
@@ -98,11 +105,25 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
         replaceADTs(annotation, abstract_to_concrete_adt),  // Replace all abstract ADTs with concrete ADTs.
         fresh_names);
 
+    LaunchArguments grid;
+    LaunchArguments block;
+
+    // Replace all the grid and block variables.
+    grid.x = replaceVariables(f.grid.x, fresh_names);
+    grid.y = replaceVariables(f.grid.y, fresh_names);
+    grid.z = replaceVariables(f.grid.z, fresh_names);
+    block.x = replaceVariables(f.block.x, fresh_names);
+    block.y = replaceVariables(f.block.y, fresh_names);
+    block.z = replaceVariables(f.block.z, fresh_names);
+
     FunctionCall call{
         .name = f.name,
         .args = concrete_arguments,
         .template_args = template_args,
         .output = f.output,
+        .grid = grid,
+        .block = block,
+        .access = f.access,
     };
 
     return Composable(new const ComputeFunctionCall(call,

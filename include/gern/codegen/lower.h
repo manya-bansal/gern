@@ -63,6 +63,7 @@ private:
     void lower(const TiledComputation *);
 
     void visit(const ComputeFunctionCall *);
+    void visit(const GlobalNode *);
 
     /**
      * @brief common pulls out functionality used to define output.
@@ -79,6 +80,7 @@ private:
     LowerIR generate_constraints(std::vector<Constraint> constraints) const;  // Generate constraints.
     LowerIR declare_computes(Pattern annotation) const;
     LowerIR declare_consumes(Pattern annotation) const;
+    LowerIR constructADTForCurrentScope(AbstractDataTypePtr d, std::vector<Expr> fields);
 
     // Helper methods to generate calls.
     FunctionCall constructFunctionCall(FunctionSignature f,
@@ -92,8 +94,9 @@ private:
     AbstractDataTypePtr getCurrent(AbstractDataTypePtr) const;
 
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
-    util::ScopedMap<Variable, Expr> tiled_vars;
-    util::ScopedMap<Variable, Variable> parents;  // Used for splits.
+    util::ScopedMap<Variable, Variable> tiled_vars;
+    util::ScopedMap<Variable, Variable> parents;            // Used for splits.
+    util::ScopedMap<Variable, Variable> all_relationships;  // Used to track all relationships.
 
     LowerIR lowerIR;
     Composable composable;
@@ -128,6 +131,15 @@ struct InsertNode : public LowerIRNode {
     void accept(LowerIRVisitor *) const;
     AbstractDataTypePtr parent;
     FunctionCall f;
+};
+
+struct GridDeclNode : public LowerIRNode {
+    GridDeclNode(const Grid::Dim &dim, Variable v)
+        : dim(dim), v(v) {
+    }
+    void accept(LowerIRVisitor *) const;
+    Grid::Dim dim;
+    Variable v;
 };
 
 // IR Node that marks a query
@@ -202,13 +214,12 @@ struct DefNode : public LowerIRNode {
 
 // Node to declare definitions of variables.
 struct AssertNode : public LowerIRNode {
-    AssertNode(Constraint constraint, bool compile_time)
-        : constraint(constraint), compile_time(compile_time) {
+    AssertNode(Constraint constraint)
+        : constraint(constraint) {
     }
 
     void accept(LowerIRVisitor *) const;
     Constraint constraint;
-    bool compile_time;  // Track whether this is a actually a constexpr definition.
 };
 
 // Filler Node to manipulate objects (like vectors, etc)

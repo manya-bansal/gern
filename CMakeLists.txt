@@ -46,35 +46,36 @@ target_sources(
         src/utils/name_generator.cpp
     PUBLIC
     FILE_SET HEADERS
-    BASE_DIRS include
+    BASE_DIRS 
+        include/gern/
     FILES
-        include/annotations/abstract_nodes.h
-        include/annotations/abstract_function.h
-        include/annotations/argument.h
-        include/annotations/argument_visitor.h
-        include/annotations/data_dependency_language.h
-        include/annotations/datatypes.h
-        include/annotations/grid.h
-        include/annotations/lang_nodes.h
-        include/annotations/rewriter_helpers.h
-        include/annotations/visitor.h
-        # include/resolve_constraints/resolve_constraints.h
-        include/compose/compose.h
-        include/compose/composable.h
-        include/compose/composable_visitor.h
-        include/compose/runner.h
-        include/codegen/codegen.h
-        include/codegen/codegen_ir.h
-        include/codegen/codegen_visitor.h
-        include/codegen/codegen_printer.h
-        include/codegen/lower.h
-        include/codegen/lower_visitor.h
-        include/utils/debug.h
-        include/utils/error.h
-        include/utils/name_generator.h
-        include/utils/scoped_map.h
-        include/utils/printer.h
-        include/utils/uncopyable.h
+        include/gern/annotations/abstract_nodes.h
+        include/gern/annotations/abstract_function.h
+        include/gern/annotations/argument.h
+        include/gern/annotations/argument_visitor.h
+        include/gern/annotations/data_dependency_language.h
+        include/gern/annotations/datatypes.h
+        include/gern/annotations/grid.h
+        include/gern/annotations/lang_nodes.h
+        include/gern/annotations/rewriter_helpers.h
+        include/gern/annotations/visitor.h
+        # includgern/e/resolve_constraints/resolve_constraints.h
+        include/gern/compose/compose.h
+        include/gern/compose/composable.h
+        include/gern/compose/composable_visitor.h
+        include/gern/compose/runner.h
+        include/gern/codegen/codegen.h
+        include/gern/codegen/codegen_ir.h
+        include/gern/codegen/codegen_visitor.h
+        include/gern/codegen/codegen_printer.h
+        include/gern/codegen/lower.h
+        include/gern/codegen/lower_visitor.h
+        include/gern/utils/debug.h
+        include/gern/utils/error.h
+        include/gern/utils/name_generator.h
+        include/gern/utils/scoped_map.h
+        include/gern/utils/printer.h
+        include/gern/utils/uncopyable.h
 )
 
 target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)

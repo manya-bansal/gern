@@ -10,12 +10,29 @@ namespace gern {
 
 class ComposableVisitorStrict;
 
+enum Access {
+    HOST,
+    GLOBAL,
+    DEVICE,
+};
+
+struct LaunchArguments {
+    Expr x = Expr();
+    Expr y = Expr();
+    Expr z = Expr();
+
+    LaunchArguments constructDefaults() const;
+};
+
 // For making an actual function call.
 struct FunctionCall {
     std::string name;
     std::vector<Argument> args;
     std::vector<Expr> template_args;
     Parameter output = Parameter();
+    LaunchArguments grid;
+    LaunchArguments block;
+    Access access;
 
     /**
      * @brief Replace the data-structures in this function call.
@@ -24,6 +41,14 @@ struct FunctionCall {
      * @return * Function
      */
     FunctionCall replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
+};
+
+struct LaunchParameters {
+    Variable x = Variable();
+    Variable y = Variable();
+    Variable z = Variable();
+
+    LaunchArguments constructCall() const;
 };
 
 // A FunctionSignature call has a name,
@@ -36,6 +61,12 @@ struct FunctionSignature {
     std::vector<Variable> template_args = {};
     // To model an explict return. Currently, no compute FunctionSignature can return.
     Parameter output = Parameter();
+
+    // Launch Arguments (in case it is a global function).
+    LaunchArguments grid = LaunchArguments();
+    LaunchArguments block = LaunchArguments();
+
+    Access access = HOST;
     bool device = false;
     FunctionCall constructCall() const;
 };
@@ -71,8 +102,6 @@ public:
 
     // Generate new variables for everything except variables passed as argument.
     const ComputeFunctionCall *refreshVariable() const;
-    std::set<Variable> getVariableArgs() const override;
-    std::set<Variable> getTemplateArgs() const override;
 
     void accept(ComposableVisitorStrict *) const override;
 

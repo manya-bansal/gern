@@ -45,6 +45,7 @@ if (Gern_CUDA_ARCH)
     # Adding all the GPU test.
     list(APPEND TEST_SOURCES
     test-gpu-array.cpp
+    test-set-grid.cpp
     test-gpu-matrix.cpp)
 endif()
 

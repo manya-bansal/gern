@@ -28,6 +28,8 @@ enum Dim {
     BLOCK_DIM_X,
     BLOCK_DIM_Y,
     BLOCK_DIM_Z,
+
+    NULL_DIM,
 };
 
 enum Level {
@@ -78,13 +80,14 @@ bool legalToDistribute(const std::set<Grid::Unit> &u, const Grid::Unit &p);
  * @return Grid::Level
  */
 Grid::Level getLevel(const Grid::Unit &p);
-
 Grid::Level getLevel(const std::set<Grid::Unit> &p);
 
 Grid::Level getLevel(const Grid::Dim &dim);
+Grid::Level getLevel(const std::set<Grid::Dim> &dims);
 
 Grid::Dim getDim(const Grid::Unit &unit);
-
 std::set<Grid::Dim> getDims(const std::set<Grid::Unit> &unit);
+
+bool isDimInScope(const Grid::Dim &dim, const std::set<Grid::Dim> &dims);
 
 }  // namespace gern
