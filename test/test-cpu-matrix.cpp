@@ -79,10 +79,14 @@ TEST(LoweringCPU, MatrixMultiply) {
     Variable l_y("l_y");
     Variable shared_len("shared_len");
 
+    auto matmul_specialize = &matmul[{
+        {"shared_len", shared_len}
+    }];
+
     Composable program = {
         Tile(output["row"], l_x)(
             Tile(output["col"], l_y)(
-                matmul(inA, inB, output, shared_len)
+                matmul_specialize->operator()(inA, inB, output)
             )
         )
     };
@@ -91,9 +95,9 @@ TEST(LoweringCPU, MatrixMultiply) {
 
     run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
 
-    int64_t m = 5;
-    int64_t n = 5;
-    int64_t k = 5;
+    int64_t m = 10;
+    int64_t n = 20;
+    int64_t k = 15;
 
     impl::MatrixCPU a(m, k, k);
     a.random_fill();
@@ -102,11 +106,10 @@ TEST(LoweringCPU, MatrixMultiply) {
     impl::MatrixCPU out(m, n, n);
     impl::MatrixCPU reference(m, n, n);
 
-    int64_t l_x_val = 1;
-    int64_t l_y_val = 1;
+    int64_t l_x_val = 5;
+    int64_t l_y_val = 5;
 
-    gern::impl::mmul(a, b, reference, k);
-    std::cout << "SHARED_LEN GETNAME " << shared_len.getName() << std::endl;
+    gern::impl::mmul(a, b, reference);
 
     ASSERT_NO_THROW(run.evaluate({
         {inA.getName(), &a},
@@ -117,10 +120,9 @@ TEST(LoweringCPU, MatrixMultiply) {
         {shared_len.getName(), &k}
     }));
     
-    std::cout << a << std::endl;
-    std::cout << b << std::endl;
-    std::cout << out << std::endl;
-    std::cout << reference << std::endl;
+    for (int i = 0; i < m * n; i++) {
+        ASSERT_EQ(out.data[i], reference.data[i]);
+    }
 }
 
 TEST(LoweringCPU, Transpose) {

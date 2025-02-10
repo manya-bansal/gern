@@ -305,6 +305,8 @@ public:
         Variable row("row");
         Variable col("col");
 
+		Variable shared_len("shared_len");
+
         return annotate(For(x = Expr(0), output["row"], l_x,
                             For(y = Expr(0), output["col"], l_y,
                                 Produces::Subset(output, {x, y, l_x, l_y}),
@@ -324,7 +326,7 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::mmul";
-        f.args = {Parameter(a), Parameter(b), Parameter(output), Parameter(shared_len)};
+        f.args = {Parameter(a), Parameter(b), Parameter(output)};
         return f;
     }
 
@@ -332,7 +334,6 @@ protected:
     AbstractDataTypePtr a;
     AbstractDataTypePtr b;
     AbstractDataTypePtr output;
-	Variable shared_len{"shared_len"};
     Variable end{"end"};
 };
 

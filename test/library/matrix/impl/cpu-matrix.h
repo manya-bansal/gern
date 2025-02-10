@@ -146,7 +146,7 @@ inline void softmax(MatrixCPU a, MatrixCPU b) {
 	}
 }
 
-inline void mmul(MatrixCPU a, MatrixCPU b, MatrixCPU out, int64_t shared_len) {
+inline void mmul(MatrixCPU a, MatrixCPU b, MatrixCPU out) {
 	for (int i = 0; i < a.row; i++) {
 		for (int j = 0; j < b.col; j++) {
 			float acc = 0;
