@@ -93,6 +93,22 @@ protected:
     Variable step{"step"};
 };
 
+class add_1_float : public add_1 {
+public:
+    add_1_float()
+        : add_1() {
+    }
+    FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::add_1_float";
+        f.args = {Parameter(input), Parameter(output), Parameter(float_val)};
+        return f;
+    }
+
+protected:
+    Variable float_val{"float_val", Datatype::Float32};
+};
+
 class add1Template : public add_1 {
 public:
     add1Template()

@@ -213,3 +213,42 @@ TEST(LoweringCPU, OverspecifiedBinding) {
     Runner run(program);
     ASSERT_THROW(run.compile(test::cpuRunner("array")), error::UserError);
 }
+
+TEST(LoweringCPU, FunctionWithFloat) {
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
+
+    annot::add_1_float add_1_float;
+    Variable v("v", Datatype::Float32);
+    Variable step("step");
+
+    Composable program =
+        Composable(
+            Tile(outputDS["size"], step.bindToInt64(5))(
+                add_1_float(inputDS, tempDS, v),
+                add_1_float(tempDS, outputDS, v)));
+
+    Runner run(program);
+    ASSERT_NO_THROW(run.compile(test::cpuRunner("array")));
+
+    impl::ArrayCPU a(10);
+    a.ascending();
+    impl::ArrayCPU b(10);
+    float v_val = 1.0;
+
+    // Temp should not be included.
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+        {v.getName(), &v_val},
+    }));
+
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(b.data[i] == (a.data[i] + 2));
+    }
+
+    a.destroy();
+    b.destroy();
+}

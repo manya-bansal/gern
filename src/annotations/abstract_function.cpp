@@ -68,7 +68,9 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
             fresh_names[template_arg] = bindings.at(template_arg.getName());
             continue;
         }
-        fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()), true);
+        fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()),
+                                             template_arg.getDatatype(),
+                                             true);
     }
 
     Annotation annotation = getAnnotation();
@@ -87,6 +89,7 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
         }
         // Otherwise, generate a new name.
         fresh_names[v] = Variable(getUniqueName("_gern_" + v.getName()),
+                                  v.getDatatype(),
                                   v.isConstExpr());
     }
 

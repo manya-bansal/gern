@@ -122,9 +122,8 @@ class Assign;
 // All variables are current ints.
 class Variable : public Expr {
 public:
-    Variable(const std::string &name);
     Variable() = default;
-    Variable(const std::string &name, bool const_expr);
+    Variable(const std::string &name, Datatype type = Datatype::Int64, bool const_expr = false);
     Variable(const VariableNode *);
 
     /**
@@ -153,6 +152,7 @@ public:
     bool isBound() const;
     int64_t getInt64Val() const;
     Grid::Unit getBoundUnit() const;
+    Datatype getDatatype() const;
 
     std::string getName() const;
     Datatype getType() const;
@@ -375,7 +375,7 @@ public:
 class ConsumeMany : public Consumes {
 public:
     ConsumeMany(const ConsumesNode *s)
-        : Consumes(s) {};
+        : Consumes(s){};
 };
 
 class SubsetObjMany : public ConsumeMany {

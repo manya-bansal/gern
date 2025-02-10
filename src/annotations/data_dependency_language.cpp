@@ -69,14 +69,10 @@ Variable::Variable(const VariableNode *n)
     : Expr(n) {
 }
 
-Variable::Variable(const std::string &name)
-    : Expr(new const VariableNode(name)) {
-}
-
-Variable::Variable(const std::string &name, bool const_expr)
+Variable::Variable(const std::string &name, Datatype type, bool const_expr)
     : Expr(new const VariableNode(name,
                                   Grid::Unit::UNDEFINED,
-                                  Datatype::Int64, const_expr)) {
+                                  type, const_expr)) {
 }
 
 Variable Variable::bindToGrid(const Grid::Unit &p) const {
@@ -118,6 +114,10 @@ int64_t Variable::getInt64Val() const {
 
 Grid::Unit Variable::getBoundUnit() const {
     return getNode(*this)->p;
+}
+
+Datatype Variable::getDatatype() const {
+    return getNode(*this)->type;
 }
 
 std::string Variable::getName() const {
