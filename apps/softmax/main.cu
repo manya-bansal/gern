@@ -150,6 +150,71 @@ __global__ void function_39(impl::MatrixGPU<16384, 16384, 16384, 1024> input, im
     output.template insert_new(_gern_x_3, _gern_y_4, _query_output_56);
 }
 
+// template<int64_t col, int64_t col_val, int64_t row, int64_t stride_val>
+// __global__ void function_46(impl::MatrixGPU<16384, 16384, 16384, 1024> input, impl::MatrixGPU<16384, 16384, 16384, 1024> output) {
+
+//     int64_t _gern_x_3_22_41 = ((blockIdx.x * row) + 0);
+//     // constexpr int64_t _gern_l_y_2_20 = output.col;
+//     // int64_t _gern_y_4_24 = 0;
+//     int64_t _gern_x_3_22 = _gern_x_3_22_41;
+//     // constexpr int64_t _gern_l_x_1_17 = row;
+
+//     // int64_t _gern_x_27_31 = _gern_x_15_21;
+//     constexpr int64_t _gern_l_x_25_29 = row;
+//     // auto _query_output_47 = output.template query_new<_gern_l_x_1_17, _gern_l_y_2_20>(_gern_x_3_22, _gern_y_4_24);
+
+//     auto max_row_out = impl::allocate_static_array<_gern_l_x_25_29>();
+
+//     int64_t _gern_y_28_32 = ((threadIdx.y * col_val) + 0);
+//     constexpr int64_t _gern_l_x_25 = max_row_out.size;
+//     int64_t _gern_x_27 = 0;
+
+//     int64_t _gern_y_28 = _gern_y_28_32;
+//     constexpr int64_t _gern_l_y_26 = col_val;
+
+//     auto _query_input_48 = input.template query_new<_gern_l_x_25, col>(_gern_x_27, _gern_y_28);
+
+//     max_shuffle<stride_val>(max_row_out, _query_input_48);
+
+//     int64_t _gern_y_4_24 = ((threadIdx.y * col_val) + 0);
+//     int64_t _gern_y_4 = _gern_y_4_24;
+//     constexpr int64_t _gern_l_y_2 = col_val;
+//     int64_t _gern_x_3 = _gern_x_3_22_41;
+//     constexpr int64_t _gern_l_x_1 = row;
+
+//     int64_t _gern_x_7 = _gern_x_3;
+//     constexpr int64_t _gern_l_x_5 = _gern_l_x_1;
+//     int64_t _gern_x_11 = _gern_x_3;
+//     int64_t _gern_y_12 = _gern_y_4;
+//     constexpr int64_t _gern_l_x_9 = _gern_l_x_1;
+//     constexpr int64_t _gern_l_y_10 = _gern_l_y_2;
+//     int64_t _gern_x_15 = _gern_x_11;
+//     int64_t _gern_y_16 = _gern_y_12;
+//     constexpr int64_t _gern_l_x_13 = _gern_l_x_9;
+//     constexpr int64_t _gern_l_y_14 = _gern_l_y_10;
+//     auto _query__query_output_47_49 = output.template query_new<_gern_l_x_1, _gern_l_y_2>(_gern_x_3, _gern_y_4);
+
+//     auto sub_temp = impl::allocate_static<_gern_l_x_13, _gern_l_y_14>();
+
+//     auto _query_input_50 = input.template query_new<_gern_l_x_13, _gern_l_y_14>(_gern_x_15, _gern_y_16);
+
+//     // auto _query_max_row_out_51 = max_row_out.dummy();
+
+//     subtract_vec(max_row_out, _query_input_50, sub_temp);
+
+//     auto exp_temp = impl::allocate_static<_gern_l_x_9, _gern_l_y_10>();
+
+//     exp_matrix(sub_temp, exp_temp);
+
+//     auto sum_row_out = impl::allocate_static_array<_gern_l_x_5>();
+
+//     sum_row<stride_val>(sum_row_out, exp_temp);
+
+//     divide_vec(sum_row_out, exp_temp, _query__query_output_47_49);
+
+//     output.template insert_new(_gern_x_3_22, _gern_y_4_24, _query__query_output_47_49);
+// }
+
 template<int tile_row,
          int tile_col,
          typename T>
