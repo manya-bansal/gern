@@ -68,6 +68,54 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     b.destroy();
 }
 
+TEST(LoweringCPU, MatrixDivn) {
+    auto input = AbstractDataTypePtr(new const annot::MatrixCPU("input"));
+    auto inputN = AbstractDataTypePtr(new const annot::MatrixCPU("n"));
+    auto output = AbstractDataTypePtr(new const annot::MatrixCPU("output"));
+
+    annot::MatrixDivn divn;
+
+    Variable l_x("l_x");
+    Variable l_y("l_y");
+
+    Composable program = {
+        Tile(output["row"], l_x)(
+            Tile(output["col"], l_y)(
+                divn(input, inputN, output)
+            )
+        )
+    };
+
+    Runner run(program);
+
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+
+    int row_val = 10;
+    int col_val = 20;
+    impl::MatrixCPU in(row_val, col_val, col_val);    
+    impl::MatrixCPU n(1, 1, 1);    
+    n.vvals(sqrt(64));
+    impl::MatrixCPU out(row_val, col_val, col_val);
+    impl::MatrixCPU reference(row_val, col_val, col_val);
+
+    int64_t l_x_val = 5;
+    int64_t l_y_val = 5;
+
+    gern::impl::divn(in, sqrt(64), reference);
+
+    ASSERT_NO_THROW(run.evaluate({
+        {input.getName(), &in},
+        {inputN.getName(), &n},
+        {output.getName(), &out},
+        {l_x.getName(), &l_x_val},
+        {l_y.getName(), &l_y_val},
+    }));
+
+    for (int i = 0; i < row_val * col_val; i++) {
+        ASSERT_EQ(out.data[i], reference.data[i]);
+    }    
+}
+
 TEST(LoweringCPU, MatrixMultiply) {
     auto inA = AbstractDataTypePtr(new const annot::MatrixCPU("a"));
     auto inB = AbstractDataTypePtr(new const annot::MatrixCPU("b"));	

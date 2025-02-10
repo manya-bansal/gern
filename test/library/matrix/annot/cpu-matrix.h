@@ -112,7 +112,8 @@ class MatrixDivn : public AbstractFunction {
 public:
     MatrixDivn()
         : input(new const MatrixCPU("input")),
-          output(new const MatrixCPU("output")) {
+          output(new const MatrixCPU("output")),
+		  n(new const MatrixCPU("n")) {
     }
     std::string getName() {
         return "gern::impl::divn";
@@ -150,7 +151,7 @@ public:
 protected:
     AbstractDataTypePtr input;
     AbstractDataTypePtr output;
-	Variable n{"n"};
+	AbstractDataTypePtr n;	
     Variable end{"end"};
 };
 
@@ -173,51 +174,6 @@ public:
         return annotate(For(x = Expr(0), output["row"], l_x,
                             Produces::Subset(output, {x, y, l_x, l_y}),
                             Consumes::Subset(input, {x, y, l_x, l_y})));
-    }
-
-    std::vector<std::string> getHeader() override {
-        return {
-            "cpu-matrix.h",
-        };
-    }
-
-    virtual FunctionSignature getFunction() override {
-        FunctionSignature f;
-        f.name = "gern::impl::softmax";
-        f.args = {Parameter(input), Parameter(output)};
-        return f;
-    }
-
-protected:
-    AbstractDataTypePtr input;
-    AbstractDataTypePtr output;
-    Variable end{"end"};
-};
-
-class MatrixSoftmax2 : public AbstractFunction {
-public:
-    MatrixSoftmax2()
-        : input(new const MatrixCPU("input")),
-          output(new const MatrixCPU("output")) {
-    }
-    std::string getName() {
-        return "gern::impl::softmax";
-    }
-
-    Annotation getAnnotation() override {
-
-        Variable x("x");
-        Variable y("y");
-        Variable l_x("l_x");
-        Variable l_y("l_y");
-
-        Variable row("row");
-        Variable col("col");
-
-        return annotate(For(x = Expr(0), output["row"], l_x,
-                            For(y = Expr(0), output["col"], l_y,
-                                Produces::Subset(output, {x, y, l_x, l_y}),
-                                Consumes::Subset(input, {x, y, l_x, l_y}))));
     }
 
     std::vector<std::string> getHeader() override {
