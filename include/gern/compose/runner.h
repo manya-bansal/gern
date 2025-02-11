@@ -14,7 +14,7 @@ public:
         : c(c) {
     }
     struct Options {
-        std::string filename = "gern_file";
+        std::string filename;
         std::string prefix = "/tmp";
         std::string include = "";
         std::string ldflags = "";

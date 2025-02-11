@@ -150,9 +150,7 @@ Annotation FunctionPtr::getAnnotation() {
 }
 
 std::vector<std::string> FunctionPtr::getHeader() {
-    bool at_device = function.isDeviceLaunch();
-    std::string suffix = at_device ? ".cu" : ".cpp";
-    return {options.filename + suffix};
+    return {options.filename};
 }
 
 FunctionSignature FunctionPtr::getFunction() {

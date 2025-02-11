@@ -19,7 +19,7 @@ TEST(FunctionPtr, Basic) {
     // Generate a gern function pointer from the gern program.
 
     Runner::Options options = test::cpuRunner("array");
-    options.filename = "simple_func";
+    options.filename = "simple_func.cpp";
     // Generate the function pointer.
     FunctionPtr function_ptr(gern_function, options);
 
@@ -64,7 +64,7 @@ TEST(FunctionPtr, FuseInner) {
     // Generate a gern function pointer from the gern program.
 
     Runner::Options options = test::cpuRunner("array");
-    options.filename = "simple_func";
+    options.filename = "simple_func.cpp";
     // Generate the function pointer.
     FunctionPtr function_ptr(gern_function, options);
 
@@ -110,7 +110,7 @@ TEST(FunctionPtr, FuseBoth) {
     // Generate a gern function pointer from the gern program.
 
     Runner::Options options = test::cpuRunner("array");
-    options.filename = "simple_func";
+    options.filename = "simple_func.cpp";
     // Generate the function pointer.
     FunctionPtr function_ptr(gern_function, options);
 
