@@ -4,6 +4,7 @@
 #include "annotations/data_dependency_language.h"
 #include "compose/composable.h"
 #include "compose/compose.h"
+#include "compose/runner.h"
 #include "utils/error.h"
 #include "utils/uncopyable.h"
 #include <any>
@@ -76,6 +77,19 @@ private:
      */
     void bindVariables(const std::map<std::string, Variable> &);
     std::map<std::string, Variable> bindings;
+};
+
+class FunctionPtr : public AbstractFunction {
+public:
+    FunctionPtr(Composable function, Runner::Options options);
+    Annotation getAnnotation() override;
+    std::vector<std::string> getHeader() override;
+    FunctionSignature getFunction() override;
+
+private:
+    Composable function;
+    Runner::Options options;
+    FunctionSignature signature;
 };
 
 }  // namespace gern
