@@ -122,25 +122,14 @@ class Assign;
 // All variables are current ints.
 class Variable : public Expr {
 public:
-    Variable(const std::string &name);
     Variable() = default;
-    Variable(const std::string &name, bool const_expr);
+    Variable(const std::string &name,
+             Datatype type = Datatype::Int64,
+             bool const_expr = false);
     Variable(const VariableNode *);
 
-    /**
-     *  @brief  bindToGrid indicates that the
-     *          value of the variable is derived
-     *          from a grid property. (blockIDx,
-     *          etc)
-     *
-     *  @param p The grid property to bind this variable
-     *           to.
-     */
-    Variable bindToGrid(const Grid::Unit &p) const;
-    Variable bindToInt64(int64_t) const;
-    bool isBoundToGrid() const;
+    Variable bind(int64_t) const;
     bool isConstExpr() const;
-    bool isBoundToInt64() const;
 
     /**
      * @brief Returns whether the variable has been set up the user.
@@ -153,6 +142,7 @@ public:
     bool isBound() const;
     int64_t getInt64Val() const;
     Grid::Unit getBoundUnit() const;
+    Datatype getDatatype() const;
 
     std::string getName() const;
     Datatype getType() const;
@@ -375,7 +365,7 @@ public:
 class ConsumeMany : public Consumes {
 public:
     ConsumeMany(const ConsumesNode *s)
-        : Consumes(s) {};
+        : Consumes(s){};
 };
 
 class SubsetObjMany : public ConsumeMany {

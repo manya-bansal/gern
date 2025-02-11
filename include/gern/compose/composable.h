@@ -74,6 +74,7 @@ public:
     AbstractDataTypePtr output;
     std::vector<Composable> composed;
     std::vector<Assign> declarations;
+    std::map<Variable, Expr> declarations_map;
 
     std::map<AbstractDataTypePtr, std::set<Composable>> consumer_functions;
     Annotation _annotation;

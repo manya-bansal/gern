@@ -25,6 +25,7 @@ set(TEST_SOURCES
     test-cpu-static-store.cpp
     test-cpu-reduction.cpp
     test-functions.cpp
+    test-function-ptr.cpp
     test-grid-constraints.cpp
     test-map-grid.cpp
     test-nodes.cpp

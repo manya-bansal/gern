@@ -69,39 +69,23 @@ Variable::Variable(const VariableNode *n)
     : Expr(n) {
 }
 
-Variable::Variable(const std::string &name)
-    : Expr(new const VariableNode(name)) {
-}
-
-Variable::Variable(const std::string &name, bool const_expr)
+Variable::Variable(const std::string &name, Datatype type, bool const_expr)
     : Expr(new const VariableNode(name,
                                   Grid::Unit::UNDEFINED,
-                                  Datatype::Int64, const_expr)) {
+                                  type, const_expr)) {
 }
 
-Variable Variable::bindToGrid(const Grid::Unit &p) const {
-    return Variable(new const VariableNode(getName(), p));
-}
-
-Variable Variable::bindToInt64(int64_t val) const {
+Variable Variable::bind(int64_t val) const {
     return Variable(new const VariableNode(getName(), getBoundUnit(),
                                            Datatype::Int64, true, true, val));
-}
-
-bool Variable::isBoundToGrid() const {
-    return isLegalUnit(getBoundUnit());
 }
 
 bool Variable::isConstExpr() const {
     return getNode(*this)->const_expr;
 }
 
-bool Variable::isBoundToInt64() const {
-    return getNode(*this)->bound;
-}
-
 bool Variable::isBound() const {
-    return (isBoundToGrid() || isBoundToInt64());
+    return getNode(*this)->bound;
 }
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads) {
@@ -118,6 +102,10 @@ int64_t Variable::getInt64Val() const {
 
 Grid::Unit Variable::getBoundUnit() const {
     return getNode(*this)->p;
+}
+
+Datatype Variable::getDatatype() const {
+    return getNode(*this)->type;
 }
 
 std::string Variable::getName() const {
