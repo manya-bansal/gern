@@ -151,6 +151,7 @@ void ComposableLower::lower(const TiledComputation *node) {
 
     parents.insert(captured, node->v);
     tiled_vars.insert(captured, loop_index);
+
     this->visit(node->tiled);  // Visit the actual object.
     current_ds.unscope();
     all_relationships.unscope();
@@ -446,15 +447,11 @@ static Expr getValue(const util::ScopedMap<T1, T1> &rel,
 
 LowerIR ComposableLower::declare_computes(Pattern annotation) const {
     std::vector<LowerIR> lowered;
-    std::cout << tiled_vars << std::endl;
-    std::cout << all_relationships << std::endl;
-    std::cout << parents << std::endl;
     match(annotation, std::function<void(const ComputesForNode *, Matcher *)>(
                           [&](const ComputesForNode *op, Matcher *ctx) {
                               ctx->match(op->body);
                               Variable v = to<Variable>(op->start.getA());
                               Expr rhs = getValue(all_relationships, tiled_vars, v);
-                              std::cout << "v: " << v << std::endl;
                               if (rhs.defined()) {
                                   lowered.push_back(generate_definitions(v = rhs));
                               } else {
