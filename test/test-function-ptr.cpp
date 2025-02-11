@@ -14,13 +14,11 @@ TEST(FunctionPtr, Basic) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 
-    // Conctruct a simple gern program (no fusion).
+    // Construct a simple gern program (no fusion).
     Composable gern_function(add_1(inputDS, outputDS));
     // Generate a gern function pointer from the gern program.
-
     Runner::Options options = test::cpuRunner("array");
     options.filename = "simple_func.cpp";
-    // Generate the function pointer.
     FunctionPtr function_ptr(gern_function, options);
 
     // Now construct a new gern program that uses the function pointer.
@@ -32,7 +30,6 @@ TEST(FunctionPtr, Basic) {
     run.compile(test::cpuRunner("array"));
 
     // Evaluate the program.
-
     impl::ArrayCPU a(10);
     a.ascending();
     impl::ArrayCPU b(10);
@@ -56,16 +53,14 @@ TEST(FunctionPtr, FuseInner) {
     auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp_con"));
 
     Variable size("size");
-    // Conctruct a simple gern program (no fusion).
+    // Construct a simple gern program (with fusion).
     Composable gern_function(
         Tile(outputDS["size"], size)(
             add_1(inputDS, tempDS),
             add_1(tempDS, outputDS)));
     // Generate a gern function pointer from the gern program.
-
     Runner::Options options = test::cpuRunner("array");
     options.filename = "simple_func.cpp";
-    // Generate the function pointer.
     FunctionPtr function_ptr(gern_function, options);
 
     // Now construct a new gern program that uses the function pointer.
@@ -102,16 +97,14 @@ TEST(FunctionPtr, FuseBoth) {
     auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp_con"));
 
     Variable size("size");
-    // Conctruct a simple gern program (no fusion).
+    // Construct a simple gern program.
     Composable gern_function(
         Tile(outputDS["size"], size)(
             add_1(inputDS, tempDS),
             add_1(tempDS, outputDS)));
     // Generate a gern function pointer from the gern program.
-
     Runner::Options options = test::cpuRunner("array");
     options.filename = "simple_func.cpp";
-    // Generate the function pointer.
     FunctionPtr function_ptr(gern_function, options);
 
     // Now construct a new gern program that uses the function pointer.
