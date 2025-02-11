@@ -259,7 +259,7 @@ public:
                             For(j = Expr(0), ADTMember(C, "col", true), tj,
                                 Produces::Subset(C, {i, j, ti, tj}),
                                 Consumes::Subsets(
-                                    Reduce(k = Expr(0), ADTMember(A, "col", true), tk,
+                                    Reduce(k = Expr(0), ADTMember(A, "", true), tk,
                                            SubsetObjMany({
                                                SubsetObj(A, {i, k, ti, tk}),
                                                SubsetObj(B, {k, j, tk, tj}),
