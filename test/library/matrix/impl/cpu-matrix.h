@@ -192,7 +192,7 @@ inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c) {
                 b_data = b.data + (k * b.lda) + j;
                 sum += a_data[k] * b_data[0];
             }
-            c_data[j] = sum;
+            c_data[j] += sum;
         }
     }
 }
