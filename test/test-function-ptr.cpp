@@ -116,11 +116,9 @@ TEST(FunctionPtr, FuseBoth) {
 
     // Now construct a new gern program that uses the function pointer.
     Composable program(
-        // Tile(outputDS["size"], size)(
-        std::vector<Composable>{
+        Tile(outputDS["size"], size)(
             function_ptr(inputDS, tempDS, size),
-            function_ptr(tempDS, outputDS, size),
-        });
+            function_ptr(tempDS, outputDS, size)));
 
     // Compile this program.
     Runner run(program);
