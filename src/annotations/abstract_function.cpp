@@ -140,9 +140,9 @@ void AbstractFunction::bindVariables(const std::map<std::string, Variable> &repl
 FunctionPtr::FunctionPtr(Composable function, Runner::Options options)
     : function(function), options(options) {
     // Let's lower the function to get the signature.
-    codegen::CodeGenerator cg;
-    codegen::CGStmt code = cg.generate_code(function);
-    signature = cg.getComputeFunctionSignature();
+    Runner runner(function);
+    runner.compile(options);
+    signature = runner.getSignature();
 }
 
 Annotation FunctionPtr::getAnnotation() {
