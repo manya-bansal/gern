@@ -114,6 +114,19 @@ LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraint
     return new const BlockNode(lowered);
 }
 
+template<typename T1>
+static T1 getFirstValue(const util::ScopedMap<T1, T1> &rel,
+                        const util::ScopedMap<T1, T1> &map,
+                        T1 entry) {
+    while (rel.contains(entry)) {  // While we have the entry, go find it.
+        if (map.contains(entry)) {
+            return map.at(entry);  // Just set up the first value.
+        }
+        entry = rel.at(entry);
+    }
+    return T1();
+}
+
 void ComposableLower::lower(const TiledComputation *node) {
     // First, add the value of the captured value.
     Variable captured = node->captured;
@@ -144,10 +157,11 @@ void ComposableLower::lower(const TiledComputation *node) {
     parents.unscope();
     tiled_vars.unscope();
 
-    bool has_parent = parents.contains(loop_index);
+    Variable step_val = getFirstValue(all_relationships, parents, loop_index);
+    bool has_parent = step_val.defined();
     lowerIR = new const IntervalNode(
         has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
-        has_parent ? Expr(parents.at(loop_index)) : Expr(node->end),
+        has_parent ? step_val : Expr(node->end),
         node->v,
         lowerIR,
         node->unit);
@@ -407,19 +421,6 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
 }
 
 template<typename T1>
-static T1 getFirstValue(const util::ScopedMap<T1, T1> &rel,
-                        const util::ScopedMap<T1, T1> &map,
-                        T1 entry) {
-    while (rel.contains(entry)) {  // While we have the entry, go find it.
-        if (map.contains(entry)) {
-            return map.at(entry);  // Just set up the first value.
-        }
-        entry = rel.at(entry);
-    }
-    return T1();
-}
-
-template<typename T1>
 static Expr getValue(const util::ScopedMap<T1, T1> &rel,
                      const util::ScopedMap<T1, T1> &map,
                      T1 entry) {
@@ -445,11 +446,15 @@ static Expr getValue(const util::ScopedMap<T1, T1> &rel,
 
 LowerIR ComposableLower::declare_computes(Pattern annotation) const {
     std::vector<LowerIR> lowered;
+    std::cout << tiled_vars << std::endl;
+    std::cout << all_relationships << std::endl;
+    std::cout << parents << std::endl;
     match(annotation, std::function<void(const ComputesForNode *, Matcher *)>(
                           [&](const ComputesForNode *op, Matcher *ctx) {
                               ctx->match(op->body);
                               Variable v = to<Variable>(op->start.getA());
                               Expr rhs = getValue(all_relationships, tiled_vars, v);
+                              std::cout << "v: " << v << std::endl;
                               if (rhs.defined()) {
                                   lowered.push_back(generate_definitions(v = rhs));
                               } else {
