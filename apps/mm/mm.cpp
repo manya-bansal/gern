@@ -27,9 +27,17 @@ int main() {
     auto C = AbstractDataTypePtr(new const Annot_MatrixTypeC("C", false));
 
     Variable tj{"tj"};
+    Variable tj1{"tj1"};
+    Variable tj2{"tj2"};
+
     Variable ti{"ti"};
+    Variable ti1{"ti1"};
+    Variable ti2{"ti2"};
+
     Variable tk{"tk"};
+    Variable tk1{"tk1"};
     Variable tk2{"tk2"};
+
     Variable k("k");
 
     annot::MatrixMultiply matrix_multiply{A, B, C};
@@ -69,10 +77,10 @@ int main() {
                         // Want to stage here
                         // Then continue tiling.
                         // (Call into MM (passing on bigger input than necessary))
-                        Tile(C["row"], ti.bind(64))(
-                            Tile(C["col"], ti.bind(64))(
-                                (Tile(C["row"], ti.bind(8)) || Grid::Unit::THREAD_Y)(
-                                    (Tile(C["col"], tj.bind(4)) || Grid::Unit::THREAD_X)(
+                        Tile(C["row"], ti1.bind(64))(
+                            Tile(C["col"], tj1.bind(64))(
+                                (Tile(C["row"], ti2.bind(8)) || Grid::Unit::THREAD_Y)(
+                                    (Tile(C["col"], tj2.bind(4)) || Grid::Unit::THREAD_X)(
                                         Reduce(C["reduce"], tk2.bind(1))(
                                             matrix_multiply(A, B, C)))))))))),
     };

@@ -79,12 +79,10 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
     auto interval_vars = annot.getIntervalVariables();
     std::set<Variable> output_var_set{output_var_vec.begin(), output_var_vec.end()};
     std::set<Variable> old_vars = getVariables(annot);
-    std::map<Variable, Variable> fresh_names;
     for (const auto &v : old_vars) {
-        fresh_names[v] = Variable(getUniqueName(v.getName()), v.getDatatype(), v.isConstExpr());
+        new_vars[v] = Variable(getUniqueName(v.getName()), v.getDatatype(), v.isConstExpr());
     }
-    new_vars = fresh_names;
-    return replaceVariables(annot, fresh_names);
+    return replaceVariables(annot, new_vars);
 }
 template<typename T>
 inline T replaceDim(T annot, const std::map<Grid::Dim, Expr> &rw_dims) {
