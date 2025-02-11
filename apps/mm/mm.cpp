@@ -1,5 +1,6 @@
 #include "annot/adt.h"
 #include "annot/functions.h"
+#include "annotations/abstract_function.h"
 #include "compose/composable.h"
 #include "compose/runner.h"
 #include "impl/gpu-matrix-const.h"
@@ -38,10 +39,17 @@ int main() {
     // }];
 
     // // For the inner mm
-    Composable program = {
-        Global(
-            Reduce(C["reduce"], tk.bindToInt64(16))(
-                matrix_multiply(A, B, C)))};
+    // Composable program = {
+    //     Global(
+    //         Reduce(C["reduce"], tk.bind(16))(
+    //             matrix_multiply(A, B, C)))};
+
+    Runner::Options options;
+    options.filename = "inner_mm.cu";
+    options.include = "-I /home/manya/gern/apps/common"
+                      " -I /home/manya/gern/test/";
+    options.arch = "89";
+    // FunctionPtr inner_mm(program, options);
 
     // The outer mm
     // Composable program = {
@@ -50,6 +58,24 @@ int main() {
     //             (Tile(C["col"], tj.bindToInt64(128)) || Grid::Unit::BLOCK_X)(
     //                 Reduce(C["reduce"], tk.bindToInt64(8))(
     //                     matrix_multiply(A, B, C)))))};
+
+    // The middle mm
+    Composable program = {
+        Global(
+            (Tile(C["row"], ti.bind(128)) || Grid::Unit::BLOCK_Y)(
+                (Tile(C["col"], tj.bind(128)) || Grid::Unit::BLOCK_X)(
+                    Reduce(C["reduce"], tk.bind(16))(
+                        // Want to stage here
+                        // Want to stage here
+                        // Then continue tiling.
+                        // (Call into MM (passing on bigger input than necessary))
+                        Tile(C["row"], ti.bind(64))(
+                            Tile(C["col"], ti.bind(64))(
+                                (Tile(C["row"], ti.bind(8)) || Grid::Unit::THREAD_Y)(
+                                    (Tile(C["col"], tj.bind(4)) || Grid::Unit::THREAD_X)(
+                                        Reduce(C["reduce"], tk2.bind(1))(
+                                            matrix_multiply(A, B, C)))))))))),
+    };
 
     // // For the middle mm
     // Composable program = {
@@ -61,10 +87,7 @@ int main() {
     // };
 
     Runner run(program);
-    Runner::Options options;
-    options.include = "-I /home/manya/gern/apps/common"
-                      " -I /home/manya/gern/test/";
-    options.arch = "89";
+
     run.compile(options);
 
     // MatrixTypeA a;

@@ -66,8 +66,8 @@ protected:
     std::string name;
     Variable x{"x"};
     Variable y{"y"};
-    Variable row{"row", true};
-    Variable col{"col", true};
+    Variable row{"row", Datatype::Int64, true};
+    Variable col{"col", Datatype::Int64, true};
     bool temp;
 };
 
@@ -143,7 +143,7 @@ public:
 private:
     std::string name;
     Variable x{"x"};
-    Variable len{"size", true};
+    Variable len{"size", Datatype::Int64, true};
     bool temp;
 };
 
