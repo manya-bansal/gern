@@ -22,6 +22,7 @@ set(TEST_SOURCES
     test-composable.cpp
     test-cpu-array.cpp
     test-cpu-matrix.cpp
+    test-cpu-mm.cpp
     test-cpu-static-store.cpp
     test-cpu-reduction.cpp
     test-functions.cpp

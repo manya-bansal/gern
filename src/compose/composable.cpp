@@ -129,6 +129,7 @@ void Computation::init_annotation() {
     Consumes consumes = mimicConsumes(last_pattern, input_subsets);
     Pattern p = mimicComputes(last_pattern, Computes(produces, consumes));
     _annotation = Annotation(p, occupied, constraints);
+    // _annotation = refreshVariables(Annotation(p, occupied, constraints));
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {
