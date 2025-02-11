@@ -77,7 +77,6 @@ TEST(FunctionPtr, FuseInner) {
     run.compile(test::cpuRunner("array"));
 
     // Evaluate the program.
-
     impl::ArrayCPU a(10);
     a.ascending();
     impl::ArrayCPU b(10);
@@ -90,6 +89,56 @@ TEST(FunctionPtr, FuseInner) {
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == (a.data[i] + 2));
+    }
+
+    a.destroy();
+    b.destroy();
+}
+
+TEST(FunctionPtr, FuseBoth) {
+    annot::add_1 add_1;
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp_con"));
+
+    Variable size("size");
+    // Conctruct a simple gern program (no fusion).
+    Composable gern_function(
+        Tile(outputDS["size"], size)(
+            add_1(inputDS, tempDS),
+            add_1(tempDS, outputDS)));
+    // Generate a gern function pointer from the gern program.
+
+    Runner::Options options = test::cpuRunner("array");
+    options.filename = "simple_func";
+    // Generate the function pointer.
+    FunctionPtr function_ptr(gern_function, options);
+
+    // Now construct a new gern program that uses the function pointer.
+    Composable program(
+        // Tile(outputDS["size"], size)(
+        std::vector<Composable>{
+            function_ptr(inputDS, tempDS, size),
+            function_ptr(tempDS, outputDS, size),
+        });
+
+    // Compile this program.
+    Runner run(program);
+    run.compile(test::cpuRunner("array"));
+
+    // Evaluate the program.
+    impl::ArrayCPU a(10);
+    a.ascending();
+    impl::ArrayCPU b(10);
+    int64_t size_val = 5;
+
+    run.evaluate({{inputDS.getName(), &a},
+                  {outputDS.getName(), &b},
+                  {size.getName(), &size_val}});
+
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(b.data[i] == (a.data[i] + 4));
     }
 
     a.destroy();

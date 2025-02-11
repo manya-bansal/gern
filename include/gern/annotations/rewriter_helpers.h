@@ -8,11 +8,11 @@
 
 namespace gern {
 
-template<typename T>
+template<typename T, typename F>
 inline T replaceVariables(T annot,
-                          const std::map<Variable, Variable> &rw_vars) {
+                          const std::map<Variable, F> &rw_vars) {
     struct rewriteVar : public Rewriter {
-        rewriteVar(std::map<Variable, Variable> rw_vars)
+        rewriteVar(std::map<Variable, F> rw_vars)
             : rw_vars(rw_vars) {
         }
         using Rewriter::rewrite;
@@ -24,7 +24,7 @@ inline T replaceVariables(T annot,
                 expr = op;
             }
         }
-        std::map<Variable, Variable> rw_vars;
+        std::map<Variable, F> rw_vars;
     };
     rewriteVar rw{rw_vars};
     return to<T>(rw.rewrite(annot));

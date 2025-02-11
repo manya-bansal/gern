@@ -72,6 +72,7 @@ void Computation::infer_relationships(AbstractDataTypePtr output,
             std::vector<Expr> consumer_fields = consumer.getAnnotation().getPattern().getRequirement(output);
             for (size_t i = 0; i < consumer_fields.size(); i++) {
                 declarations.push_back(output_fields[i] = consumer_fields[i]);
+                declarations_map[output_fields[i]] = consumer_fields[i];
             }
             break;  // Can only handle one for right now.
         }
@@ -115,7 +116,12 @@ void Computation::init_annotation() {
         for (const auto &input : inputs) {
             // The the input is not an intermediate, add.
             if (!intermediates.contains(input.getDS())) {
-                input_subsets.push_back(input);
+                auto fields = input.getFields();
+                std::vector<Expr> fields_expr;
+                for (const auto &field : fields) {
+                    fields_expr.push_back(replaceVariables(field, declarations_map));
+                }
+                input_subsets.push_back(SubsetObj(input.getDS(), fields_expr));
             }
         }
     }
@@ -123,7 +129,6 @@ void Computation::init_annotation() {
     Consumes consumes = mimicConsumes(last_pattern, input_subsets);
     Pattern p = mimicComputes(last_pattern, Computes(produces, consumes));
     _annotation = Annotation(p, occupied, constraints);
-    // _annotation = refreshVariables(Annotation(p, occupied, constraints));
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {
