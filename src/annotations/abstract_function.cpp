@@ -3,6 +3,7 @@
 #include "annotations/lang_nodes.h"
 #include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
+#include "codegen/codegen.h"
 #include "utils/name_generator.h"
 #include <map>
 
@@ -134,6 +135,28 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {
 
     bindings.insert(replacements.begin(), replacements.end());
+}
+
+FunctionPtr::FunctionPtr(Composable function, Runner::Options options)
+    : function(function), options(options) {
+    // Let's lower the function to get the signature.
+    codegen::CodeGenerator cg;
+    codegen::CGStmt code = cg.generate_code(function);
+    signature = cg.getComputeFunctionSignature();
+}
+
+Annotation FunctionPtr::getAnnotation() {
+    return function.getAnnotation();
+}
+
+std::vector<std::string> FunctionPtr::getHeader() {
+    bool at_device = function.isDeviceLaunch();
+    std::string suffix = at_device ? ".cu" : ".cpp";
+    return {options.filename + suffix};
+}
+
+FunctionSignature FunctionPtr::getFunction() {
+    return signature;
 }
 
 }  // namespace gern

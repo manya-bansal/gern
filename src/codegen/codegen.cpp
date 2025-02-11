@@ -544,10 +544,6 @@ std::string CodeGenerator::getName() const {
     return name;
 }
 
-std::string CodeGenerator::getHeaders() const {
-    return name;
-}
-
 std::string CodeGenerator::getHookName() const {
     return hook_name;
 }
