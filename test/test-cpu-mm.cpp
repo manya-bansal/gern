@@ -26,9 +26,9 @@ TEST(LoweringCPU, MatrixMultiply) {
     Composable program = {
         (Tile(C_DS["row"], ti))(
             Tile(C_DS["col"], tj)(
-                (Tile(C_DS["row"], ti_2))(
-                    Tile(C_DS["col"], tj_2)(
-                        (Reduce(A_DS["col"], k.bind(5)))(
+                (Reduce(A_DS["col"], k.bind(5)))(
+                    (Tile(C_DS["row"], ti_2))(
+                        Tile(C_DS["col"], tj_2)(
                             Reduce(A_DS["col"], k_2.bind(1))(
                                 matrix_multiply(A_DS, B_DS, C_DS)))))))};
 

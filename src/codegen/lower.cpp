@@ -362,10 +362,9 @@ AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
 
 const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> args) {
 
-    AbstractDataTypePtr ds_in_scope = getCurrent(ds);
-    AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + ds_in_scope.getName()), "auto", ds);
-    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds_in_scope.getFields(), args);
-    f.name = ds_in_scope.getName() + "." + f.name;
+    AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + ds.getName()), "auto", ds);
+    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds.getFields(), args);
+    f.name = ds.getName() + "." + f.name;
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
     return new const QueryNode(ds, f);
