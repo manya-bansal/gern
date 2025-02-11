@@ -117,7 +117,7 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
 
     program =
         Composable(
-            Tile(outputDS["size"], step.bindToInt64(5))(
+            Tile(outputDS["size"], step.bind(5))(
                 add_1(inputDS, outputDS)));
 
     Runner run(program);
@@ -165,7 +165,7 @@ TEST(LoweringCPU, MultiFunctionTemplated) {
 
     Composable program =
         Composable(
-            Tile(outputDS["size"], step.bindToInt64(5))(
+            Tile(outputDS["size"], step.bind(5))(
                 add_1(inputDS, tempDS),
                 add_1(tempDS, outputDS)));
 
@@ -201,12 +201,12 @@ TEST(LoweringCPU, OverspecifiedBinding) {
     Variable v("v");
     Variable step("step");
 
-    auto add_1_specialized = &add_1[{{"step", step.bindToInt64(5)}}];
+    auto add_1_specialized = &add_1[{{"step", step.bind(5)}}];
     // Try binding step twice.
     // This is an overspecified pipeline.
     Composable program =
         Composable(
-            Tile(outputDS["size"], step.bindToInt64(5))(
+            Tile(outputDS["size"], step.bind(5))(
                 add_1_specialized->operator()(inputDS, tempDS),
                 add_1(tempDS, outputDS)));
 
@@ -225,7 +225,7 @@ TEST(LoweringCPU, FunctionWithFloat) {
 
     Composable program =
         Composable(
-            Tile(outputDS["size"], step.bindToInt64(5))(
+            Tile(outputDS["size"], step.bind(5))(
                 add_1_float(inputDS, tempDS, v),
                 add_1_float(tempDS, outputDS, v)));
 

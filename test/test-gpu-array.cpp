@@ -169,7 +169,7 @@ TEST(LoweringGPU, MultiArray) {
 
     Composable program =
         Global((Tile(outputDS["size"], blk) || Grid::Unit::BLOCK_X)(
-            (Tile(outputDS["size"], step.bindToInt64(1)) || Grid::Unit::THREAD_X)(
+            (Tile(outputDS["size"], step.bind(1)) || Grid::Unit::THREAD_X)(
                 add_1(inputDS, tempDS),
                 add_1(tempDS, outputDS))));
 
