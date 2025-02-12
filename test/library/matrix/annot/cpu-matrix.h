@@ -255,11 +255,11 @@ public:
         Variable tj("tj", Datatype::Int64);
         Variable tk("tk", Datatype::Int64);
 
-        return annotate(For(i = Expr(0), ADTMember(C, "row", true), ti,
-                            For(j = Expr(0), ADTMember(C, "col", true), tj,
+        return annotate(For(i = Expr(0), ADTMember(C, "row", false), ti,
+                            For(j = Expr(0), ADTMember(C, "col", false), tj,
                                 Produces::Subset(C, {i, j, ti, tj}),
                                 Consumes::Subsets(
-                                    Reduce(k = Expr(0), ADTMember(A, "col", true), tk,
+                                    Reduce(k = Expr(0), ADTMember(A, "col", false), tk,
                                            SubsetObjMany({
                                                SubsetObj(A, {i, k, ti, tk}),
                                                SubsetObj(B, {k, j, tk, tj}),
