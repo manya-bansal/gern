@@ -117,7 +117,7 @@ TEST(LoweringCPU, SingleElemFunctionTemplated) {
 
     program =
         Composable(
-            Tile(outputDS["size"], step.bindToInt64(5))(
+            Tile(outputDS["size"], step.bind(5))(
                 add_1(inputDS, outputDS)));
 
     Runner run(program);
@@ -165,7 +165,7 @@ TEST(LoweringCPU, MultiFunctionTemplated) {
 
     Composable program =
         Composable(
-            Tile(outputDS["size"], step.bindToInt64(5))(
+            Tile(outputDS["size"], step.bind(5))(
                 add_1(inputDS, tempDS),
                 add_1(tempDS, outputDS)));
 
@@ -201,15 +201,54 @@ TEST(LoweringCPU, OverspecifiedBinding) {
     Variable v("v");
     Variable step("step");
 
-    auto add_1_specialized = &add_1[{{"step", step.bindToInt64(5)}}];
+    auto add_1_specialized = &add_1[{{"step", step.bind(5)}}];
     // Try binding step twice.
     // This is an overspecified pipeline.
     Composable program =
         Composable(
-            Tile(outputDS["size"], step.bindToInt64(5))(
+            Tile(outputDS["size"], step.bind(5))(
                 add_1_specialized->operator()(inputDS, tempDS),
                 add_1(tempDS, outputDS)));
 
     Runner run(program);
     ASSERT_THROW(run.compile(test::cpuRunner("array")), error::UserError);
+}
+
+TEST(LoweringCPU, FunctionWithFloat) {
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
+
+    annot::add_1_float add_1_float;
+    Variable v("v", Datatype::Float32);
+    Variable step("step");
+
+    Composable program =
+        Composable(
+            Tile(outputDS["size"], step.bind(5))(
+                add_1_float(inputDS, tempDS, v),
+                add_1_float(tempDS, outputDS, v)));
+
+    Runner run(program);
+    ASSERT_NO_THROW(run.compile(test::cpuRunner("array")));
+
+    impl::ArrayCPU a(10);
+    a.ascending();
+    impl::ArrayCPU b(10);
+    float v_val = 1.0;
+
+    // Temp should not be included.
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+        {v.getName(), &v_val},
+    }));
+
+    // Make sure we got the correct answer.
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(b.data[i] == (a.data[i] + 2));
+    }
+
+    a.destroy();
+    b.destroy();
 }

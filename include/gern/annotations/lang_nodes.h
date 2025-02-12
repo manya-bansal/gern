@@ -64,7 +64,7 @@ struct ADTMemberNode : public ExprNode {
 #define DEFINE_BINARY_NODE(NAME, NODE)                       \
     struct NAME : public NODE##Node {                        \
     public:                                                  \
-        NAME(Expr a, Expr b) : a(a), b(b) {};                \
+        NAME(Expr a, Expr b) : a(a), b(b){};                 \
         void accept(NODE##VisitorStrict *v) const override { \
             v->visit(this);                                  \
         }                                                    \

@@ -88,5 +88,11 @@ inline void add1Template(ArrayCPU a, ArrayCPU b) {
     }
 }
 
+inline void add_1_float(ArrayCPU a, ArrayCPU b, float f) {
+    for (int64_t i = 0; i < a.size; i++) {
+        b.data[i] = a.data[i] + f;
+    }
+}
+
 }  // namespace impl
 }  // namespace gern

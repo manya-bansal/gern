@@ -251,11 +251,12 @@ public:
             const FunctionSignature &free,
             const FunctionSignature &insert,
             const FunctionSignature &query,
-            const bool &to_free)
+            const bool &to_free,
+            const bool &insert_query)
         : name(name), type(type), fields(fields),
           allocate(allocate), free(free),
           insert(insert), query(query),
-          to_free(to_free) {
+          to_free(to_free), insert_query(insert_query) {
     }
 
     virtual std::string getName() const override {
@@ -288,6 +289,10 @@ public:
         return to_free;
     }
 
+    bool insertQuery() const override {
+        return insert_query;
+    }
+
     static AbstractDataTypePtr make(const std::string &name,
                                     const std::string &type,
                                     AbstractDataTypePtr ds) {
@@ -297,7 +302,8 @@ public:
                                                      ds.ptr->getFreeFunction(),
                                                      ds.ptr->getInsertFunction(),
                                                      ds.ptr->getQueryFunction(),
-                                                     ds.ptr->freeQuery()));
+                                                     ds.ptr->freeQuery(),
+                                                     ds.ptr->insertQuery()));
     }
 
     static AbstractDataTypePtr make(const std::string &name,
@@ -314,6 +320,7 @@ private:
     FunctionSignature insert;
     FunctionSignature query;
     bool to_free;
+    bool insert_query;
 };
 
 }  // namespace gern

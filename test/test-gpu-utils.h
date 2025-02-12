@@ -7,6 +7,7 @@ namespace test {
 
 [[maybe_unused]] static gern::Runner::Options gpuRunner(const std::vector<std::string> &dirs) {
     gern::Runner::Options o = cpuRunner(dirs);
+    o.filename = "test.cu";
     o.arch = std::string(GERN_CUDA_ARCH);
     return o;
 }

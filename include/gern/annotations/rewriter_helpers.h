@@ -8,11 +8,11 @@
 
 namespace gern {
 
-template<typename T>
+template<typename T, typename F>
 inline T replaceVariables(T annot,
-                          const std::map<Variable, Variable> &rw_vars) {
+                          const std::map<Variable, F> &rw_vars) {
     struct rewriteVar : public Rewriter {
-        rewriteVar(std::map<Variable, Variable> rw_vars)
+        rewriteVar(std::map<Variable, F> rw_vars)
             : rw_vars(rw_vars) {
         }
         using Rewriter::rewrite;
@@ -24,7 +24,7 @@ inline T replaceVariables(T annot,
                 expr = op;
             }
         }
-        std::map<Variable, Variable> rw_vars;
+        std::map<Variable, F> rw_vars;
     };
     rewriteVar rw{rw_vars};
     return to<T>(rw.rewrite(annot));
@@ -79,12 +79,10 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
     auto interval_vars = annot.getIntervalVariables();
     std::set<Variable> output_var_set{output_var_vec.begin(), output_var_vec.end()};
     std::set<Variable> old_vars = getVariables(annot);
-    std::map<Variable, Variable> fresh_names;
     for (const auto &v : old_vars) {
-        fresh_names[v] = Variable(getUniqueName(v.getName()), v.isConstExpr());
+        new_vars[v] = Variable(getUniqueName(v.getName()), v.getDatatype(), v.isConstExpr());
     }
-    new_vars = fresh_names;
-    return replaceVariables(annot, fresh_names);
+    return replaceVariables(annot, new_vars);
 }
 template<typename T>
 inline T replaceDim(T annot, const std::map<Grid::Dim, Expr> &rw_dims) {
@@ -116,7 +114,7 @@ inline T replaceDim(T annot, const std::map<Grid::Dim, Expr> &rw_dims) {
  * @return false
  */
 template<typename T>
-bool isConstExpr(T e) {
+inline bool isConstExpr(T e) {
     bool is_const_expr = true;
     match(e,
           std::function<void(const VariableNode *)>(

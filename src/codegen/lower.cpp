@@ -114,6 +114,19 @@ LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraint
     return new const BlockNode(lowered);
 }
 
+template<typename T1>
+static T1 getFirstValue(const util::ScopedMap<T1, T1> &rel,
+                        const util::ScopedMap<T1, T1> &map,
+                        T1 entry) {
+    while (rel.contains(entry)) {  // While we have the entry, go find it.
+        if (map.contains(entry)) {
+            return map.at(entry);  // Just set up the first value.
+        }
+        entry = rel.at(entry);
+    }
+    return T1();
+}
+
 void ComposableLower::lower(const TiledComputation *node) {
     // First, add the value of the captured value.
     Variable captured = node->captured;
@@ -138,16 +151,18 @@ void ComposableLower::lower(const TiledComputation *node) {
 
     parents.insert(captured, node->v);
     tiled_vars.insert(captured, loop_index);
+
     this->visit(node->tiled);  // Visit the actual object.
     current_ds.unscope();
     all_relationships.unscope();
     parents.unscope();
     tiled_vars.unscope();
 
-    bool has_parent = parents.contains(loop_index);
+    Variable step_val = getFirstValue(all_relationships, parents, loop_index);
+    bool has_parent = step_val.defined();
     lowerIR = new const IntervalNode(
         has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
-        has_parent ? Expr(parents.at(loop_index)) : Expr(node->end),
+        has_parent ? step_val : Expr(node->end),
         node->v,
         lowerIR,
         node->unit);
@@ -347,10 +362,9 @@ AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
 
 const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> args) {
 
-    AbstractDataTypePtr ds_in_scope = getCurrent(ds);
-    AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + ds_in_scope.getName()), "auto", ds);
-    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds_in_scope.getFields(), args);
-    f.name = ds_in_scope.getName() + "." + f.name;
+    AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + ds.getName()), "auto", ds);
+    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds.getFields(), args);
+    f.name = ds.getName() + "." + f.name;
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
     return new const QueryNode(ds, f);
@@ -404,19 +418,6 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     f_new.block = LaunchArguments();
 
     return f_new;
-}
-
-template<typename T1>
-static T1 getFirstValue(const util::ScopedMap<T1, T1> &rel,
-                        const util::ScopedMap<T1, T1> &map,
-                        T1 entry) {
-    while (rel.contains(entry)) {  // While we have the entry, go find it.
-        if (map.contains(entry)) {
-            return map.at(entry);  // Just set up the first value.
-        }
-        entry = rel.at(entry);
-    }
-    return T1();
 }
 
 template<typename T1>

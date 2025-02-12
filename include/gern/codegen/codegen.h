@@ -76,7 +76,6 @@ public:
     CGStmt declDim(const Grid::Dim &p, Expr val);
 
     std::string getName() const;
-    std::string getHeaders() const;
     std::string getHookName() const;
     std::vector<std::string> getArgumentOrder() const;
     FunctionSignature getComputeFunctionSignature() const;
