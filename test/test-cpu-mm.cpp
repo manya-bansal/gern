@@ -79,6 +79,8 @@ TEST(LoweringCPU, MatrixMultiply) {
     ref_c.destroy();
 }
 
+// This is a program that effectively matched GPU tiling
+// for a cpu matrix multiply.
 TEST(LoweringCPU, MatchGPU) {
     auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
     auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
