@@ -64,7 +64,8 @@ public:
                    Produces::Subset(output, {}),
                    Reduce(i = Expr(0), input["size"], block_size,
                           SubsetObj(input, {i, block_size})))
-            .occupies({Grid::Unit::THREAD_X});
+            .occupies({Grid::Unit::THREAD_X})
+            .assumes({Grid::Dim::BLOCK_DIM_X == block_size});
     }
 
     std::vector<std::string> getHeader() override {
