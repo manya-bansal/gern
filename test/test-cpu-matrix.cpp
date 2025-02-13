@@ -69,7 +69,7 @@ TEST(LoweringCPU, MatrixCPUAdd) {
 
 TEST(LoweringCPU, MatrixDivn) {
     auto input = AbstractDataTypePtr(new const annot::MatrixCPU("input"));
-    auto inputN = AbstractDataTypePtr(new const annot::MatrixCPU("n"));
+    Variable inputN("n", Datatype::Float32);
     auto output = AbstractDataTypePtr(new const annot::MatrixCPU("output"));
 
     annot::MatrixDivn divn;
@@ -92,15 +92,15 @@ TEST(LoweringCPU, MatrixDivn) {
     int row_val = 10;
     int col_val = 20;
     impl::MatrixCPU in(row_val, col_val, col_val);    
-    impl::MatrixCPU n(1, 1, 1);    
-    n.vvals(sqrt(64));
+    in.random_fill();
     impl::MatrixCPU out(row_val, col_val, col_val);
+    float n = sqrt(64);
     impl::MatrixCPU reference(row_val, col_val, col_val);
 
     int64_t l_x_val = 5;
     int64_t l_y_val = 5;
 
-    gern::impl::divn(in, sqrt(64), reference);
+    gern::impl::divn(in, n, reference);
 
     ASSERT_NO_THROW(run.evaluate({
         {input.getName(), &in},
@@ -115,7 +115,7 @@ TEST(LoweringCPU, MatrixDivn) {
     }    
 }
 
-TEST(LoweringCPU, MatrixMultiply) {
+TEST(LoweringCPU, Matmul) {
     auto inA = AbstractDataTypePtr(new const annot::MatrixCPU("a"));
     auto inB = AbstractDataTypePtr(new const annot::MatrixCPU("b"));	
     auto output = AbstractDataTypePtr(new const annot::MatrixCPU("output"));	
@@ -235,8 +235,8 @@ TEST(LoweringCPU, Softmax) {
 
     annot::MatrixSoftmax softmax;
     auto softmax_specialize = &softmax[{
-        {"y", y.bindToInt64(0)},
-        {"l_y", l_y.bindToInt64(col_val)}
+        {"y", y.bind(0)},
+        {"l_y", l_y.bind(col_val)}
     }];
 
     Composable program = {

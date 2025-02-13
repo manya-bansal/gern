@@ -117,19 +117,6 @@ inline void add(MatrixCPU a, MatrixCPU b) {
     }
 }
 
-inline void divn(MatrixCPU a, MatrixCPU n, MatrixCPU b) {
-	float *a_data;
-    float *b_data;
-    for (int64_t i = 0; i < a.row; i++) {
-        a_data = a.data + (i * a.lda);
-        b_data = b.data + (i * b.lda);
-        for (int64_t j = 0; j < a.col; j++) {
-            b_data[j] = a_data[j] / n.data[0];
-        }
-    }
-}
-
-
 inline void divn(MatrixCPU a, float n, MatrixCPU b) {
 	float *a_data;
     float *b_data;

@@ -112,8 +112,7 @@ class MatrixDivn : public AbstractFunction {
 public:
     MatrixDivn()
         : input(new const MatrixCPU("input")),
-          output(new const MatrixCPU("output")),
-		  n(new const MatrixCPU("n")) {
+          output(new const MatrixCPU("output")) {
     }
     std::string getName() {
         return "gern::impl::divn";
@@ -151,7 +150,7 @@ public:
 protected:
     AbstractDataTypePtr input;
     AbstractDataTypePtr output;
-	AbstractDataTypePtr n;	
+	Variable n{"n", Datatype::Float32};
     Variable end{"end"};
 };
 
