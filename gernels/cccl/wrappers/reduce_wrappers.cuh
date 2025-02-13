@@ -8,6 +8,36 @@
 #include <cuda_runtime.h>
 #include <thrust/device_vector.h>
 
+__device__ void global_sum_single(float *total_sum,
+                                  float input) {
+    if (threadIdx.x == 0) {
+        cuda::atomic_ref<float, cuda::thread_scope_device> atomic_result(*total_sum);
+        atomic_result.fetch_add(input,
+                                cuda::memory_order_relaxed);
+    }
+}
+
+template<int k,
+         int block_size,
+         typename T2>
+__device__ void block_reduce(float *total_sum,
+                             const T2 &input) {
+
+    using BlockReduce = cub::BlockReduce<float, block_size>;
+    __shared__ typename BlockReduce::TempStorage temp_storage;
+
+    int i = threadIdx.x;
+    float internal_sum = input.data[i];
+    float sum = BlockReduce(temp_storage).Sum(internal_sum);
+    // global_sum_single(total_sum, sum);
+
+    if (threadIdx.x == 0) {
+        cuda::atomic_ref<float, cuda::thread_scope_device> atomic_result(*total_sum);
+        atomic_result.fetch_add(sum,
+                                cuda::memory_order_relaxed);
+    }
+}
+
 template<int k, typename T>
 __device__ void global_sum(float *total_sum,
                            const T &input) {

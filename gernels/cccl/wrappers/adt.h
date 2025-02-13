@@ -19,6 +19,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 template<int Size>
 struct ArrayStaticGPU {
     float data[Size] = {0};
+    static constexpr int64_t size = Size;
 };
 
 class ArrayCPU {
