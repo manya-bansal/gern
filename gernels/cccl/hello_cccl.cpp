@@ -30,6 +30,15 @@ int main() {
             {{Grid::BLOCK_DIM_X, var_thrds_per_blk.bind(thread_per_block)}}),
     };
 
+    // // Would maybe look like this.
+    // Composable program = {
+    //     Global(
+    //         (Reduce(temp["size"], t1.bind(1)) || Grid::Unit::BLOCK_X)(
+    //             (*block_reduce_take2_sp)(temp, input),
+    //             (global_sum)(output, temp)),
+    //         {{Grid::BLOCK_DIM_X, elem_per_thread}}),
+    // };
+
     Runner::Options options;
     options.filename = "gern_hello_cccl.cu";
     options.cpp_std = "c++14";  // cccl requires c++14
