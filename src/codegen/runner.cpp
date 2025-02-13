@@ -27,7 +27,7 @@ void Runner::compile(Options config) {
     std::string compiler_option = at_device ? "--compiler-options " : "";
     std::string shared_obj = config.prefix + getUniqueName("libGern") + ".so";
     std::string cmd = compiler +
-                      " -std=c++11 " +
+                      " -std=" + config.cpp_std + " " +
                       compiler_option +
                       " -fPIC " +
                       arch + " " + config.include +
