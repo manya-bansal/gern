@@ -37,7 +37,6 @@ int main() {
         Global(
             (Reduce(input["size"], elem_per_thread) || Grid::Unit::BLOCK_X)(
                 (*block_reduce_sp)(output, input)),
-
             {{Grid::BLOCK_DIM_X, elem_per_thread}}),
     };
 
@@ -60,9 +59,7 @@ int main() {
                      {output.getName(), &output_real.data}});
 
     auto output_cpu = output_real.get();
-    // assert(output_cpu.data[0] == k_val * (k_val - 1) / 2);
-    std::cout << output_cpu.data[0] << std::endl;
-    std::cout << output_cpu.data[1] << std::endl;
+    assert(output_cpu.data[0] == k_val * (k_val - 1) / 2);
 
     input_real.destroy();
     output_real.destroy();
