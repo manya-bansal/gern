@@ -81,4 +81,41 @@ private:
     AbstractDataTypePtr output;
 };
 
+class BlockReduceTake2 : public AbstractFunction {
+public:
+    BlockReduceTake2()
+        : input(new const ArrayGPU("output")),
+          output(new const ArrayGPU("input")) {
+    }
+
+    FunctionSignature getFunction() override {
+        return FunctionSignature{
+            .name = "block_reduce_take2",
+            .args = {Parameter(output), Parameter(input)},
+            .template_args = {block_size},
+        };
+    }
+
+    Annotation getAnnotation() override {
+        Variable i{"i"};
+        Variable lx{"lx"};
+        return For(i = Expr(0), output["size"], lx,
+                   Produces::Subset(output, {i, lx}),
+                   Consumes::Subset(input, {i * block_size * lx,
+                                            block_size * lx}))
+            .occupies({Grid::Unit::THREAD_X});
+    }
+
+    std::vector<std::string> getHeader() override {
+        return {
+            "wrappers/reduce_wrappers.cuh",
+        };
+    }
+
+private:
+    Variable block_size{"block_size", Datatype::Int64, true};
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
+};
+
 }  // namespace annot

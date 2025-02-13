@@ -8,6 +8,26 @@
 #include <cuda_runtime.h>
 #include <thrust/device_vector.h>
 
+template<int block_size,
+         typename T1,
+         typename T2>
+__device__ void block_reduce_take2(T1 &output,
+                                   const T2 &input) {
+
+    using BlockReduce = cub::BlockReduce<float, block_size>;
+    __shared__ typename BlockReduce::TempStorage temp_storage;
+
+    static_assert(input.size == output.size * block_size);
+
+    const float *input_data = input.data;
+    for (int i = 0; i < output.size; i++) {
+        int thread_idx = threadIdx.x;
+        float sum = BlockReduce(temp_storage).Sum(input_data[thread_idx]);
+        output.data[i] = sum;
+        input_data += block_size;
+    }
+}
+
 __device__ void global_sum_single(float *total_sum,
                                   float input) {
     if (threadIdx.x == 0) {
