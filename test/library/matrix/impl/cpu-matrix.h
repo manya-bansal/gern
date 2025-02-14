@@ -29,7 +29,7 @@ public:
     }
 
     static MatrixCPU allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
-        return MatrixCPU(l_x, l_y, l_x);
+        return MatrixCPU(l_x, l_y, l_y);
     }
 
     MatrixCPU query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {

@@ -149,8 +149,8 @@ public:
 
 protected:
     AbstractDataTypePtr input;
-    AbstractDataTypePtr output;
 	Variable n{"n", Datatype::Float32};
+    AbstractDataTypePtr output;
     Variable end{"end"};
 };
 
