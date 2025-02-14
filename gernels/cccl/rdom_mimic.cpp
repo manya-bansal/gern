@@ -1,4 +1,5 @@
 
+#include "../current_path.h"
 #include "compose/runner.h"
 #include "gern_annot/functions.h"
 #include "wrappers/adt.h"
@@ -14,19 +15,17 @@ int main() {
     auto temp = AbstractDataTypePtr(new const annot::ArrayGPU("temp", true));
 
     int thread_per_block = 2;
+    int temp_size_val = 4;
 
     Variable var_thrds_per_blk{"var_thrds_per_blk"};
     Variable t1{"t1"};
-
-    annot::GlobalSum2 global_sum;
-    annot::BlockReduceTake2 block_reduce_take2;
-
     Variable bound_k_dim = var_thrds_per_blk.bind(thread_per_block);
     Variable temp_size("temp_size");
-
-    int temp_size_val = 4;
     temp_size = temp_size.bind(temp_size_val);
 
+    annot::GlobalSum global_sum;
+    annot::BlockReduceTake2 block_reduce_take2;
+    // Specialize function to take in the correct arguments.
     auto block_reduce_take2_sp = &block_reduce_take2[{{"block_size",
                                                        bound_k_dim}}];
     auto global_sum_sp = &global_sum[{{"k", temp_size}}];
@@ -36,14 +35,14 @@ int main() {
             (Reduce(temp_size, t1.bind(1)) || Grid::Unit::BLOCK_X)(
                 (*block_reduce_take2_sp)(temp, input),
                 global_sum(output, temp)),
-            {{Grid::BLOCK_DIM_X, var_thrds_per_blk.bind(thread_per_block)}}),
+            {{Grid::BLOCK_DIM_X, bound_k_dim}}),
     };
 
     Runner::Options options;
-    options.filename = "gern_hello_cccl.cu";
+    options.filename = "hello_cccl.cu";
     options.cpp_std = "c++14";  // cccl requires c++14
-    options.arch = "89";
-    options.include = " -I/home/manya/gern/gernels/cccl";
+    options.arch = GERNELS_ARCH;
+    options.include = " -I" + std::string(GERNELS_PATH) + "/cccl";
 
     Runner runner(program);
     runner.compile(options);

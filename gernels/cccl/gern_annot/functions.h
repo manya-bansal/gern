@@ -8,44 +8,44 @@ using namespace gern;
 
 namespace annot {
 
-class GlobalSum : public AbstractFunction {
+// class GlobalSum : public AbstractFunction {
+// public:
+//     GlobalSum()
+//         : input(new const FloatPtr("output")),
+//           output(new const ArrayGPU("input")) {
+//     }
+
+//     FunctionSignature getFunction() override {
+//         return FunctionSignature{
+//             .name = "global_sum",
+//             .args = {Parameter(output), Parameter(input)},
+//             .template_args = {k},
+//         };
+//     }
+
+//     Annotation getAnnotation() override {
+//         Variable i{"i"};
+//         return annotate(Computes(
+//             Produces::Subset(output, {}),
+//             Reduce(i = Expr(0), input["size"], k,
+//                    SubsetObj(input, {i, k}))));
+//     }
+
+//     std::vector<std::string> getHeader() override {
+//         return {
+//             "wrappers/reduce_wrappers.cuh",
+//         };
+//     }
+
+// private:
+//     Variable k{"k", Datatype::Int64, true};
+//     AbstractDataTypePtr input;
+//     AbstractDataTypePtr output;
+// };
+
+class GridReduce : public AbstractFunction {
 public:
-    GlobalSum()
-        : input(new const FloatPtr("output")),
-          output(new const ArrayGPU("input")) {
-    }
-
-    FunctionSignature getFunction() override {
-        return FunctionSignature{
-            .name = "global_sum",
-            .args = {Parameter(output), Parameter(input)},
-            .template_args = {k},
-        };
-    }
-
-    Annotation getAnnotation() override {
-        Variable i{"i"};
-        return annotate(Computes(
-            Produces::Subset(output, {}),
-            Reduce(i = Expr(0), input["size"], k,
-                   SubsetObj(input, {i, k}))));
-    }
-
-    std::vector<std::string> getHeader() override {
-        return {
-            "wrappers/reduce_wrappers.cuh",
-        };
-    }
-
-private:
-    Variable k{"k", Datatype::Int64, true};
-    AbstractDataTypePtr input;
-    AbstractDataTypePtr output;
-};
-
-class BlockReduce : public AbstractFunction {
-public:
-    BlockReduce()
+    GridReduce()
         : input(new const FloatPtr("output")),
           output(new const ArrayGPU("input")) {
     }
@@ -62,7 +62,7 @@ public:
         Variable i{"i"};
         return Computes(
                    Produces::Subset(output, {}),
-                   Reduce(i = Expr(0), input["size"], block_size,
+                   Reduce(i = Expr(0), k, block_size,
                           SubsetObj(input, {i, block_size})))
             .occupies({Grid::Unit::THREAD_X})
             .assumes({Grid::Dim::BLOCK_DIM_X == block_size});
@@ -119,9 +119,9 @@ private:
     AbstractDataTypePtr output;
 };
 
-class GlobalSum2 : public AbstractFunction {
+class GlobalSum : public AbstractFunction {
 public:
-    GlobalSum2()
+    GlobalSum()
         : input(new const FloatPtr("output")),
           output(new const ArrayGPU("input")) {
     }

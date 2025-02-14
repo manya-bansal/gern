@@ -1,4 +1,5 @@
 
+#include "../current_path.h"
 #include "compose/runner.h"
 #include "gern_annot/functions.h"
 #include "wrappers/adt.h"
@@ -9,42 +10,38 @@ using namespace gern;
 
 int main() {
 
-    annot::GlobalSum global_sum;
-    annot::BlockReduce block_reduce;
+    annot::GridReduce grid_reduce;
     auto input = AbstractDataTypePtr(new const annot::ArrayGPU("input"));
     auto output = AbstractDataTypePtr(new const annot::FloatPtr("output"));
     // auto output = AbstractDataTypePtr(new const annot::ArrayGPU("output"));
 
     Variable k{"k"};
     Variable block_size{"block_size"};
+    Variable input_size{"input_size"};
 
     int k_val = 10;
-
     int num_threads_p_blk = 2;
-    auto k_const = k.bind(10);
 
-    auto k_const_2 = k.bind(2);
-
-    auto elem_per_thread = block_size.bind(num_threads_p_blk);
-
-    auto global_sum_sp = &global_sum[{{"k", k_const}}];
-
-    auto block_reduce_sp = &block_reduce[{
-        {"k", k_const_2},
+    // Specialize the function to the input size.
+    input_size = input_size.bind(k_val);
+    auto grid_reduce_sp = &grid_reduce[{
+        {"k", input_size},
     }];
 
+    // Variable for tile size of the reduction.
+    Variable elem_per_thread = block_size.bind(num_threads_p_blk);
     Composable program = {
         Global(
-            (Reduce(input["size"], elem_per_thread) || Grid::Unit::BLOCK_X)(
-                (*block_reduce_sp)(output, input)),
+            (Reduce(input_size, elem_per_thread) || Grid::Unit::BLOCK_X)(
+                (*grid_reduce_sp)(output, input)),
             {{Grid::BLOCK_DIM_X, elem_per_thread}}),
     };
 
     Runner::Options options;
-    options.filename = "gern_hello_cccl.cu";
-    options.cpp_std = "c++14";  // cccl requires c++14
-    options.arch = "89";
-    options.include = " -I/home/manya/gern/gernels/cccl";
+    options.filename = "hello_cccl.cu";
+    options.cpp_std = "c++14";  // cccl requires c++14 or higher.
+    options.arch = GERNELS_ARCH;
+    options.include = " -I" + std::string(GERNELS_PATH) + "/cccl";
 
     Runner runner(program);
     runner.compile(options);
@@ -52,7 +49,7 @@ int main() {
     // Let's try running now...
     ArrayGPU input_real(k_val);
     input_real.ascending();
-    ArrayGPU output_real(2);
+    ArrayGPU output_real(1);
     output_real.vvals(0.0f);
 
     runner.evaluate({{input.getName(), &input_real},
