@@ -342,8 +342,19 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         }
     }
 
+    std::vector<Expr> new_template_args;
+    auto template_args = call.template_args;
+    for (const auto &arg : template_args) {
+        if (tiled_dimensions.contains(arg)) {
+            new_template_args.push_back(tiled_dimensions.at(arg));
+        } else {
+            new_template_args.push_back(arg);
+        }
+    }
+
     FunctionCall new_call = call;
     new_call.args = new_args;
+    new_call.template_args = new_template_args;
 
     lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
     // Free any the queried subsets.
@@ -493,16 +504,6 @@ LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
                                   lowered.push_back(
                                       new const DefNode(op->start, false));
                               }
-                              //   std::cout << tiled_dimensions << std::endl;
-                              //   Variable step_val = getFirstValue(all_relationships, parents, v);
-                              //   if (!tiled_dimensions.contains(op->parameter)) {
-                              //       lowered.push_back(
-                              //           generate_definitions(op->step = tiled_dimensions.at(op->parameter)));
-                              //   } else {
-                              //       std::cout << tiled_dimensions << std::endl;
-                              //       lowered.insert(lowered.begin(),
-                              //                      generate_definitions(op->step = op->parameter));
-                              //   }
                               Variable step_val = getFirstValue(all_relationships, parents, v);
                               if (step_val.defined()) {
                                   lowered.push_back(
