@@ -332,7 +332,11 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
             new_args.push_back(Argument(current_ds.at(to<DSArg>(arg)->getADTPtr())));
         } else if (isa<VarArg>(arg)) {
             // Do we have a value floating around?
-            new_args.push_back(Argument(to<VarArg>(arg)->getVar()));
+            if (tiled_dimensions.contains(to<VarArg>(arg)->getVar())) {
+                new_args.push_back(Argument(tiled_dimensions.at(to<VarArg>(arg)->getVar())));
+            } else {
+                new_args.push_back(Argument(to<VarArg>(arg)->getVar()));
+            }
         } else {
             throw error::InternalError("Unknown argument type: " + arg.str());
         }
@@ -489,15 +493,24 @@ LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
                                   lowered.push_back(
                                       new const DefNode(op->start, false));
                               }
-                              Variable step_val = getFirstValue(all_relationships, parents, v);
-                              if (!tiled_dimensions.contains(op->parameter) && step_val.defined()) {
-                                  lowered.push_back(
-                                      generate_definitions(op->step = step_val));
-                              }
-                              //   else {
+                              //   std::cout << tiled_dimensions << std::endl;
+                              //   Variable step_val = getFirstValue(all_relationships, parents, v);
+                              //   if (!tiled_dimensions.contains(op->parameter)) {
+                              //       lowered.push_back(
+                              //           generate_definitions(op->step = tiled_dimensions.at(op->parameter)));
+                              //   } else {
+                              //       std::cout << tiled_dimensions << std::endl;
                               //       lowered.insert(lowered.begin(),
                               //                      generate_definitions(op->step = op->parameter));
                               //   }
+                              Variable step_val = getFirstValue(all_relationships, parents, v);
+                              if (step_val.defined()) {
+                                  lowered.push_back(
+                                      generate_definitions(op->step = step_val));
+                              } else {
+                                  lowered.insert(lowered.begin(),
+                                                 generate_definitions(op->step = op->parameter));
+                              }
                           }));
     return new const BlockNode(lowered);
 }

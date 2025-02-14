@@ -221,6 +221,7 @@ TileDummy Tile(Expr tileable, Variable v) {
 }
 
 TileDummy Reduce(Expr tileable, Variable v) {
+    // You are actually tiling what v was pointing to.
     return TileDummy(tileable, v, true);
 }
 

@@ -157,7 +157,7 @@ public:
         Variable x("x");
         Variable r("r");
         Variable step("step");
-        Variable k("k");
+        Variable reduce{"reduce"};
         // Variable reduce("reduce");
 
         return annotate(For(x = Expr(0), output["size"], step,
@@ -178,14 +178,14 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::reduction";
-        f.args = {Parameter(input), Parameter(output), Parameter(reduce)};
+        f.args = {Parameter(input), Parameter(output), Parameter(k)};
         return f;
     }
 
 protected:
     AbstractDataTypePtr input;
     AbstractDataTypePtr output;
-    Variable reduce{"reduce"};
+    Variable k{"k"};
 };
 
 }  // namespace annot
