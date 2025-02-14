@@ -75,7 +75,7 @@ private:
     template<typename T>
     void common(const T *);
 
-    LowerIR define_loop_var(Assign start, ADTMember end, Variable step) const;
+    LowerIR define_loop_var(Assign start, Expr parameter, Variable step) const;
     LowerIR generate_definitions(Assign definition) const;
     LowerIR generate_constraints(std::vector<Constraint> constraints) const;  // Generate constraints.
     LowerIR declare_computes(Pattern annotation) const;
@@ -95,8 +95,9 @@ private:
 
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
     util::ScopedMap<Variable, Variable> tiled_vars;
-    util::ScopedMap<Variable, Variable> parents;            // Used for splits.
+    util::ScopedMap<Expr, Variable> parents;                // Used for splits.
     util::ScopedMap<Variable, Variable> all_relationships;  // Used to track all relationships.
+    util::ScopedMap<Expr, Variable> tiled_dimensions;
 
     LowerIR lowerIR;
     Composable composable;

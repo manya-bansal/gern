@@ -15,7 +15,7 @@ void ComposablePrinter::visit(const Computation *op) {
 
 void ComposablePrinter::visit(const TiledComputation *op) {
     util::printIdent(os, ident);
-    os << "For " << op->adt_member << " with " << op->v << "{\n";
+    os << "For " << op->to_tile << " with " << op->v << "{\n";
     ident++;
     ComposablePrinter printer(os, ident);
     printer.visit(op->tiled);

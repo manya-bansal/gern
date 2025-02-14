@@ -259,7 +259,7 @@ public:
                             For(j = Expr(0), ADTMember(C, "col", false), tj,
                                 Produces::Subset(C, {i, j, ti, tj}),
                                 Consumes::Subsets(
-                                    Reduce(k = Expr(0), ADTMember(A, "col", false), tk,
+                                    Reduce(k = Expr(0), k_dim, tk,
                                            SubsetObjMany({
                                                SubsetObj(A, {i, k, ti, tk}),
                                                SubsetObj(B, {k, j, tk, tj}),
@@ -269,7 +269,7 @@ public:
     FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::matrix_multiply";
-        f.args = {Parameter(A), Parameter(B), Parameter(C)};
+        f.args = {Parameter(A), Parameter(B), Parameter(C), k_dim};
         return f;
     }
 
@@ -283,6 +283,7 @@ private:
     AbstractDataTypePtr A;
     AbstractDataTypePtr B;
     AbstractDataTypePtr C;
+    Variable k_dim{"k_dim", Datatype::Int64};
 };
 
 }  // namespace annot

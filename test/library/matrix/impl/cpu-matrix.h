@@ -179,7 +179,7 @@ inline void divide_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
     }
 }
 
-inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c) {
+inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dummy) {
     float *a_data;
     float *b_data;
     float *c_data;
@@ -188,7 +188,7 @@ inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c) {
         a_data = a.data + (i * a.lda);
         for (int64_t j = 0; j < c.col; j++) {
             float sum = 0.0f;
-            for (int64_t k = 0; k < a.col; k++) {
+            for (int64_t k = 0; k < k_dummy; k++) {
                 b_data = b.data + (k * b.lda) + j;
                 sum += a_data[k] * b_data[0];
             }
