@@ -103,7 +103,8 @@ public:
                    Produces::Subset(output, {i, lx}),
                    Consumes::Subset(input, {i * block_size * lx,
                                             block_size * lx}))
-            .occupies({Grid::Unit::THREAD_X});
+            .occupies({Grid::Unit::THREAD_X})
+            .assumes({Grid::Dim::BLOCK_DIM_X == block_size});
     }
 
     std::vector<std::string> getHeader() override {
