@@ -55,10 +55,14 @@ target_sources(
         include/gern/annotations/argument_visitor.h
         include/gern/annotations/data_dependency_language.h
         include/gern/annotations/datatypes.h
+        include/gern/annotations/expr.h
+        include/gern/annotations/expr_nodes.h
         include/gern/annotations/grid.h
         include/gern/annotations/lang_nodes.h
         include/gern/annotations/rewriter_helpers.h
+        include/gern/annotations/std_less_specialization.h
         include/gern/annotations/visitor.h
+        include/gern/annotations/rewriter.h
         # includgern/e/resolve_constraints/resolve_constraints.h
         include/gern/compose/compose.h
         include/gern/compose/composable.h

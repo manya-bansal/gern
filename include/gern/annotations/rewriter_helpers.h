@@ -2,7 +2,7 @@
 
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
-#include "annotations/visitor.h"
+#include "annotations/rewriter.h"
 #include <map>
 #include <set>
 

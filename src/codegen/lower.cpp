@@ -162,7 +162,7 @@ void ComposableLower::lower(const TiledComputation *node) {
     bool has_parent = step_val.defined();
     lowerIR = new const IntervalNode(
         has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
-        has_parent ? step_val : Expr(node->end),
+        has_parent ? step_val : Expr(node->parameter),
         node->v,
         lowerIR,
         node->unit);
@@ -463,7 +463,7 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                                       generate_definitions(op->step = step_val));
                               } else {
                                   lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = op->end));
+                                                 generate_definitions(op->step = op->parameter));
                               }
                           }));
     return new const BlockNode(lowered);
@@ -488,7 +488,7 @@ LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
                                       generate_definitions(op->step = step_val));
                               } else {
                                   lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = op->end));
+                                                 generate_definitions(op->step = op->parameter));
                               }
                           }));
     return new const BlockNode(lowered);

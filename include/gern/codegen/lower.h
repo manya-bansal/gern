@@ -75,7 +75,7 @@ private:
     template<typename T>
     void common(const T *);
 
-    LowerIR define_loop_var(Assign start, ADTMember end, Variable step) const;
+    LowerIR define_loop_var(Assign start, Expr parameter, Variable step) const;
     LowerIR generate_definitions(Assign definition) const;
     LowerIR generate_constraints(std::vector<Constraint> constraints) const;  // Generate constraints.
     LowerIR declare_computes(Pattern annotation) const;

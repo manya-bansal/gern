@@ -100,7 +100,7 @@ public:
     Variable captured;
     Variable loop_index;  // New loop index.
     Expr start;
-    ADTMember end;
+    Expr parameter;
     Variable step;
     Annotation _annotation;
     std::map<Variable, Variable> old_to_new;

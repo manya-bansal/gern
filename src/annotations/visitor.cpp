@@ -1,5 +1,7 @@
 #include "annotations/visitor.h"
+#include "annotations/expr_nodes.h"
 #include "annotations/lang_nodes.h"
+#include "annotations/rewriter.h"
 #include "utils/printer.h"
 
 namespace gern {
@@ -132,7 +134,7 @@ void Printer::visit(const AllocatesNode *op) {
 
 void Printer::visit(const ConsumesForNode *op) {
     util::printIdent(os, ident);
-    os << "for ( " << op->start << " ; " << op->end << " ; "
+    os << "for ( " << op->start << " ; " << op->parameter << " ; "
        << op->step << " ) {"
        << "\n";
     ident++;
@@ -146,7 +148,7 @@ void Printer::visit(const ConsumesForNode *op) {
 
 void Printer::visit(const ComputesForNode *op) {
     util::printIdent(os, ident);
-    os << "for [ " << op->start << " : " << op->end << " : "
+    os << "for [ " << op->start << " : " << op->parameter << " : "
        << op->step << " ] {"
        << "\n";
     ident++;
@@ -263,14 +265,14 @@ void AnnotVisitor::visit(const AllocatesNode *op) {
 
 void AnnotVisitor::visit(const ConsumesForNode *op) {
     this->visit(op->start);
-    this->visit(op->end);
+    this->visit(op->parameter);
     this->visit(op->step);
     this->visit(op->body);
 }
 
 void AnnotVisitor::visit(const ComputesForNode *op) {
     this->visit(op->start);
-    this->visit(op->end);
+    this->visit(op->parameter);
     this->visit(op->step);
     this->visit(op->body);
 }
@@ -367,21 +369,21 @@ void Rewriter::visit(const AllocatesNode *op) {
 
 void Rewriter::visit(const ConsumesForNode *op) {
     Assign rw_start = to<Assign>(this->rewrite(op->start));
-    ADTMember rw_end = to<ADTMember>(this->rewrite(op->end));
+    Expr rw_parameter = this->rewrite(op->parameter);
     Variable rw_step = to<Variable>(this->rewrite(op->step));
     ConsumeMany rw_body = to<ConsumeMany>(this->rewrite(op->body));
     stmt = Consumes(new const ConsumesForNode(rw_start,
-                                              rw_end, rw_step,
+                                              rw_parameter, rw_step,
                                               rw_body, op->parallel));
 }
 
 void Rewriter::visit(const ComputesForNode *op) {
     Assign rw_start = to<Assign>(this->rewrite(op->start));
-    ADTMember rw_end = to<ADTMember>(this->rewrite(op->end));
+    Expr rw_parameter = this->rewrite(op->parameter);
     Variable rw_step = to<Variable>(this->rewrite(op->step));
     Pattern rw_body = to<Pattern>(this->rewrite(op->body));
     stmt = Pattern(new const ComputesForNode(rw_start,
-                                             rw_end, rw_step,
+                                             rw_parameter, rw_step,
                                              rw_body, op->parallel));
 }
 
@@ -435,7 +437,7 @@ Consumes mimicConsumes(Pattern p, std::vector<SubsetObj> input_subsets) {
     match(p, std::function<void(const ConsumesForNode *, Matcher *)>(
                  [&](const ConsumesForNode *op, Matcher *ctx) {
                      ctx->match(op->body);
-                     consumes = Reduce(op->start, op->end, op->step, consumes);
+                     consumes = Reduce(op->start, op->parameter, op->step, consumes);
                  }));
     return consumes;
 }
@@ -445,7 +447,7 @@ Pattern mimicComputes(Pattern p, Computes computes) {
     match(p, std::function<void(const ComputesForNode *, Matcher *)>(
                  [&](const ComputesForNode *op, Matcher *ctx) {
                      ctx->match(op->body);
-                     pattern = For(op->start, op->end, op->step, pattern);
+                     pattern = For(op->start, op->parameter, op->step, pattern);
                  }));
     return pattern;
 }

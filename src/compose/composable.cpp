@@ -167,7 +167,7 @@ void TiledComputation::init_binding() {
     std::string field_to_find = adt_member.getMember();
     AbstractDataTypePtr ds = adt_member.getDS();
 
-    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> loops;
+    std::map<Expr, std::tuple<Variable, Expr, Variable>> loops;
 
     if (reduce) {
         loops = pattern.getReducableFields();
@@ -182,7 +182,7 @@ void TiledComputation::init_binding() {
     auto value = loops.at(adt_member);
     captured = std::get<0>(value);
     start = std::get<1>(value);
-    end = adt_member;
+    parameter = adt_member;
     step = std::get<2>(value);
 
     // Refresh the variable that just got mapped,
