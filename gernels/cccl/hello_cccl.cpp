@@ -9,8 +9,7 @@ using namespace gern;
 
 int main() {
 
-    annot::GlobalSum global_sum;
-    annot::BlockReduce block_reduce;
+    annot::GlobalSum2 global_sum;
     auto input = AbstractDataTypePtr(new const annot::ArrayGPU("input"));
     auto output = AbstractDataTypePtr(new const annot::FloatPtr("output"));
     auto temp = AbstractDataTypePtr(new const annot::ArrayGPU("temp", true));
@@ -21,14 +20,17 @@ int main() {
     Variable t1{"t1"};
 
     annot::BlockReduceTake2 block_reduce_take2;
+    Variable bound_k_dim = var_thrds_per_blk.bind(thread_per_block);
+    Variable temp_size("temp_size");
+    temp_size = temp_size.bind(4);
 
     auto block_reduce_take2_sp = &block_reduce_take2[{{"block_size",
-                                                       var_thrds_per_blk.bind(thread_per_block)}}];
-    // auto global_sum_sp = &global_sum[{{"k", t1.bind(1)}}];
+                                                       bound_k_dim}}];
+    auto global_sum_sp = &global_sum[{{"k", temp_size}}];
 
     Composable program = {
         Global(
-            (Reduce(temp["size"], t1.bind(1)) || Grid::Unit::BLOCK_X)(
+            (Reduce(temp_size, t1.bind(1)) || Grid::Unit::BLOCK_X)(
                 (*block_reduce_take2_sp)(temp, input),
                 global_sum(output, temp)),
             {{Grid::BLOCK_DIM_X, var_thrds_per_blk.bind(thread_per_block)}}),

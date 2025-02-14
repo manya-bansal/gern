@@ -118,4 +118,40 @@ private:
     AbstractDataTypePtr output;
 };
 
+class GlobalSum2 : public AbstractFunction {
+public:
+    GlobalSum2()
+        : input(new const FloatPtr("output")),
+          output(new const ArrayGPU("input")) {
+    }
+
+    FunctionSignature getFunction() override {
+        return FunctionSignature{
+            .name = "global_sum",
+            .args = {Parameter(output), Parameter(input)},
+            .template_args = {k},
+        };
+    }
+
+    Annotation getAnnotation() override {
+        Variable i{"i"};
+        Variable tk{"tk", Datatype::Int64, true};
+        return annotate(Computes(
+            Produces::Subset(output, {}),
+            Reduce(i = Expr(0), k, tk,
+                   SubsetObj(input, {i, tk}))));
+    }
+
+    std::vector<std::string> getHeader() override {
+        return {
+            "wrappers/reduce_wrappers.cuh",
+        };
+    }
+
+private:
+    Variable k{"k", Datatype::Int64, true};
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
+};
+
 }  // namespace annot
