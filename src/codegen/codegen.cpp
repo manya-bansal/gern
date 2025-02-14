@@ -90,6 +90,14 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
         parameters.push_back(Parameter(ds));
     }
 
+    // Also (fake gen block and grid params, otherwise they will not be tracked as used).
+    gen(block_dim.x);
+    gen(block_dim.y);
+    gen(block_dim.z);
+    gen(grid_dim.x);
+    gen(grid_dim.y);
+    gen(grid_dim.z);
+
     // Declare all the variables that have been used, but have not been defined.
     for (const auto &v : used) {
         if (declared.contains(v)) {
