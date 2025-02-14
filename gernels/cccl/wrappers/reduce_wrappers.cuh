@@ -23,7 +23,9 @@ __device__ void block_reduce_take2(T1 &output,
     for (int i = 0; i < output.size; i++) {
         int thread_idx = threadIdx.x;
         float sum = BlockReduce(temp_storage).Sum(input_data[thread_idx]);
-        output.data[i] = sum;
+        if (thread_idx == 0) {
+            output.data[i] = sum;
+        }
         input_data += block_size;
     }
 }

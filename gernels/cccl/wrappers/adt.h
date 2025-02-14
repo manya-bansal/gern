@@ -61,6 +61,11 @@ public:
     int64_t size;
 };
 
+template<int Size>
+__device__ ArrayStaticGPU<Size> allocate_local() {
+    return ArrayStaticGPU<Size>();
+}
+
 class ArrayGPU {
 public:
     ArrayGPU(int64_t size)

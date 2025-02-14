@@ -78,7 +78,7 @@ public:
 
     FunctionSignature getAllocateFunction() const override {
         return FunctionSignature{
-            .name = "gern::impl::allocate_local",
+            .name = "allocate_local",
             .template_args = {len},
         };
     }
