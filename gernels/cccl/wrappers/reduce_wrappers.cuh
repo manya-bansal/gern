@@ -11,8 +11,8 @@
 template<int block_size,
          typename T1,
          typename T2>
-__device__ void block_reduce_take2(T1 &output,
-                                   const T2 &input) {
+__device__ void block_reduce(T1 &output,
+                             const T2 &input) {
 
     using BlockReduce = cub::BlockReduce<float, block_size>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
@@ -42,8 +42,8 @@ __device__ void global_sum_single(float *total_sum,
 template<int k,
          int block_size,
          typename T2>
-__device__ void block_reduce(float *total_sum,
-                             const T2 &input) {
+__device__ void grid_reduce_total(float *total_sum,
+                                  const T2 &input) {
 
     using BlockReduce = cub::BlockReduce<float, block_size>;
     __shared__ typename BlockReduce::TempStorage temp_storage;

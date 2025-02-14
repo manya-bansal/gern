@@ -24,16 +24,16 @@ int main() {
     temp_size = temp_size.bind(temp_size_val);
 
     annot::GlobalSum global_sum;
-    annot::BlockReduceTake2 block_reduce_take2;
+    annot::BlockReduce block_reduce;
     // Specialize function to take in the correct arguments.
-    auto block_reduce_take2_sp = &block_reduce_take2[{{"block_size",
-                                                       bound_k_dim}}];
+    auto block_reduce_sp = &block_reduce[{{"block_size",
+                                           bound_k_dim}}];
     auto global_sum_sp = &global_sum[{{"k", temp_size}}];
 
     Composable program = {
         Global(
             (Reduce(temp_size, t1.bind(1)) || Grid::Unit::BLOCK_X)(
-                (*block_reduce_take2_sp)(temp, input),
+                (*block_reduce_sp)(temp, input),
                 global_sum(output, temp)),
             {{Grid::BLOCK_DIM_X, bound_k_dim}}),
     };
