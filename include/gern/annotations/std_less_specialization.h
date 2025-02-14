@@ -27,6 +27,9 @@ struct less<gern::ADTMember> {
 template<>
 struct less<gern::Expr> {
     bool operator()(const gern::Expr &a, const gern::Expr &b) const {
+        // Need to resolve to this somewhat ugly check. The language already
+        // overload <, ==, !=, <=, >=, > for Expr to construct a constraint, so
+        // cannot rely on overloading a member method for Expr.
         if (gern::isa<gern::ADTMember>(a) && gern::isa<gern::ADTMember>(b)) {
             return std::less<gern::ADTMember>()(gern::to<gern::ADTMember>(a), gern::to<gern::ADTMember>(b));
         }

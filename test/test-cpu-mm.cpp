@@ -30,7 +30,7 @@ TEST(LoweringCPU, MatrixMultiply) {
                     (Tile(C_DS["row"], ti_2))(
                         Tile(C_DS["col"], tj_2)(
                             Reduce(A_DS["col"], k_2)(
-                                matrix_multiply(A_DS, B_DS, C_DS)))))))};
+                                matrix_multiply(A_DS, B_DS, C_DS, k_2)))))))};
 
     Runner run(program);
     run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
@@ -67,7 +67,7 @@ TEST(LoweringCPU, MatrixMultiply) {
 
     impl::MatrixCPU ref_c(num_row, num_col, num_col);
     ref_c.vvals(0.0f);
-    impl::matrix_multiply(a, b, ref_c);
+    impl::matrix_multiply(a, b, ref_c, k_2_val);
 
     for (int i = 0; i < num_row * num_col; i++) {
         ASSERT_TRUE(c.data[i] == ref_c.data[i]);
@@ -103,7 +103,7 @@ TEST(LoweringCPU, MatchGPU) {
                 (Tile(C_DS["row"], ti_2))(
                     Tile(C_DS["col"], tj_2)(
                         Reduce(A_DS["col"], k_2)(
-                            matrix_multiply(A_DS, B_DS, C_DS))))))};
+                            matrix_multiply(A_DS, B_DS, C_DS, k_2))))))};
 
     Runner::Options options = test::cpuRunner("matrix");
     options.filename = "tile_mm_registers.cpp";

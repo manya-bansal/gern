@@ -157,13 +157,14 @@ public:
         Variable x("x");
         Variable r("r");
         Variable step("step");
-        Variable reduce("reduce");
+        Variable k("k");
+        // Variable reduce("reduce");
 
         return annotate(For(x = Expr(0), output["size"], step,
                             Computes(
                                 Produces::Subset(output, {x, step}),
                                 Consumes::Subsets(
-                                    Reduce(r = Expr(0), output["size"], reduce,
+                                    Reduce(r = Expr(0), k, reduce,
                                            SubsetObjMany{
                                                SubsetObj(input, {r, reduce})})))));
     }
@@ -177,13 +178,14 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::reduction";
-        f.args = {Parameter(input), Parameter(output)};
+        f.args = {Parameter(input), Parameter(output), Parameter(reduce)};
         return f;
     }
 
 protected:
     AbstractDataTypePtr input;
     AbstractDataTypePtr output;
+    Variable reduce{"reduce"};
 };
 
 }  // namespace annot

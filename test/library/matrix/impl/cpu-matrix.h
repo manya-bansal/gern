@@ -179,7 +179,7 @@ inline void divide_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
     }
 }
 
-inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c) {
+inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dummy) {
     float *a_data;
     float *b_data;
     float *c_data;

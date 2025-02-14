@@ -78,6 +78,7 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
     auto output_var_vec = annot.getPattern().getProducesField();
     auto interval_vars = annot.getIntervalVariables();
     std::set<Variable> output_var_set{output_var_vec.begin(), output_var_vec.end()};
+
     std::set<Variable> old_vars = getVariables(annot);
     for (const auto &v : old_vars) {
         new_vars[v] = Variable(getUniqueName(v.getName()), v.getDatatype(), v.isConstExpr());

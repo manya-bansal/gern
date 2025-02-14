@@ -95,8 +95,9 @@ private:
 
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
     util::ScopedMap<Variable, Variable> tiled_vars;
-    util::ScopedMap<Variable, Variable> parents;            // Used for splits.
+    util::ScopedMap<Expr, Variable> parents;                // Used for splits.
     util::ScopedMap<Variable, Variable> all_relationships;  // Used to track all relationships.
+    util::ScopedMap<Expr, Variable> tiled_dimensions;
 
     LowerIR lowerIR;
     Composable composable;

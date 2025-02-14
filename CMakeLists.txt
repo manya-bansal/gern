@@ -61,6 +61,8 @@ target_sources(
         include/gern/annotations/lang_nodes.h
         include/gern/annotations/rewriter_helpers.h
         include/gern/annotations/std_less_specialization.h
+        include/gern/annotations/stmt.h
+        include/gern/annotations/stmt_nodes.h
         include/gern/annotations/visitor.h
         include/gern/annotations/rewriter.h
         # includgern/e/resolve_constraints/resolve_constraints.h

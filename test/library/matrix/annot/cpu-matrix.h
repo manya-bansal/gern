@@ -253,7 +253,6 @@ public:
 
         Variable ti("ti", Datatype::Int64);
         Variable tj("tj", Datatype::Int64);
-        Variable tk("tk", Datatype::Int64);
 
         return annotate(For(i = Expr(0), ADTMember(C, "row", false), ti,
                             For(j = Expr(0), ADTMember(C, "col", false), tj,
@@ -269,7 +268,7 @@ public:
     FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::matrix_multiply";
-        f.args = {Parameter(A), Parameter(B), Parameter(C)};
+        f.args = {Parameter(A), Parameter(B), Parameter(C), tk};
         return f;
     }
 
@@ -283,6 +282,7 @@ private:
     AbstractDataTypePtr A;
     AbstractDataTypePtr B;
     AbstractDataTypePtr C;
+    Variable tk{"tk", Datatype::Int64};
 };
 
 }  // namespace annot
