@@ -82,7 +82,7 @@ public:
 
 class TiledComputation : public ComposableNode {
 public:
-    TiledComputation(ADTMember member,
+    TiledComputation(Expr to_tile,
                      Variable v,
                      Composable body,
                      Grid::Unit unit,
@@ -93,14 +93,14 @@ public:
 
     void init_binding();
 
-    ADTMember adt_member;  // The field that the user wants to tile.
-    Variable v;            // The variable that the user will set to concretize the tile
-                           // parameter for the computation.
+    Expr to_tile;  // The field that the user wants to tile.
+    Variable v;    // The variable that the user will set to concretize the tile
+                   // parameter for the computation.
     Composable tiled;
     Variable captured;
     Variable loop_index;  // New loop index.
     Expr start;
-    ADTMember end;
+    Expr parameter;
     Variable step;
     Annotation _annotation;
     std::map<Variable, Variable> old_to_new;
@@ -110,9 +110,9 @@ public:
 
 // This class only exists for the overload.
 struct TileDummy {
-    TileDummy(ADTMember member, Variable v,
+    TileDummy(Expr to_tile, Variable v,
               bool reduce)
-        : member(member), v(v), reduce(reduce) {
+        : to_tile(to_tile), v(v), reduce(reduce) {
     }
 
     Composable operator()(Composable c);
@@ -131,14 +131,14 @@ struct TileDummy {
     }
 
     TileDummy operator||(Grid::Unit p);
-    ADTMember member;
+    Expr to_tile;
     Variable v;
     bool reduce;
     Grid::Unit unit{Grid::Unit::UNDEFINED};
 };
 
-TileDummy Tile(ADTMember member, Variable v);
-TileDummy Reduce(ADTMember member, Variable v);
+TileDummy Tile(Expr tileable, Variable v);
+TileDummy Reduce(Expr tileable, Variable v);
 
 template<typename E>
 inline bool isa(const ComposableNode *e) {

@@ -136,12 +136,12 @@ void TiledComputation::accept(ComposableVisitorStrict *v) const {
     v->visit(this);
 }
 
-TiledComputation::TiledComputation(ADTMember adt_member,
+TiledComputation::TiledComputation(Expr to_tile,
                                    Variable v,
                                    Composable tiled,
                                    Grid::Unit unit,
                                    bool reduce)
-    : adt_member(adt_member),
+    : to_tile(to_tile),
       v(v),
       tiled(tiled),
       unit(unit),
@@ -164,10 +164,7 @@ void TiledComputation::init_binding() {
     SubsetObj output_subset = pattern.getOutput();
     AbstractDataTypePtr adt = output_subset.getDS();
 
-    std::string field_to_find = adt_member.getMember();
-    AbstractDataTypePtr ds = adt_member.getDS();
-
-    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> loops;
+    std::map<Expr, std::tuple<Variable, Expr, Variable>> loops;
 
     if (reduce) {
         loops = pattern.getReducableFields();
@@ -175,14 +172,14 @@ void TiledComputation::init_binding() {
         loops = pattern.getTileableFields();
     }
 
-    if (!loops.contains(adt_member)) {
-        throw error::UserError("Cannot tile " + adt_member.str());
+    if (!loops.contains(to_tile)) {
+        throw error::UserError("Cannot tile " + to_tile.str());
     }
 
-    auto value = loops.at(adt_member);
+    auto value = loops.at(to_tile);
     captured = std::get<0>(value);
     start = std::get<1>(value);
-    end = adt_member;
+    parameter = to_tile;
     step = std::get<2>(value);
 
     // Refresh the variable that just got mapped,
@@ -219,12 +216,13 @@ bool Composable::isDeviceLaunch() const {
     return isa<GlobalNode>(ptr);
 }
 
-TileDummy Tile(ADTMember member, Variable v) {
-    return TileDummy(member, v, false);
+TileDummy Tile(Expr tileable, Variable v) {
+    return TileDummy(tileable, v, false);
 }
 
-TileDummy Reduce(ADTMember member, Variable v) {
-    return TileDummy(member, v, true);
+TileDummy Reduce(Expr tileable, Variable v) {
+    // You are actually tiling what v was pointing to.
+    return TileDummy(tileable, v, true);
 }
 
 std::ostream &operator<<(std::ostream &os, const Composable &f) {
@@ -257,7 +255,7 @@ Composable TileDummy::operator()(Composable c) {
         }
     }
 
-    return new const TiledComputation(member, v, nested, unit, reduce);
+    return new const TiledComputation(to_tile, v, nested, unit, reduce);
 }
 
 }  // namespace gern

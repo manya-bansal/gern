@@ -2,7 +2,7 @@
 
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
-#include "annotations/visitor.h"
+#include "annotations/rewriter.h"
 #include <map>
 #include <set>
 
@@ -78,8 +78,26 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
     auto output_var_vec = annot.getPattern().getProducesField();
     auto interval_vars = annot.getIntervalVariables();
     std::set<Variable> output_var_set{output_var_vec.begin(), output_var_vec.end()};
+
     std::set<Variable> old_vars = getVariables(annot);
+    std::set<Expr> to_avoid;
+
+    match(annot,
+          std::function<void(const ConsumesForNode *, Matcher *)>(
+              [&](const ConsumesForNode *op, Matcher *ctx) {
+                  to_avoid.insert(op->parameter);
+                  ctx->match(op->body);
+              }),
+          std::function<void(const ComputesForNode *op, Matcher *)>(
+              [&](const ComputesForNode *op, Matcher *ctx) {
+                  to_avoid.insert(op->parameter);
+                  ctx->match(op->body);
+              }));
+
     for (const auto &v : old_vars) {
+        if (to_avoid.contains(v)) {
+            continue;
+        }
         new_vars[v] = Variable(getUniqueName(v.getName()), v.getDatatype(), v.isConstExpr());
     }
     return replaceVariables(annot, new_vars);

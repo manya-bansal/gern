@@ -114,9 +114,9 @@ LowerIR ComposableLower::generate_constraints(std::vector<Constraint> constraint
     return new const BlockNode(lowered);
 }
 
-template<typename T1>
+template<typename T1, typename T2>
 static T1 getFirstValue(const util::ScopedMap<T1, T1> &rel,
-                        const util::ScopedMap<T1, T1> &map,
+                        const util::ScopedMap<T2, T1> &map,
                         T1 entry) {
     while (rel.contains(entry)) {  // While we have the entry, go find it.
         if (map.contains(entry)) {
@@ -143,6 +143,7 @@ void ComposableLower::lower(const TiledComputation *node) {
     parents.scope();
     tiled_vars.scope();
     all_relationships.scope();
+    tiled_dimensions.scope();
 
     // Track all the relationships.
     for (const auto &var : old_to_new) {
@@ -150,6 +151,8 @@ void ComposableLower::lower(const TiledComputation *node) {
     }
 
     parents.insert(captured, node->v);
+    tiled_dimensions.insert(node->parameter, node->v);
+
     tiled_vars.insert(captured, loop_index);
 
     this->visit(node->tiled);  // Visit the actual object.
@@ -157,12 +160,13 @@ void ComposableLower::lower(const TiledComputation *node) {
     all_relationships.unscope();
     parents.unscope();
     tiled_vars.unscope();
+    tiled_dimensions.unscope();
 
     Variable step_val = getFirstValue(all_relationships, parents, loop_index);
     bool has_parent = step_val.defined();
     lowerIR = new const IntervalNode(
         has_parent ? (loop_index = Expr(0)) : (loop_index = node->start),
-        has_parent ? step_val : Expr(node->end),
+        has_parent ? step_val : Expr(node->parameter),
         node->v,
         lowerIR,
         node->unit);
@@ -326,13 +330,31 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         if (isa<DSArg>(arg) &&
             current_ds.contains(to<DSArg>(arg)->getADTPtr())) {
             new_args.push_back(Argument(current_ds.at(to<DSArg>(arg)->getADTPtr())));
+        } else if (isa<VarArg>(arg)) {
+            // Do we have a value floating around?
+            if (tiled_dimensions.contains(to<VarArg>(arg)->getVar())) {
+                new_args.push_back(Argument(tiled_dimensions.at(to<VarArg>(arg)->getVar())));
+            } else {
+                new_args.push_back(Argument(to<VarArg>(arg)->getVar()));
+            }
         } else {
-            new_args.push_back(arg);
+            throw error::InternalError("Unknown argument type: " + arg.str());
+        }
+    }
+
+    std::vector<Expr> new_template_args;
+    auto template_args = call.template_args;
+    for (const auto &arg : template_args) {
+        if (tiled_dimensions.contains(arg)) {
+            new_template_args.push_back(tiled_dimensions.at(arg));
+        } else {
+            new_template_args.push_back(arg);
         }
     }
 
     FunctionCall new_call = call;
     new_call.args = new_args;
+    new_call.template_args = new_template_args;
 
     lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
     // Free any the queried subsets.
@@ -463,7 +485,7 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                                       generate_definitions(op->step = step_val));
                               } else {
                                   lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = op->end));
+                                                 generate_definitions(op->step = op->parameter));
                               }
                           }));
     return new const BlockNode(lowered);
@@ -488,7 +510,7 @@ LowerIR ComposableLower::declare_consumes(Pattern annotation) const {
                                       generate_definitions(op->step = step_val));
                               } else {
                                   lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = op->end));
+                                                 generate_definitions(op->step = op->parameter));
                               }
                           }));
     return new const BlockNode(lowered);
