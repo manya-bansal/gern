@@ -28,11 +28,11 @@ TEST(LoweringCPU, MatrixCPUAdd) {
     run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
 
     int64_t row_val = 10;
-    int64_t col_val = 10;
+    int64_t col_val = 20;
 
-    impl::MatrixCPU a(row_val, col_val, row_val);
+    impl::MatrixCPU a(row_val, col_val, col_val);
     a.vvals(2.0f);
-    impl::MatrixCPU b(row_val, col_val, row_val);
+    impl::MatrixCPU b(row_val, col_val, col_val);
 
     int64_t l_x_val = 5;
     int64_t l_y_val = 5;
