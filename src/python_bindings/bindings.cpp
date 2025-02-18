@@ -93,18 +93,33 @@ PYBIND11_MODULE(gern_py, m) {
 	// 	.def(py::init<>());
 
 
-	m.def("MatrixAddCPU", [](AbstractDataTypePtr in, AbstractDataTypePtr out){
+	m.def("MatrixAddCPU", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
 		annot::MatrixAddCPU add;
+		if (!replacements.empty()) {
+			add[replacements];
+		}
 		return add(in, out);
-	});
+	}, py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+
+	m.def("MatrixSoftmax", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
+		annot::MatrixSoftmax softmax;
+		if (!replacements.empty()) {
+			softmax[replacements];
+		}
+		return softmax(in, out);
+	}, py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
 
 	py::class_<impl::MatrixCPU>(m, "MatrixCPU")
+		.def("init", [](uintptr_t ptr, int64_t row, int64_t col, int64_t lda){
+			float* data = reinterpret_cast<float*>(ptr);
+			return new impl::MatrixCPU(data, row, col, lda);
+		}, py::return_value_policy::reference)
 		.def("init", [](int64_t row, int64_t col, int64_t lda){
 			auto mat = new impl::MatrixCPU(row, col, lda);
 			return mat;
 		}, py::return_value_policy::reference)
 		.def("vvals", &impl::MatrixCPU::vvals)
-		.def("random_fill", &impl::MatrixCPU::random_fill)
+		.def("random_fill", &impl::MatrixCPU::random_fill, py::arg("min") = 0.0f, py::arg("max") = 1.0f)
 		.def("ascending", &impl::MatrixCPU::ascending)
 		.def("__repr__", [](const impl::MatrixCPU &obj) {
             std::ostringstream oss;
