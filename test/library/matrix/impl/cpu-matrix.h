@@ -8,6 +8,8 @@
 #include <limits>
 #include <random>
 #include <stdlib.h>
+#include <immintrin.h>
+
 
 namespace gern {
 namespace impl {
@@ -193,7 +195,31 @@ inline void divide_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
     }
 }
 
+
+#ifdef __AVX__
+inline void matrix_multiply_intrinsics(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dummy) {
+    int N = c.row, M = c.col, K = k_dummy;
+    constexpr int64_t vector_size = 16;
+
+    for (int k = 0; k < K; k++)
+    for (int i = 0; i < N; i++){
+        __m512 a_vec = _mm512_set1_ps(a.data[i*a.lda + k]);
+        for (int j = 0; j < M; j += vector_size) {
+            __m512 b_vec = _mm512_loadu_ps(&b.data[k*b.lda + j]);
+            __m512 c_vec = _mm512_loadu_ps(&c.data[i*c.lda + j]);
+            c_vec = _mm512_fmadd_ps(a_vec, b_vec, c_vec);
+            _mm512_storeu_ps(&c.data[i*c.lda + j], c_vec);
+        }
+    }
+}
+#endif
+
 inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dummy) {
+    // #ifdef __AVX__
+    // matrix_multiply_intrinsics(a, b, c, k_dummy);
+    // return;
+    // #endif
+
     float *a_data;
     float *b_data;
     float *c_data;

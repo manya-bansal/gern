@@ -1,7 +1,10 @@
 find_package(GTest REQUIRED)
 include(GoogleTest)
 
+find_package(OpenBLAS REQUIRED)
+
 add_executable(gern_test)
+add_executable(gern_benchmark)
 
 set(LIB_HEADERS
     library/array/annot/cpu-array.h
@@ -78,9 +81,24 @@ target_sources(
        ${LIB_HEADERS} 
 )
 
+target_sources(
+    gern_benchmark
+    PRIVATE
+        benchmark.cpp
+    PRIVATE
+    FILE_SET HEADERS
+    FILES
+       test-utils.h
+       ${LIB_HEADERS} 
+)
+
+target_compile_options(gern_benchmark PRIVATE -O3 -march=native)
+
 include_directories(${PROJECT_BINARY_DIR}/test)
 target_link_libraries(gern_test PRIVATE Gern::Gern GTest::gtest_main)
 # target_link_libraries(gern_test PRIVATE ginac::ginac)
+
+target_link_libraries(gern_benchmark PRIVATE Gern::Gern OpenBLAS::OpenBLAS)
 
 if (DEFINED Gern_CUDA_ARCH)
     target_link_libraries(gern_test PRIVATE CUDA::cudart -lrt)

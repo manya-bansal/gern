@@ -10,7 +10,7 @@
     "dev": {
       "description": "Build settings intended for developers",
       "dependencies": [
-        "gtest"
+        "gtest", "openblas"
       ]
     }
   }
