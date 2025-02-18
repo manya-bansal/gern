@@ -82,11 +82,38 @@ target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
 target_compile_features(Gern_Gern PUBLIC cxx_std_20)
 target_link_libraries(Gern_Gern PRIVATE ${CMAKE_DL_LIBS})
 
+configure_file(
+    "test/config.h.in"
+    "test/config.h"
+)
 include_directories(/Users/maggie/.pyenv/versions/3.12.5/lib/python3.12/site-packages/pybind11/include)
+include_directories(/Users/maggie/school/gern/include/gern)
+include_directories(/Users/maggie/school/gern/test)
 set(pybind11_DIR /Users/maggie/.pyenv/versions/3.12.5/lib/python3.12/site-packages/pybind11/share/cmake/pybind11)
 find_package(pybind11 REQUIRED)
-pybind11_add_module(gern_py src/python_bindings/bindings.cpp)
+pybind11_add_module(gern_py
+    src/python_bindings/bindings.cpp
+    src/annotations/abstract_function.cpp
+    src/annotations/argument.cpp
+    src/annotations/argument_visitor.cpp
+    src/annotations/data_dependency_language.cpp
+    src/annotations/datatypes.cpp
+    src/annotations/grid.cpp
+    src/annotations/lang_nodes.cpp
+    src/annotations/visitor.cpp
+    src/compose/compose.cpp
+    src/compose/composable.cpp
+    src/compose/composable_visitor.cpp
+    src/codegen/codegen.cpp
+    src/codegen/codegen_ir.cpp
+    src/codegen/codegen_printer.cpp
+    src/codegen/lower.cpp
+    src/codegen/lower_visitor.cpp
+    src/codegen/runner.cpp
+    # src/resolve_constraints/resolve_constraints.cpp
+    src/utils/name_generator.cpp)
 set_target_properties(gern_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY "../../python")
+target_compile_features(gern_py PUBLIC cxx_std_20)
 
 ##
 # Testing
