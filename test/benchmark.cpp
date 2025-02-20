@@ -9,7 +9,7 @@
 
 using namespace gern;
 
-static void basic_mm(impl::MatrixCPU a, impl::MatrixCPU b, impl::MatrixCPU c) {
+static void basic_mm(impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) {
     int64_t N = c.row, M = c.col, K = a.col;
     
     for (int64_t i = 0; i < N; ++i)
@@ -18,7 +18,7 @@ static void basic_mm(impl::MatrixCPU a, impl::MatrixCPU b, impl::MatrixCPU c) {
         c.data[i*c.lda + j] += a.data[i*a.lda + k] * b.data[k*b.lda + j];
 }
 
-static void open_blas_mm(impl::MatrixCPU a, impl::MatrixCPU b, impl::MatrixCPU c) {
+static void open_blas_mm(impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) {
     int64_t N = c.row, M = c.col, K = a.col;
 
     cblas_sgemm(
@@ -34,7 +34,7 @@ static void open_blas_mm(impl::MatrixCPU a, impl::MatrixCPU b, impl::MatrixCPU c
     );
 }
 
-static std::function<void(impl::MatrixCPU, impl::MatrixCPU, impl::MatrixCPU)> get_gern_basic_tiling() {
+static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU &)> get_gern_basic_tiling() {
     auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
     auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
     auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
@@ -64,7 +64,7 @@ static std::function<void(impl::MatrixCPU, impl::MatrixCPU, impl::MatrixCPU)> ge
         tj_name = tj.getName(),
         k_name = k.getName(),
         k_dim_name = k_dim.getName()
-    ] (impl::MatrixCPU a, impl::MatrixCPU b, impl::MatrixCPU c) mutable {
+    ] (impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) mutable {
         int64_t K = a.col;
         int64_t tile_size = 128;
 
@@ -81,7 +81,7 @@ static std::function<void(impl::MatrixCPU, impl::MatrixCPU, impl::MatrixCPU)> ge
 }
 
 
-static std::function<void(impl::MatrixCPU, impl::MatrixCPU, impl::MatrixCPU)> get_gern_double_tiling() {
+static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU &)> get_gern_double_tiling() {
     
     auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
     auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
@@ -120,7 +120,7 @@ static std::function<void(impl::MatrixCPU, impl::MatrixCPU, impl::MatrixCPU)> ge
         k_name = k.getName(),
         k_2_name = k_2.getName(),
         k_dim_name = k_dim.getName()
-    ] (impl::MatrixCPU a, impl::MatrixCPU b, impl::MatrixCPU c) mutable {
+    ] (impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) mutable {
         int64_t K = a.col;
 
         int64_t tile_size = 128;
@@ -141,7 +141,54 @@ static std::function<void(impl::MatrixCPU, impl::MatrixCPU, impl::MatrixCPU)> ge
     };
 }
 
-static std::function<void(impl::MatrixCPU, impl::MatrixCPU, impl::MatrixCPU)> get_gern_complex() {
+static std::function<void(impl::MatrixCPUPack &, impl::MatrixCPUPack &, impl::MatrixCPU &)> get_gern_packed() {
+    auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPUPack("A"));
+    auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPUPack("B"));
+    auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
+
+    annot::MatrixMultiplyCPUPacked matrix_multiply;
+    Variable ti("ti");
+    Variable tj("tj");
+    Variable k("k");
+    Variable k_dim("k_dim");
+
+    Composable program = {
+        (Tile(C_DS["row"], ti))(
+            (Reduce(k_dim, k))(
+            Tile(C_DS["col"], tj)(
+                    matrix_multiply(A_DS, B_DS, C_DS, k_dim))))
+    };
+
+    Runner run(program);
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+
+    return [
+        run,
+        A_name = A_DS.getName(),
+        B_name = B_DS.getName(),
+        C_name = C_DS.getName(),
+        ti_name = ti.getName(),
+        tj_name = tj.getName(),
+        k_name = k.getName(),
+        k_dim_name = k_dim.getName()
+    ] (impl::MatrixCPUPack &a, impl::MatrixCPUPack &b, impl::MatrixCPU &c) mutable {
+        int64_t K = a.col;
+        int64_t tile_size = 128;
+
+        run.evaluate({
+            {A_name, &a},
+            {B_name, &b},
+            {C_name, &c},
+            {ti_name, &tile_size},
+            {tj_name, &tile_size},
+            {k_name, &tile_size},
+            {k_dim_name, &K},
+        });
+    };
+}
+
+
+static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU &)> get_gern_complex() {
     auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
     auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
     auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
@@ -207,7 +254,7 @@ static std::function<void(impl::MatrixCPU, impl::MatrixCPU, impl::MatrixCPU)> ge
         tk_name = tk.getName(),
         inner_k_name = inner_k.getName(),
         k_dim_name = k_dim.getName()
-    ] (impl::MatrixCPU a, impl::MatrixCPU b, impl::MatrixCPU c) mutable {
+    ] (impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) mutable {
         int64_t N = a.row, M = b.col, K = a.col;
 
         int64_t ti_val = 128;
@@ -245,7 +292,7 @@ void pack(impl::MatrixCPU a, float *res) {
     }
 }
 
-void tiled_packed_mult(impl::MatrixCPU a, impl::MatrixCPU b, impl::MatrixCPU c) {
+void tiled_packed_mult(impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) {
     constexpr int64_t tile_size = 128;
 
     assert(a.row % tile_size == 0 && a.col % tile_size == 0 && c.col % tile_size == 0);
@@ -268,9 +315,9 @@ void tiled_packed_mult(impl::MatrixCPU a, impl::MatrixCPU b, impl::MatrixCPU c) 
 }
 
 
-
-static void run_function(std::function<void(impl::MatrixCPU, impl::MatrixCPU, impl::MatrixCPU)> func, std::string func_name, bool warmup, int64_t samples, int64_t iterations,
-impl::MatrixCPU a, impl::MatrixCPU b, impl::MatrixCPU c, bool check_res, impl::MatrixCPU res) {
+template <typename InputType, typename ResType>
+static void run_function(std::function<void(InputType &, InputType &, ResType &)> func, std::string func_name, bool warmup, int64_t samples, int64_t iterations,
+InputType &a, InputType &b, ResType &c, bool check_res, ResType res) {
  
     if (warmup) {
         c.vvals(0);
@@ -307,15 +354,21 @@ int main() {
 
 
     int64_t n = 2 * 1024, m = 2 * 1024, k = 2 * 1024;
+    
     impl::MatrixCPU a{n, k, k}, b{k, m, m}, c{n, m, m}, res{n, m, m};
+    impl::MatrixCPUPack a_packed{n, k, k}, b_packed{k, m, m};
+
     
     a.random_fill();
     b.random_fill();
+    std::copy(a.data, a.data + n*k, a_packed.data);
+    std::copy(b.data, b.data + k*m, b_packed.data);
 
     // run_function(basic_mm, "basic_mm", false, 1, 1, a, b, res, false, c);
-    run_function(open_blas_mm, "open_blas_mm", true, 1, 1, a, b, res, false, c);
-    run_function(tiled_packed_mult, "tiled_packed_mult", true, 1, 1, a, b, c, true, res);
-    run_function(get_gern_basic_tiling(), "gern_basic_tiling", true, 1, 1, a, b, c, true, res);
+    run_function<impl::MatrixCPU, impl::MatrixCPU>(open_blas_mm, "open_blas_mm", true, 1, 1, a, b, res, false, c);
+    run_function<impl::MatrixCPU, impl::MatrixCPU>(tiled_packed_mult, "tiled_packed_mult", true, 1, 1, a, b, c, true, res);
+    // run_function<impl::MatrixCPU, impl::MatrixCPU>(get_gern_basic_tiling(), "gern_basic_tiling", true, 1, 1, a, b, c, true, res);
     run_function(get_gern_double_tiling(), "gern_double_tiling", true, 1, 1, a, b, c, true, res);
-    run_function(get_gern_complex(), "gern_complex", true, 1, 1, a, b, c, true, res);
+    run_function<impl::MatrixCPUPack, impl::MatrixCPU>(get_gern_packed(), "gern_packed", true, 1, 1, a_packed, b_packed, c, true, res);
+    // run_function(get_gern_complex(), "gern_complex", true, 1, 1, a, b, c, true, res);
 }

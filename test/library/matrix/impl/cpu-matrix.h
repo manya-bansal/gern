@@ -106,6 +106,42 @@ public:
     int64_t lda;
 };
 
+class MatrixCPUPack : public MatrixCPU {
+    MatrixCPUPack(float *data, int64_t row, int64_t col, int64_t lda) : MatrixCPU(data, row, col, lda) {}
+
+public:
+    MatrixCPUPack(int64_t row, int64_t col, int64_t lda) : MatrixCPU(row, col, lda) {}
+
+    MatrixCPUPack query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
+        float *new_data = (float *)malloc(sizeof(float) * l_x * l_y);
+        MatrixCPUPack res{new_data, l_x, l_y, l_y};
+        
+        for (int i = x; i < x + l_x; ++i) {
+            std::copy(this->data + i * this->lda + y, this->data + i * this->lda + y + l_y, new_data);
+            new_data += l_y;
+        }
+        return res;
+    }
+
+    static MatrixCPUPack allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
+        return MatrixCPUPack(l_x, l_y, l_y);
+    }
+
+
+    void destroy() {
+        free(data);
+        data = nullptr;
+    }
+
+    ~MatrixCPUPack() {
+        free(data);
+    }
+    MatrixCPUPack(const MatrixCPUPack &other) = delete;
+    MatrixCPUPack &operator=(const MatrixCPUPack &other) = delete;
+    MatrixCPUPack(MatrixCPUPack &&other) = default;
+    MatrixCPUPack &operator=(MatrixCPUPack &&other) = default;
+};
+
 [[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const MatrixCPU &m) {
     float *data_tmp;
     os << "["
@@ -196,30 +232,32 @@ inline void divide_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
 }
 
 
-#ifdef __AVX__
-inline void matrix_multiply_intrinsics(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dummy) {
+inline void matrix_multiply_packed(MatrixCPUPack &a, MatrixCPUPack &b, MatrixCPU &c, int64_t k_dummy) {
     int N = c.row, M = c.col, K = k_dummy;
-    constexpr int64_t vector_size = 16;
+    // int N = 128, M = 128, K = 128;
 
     for (int k = 0; k < K; k++)
-    for (int i = 0; i < N; i++){
-        __m512 a_vec = _mm512_set1_ps(a.data[i*a.lda + k]);
-        for (int j = 0; j < M; j += vector_size) {
-            __m512 b_vec = _mm512_loadu_ps(&b.data[k*b.lda + j]);
-            __m512 c_vec = _mm512_loadu_ps(&c.data[i*c.lda + j]);
-            c_vec = _mm512_fmadd_ps(a_vec, b_vec, c_vec);
-            _mm512_storeu_ps(&c.data[i*c.lda + j], c_vec);
-        }
+    for (int i = 0; i < N; i++)
+    for (int j = 0; j < M; ++j) {
+        c.data[i*c.lda + j] += a.data[i*a.lda + k] * b.data[k*b.lda + j];
     }
+
+
+    // constexpr int64_t vector_size = 16;
+
+    // for (int k = 0; k < K; k++)
+    // for (int i = 0; i < N; i++){
+    //     __m512 a_vec = _mm512_set1_ps(a.data[i*a.lda + k]);
+    //     for (int j = 0; j < M; j += vector_size) {
+    //         __m512 b_vec = _mm512_loadu_ps(&b.data[k*b.lda + j]);
+    //         __m512 c_vec = _mm512_loadu_ps(&c.data[i*c.lda + j]);
+    //         c_vec = _mm512_fmadd_ps(a_vec, b_vec, c_vec);
+    //         _mm512_storeu_ps(&c.data[i*c.lda + j], c_vec);
+    //     }
+    // }
 }
-#endif
 
-inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dummy) {
-    // #ifdef __AVX__
-    // matrix_multiply_intrinsics(a, b, c, k_dummy);
-    // return;
-    // #endif
-
+inline void matrix_multiply(MatrixCPU &a, MatrixCPU &b, MatrixCPU &c, int64_t k_dummy) {
     float *a_data;
     float *b_data;
     float *c_data;
@@ -236,6 +274,8 @@ inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dum
         }
     }
 }
+
+
 
 }  // namespace impl
 }  // namespace gern

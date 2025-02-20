@@ -54,10 +54,6 @@ public:
         };
     }
 
-    bool insertQuery() const override {
-        return true;
-    }
-
 protected:
     std::string name;
     Variable x{"x"};
@@ -66,15 +62,20 @@ protected:
     Variable l_y{"l_y"};
 };
 
-class MatrixCPUZero : public MatrixCPU {
+class MatrixCPUPack : public MatrixCPU {
 public:
-    MatrixCPUZero(const std::string &name)
+    MatrixCPUPack(const std::string &name)
         : MatrixCPU(name) {
     }
-
+    MatrixCPUPack()
+        : MatrixCPU("test") {
+    }
+    std::string getType() const override {
+        return "gern::impl::MatrixCPUPack";
+    }
     FunctionSignature getAllocateFunction() const override {
         return FunctionSignature{
-            .name = "gern::impl::MatrixCPU::allocate_zero",
+            .name = "gern::impl::MatrixCPUPack::allocate",
             .args = {x, y, l_x, l_y},
         };
     }
@@ -297,12 +298,30 @@ public:
         };
     }
 
-private:
+protected:
     AbstractDataTypePtr A;
     AbstractDataTypePtr B;
     AbstractDataTypePtr C;
     Variable k_dim{"k_dim", Datatype::Int64};
+
+    MatrixMultiplyCPU(AbstractDataTypePtr A, AbstractDataTypePtr B, AbstractDataTypePtr C)
+        : A(A), B(B), C(C) {
+    }
 };
+
+class MatrixMultiplyCPUPacked : public MatrixMultiplyCPU {
+public:
+    MatrixMultiplyCPUPacked()
+        : MatrixMultiplyCPU(AbstractDataTypePtr(new const MatrixCPUPack("A")), AbstractDataTypePtr(new const MatrixCPUPack("B")), AbstractDataTypePtr(new const MatrixCPU("C"))) {}
+
+    FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::matrix_multiply_packed";
+        f.args = {Parameter(A), Parameter(B), Parameter(C), k_dim};
+        return f;
+    }
+};
+
 
 }  // namespace annot
 }  // namespace gern
