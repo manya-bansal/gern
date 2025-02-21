@@ -39,7 +39,7 @@ public:
     int64_t row;
     int64_t col;
     
-    float *data() const {
+    float *data() {
         return m_data;
     }
 
@@ -88,11 +88,11 @@ public:
     int64_t row = L_X;
     int64_t col = L_Y;
 
-    float *data() const {
+    float *data() {
         return m_data;
     }
 
-    static MatrixTemplated allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
+    static MatrixTemplated allocate(int64_t, int64_t, int64_t, int64_t) {
         return MatrixTemplated();
     }
     float &get(int64_t x, int64_t y) {
@@ -168,12 +168,12 @@ public:
 
     template<int64_t L_X, int64_t L_Y>
     MatrixTemplated<L_X, L_Y> query(int64_t x, int64_t y) {
-        MatrixTemplated<L_X, L_Y> res{};
+        auto res = MatrixTemplated<L_X, L_Y>::allocate(0, 0, 0, 0);
         for (int64_t i = 0; i < L_X; ++i) {
             std::copy(
                 &this->get(x + i, y),
                 &this->get(x + i, y + L_Y),
-                &res->get(i, 0));
+                &res.get(i, 0));
         }
         return res;
     }
@@ -182,23 +182,31 @@ public:
     void insert(int64_t x, int64_t y, MatrixTemplated<L_X, L_Y> to_insert) {
         for (int64_t i = 0; i < L_X; ++i) {
             std::copy(
-                &to_insert->get(i, 0),
-                &to_insert->get(i, L_Y),
+                &to_insert.get(i, 0),
+                &to_insert.get(i, L_Y),
                 &this->get(x + i, y));
         }
     }
 };
 
-template <MatrixType T>
-void matrix_multiply(T &a, T &b, T &c, int64_t k_dim) {
+template <int64_t N, int64_t M, int64_t K, typename T>
+void matrix_multiply_templated(MatrixTemplated<N, K> &a, MatrixTemplated<K, M> &b, T &c, int64_t) {    
+    for (int64_t i = 0; i < N; ++i)
+    for (int64_t k = 0; k < K; ++k)
+    for (int64_t j = 0; j < M; ++j)
+        c.get(i, j) += a.get(i, k)* b.get(k, j);
+}
+
+template <MatrixType T1, MatrixType T2, MatrixType T3>
+void matrix_multiply_generic(T1 &a, T2 &b, T3 &c, int64_t k_dim) {
     int64_t N = c.row, M = c.col, K = k_dim;
     
     for (int64_t k = 0; k < K; ++k)
     for (int64_t i = 0; i < N; ++i)
     for (int64_t j = 0; j < M; ++j)
         c.get(i, j) += a.get(i, k)* b.get(k, j);
-
 }
+
 
 }  // namespace impl
 }  // namespace gern

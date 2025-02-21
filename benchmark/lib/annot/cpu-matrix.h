@@ -110,13 +110,13 @@ public:
 };
 
 
-template <typename MatrixType>
-class MatrixMultiplyCPU : public AbstractFunction {
+template <typename T1, typename T2, typename T3>
+class MatrixMultiplyGeneric : public AbstractFunction {
 public:
-    MatrixMultiplyCPU()
-        : A(new const MatrixType("A")),
-          B(new const MatrixType("B")),
-          C(new const MatrixType("C")) {
+    MatrixMultiplyGeneric()
+        : A(new const T1("A")),
+          B(new const T2("B")),
+          C(new const T3("C")) {
     }
 
     Annotation getAnnotation() override {
@@ -141,7 +141,7 @@ public:
 
     FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::matrix_multiply";
+        f.name = "gern::impl::matrix_multiply_generic";
         f.args = {Parameter(A), Parameter(B), Parameter(C), k_dim};
         return f;
     }
@@ -158,8 +158,20 @@ protected:
     AbstractDataTypePtr C;
     Variable k_dim{"k_dim", Datatype::Int64};
 
-    MatrixMultiplyCPU(AbstractDataTypePtr A, AbstractDataTypePtr B, AbstractDataTypePtr C)
-        : A(A), B(B), C(C) {
+    MatrixMultiplyGeneric(AbstractDataTypePtr A, AbstractDataTypePtr B, AbstractDataTypePtr C)
+        : A(A), B(B), C(C) {}
+};
+
+template <int64_t N, int64_t M, int64_t K, typename T>
+class MatrixMultiplyTemplated : public MatrixMultiplyGeneric<MatrixTemplated<N, M>, MatrixTemplated<M, K>, T> {
+public:
+    MatrixMultiplyTemplated() : MatrixMultiplyGeneric<MatrixTemplated<N, M>, MatrixTemplated<M, K>, T>() {}
+
+    FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::matrix_multiply_templated";
+        f.args = {Parameter(this->A), Parameter(this->B), Parameter(this->C), this->k_dim};
+        return f;
     }
 };
 
