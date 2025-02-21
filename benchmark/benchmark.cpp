@@ -7,16 +7,18 @@
 
 using namespace gern;
 
-static void basic_mm(impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) {
+template <impl::MatrixType T>
+static void basic_mm(T &a, T &b, T &c) {
     int64_t N = c.row, M = c.col, K = a.col;
     
     for (int64_t i = 0; i < N; ++i)
     for (int64_t j = 0; j < M; ++j)
     for (int64_t k = 0; k < K; ++k)
-        c.data[i*c.lda + j] += a.data[i*a.lda + k] * b.data[k*b.lda + j];
+        c.get(i, j) += a.get(i, k)* b.get(k, j);
 }
 
-static void open_blas_mm(impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) {
+template <impl::MatrixType T>
+static void open_blas_mm(T &a, T &b, T &c) {
     int64_t N = c.row, M = c.col, K = a.col;
 
     cblas_sgemm(
@@ -25,67 +27,67 @@ static void open_blas_mm(impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU
         CblasNoTrans,
         N, M, K,
         1,
-        a.data, K,
-        b.data, M,
+        a.data(), K,
+        b.data(), M,
         1,
-        c.data, M
+        c.data(), M
     );
 }
 
-static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU &)> get_gern_basic_tiling() {
-    auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
-    auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
-    auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
+// static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU &)> get_gern_basic_tiling() {
+//     auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
+//     auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
+//     auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
 
-    annot::MatrixMultiplyCPU matrix_multiply;
-    Variable ti("ti");
-    Variable tj("tj");
-    Variable k("k");
-    Variable k_dim("k_dim");
+//     annot::MatrixMultiplyCPU matrix_multiply;
+//     Variable ti("ti");
+//     Variable tj("tj");
+//     Variable k("k");
+//     Variable k_dim("k_dim");
 
-    Composable program = {
-        (Tile(C_DS["row"], ti))(
-            Tile(C_DS["col"], tj)(
-                (Reduce(k_dim, k))(
-                    matrix_multiply(A_DS, B_DS, C_DS, k_dim))))
-    };
+//     Composable program = {
+//         (Tile(C_DS["row"], ti))(
+//             Tile(C_DS["col"], tj)(
+//                 (Reduce(k_dim, k))(
+//                     matrix_multiply(A_DS, B_DS, C_DS, k_dim))))
+//     };
 
-    Runner run(program);
-    run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
+//     Runner run(program);
+//     run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
 
-    return [
-        run,
-        A_name = A_DS.getName(),
-        B_name = B_DS.getName(),
-        C_name = C_DS.getName(),
-        ti_name = ti.getName(),
-        tj_name = tj.getName(),
-        k_name = k.getName(),
-        k_dim_name = k_dim.getName()
-    ] (impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) mutable {
-        int64_t K = a.col;
-        int64_t tile_size = 128;
+//     return [
+//         run,
+//         A_name = A_DS.getName(),
+//         B_name = B_DS.getName(),
+//         C_name = C_DS.getName(),
+//         ti_name = ti.getName(),
+//         tj_name = tj.getName(),
+//         k_name = k.getName(),
+//         k_dim_name = k_dim.getName()
+//     ] (impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) mutable {
+//         int64_t K = a.col;
+//         int64_t tile_size = 128;
 
-        run.evaluate({
-            {A_name, &a},
-            {B_name, &b},
-            {C_name, &c},
-            {ti_name, &tile_size},
-            {tj_name, &tile_size},
-            {k_name, &tile_size},
-            {k_dim_name, &K},
-        });
-    };
-}
+//         run.evaluate({
+//             {A_name, &a},
+//             {B_name, &b},
+//             {C_name, &c},
+//             {ti_name, &tile_size},
+//             {tj_name, &tile_size},
+//             {k_name, &tile_size},
+//             {k_dim_name, &K},
+//         });
+//     };
+// }
 
 
-static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU &)> get_gern_double_tiling() {
+static std::function<void(impl::MatrixViewBasic &, impl::MatrixViewBasic &, impl::MatrixViewBasic &)> get_gern_double_tiling() {
     
-    auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
-    auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
-    auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
+    auto A_DS = AbstractDataTypePtr(new const annot::MatrixViewBasic("A"));
+    auto B_DS = AbstractDataTypePtr(new const annot::MatrixViewBasic("B"));
+    auto C_DS = AbstractDataTypePtr(new const annot::MatrixViewBasic("C"));
 
-    annot::MatrixMultiplyCPU matrix_multiply;
+    annot::MatrixMultiplyCPU<annot::MatrixViewBasic> matrix_multiply;
     Variable ti("ti");
     Variable ti_2("ti_2");
     Variable tj("tj");
@@ -104,7 +106,7 @@ static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU 
                                 matrix_multiply(A_DS, B_DS, C_DS, k_dim)))))))};
 
     Runner run(program);
-    run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
+    run.compile(benchmark::cpuRunner());
 
     return [
         run,
@@ -118,7 +120,7 @@ static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU 
         k_name = k.getName(),
         k_2_name = k_2.getName(),
         k_dim_name = k_dim.getName()
-    ] (impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) mutable {
+    ] (impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c) mutable {
         int64_t K = a.col;
 
         int64_t tile_size = 128;
@@ -139,158 +141,157 @@ static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU 
     };
 }
 
-static std::function<void(impl::MatrixCPUPack &, impl::MatrixCPUPack &, impl::MatrixCPU &)> get_gern_packed() {
-    auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPUPack("A"));
-    auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPUPack("B"));
-    auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
+// static std::function<void(impl::MatrixCPUPack &, impl::MatrixCPUPack &, impl::MatrixCPU &)> get_gern_packed() {
+//     auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPUPack("A"));
+//     auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPUPack("B"));
+//     auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
 
-    annot::MatrixMultiplyCPUPacked matrix_multiply;
-    Variable ti("ti");
-    Variable tj("tj");
-    Variable k("k");
-    Variable k_dim("k_dim");
+//     annot::MatrixMultiplyCPUPacked matrix_multiply;
+//     Variable ti("ti");
+//     Variable tj("tj");
+//     Variable k("k");
+//     Variable k_dim("k_dim");
 
-    Composable program = {
-        (Tile(C_DS["row"], ti))(
-            (Reduce(k_dim, k))(
-            Tile(C_DS["col"], tj)(
-                    matrix_multiply(A_DS, B_DS, C_DS, k_dim))))
-    };
+//     Composable program = {
+//         (Tile(C_DS["row"], ti))(
+//             (Reduce(k_dim, k))(
+//             Tile(C_DS["col"], tj)(
+//                     matrix_multiply(A_DS, B_DS, C_DS, k_dim))))
+//     };
 
-    Runner run(program);
-    run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
+//     Runner run(program);
+//     run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
 
-    return [
-        run,
-        A_name = A_DS.getName(),
-        B_name = B_DS.getName(),
-        C_name = C_DS.getName(),
-        ti_name = ti.getName(),
-        tj_name = tj.getName(),
-        k_name = k.getName(),
-        k_dim_name = k_dim.getName()
-    ] (impl::MatrixCPUPack &a, impl::MatrixCPUPack &b, impl::MatrixCPU &c) mutable {
-        int64_t K = a.col;
-        int64_t tile_size = 128;
+//     return [
+//         run,
+//         A_name = A_DS.getName(),
+//         B_name = B_DS.getName(),
+//         C_name = C_DS.getName(),
+//         ti_name = ti.getName(),
+//         tj_name = tj.getName(),
+//         k_name = k.getName(),
+//         k_dim_name = k_dim.getName()
+//     ] (impl::MatrixCPUPack &a, impl::MatrixCPUPack &b, impl::MatrixCPU &c) mutable {
+//         int64_t K = a.col;
+//         int64_t tile_size = 128;
 
-        run.evaluate({
-            {A_name, &a},
-            {B_name, &b},
-            {C_name, &c},
-            {ti_name, &tile_size},
-            {tj_name, &tile_size},
-            {k_name, &tile_size},
-            {k_dim_name, &K},
-        });
-    };
-}
-
-
-static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU &)> get_gern_complex() {
-    auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
-    auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
-    auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
-
-    annot::MatrixMultiplyCPU matrix_multiply;
-    Variable ti("ti");
-    Variable ti_g("ti_g");
-    Variable ti_2("ti_2");
-    Variable tj("tj");
-    Variable tj_g("tj_g");
-    Variable tj_2("tj_2");
-    Variable tk("tk");
-    Variable inner_k("inner_k");
-
-    Variable k_2("k_2");
-    Variable k_dim("k_dim");
-    // Just bind all, dont want to deal with args rn.
-    Composable tile_mm_registers = {
-        (Tile(C_DS["row"], ti))(
-            Tile(C_DS["col"], tj)(
-                (Tile(C_DS["row"], ti_2))(
-                    Tile(C_DS["col"], tj_2)(
-                        Reduce(tk, inner_k)(
-                            matrix_multiply(A_DS, B_DS, C_DS, tk))))))};
-
-    Runner::Options options = benchmark::cpuRunner("matrix");
-    options.filename = "tile_mm_registers.cpp";
-    FunctionPtr tile_mm_registers_ptr(tile_mm_registers, options);
-
-    Composable load_into_shared = {
-        (Reduce(k_dim, tk))(
-            tile_mm_registers_ptr(A_DS, B_DS, C_DS,
-                                  inner_k, ti, ti_2, tj, tj_2, k_dim))};
-
-    options.filename = "load_into_shared.cpp";
-    FunctionPtr load_into_shared_ptr(load_into_shared, options);
-
-    Composable program = {
-        (Tile(C_DS["row"], ti_g))(
-            Tile(C_DS["col"], tj_g)(
-                load_into_shared_ptr(A_DS, B_DS, C_DS,
-                                     inner_k, k_dim, ti, ti_2, tj, tj_2, tk))),
-    };
-
-    Runner run(program);
-    run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
+//         run.evaluate({
+//             {A_name, &a},
+//             {B_name, &b},
+//             {C_name, &c},
+//             {ti_name, &tile_size},
+//             {tj_name, &tile_size},
+//             {k_name, &tile_size},
+//             {k_dim_name, &K},
+//         });
+//     };
+// }
 
 
-    return [
-        run,
-        A_name = A_DS.getName(),
-        B_name = B_DS.getName(),
-        C_name = C_DS.getName(),
+// static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU &)> get_gern_complex() {
+//     auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
+//     auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
+//     auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
 
-        ti_name = ti.getName(),
-        ti_g_name = ti_g.getName(),
-        ti_2_name = ti_2.getName(),
+//     annot::MatrixMultiplyCPU matrix_multiply;
+//     Variable ti("ti");
+//     Variable ti_g("ti_g");
+//     Variable ti_2("ti_2");
+//     Variable tj("tj");
+//     Variable tj_g("tj_g");
+//     Variable tj_2("tj_2");
+//     Variable tk("tk");
+//     Variable inner_k("inner_k");
 
-        tj_name = tj.getName(),
-        tj_g_name = tj_g.getName(),
-        tj_2_name = tj_2.getName(),
+//     Variable k_2("k_2");
+//     Variable k_dim("k_dim");
+//     // Just bind all, dont want to deal with args rn.
+//     Composable tile_mm_registers = {
+//         (Tile(C_DS["row"], ti))(
+//             Tile(C_DS["col"], tj)(
+//                 (Tile(C_DS["row"], ti_2))(
+//                     Tile(C_DS["col"], tj_2)(
+//                         Reduce(tk, inner_k)(
+//                             matrix_multiply(A_DS, B_DS, C_DS, tk))))))};
 
-        tk_name = tk.getName(),
-        inner_k_name = inner_k.getName(),
-        k_dim_name = k_dim.getName()
-    ] (impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) mutable {
-        int64_t N = a.row, M = b.col, K = a.col;
+//     Runner::Options options = benchmark::cpuRunner("matrix");
+//     options.filename = "tile_mm_registers.cpp";
+//     FunctionPtr tile_mm_registers_ptr(tile_mm_registers, options);
 
-        int64_t ti_val = 128;
-        int64_t ti_2_val = 16;
+//     Composable load_into_shared = {
+//         (Reduce(k_dim, tk))(
+//             tile_mm_registers_ptr(A_DS, B_DS, C_DS,
+//                                   inner_k, ti, ti_2, tj, tj_2, k_dim))};
+
+//     options.filename = "load_into_shared.cpp";
+//     FunctionPtr load_into_shared_ptr(load_into_shared, options);
+
+//     Composable program = {
+//         (Tile(C_DS["row"], ti_g))(
+//             Tile(C_DS["col"], tj_g)(
+//                 load_into_shared_ptr(A_DS, B_DS, C_DS,
+//                                      inner_k, k_dim, ti, ti_2, tj, tj_2, tk))),
+//     };
+
+//     Runner run(program);
+//     run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
+
+
+//     return [
+//         run,
+//         A_name = A_DS.getName(),
+//         B_name = B_DS.getName(),
+//         C_name = C_DS.getName(),
+
+//         ti_name = ti.getName(),
+//         ti_g_name = ti_g.getName(),
+//         ti_2_name = ti_2.getName(),
+
+//         tj_name = tj.getName(),
+//         tj_g_name = tj_g.getName(),
+//         tj_2_name = tj_2.getName(),
+
+//         tk_name = tk.getName(),
+//         inner_k_name = inner_k.getName(),
+//         k_dim_name = k_dim.getName()
+//     ] (impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) mutable {
+//         int64_t N = a.row, M = b.col, K = a.col;
+
+//         int64_t ti_val = 128;
+//         int64_t ti_2_val = 16;
     
-        int64_t tj_val = 128;
-        int64_t tj_2_val = 16;
+//         int64_t tj_val = 128;
+//         int64_t tj_2_val = 16;
     
     
-        int64_t tk_val = 128;
-        int64_t inner_k_val = 16;
+//         int64_t tk_val = 128;
+//         int64_t inner_k_val = 16;
         
-        run.evaluate({
-            {A_name, &a},
-            {B_name, &b},
-            {C_name, &c},
-            {ti_name, &ti_val},
-            {ti_g_name, &N},
-            {ti_2_name, &ti_2_val},
-            {tj_name, &tj_val},
-            {tj_g_name, &M},
-            {tj_2_name, &tj_2_val},
-            {tk_name, &tk_val},
-            {inner_k_name, &inner_k_val},
-            {k_dim_name, &K},
-        });
-    };
-}
+//         run.evaluate({
+//             {A_name, &a},
+//             {B_name, &b},
+//             {C_name, &c},
+//             {ti_name, &ti_val},
+//             {ti_g_name, &N},
+//             {ti_2_name, &ti_2_val},
+//             {tj_name, &tj_val},
+//             {tj_g_name, &M},
+//             {tj_2_name, &tj_2_val},
+//             {tk_name, &tk_val},
+//             {inner_k_name, &inner_k_val},
+//             {k_dim_name, &K},
+//         });
+//     };
+// }
 
-
-void pack(impl::MatrixCPU a, float *res) {
+void pack(impl::MatrixViewBasic a, float *res) {
     for (int64_t i = 0; i < a.row; ++i) {
-        std::copy(a.data + i*a.lda, a.data + i*a.lda + a.col, res);
+        std::copy(&a.get(i, 0), &a.get(i, a.col), res);
         res += a.col;
     }
 }
 
-void tiled_packed_mult(impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &c) {
+void tiled_packed_mult(impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c) {
     constexpr int64_t tile_size = 128;
 
     assert(a.row % tile_size == 0 && a.col % tile_size == 0 && c.col % tile_size == 0);
@@ -308,14 +309,14 @@ void tiled_packed_mult(impl::MatrixCPU &a, impl::MatrixCPU &b, impl::MatrixCPU &
         for (int64_t i = 0; i < tile_size; ++i)
         for (int64_t k = 0; k < tile_size; ++k)
         for (int64_t j = 0; j < tile_size; ++j)
-            c.data[(i_out + i) * c.lda + j_out + j] += a_packed[i][k] * b_packed[k][j];
+            c.get(i_out + i, j_out + j) += a_packed[i][k] * b_packed[k][j];
     } 
 }
 
 
-template <typename InputType, typename ResType>
-static void run_function(std::function<void(InputType &, InputType &, ResType &)> func, std::string func_name, bool warmup, int64_t samples, int64_t iterations,
-InputType &a, InputType &b, ResType &c, bool check_res, ResType res) {
+template <typename T>
+static void run_function(std::function<void(T &, T &, T &)> func, std::string func_name, bool warmup, int64_t samples, int64_t iterations,
+T &a, T &b, T &c, bool check_res, T &res) {
  
     if (warmup) {
         c.vvals(0);
@@ -334,7 +335,7 @@ InputType &a, InputType &b, ResType &c, bool check_res, ResType res) {
 
         for (int64_t i = 0; i < c.row; ++i) {
             for (int64_t j = 0; j < c.col; ++j) {
-                if (abs(c.data[i*c.lda + j] - res.data[i*res.lda + j]) > 0.01) {
+                if (abs(c.get(i, j) - res.get(i, j)) > 0.01) {
                     correct = false;
                 } 
             }
@@ -351,22 +352,22 @@ int main() {
     openblas_set_num_threads(1);
 
 
-    int64_t n = 2 * 1024, m = 2 * 1024, k = 2 * 1024;
+    int64_t n = 1024, m = 1024, k = 1024;
     
-    impl::MatrixCPU a{n, k, k}, b{k, m, m}, c{n, m, m}, res{n, m, m};
-    impl::MatrixCPUPack a_packed{n, k, k}, b_packed{k, m, m};
-
+    impl::MatrixViewBasic a = impl::MatrixViewBasic::allocate(0, 0, n, k);
+    impl::MatrixViewBasic b = impl::MatrixViewBasic::allocate(0, 0, k, m);
+    impl::MatrixViewBasic c = impl::MatrixViewBasic::allocate(0, 0, n, m);
+    impl::MatrixViewBasic res = impl::MatrixViewBasic::allocate(0, 0, n, m);
     
     a.random_fill();
     b.random_fill();
-    std::copy(a.data, a.data + n*k, a_packed.data);
-    std::copy(b.data, b.data + k*m, b_packed.data);
 
-    // run_function(basic_mm, "basic_mm", false, 1, 1, a, b, res, false, c);
-    run_function<impl::MatrixCPU, impl::MatrixCPU>(open_blas_mm, "open_blas_mm", true, 1, 1, a, b, res, false, c);
-    run_function<impl::MatrixCPU, impl::MatrixCPU>(tiled_packed_mult, "tiled_packed_mult", true, 1, 1, a, b, c, true, res);
-    // run_function<impl::MatrixCPU, impl::MatrixCPU>(get_gern_basic_tiling(), "gern_basic_tiling", true, 1, 1, a, b, c, true, res);
-    run_function(get_gern_double_tiling(), "gern_double_tiling", true, 1, 1, a, b, c, true, res);
-    run_function<impl::MatrixCPUPack, impl::MatrixCPU>(get_gern_packed(), "gern_packed", true, 1, 1, a_packed, b_packed, c, true, res);
-    // run_function(get_gern_complex(), "gern_complex", true, 1, 1, a, b, c, true, res);
+    // run_function(basic_mm<impl::MatrixViewBasic>, "basic_mm", false, 1, 1, a, b, res, false, c);
+
+    run_function<impl::MatrixViewBasic>(open_blas_mm<impl::MatrixViewBasic>, "open_blas", true, 1, 1, a, b, res, false, c);
+    run_function<impl::MatrixViewBasic>(tiled_packed_mult, "tiled_packed", true, 1, 1, a, b, c, true, res);
+    run_function<impl::MatrixViewBasic>(get_gern_double_tiling(), "gern_double_tiled", true, 1, 1, a, b, c, true, res);
+
+    // run_function(open_blas_mm, "open_blas_mm", true, 1, 1, a, b, c, true, res);
+    // run_function<impl::MatrixCPU>(tiled_packed_mult, "tiled_packed_mult", true, 1, 1, a, b, c, true, res);
 }

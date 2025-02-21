@@ -3,213 +3,202 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <immintrin.h>
 #include <iostream>
 #include <limits>
 #include <random>
 #include <stdlib.h>
-#include <immintrin.h>
-
+#include <concepts>
 
 namespace gern {
 namespace impl {
 
-/**
- * @brief An MatrixCPU class to test out Gern's
- * codegen facilities.
- *
- */
 
-class MatrixCPU {
+template <typename T>
+concept MatrixType = requires(T obj, int64_t x, int64_t y) {
+    {obj.row} -> std::convertible_to<int64_t>;
+    {obj.col} -> std::convertible_to<int64_t>;
+    {obj.get(x, y)} -> std::convertible_to<float &>;
+    {obj.data()} -> std::convertible_to<float *>;
+    {obj.vvals(0)} -> std::same_as<void>;
+};
+
+
+class MatrixBase {
+protected:
+    float *m_data;
+    int64_t m_lda;
+    MatrixBase(float *data, int64_t row, int64_t col, int64_t lda)
+    : m_data(data),  m_lda(lda), row(row), col(col) {
+    }
+    MatrixBase(int64_t row, int64_t col)
+    : m_data(new float[row * col]), m_lda(col), row(row), col(col) {
+    }
+    MatrixBase() = delete;
 public:
-    MatrixCPU(float *data, int64_t row, int64_t col, int64_t lda)
-        : data(data), row(row), col(col), lda(lda) {
+    int64_t row;
+    int64_t col;
+    
+    float *data() const {
+        return m_data;
     }
 
-    MatrixCPU(int64_t row, int64_t col, int64_t lda)
-        : MatrixCPU((float *)malloc(sizeof(float) * row * col), row, col, lda) {
+    float &get(int64_t x, int64_t y) {
+        return this->data()[x * this->m_lda + y];
     }
 
-    static MatrixCPU allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
-        return MatrixCPU(l_x, l_y, l_y);
-    }
-
-    MatrixCPU query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
-        return MatrixCPU(data + (x * lda + y), l_x, l_y, lda);
-    }
-
-    void insert(int64_t x, int64_t y, int64_t l_x, int64_t l_y, MatrixCPU to_insert) {
-        float *data_tmp;
-        float *data_insert_tmp;
-        for (int64_t i = 0; i < l_x; i++) {
-            data_tmp = data + ((x + i) * lda) + y;
-            data_insert_tmp = to_insert.data + (i * lda);
-            for (int64_t j = 0; j < l_y; j++) {
-                data_tmp[j] = data_insert_tmp[j];
-            }
+    void insert(int64_t x, int64_t y, int64_t l_x, int64_t l_y, MatrixBase to_insert) {
+        for (int i = 0; i < l_x; ++i) {
+            std::copy(
+                &to_insert.get(i, 0),
+                &to_insert.get(i, l_y),
+                &this->get(x + i, y));
         }
     }
 
     void destroy() {
-        free(data);
+        delete[] this->m_data;
     }
 
     void vvals(float f) {
-        float *data_tmp;
-        for (int64_t i = 0; i < row; i++) {
-            data_tmp = data + (i * lda);
-            for (int64_t j = 0; j < col; j++) {
-                data_tmp[j] = f;
+        for (int i = 0; i < this->row; ++i) {
+            for (int j = 0; j < this->col; ++j) {
+                this->get(i, j) = f;
             }
         }
     }
-
     void random_fill(float min = 0.0f, float max = 1.0f) {
-        float *data_tmp;
         std::mt19937 gen(0);
         std::uniform_real_distribution<float> dist(min, max);
-        for (int64_t i = 0; i < row; i++) {
-            data_tmp = data + (i * lda);
-            for (int64_t j = 0; j < col; j++) {
-                data_tmp[j] = (float)dist(gen);
+        for (int i = 0; i < this->row; ++i) {
+            for (int j = 0; j < this->col; ++j) {
+                this->get(i, j) = dist(gen);
             }
         }
     }
-
-    void ascending() {
-        float *data_tmp;
-        for (int64_t i = 0; i < row; i++) {
-            data_tmp = data + (i * lda);
-            for (int64_t j = 0; j < col; j++) {
-                data_tmp[j] = i * col + j;
-            }
-        }
-    }
-
-    float *data;
-    int64_t row;
-    int64_t col;
-    int64_t lda;
 };
 
-class MatrixCPUPack : public MatrixCPU {
-    MatrixCPUPack(float *data, int64_t row, int64_t col, int64_t lda) : MatrixCPU(data, row, col, lda) {}
-
+template<int64_t L_X, int64_t L_Y>
+class MatrixTemplated {
+private:
+    MatrixTemplated() = default;
+    float m_data[L_X * L_Y];
 public:
-    MatrixCPUPack(int64_t row, int64_t col, int64_t lda) : MatrixCPU(row, col, lda) {}
 
-    MatrixCPUPack query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
-        float *new_data = (float *)malloc(sizeof(float) * l_x * l_y);
-        MatrixCPUPack res{new_data, l_x, l_y, l_y};
-        
-        for (int i = x; i < x + l_x; ++i) {
-            std::copy(this->data + i * this->lda + y, this->data + i * this->lda + y + l_y, new_data);
-            new_data += l_y;
+    int64_t row = L_X;
+    int64_t col = L_Y;
+
+    float *data() const {
+        return m_data;
+    }
+
+    static MatrixTemplated allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
+        return MatrixTemplated();
+    }
+    float &get(int64_t x, int64_t y) {
+        return this->data()[x * L_Y + y];
+    }
+
+    template<int64_t Q_X, int64_t Q_Y>
+    MatrixTemplated<Q_X, Q_Y> query(int64_t x, int64_t y) {
+        MatrixTemplated<Q_X, Q_Y> res;
+        for (int i = 0; i < Q_X; ++i) {
+            std::copy(
+                &this->get(x + i, y),
+                &this->get(x + i, y + Q_Y),
+                &res.get(i, 0));
         }
         return res;
     }
 
-    static MatrixCPUPack allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
-        return MatrixCPUPack(l_x, l_y, l_y);
+    template<int64_t Q_X, int64_t Q_Y>
+    void insert(int64_t x, int64_t y, MatrixTemplated<Q_X, Q_Y> to_insert) {
+        for (int i = 0; i < Q_X; ++i) {
+            std::copy(
+                &to_insert.get(i, 0),
+                &to_insert.get(i, Q_Y),
+                &this->get(x + i, y));
+        }
     }
-
 
     void destroy() {
-        free(data);
-        data = nullptr;
     }
-
-    ~MatrixCPUPack() {
-        free(data);
+    void vvals(float f) {
+        for (int i = 0; i < L_X; ++i) {
+            for (int j = 0; j < L_Y; ++j) {
+                this->get(i, j) = f;
+            }
+        }
     }
-    MatrixCPUPack(const MatrixCPUPack &other) = delete;
-    MatrixCPUPack &operator=(const MatrixCPUPack &other) = delete;
-    MatrixCPUPack(MatrixCPUPack &&other) = default;
-    MatrixCPUPack &operator=(MatrixCPUPack &&other) = default;
 };
 
-[[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const MatrixCPU &m) {
-    float *data_tmp;
-    os << "["
-       << "\n";
-    for (int64_t i = 0; i < m.row; i++) {
-        data_tmp = m.data + (i * m.lda);
-        for (int64_t j = 0; j < m.col; j++) {
-            os << data_tmp[j] << " ";
+class MatrixViewBasic : public MatrixBase {
+private:
+    MatrixViewBasic(int64_t row, int64_t col)
+        : MatrixBase(row, col) {
+    }
+    MatrixViewBasic() = delete;
+
+public:
+    static MatrixViewBasic allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
+        return MatrixViewBasic(l_x, l_y);
+    }
+    MatrixViewBasic(float *data, int64_t row, int64_t col, int64_t lda)
+        : MatrixBase(data, row, col, lda) {
+    }
+    MatrixViewBasic query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
+        return MatrixViewBasic(&this->get(x, y), l_x, l_y, this->m_lda);
+    }
+};
+
+class MatrixViewPackOnQuery : public MatrixBase {
+private:
+    MatrixViewPackOnQuery(int64_t row, int64_t col)
+        : MatrixBase(row, col) {
+    }
+    MatrixViewPackOnQuery() = delete;
+
+public:
+    static MatrixViewPackOnQuery allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
+        return MatrixViewPackOnQuery(l_x, l_y);
+    }
+    MatrixViewPackOnQuery(float *data, int64_t row, int64_t col, int64_t lda)
+        : MatrixBase(data, row, col, lda) {
+    }
+
+    template<int64_t L_X, int64_t L_Y>
+    MatrixTemplated<L_X, L_Y> query(int64_t x, int64_t y) {
+        MatrixTemplated<L_X, L_Y> res{};
+        for (int64_t i = 0; i < L_X; ++i) {
+            std::copy(
+                &this->get(x + i, y),
+                &this->get(x + i, y + L_Y),
+                &res->get(i, 0));
         }
-        os << "\n";
-    }
-    os << "]";
-    return os;
-}
-
-inline void add(MatrixCPU a, MatrixCPU b) {
-    float *a_data;
-    float *b_data;
-    for (int64_t i = 0; i < a.row; i++) {
-        a_data = a.data + (i * a.lda);
-        b_data = b.data + (i * b.lda);
-        for (int64_t j = 0; j < a.col; j++) {
-            b_data[j] = a_data[j] + 1;
-        }
-    }
-}
-
-inline void exp_matrix(MatrixCPU a, MatrixCPU b) {
-    float *a_data;
-    float *b_data;
-    for (int64_t i = 0; i < a.row; i++) {
-        a_data = a.data + (i * a.lda);
-        b_data = b.data + (i * b.lda);
-        for (int64_t j = 0; j < a.col; j++) {
-            b_data[j] = expf(a_data[j]);
-        }
-    }
-}
-
-inline void matrix_multiply_packed(MatrixCPUPack &a, MatrixCPUPack &b, MatrixCPU &c, int64_t k_dummy) {
-    int N = c.row, M = c.col, K = k_dummy;
-    // int N = 128, M = 128, K = 128;
-
-    for (int k = 0; k < K; k++)
-    for (int i = 0; i < N; i++)
-    for (int j = 0; j < M; ++j) {
-        c.data[i*c.lda + j] += a.data[i*a.lda + k] * b.data[k*b.lda + j];
+        return res;
     }
 
-
-    // constexpr int64_t vector_size = 16;
-
-    // for (int k = 0; k < K; k++)
-    // for (int i = 0; i < N; i++){
-    //     __m512 a_vec = _mm512_set1_ps(a.data[i*a.lda + k]);
-    //     for (int j = 0; j < M; j += vector_size) {
-    //         __m512 b_vec = _mm512_loadu_ps(&b.data[k*b.lda + j]);
-    //         __m512 c_vec = _mm512_loadu_ps(&c.data[i*c.lda + j]);
-    //         c_vec = _mm512_fmadd_ps(a_vec, b_vec, c_vec);
-    //         _mm512_storeu_ps(&c.data[i*c.lda + j], c_vec);
-    //     }
-    // }
-}
-
-inline void matrix_multiply(MatrixCPU &a, MatrixCPU &b, MatrixCPU &c, int64_t k_dummy) {
-    float *a_data;
-    float *b_data;
-    float *c_data;
-    for (int64_t i = 0; i < c.row; i++) {
-        c_data = c.data + (i * c.lda);
-        a_data = a.data + (i * a.lda);
-        for (int64_t j = 0; j < c.col; j++) {
-            float sum = 0.0f;
-            for (int64_t k = 0; k < k_dummy; k++) {
-                b_data = b.data + (k * b.lda) + j;
-                sum += a_data[k] * b_data[0];
-            }
-            c_data[j] += sum;
+    template<int64_t L_X, int64_t L_Y>
+    void insert(int64_t x, int64_t y, MatrixTemplated<L_X, L_Y> to_insert) {
+        for (int64_t i = 0; i < L_X; ++i) {
+            std::copy(
+                &to_insert->get(i, 0),
+                &to_insert->get(i, L_Y),
+                &this->get(x + i, y));
         }
     }
+};
+
+template <MatrixType T>
+void matrix_multiply(T &a, T &b, T &c, int64_t k_dim) {
+    int64_t N = c.row, M = c.col, K = k_dim;
+    
+    for (int64_t i = 0; i < N; ++i)
+    for (int64_t j = 0; j < M; ++j)
+    for (int64_t k = 0; k < K; ++k)
+        c.get(i, j) += a.get(i, k)* b.get(k, j);
+
 }
-
-
 
 }  // namespace impl
 }  // namespace gern
