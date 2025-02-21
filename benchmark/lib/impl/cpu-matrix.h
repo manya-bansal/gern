@@ -193,9 +193,9 @@ template <MatrixType T>
 void matrix_multiply(T &a, T &b, T &c, int64_t k_dim) {
     int64_t N = c.row, M = c.col, K = k_dim;
     
+    for (int64_t k = 0; k < K; ++k)
     for (int64_t i = 0; i < N; ++i)
     for (int64_t j = 0; j < M; ++j)
-    for (int64_t k = 0; k < K; ++k)
         c.get(i, j) += a.get(i, k)* b.get(k, j);
 
 }

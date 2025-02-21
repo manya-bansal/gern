@@ -82,11 +82,11 @@ inline double benchmark_new(uint64_t samples, uint64_t iterations,
 
 
 [[maybe_unused]] static gern::Runner::Options cpuRunner() {
-    std::string include = " -I " + std::string(GERN_ROOT_DIR) + "/test/";
+    std::string include = " -I " + std::string(GERN_ROOT_DIR) + "/benchmark/";
     include += " -I " + std::string(GERN_ROOT_DIR) + "/benchmark/lib/impl";
 
     gern::Runner::Options o;
-    o.filename = "test.cpp -O3 -march=native";
+    o.filename = "benchmark.cpp";
     o.prefix = "/tmp";
     o.include = include;
     o.cpp_std = "c++20";
