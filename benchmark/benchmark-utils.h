@@ -1,5 +1,4 @@
-#ifndef MY_BENCHMARK_H
-#define MY_BENCHMARK_H
+#pragma once
 
 #include <algorithm>
 #include <cassert>
@@ -7,7 +6,11 @@
 #include <functional>
 #include <limits>
 
-namespace my_benchmark {
+#include "annotations/data_dependency_language.h"
+#include "compose/runner.h"
+#include "config.h"
+
+namespace benchmark {
 
 // This benchmarking code is stolen from Halide :) !!!!
 
@@ -77,6 +80,27 @@ inline double benchmark_new(uint64_t samples, uint64_t iterations,
     return best / iterations;
 }
 
-}  // namespace my_benchmark
 
-#endif
+[[maybe_unused]] static gern::Runner::Options cpuRunner(const std::vector<std::string> &dirs) {
+
+    std::string include = " -I " + std::string(GERN_ROOT_DIR) + "/test/";
+    for (const auto &dir : dirs) {
+        include += " -I " + std::string(GERN_ROOT_DIR) +
+                   "/test/library/" + dir + "/impl";
+    }
+
+    gern::Runner::Options o;
+    o.filename = "test.cpp";
+    o.prefix = "/tmp";
+    o.include = include;
+
+    return o;
+}
+
+[[maybe_unused]] static gern::Runner::Options cpuRunner(std::string dir) {
+    return cpuRunner(std::vector<std::string>{dir});
+}
+
+
+
+}  // namespace benchmark

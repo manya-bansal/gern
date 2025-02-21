@@ -1,0 +1,215 @@
+#pragma once
+
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <iostream>
+#include <limits>
+#include <random>
+#include <stdlib.h>
+#include <immintrin.h>
+
+
+namespace gern {
+namespace impl {
+
+/**
+ * @brief An MatrixCPU class to test out Gern's
+ * codegen facilities.
+ *
+ */
+
+class MatrixCPU {
+public:
+    MatrixCPU(float *data, int64_t row, int64_t col, int64_t lda)
+        : data(data), row(row), col(col), lda(lda) {
+    }
+
+    MatrixCPU(int64_t row, int64_t col, int64_t lda)
+        : MatrixCPU((float *)malloc(sizeof(float) * row * col), row, col, lda) {
+    }
+
+    static MatrixCPU allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
+        return MatrixCPU(l_x, l_y, l_y);
+    }
+
+    MatrixCPU query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
+        return MatrixCPU(data + (x * lda + y), l_x, l_y, lda);
+    }
+
+    void insert(int64_t x, int64_t y, int64_t l_x, int64_t l_y, MatrixCPU to_insert) {
+        float *data_tmp;
+        float *data_insert_tmp;
+        for (int64_t i = 0; i < l_x; i++) {
+            data_tmp = data + ((x + i) * lda) + y;
+            data_insert_tmp = to_insert.data + (i * lda);
+            for (int64_t j = 0; j < l_y; j++) {
+                data_tmp[j] = data_insert_tmp[j];
+            }
+        }
+    }
+
+    void destroy() {
+        free(data);
+    }
+
+    void vvals(float f) {
+        float *data_tmp;
+        for (int64_t i = 0; i < row; i++) {
+            data_tmp = data + (i * lda);
+            for (int64_t j = 0; j < col; j++) {
+                data_tmp[j] = f;
+            }
+        }
+    }
+
+    void random_fill(float min = 0.0f, float max = 1.0f) {
+        float *data_tmp;
+        std::mt19937 gen(0);
+        std::uniform_real_distribution<float> dist(min, max);
+        for (int64_t i = 0; i < row; i++) {
+            data_tmp = data + (i * lda);
+            for (int64_t j = 0; j < col; j++) {
+                data_tmp[j] = (float)dist(gen);
+            }
+        }
+    }
+
+    void ascending() {
+        float *data_tmp;
+        for (int64_t i = 0; i < row; i++) {
+            data_tmp = data + (i * lda);
+            for (int64_t j = 0; j < col; j++) {
+                data_tmp[j] = i * col + j;
+            }
+        }
+    }
+
+    float *data;
+    int64_t row;
+    int64_t col;
+    int64_t lda;
+};
+
+class MatrixCPUPack : public MatrixCPU {
+    MatrixCPUPack(float *data, int64_t row, int64_t col, int64_t lda) : MatrixCPU(data, row, col, lda) {}
+
+public:
+    MatrixCPUPack(int64_t row, int64_t col, int64_t lda) : MatrixCPU(row, col, lda) {}
+
+    MatrixCPUPack query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
+        float *new_data = (float *)malloc(sizeof(float) * l_x * l_y);
+        MatrixCPUPack res{new_data, l_x, l_y, l_y};
+        
+        for (int i = x; i < x + l_x; ++i) {
+            std::copy(this->data + i * this->lda + y, this->data + i * this->lda + y + l_y, new_data);
+            new_data += l_y;
+        }
+        return res;
+    }
+
+    static MatrixCPUPack allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
+        return MatrixCPUPack(l_x, l_y, l_y);
+    }
+
+
+    void destroy() {
+        free(data);
+        data = nullptr;
+    }
+
+    ~MatrixCPUPack() {
+        free(data);
+    }
+    MatrixCPUPack(const MatrixCPUPack &other) = delete;
+    MatrixCPUPack &operator=(const MatrixCPUPack &other) = delete;
+    MatrixCPUPack(MatrixCPUPack &&other) = default;
+    MatrixCPUPack &operator=(MatrixCPUPack &&other) = default;
+};
+
+[[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const MatrixCPU &m) {
+    float *data_tmp;
+    os << "["
+       << "\n";
+    for (int64_t i = 0; i < m.row; i++) {
+        data_tmp = m.data + (i * m.lda);
+        for (int64_t j = 0; j < m.col; j++) {
+            os << data_tmp[j] << " ";
+        }
+        os << "\n";
+    }
+    os << "]";
+    return os;
+}
+
+inline void add(MatrixCPU a, MatrixCPU b) {
+    float *a_data;
+    float *b_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        a_data = a.data + (i * a.lda);
+        b_data = b.data + (i * b.lda);
+        for (int64_t j = 0; j < a.col; j++) {
+            b_data[j] = a_data[j] + 1;
+        }
+    }
+}
+
+inline void exp_matrix(MatrixCPU a, MatrixCPU b) {
+    float *a_data;
+    float *b_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        a_data = a.data + (i * a.lda);
+        b_data = b.data + (i * b.lda);
+        for (int64_t j = 0; j < a.col; j++) {
+            b_data[j] = expf(a_data[j]);
+        }
+    }
+}
+
+inline void matrix_multiply_packed(MatrixCPUPack &a, MatrixCPUPack &b, MatrixCPU &c, int64_t k_dummy) {
+    int N = c.row, M = c.col, K = k_dummy;
+    // int N = 128, M = 128, K = 128;
+
+    for (int k = 0; k < K; k++)
+    for (int i = 0; i < N; i++)
+    for (int j = 0; j < M; ++j) {
+        c.data[i*c.lda + j] += a.data[i*a.lda + k] * b.data[k*b.lda + j];
+    }
+
+
+    // constexpr int64_t vector_size = 16;
+
+    // for (int k = 0; k < K; k++)
+    // for (int i = 0; i < N; i++){
+    //     __m512 a_vec = _mm512_set1_ps(a.data[i*a.lda + k]);
+    //     for (int j = 0; j < M; j += vector_size) {
+    //         __m512 b_vec = _mm512_loadu_ps(&b.data[k*b.lda + j]);
+    //         __m512 c_vec = _mm512_loadu_ps(&c.data[i*c.lda + j]);
+    //         c_vec = _mm512_fmadd_ps(a_vec, b_vec, c_vec);
+    //         _mm512_storeu_ps(&c.data[i*c.lda + j], c_vec);
+    //     }
+    // }
+}
+
+inline void matrix_multiply(MatrixCPU &a, MatrixCPU &b, MatrixCPU &c, int64_t k_dummy) {
+    float *a_data;
+    float *b_data;
+    float *c_data;
+    for (int64_t i = 0; i < c.row; i++) {
+        c_data = c.data + (i * c.lda);
+        a_data = a.data + (i * a.lda);
+        for (int64_t j = 0; j < c.col; j++) {
+            float sum = 0.0f;
+            for (int64_t k = 0; k < k_dummy; k++) {
+                b_data = b.data + (k * b.lda) + j;
+                sum += a_data[k] * b_data[0];
+            }
+            c_data[j] += sum;
+        }
+    }
+}
+
+
+
+}  // namespace impl
+}  // namespace gern

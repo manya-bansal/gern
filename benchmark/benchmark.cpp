@@ -1,11 +1,9 @@
-#include "my_benchmark.h"
-#include "library/matrix/annot/cpu-matrix.h"
-#include "library/matrix/impl/cpu-matrix.h"
+#include "benchmark-utils.h"
+#include "lib/annot/cpu-matrix.h"
+#include "lib/impl/cpu-matrix.h"
 
 #include "cblas.h"
 #include "openblas_config.h"
-
-
 
 using namespace gern;
 
@@ -53,7 +51,7 @@ static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU 
     };
 
     Runner run(program);
-    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+    run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
 
     return [
         run,
@@ -106,7 +104,7 @@ static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU 
                                 matrix_multiply(A_DS, B_DS, C_DS, k_dim)))))))};
 
     Runner run(program);
-    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+    run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
 
     return [
         run,
@@ -160,7 +158,7 @@ static std::function<void(impl::MatrixCPUPack &, impl::MatrixCPUPack &, impl::Ma
     };
 
     Runner run(program);
-    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+    run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
 
     return [
         run,
@@ -214,7 +212,7 @@ static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU 
                         Reduce(tk, inner_k)(
                             matrix_multiply(A_DS, B_DS, C_DS, tk))))))};
 
-    Runner::Options options = test::cpuRunner("matrix");
+    Runner::Options options = benchmark::cpuRunner("matrix");
     options.filename = "tile_mm_registers.cpp";
     FunctionPtr tile_mm_registers_ptr(tile_mm_registers, options);
 
@@ -234,7 +232,7 @@ static std::function<void(impl::MatrixCPU &, impl::MatrixCPU &, impl::MatrixCPU 
     };
 
     Runner run(program);
-    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+    run.compile(benchmark::cpuRunner(std::vector<std::string>{"matrix"}));
 
 
     return [
@@ -324,7 +322,7 @@ InputType &a, InputType &b, ResType &c, bool check_res, ResType res) {
         func(a, b, c);
     }
 
-    double time = my_benchmark::benchmark(samples, iterations, [&] {
+    double time = benchmark::benchmark(samples, iterations, [&] {
         c.vvals(0);
         func(a, b, c);
     });
