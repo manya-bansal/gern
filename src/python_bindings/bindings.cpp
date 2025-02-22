@@ -16,6 +16,14 @@ public:
 	int64_t* val;
 };
 
+class MyFloat {
+public:
+	MyFloat(float v) {
+		val = new float(v);
+	}
+	float* val;
+};
+
 PYBIND11_MODULE(gern_py, m) {
 	py::class_<Composable>(m, "Composable")
 		.def(py::init<std::vector<Composable>>());
@@ -69,30 +77,13 @@ PYBIND11_MODULE(gern_py, m) {
 	py::class_<Runner>(m, "Runner")
 		.def(py::init<Composable>())
 		.def("compile", &Runner::compile)
-		.def("evaluate", [](Runner &self, std::map<std::string, void *> args){
-			self.evaluate(args);
-			// for (auto [key, val] : args) {
-			// 	std::cout << key << " " << val << std::endl;
-			// }
-			// self.evaluate(args);
-		});
+		.def("evaluate", &Runner::evaluate);
 	
 	py::class_<Runner::Options>(m, "RunnerOptions");
 
 	m.def("cpuRunner", py::overload_cast<const std::vector<std::string> &>(&test::cpuRunner));
 
-	// py::class_<AbstractFunction>(m, "AbstractFunction")
-	// 	.def("__call__", [](py::args args){
-	// 		// rewrite AbstractFunction::operator() to work with py::args
-	// 		std::vector<Argument> arguments;
-	// 		for (auto arg : args) {
-	// 			arguments.push_back(arg.cast<Argument>());
-	// 		}
-	// 	});
-	// py::class_<annot::MatrixAddCPU, AbstractFunction>(m, "MatrixAddCPU")
-	// 	.def(py::init<>());
-
-
+	/// ANNOTATIONS
 	m.def("MatrixAddCPU", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
 		annot::MatrixAddCPU add;
 		if (!replacements.empty()) {
@@ -108,6 +99,30 @@ PYBIND11_MODULE(gern_py, m) {
 		}
 		return softmax(in, out);
 	}, py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+
+	m.def("MatrixTranspose", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
+		annot::MatrixTranspose transpose;
+		if (!replacements.empty()) {
+			transpose[replacements];
+		}
+		return transpose(in, out);
+	}, py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+
+	m.def("MatrixMultiply", [](AbstractDataTypePtr a, AbstractDataTypePtr b, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
+		annot::MatrixMultiply matmul;
+		if (!replacements.empty()) {
+			matmul[replacements];
+		}
+		return matmul(a, b, out);
+	}, py::arg(), py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+
+	m.def("MatrixDivn", [](AbstractDataTypePtr in, Variable n, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
+		annot::MatrixDivn divn;
+		if (!replacements.empty()) {
+			divn[replacements];
+		}
+		return divn(in, n, out);
+	}, py::arg(), py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
 
 	py::class_<impl::MatrixCPU>(m, "MatrixCPU")
 		.def("init", [](uintptr_t ptr, int64_t row, int64_t col, int64_t lda){
@@ -126,20 +141,24 @@ PYBIND11_MODULE(gern_py, m) {
             oss << obj;
             return oss.str();
         });
+
+	// helper classes to create variable values in c++
+	// and give c++ ownership (to get pointers later)
+	py::class_<MyInt>(m, "Int")
+		.def("init", [](int64_t val){ return new MyInt(val); }, py::return_value_policy::reference);
+
+	py::class_<MyFloat>(m, "Float")
+		.def("init", [](float val){ return new MyFloat(val); }, py::return_value_policy::reference);
 	
 	m.def("getAddress", [](impl::MatrixCPU* mat){
 		return static_cast<void*>(mat);
 	});
 
-	py::class_<MyInt>(m, "Int")
-		.def("init", [](int64_t val){ return new MyInt(val); }, py::return_value_policy::reference);
-
 	m.def("getAddress", [](MyInt* num){
 		return static_cast<void*>(num->val);
 	});
 
-	m.def("getAddress", [](int64_t* num){
-		return static_cast<void*>(num);
+	m.def("getAddress", [](MyFloat* num){
+		return static_cast<void*>(num->val);
 	});
-	
 }

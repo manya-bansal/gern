@@ -104,10 +104,10 @@ TEST(LoweringCPU, Attention) {
         Tile(output["row"], l_x)(
             Tile(output["col"], l_y)(
                 transpose(k, kt),
-                matmul1_specialize->operator()(q, kt, q_kt),
+                matmul1(q, kt, q_kt),
                 divn(q_kt, sqrt_dk, sm_in),
                 softmax(sm_in, sm_out),
-                matmul2_specialize->operator()(sm_out, v, output)
+                matmul2(sm_out, v, output)
             )
         )
     };
