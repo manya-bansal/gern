@@ -30,6 +30,7 @@ void Runner::compile(Options config) {
                       " -std=c++11 " +
                       compiler_option +
                       " -fPIC " +
+					  " -DACCELERATE_NEW_LAPACK -DACCELERATE_LAPACK_ILP64 -framework Accelerate " +
                       arch + " " + config.include +
                       " --shared -o " + shared_obj + " " +
                       file + " " + config.ldflags + " 2>&1";
