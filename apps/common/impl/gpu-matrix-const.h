@@ -33,7 +33,7 @@ struct StaticMatrix {
 #endif
 constexpr int URF{UNROLL_FACTOR};
 
-#define CEILING(x, y) (((x) + (y) - 1) / (y))
+#define CEILING(x, y) (((x) + (y)-1) / (y))
 
 namespace impl {
 
@@ -95,7 +95,8 @@ public:
 
 [[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const MatrixCPU &m) {
     float *data_tmp;
-    os << "[" << "\n";
+    os << "["
+       << "\n";
     for (int64_t i = 0; i < m.row; i++) {
         data_tmp = m.data + (i * m.lda);
         for (int64_t j = 0; j < m.col; j++) {
@@ -122,16 +123,24 @@ public:
         float *data_ptr = &data[x * row + y];
         float4 *val_ptr = reinterpret_cast<float4 *>(data_ptr);
 
+        for (int i = 0; i < num_row; i++) {
+            for (int j = 0; j < num_col; j++) {
+                printf("data_ptr[%d] = %f\n", i * num_col + j, data_ptr[i * num_col + j]);
+            }
+        }
+
         for (int m = 0; m < num_row; m++) {
 #pragma unroll URF
             for (int i = 0; i < col_to_return; i += stride) {
                 float4 val = val_ptr[i];
+                printf("val.x = %f\n", val.x);
                 matrix_data[i] = val;
             }
             val_ptr += LDA / 4;
 
             matrix_data += col_to_return;
         }
+        printf("--------------------------------\n");
         return matrix;
     }
 

@@ -37,22 +37,23 @@ int main() {
 
     annot::BlurX blur_x_no_template{input, temp};
     auto blur_x_1 = &blur_x_no_template[{
-        {"stride", stride.bindToInt64(stride_val)},
+        {"stride", stride.bind(stride_val)},
     }];
     annot::BlurY blur_x_no_template_2{input, temp};
     auto blur_x_2 = &blur_x_no_template_2[{
-        {"stride", stride.bindToInt64(stride_val)},
+        {"stride", stride.bind(stride_val)},
     }];
 
     Composable program = {
         Global(
-            Tile(output["col"], col.bindToInt64(4))(
-                Tile(output["row"], row.bindToInt64(4))(
+            Tile(output["col"], col.bind(4))(
+                Tile(output["row"], row.bind(4))(
                     blur_x_1->operator()(input, temp),
                     blur_x_2->operator()(temp, output))))};
 
     Runner run(program);
     Runner::Options options;
+    options.filename = "blur.cu";
     options.include = "-I /home/manya/gern/apps/common"
                       " -I /home/manya/gern/test/";
     options.arch = "89";
@@ -69,6 +70,8 @@ int main() {
     });
 
     auto cpu_result = out.get();
+
+    std::cout << "CPU result: " << cpu_result << std::endl;
 
     return 0;
 }

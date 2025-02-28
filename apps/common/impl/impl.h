@@ -197,16 +197,16 @@ blur_x(const T1 &input,
     constexpr int64_t num_row = output.rows;
     constexpr int64_t num_col = output.cols_by_4 * 4;
     constexpr int64_t input_num_col = input.cols_by_4 * 4;
-
 #pragma unroll URF
-
     for (int m = 0; m < num_row; m++) {
         for (int n = 0; n < num_col; n++) {
             float sum = 0;
             for (int s = 0; s < stride; s++) {
                 sum += input_data[s + n];
+                // printf("input_data[%d] = %f\n", s + n, input_data[s + n]);
             }
             output_data[n] = sum / stride;
+            // printf("output_data[%d] = %f\n", n, output_data[n]);
         }
         output_data += num_col;
         input_data += input_num_col;
@@ -231,6 +231,7 @@ blur_y(const T1 &input,
             float4 temp = {0};
             for (int s = 0; s < stride; s++) {
                 float4 input_val = input_data[n + (input_num_col * s)];
+                // printf("input_val.x = %f\n", input_val.x);
                 temp.x += input_val.x;
                 temp.y += input_val.y;
                 temp.z += input_val.z;
@@ -241,6 +242,7 @@ blur_y(const T1 &input,
             temp.z /= stride;
             temp.w /= stride;
             output_data[n] = temp;
+            // printf("output_data[%d] = %f\n", n, output_data[n]);
         }
         output_data += num_col;
         input_data += input_num_col;
