@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/blur.dir/blur.cpp.o -o blur  -Wl,-rpath,/usr/local/cuda-12.3/targets/x86_64-linux/lib /home/manya/gern_install/lib/libGern.a /usr/local/cuda-12.3/targets/x86_64-linux/lib/libcudart.so -ldl -lpthread /usr/lib/x86_64-linux-gnu/librt.so

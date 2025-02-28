@@ -375,7 +375,7 @@ public:
 class ConsumeMany : public Consumes {
 public:
     ConsumeMany(const ConsumesNode *s)
-        : Consumes(s) {};
+        : Consumes(s){};
 };
 
 class SubsetObjMany : public ConsumeMany {
