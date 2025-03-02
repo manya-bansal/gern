@@ -72,6 +72,23 @@ if __name__ == "__main__":
         globals={'default_tc_m': default_tc_m, 'q': q, 'k': k, 'v': v}
     )
 
+    q_4d = q[None, None, :, :]
+    k_4d = k[None, None, :, :]
+    v_4d = v[None, None, :, :]
+
+    flash_attention = benchmark.Timer(
+        stmt="""
+    with sdpa_kernel(SDPBackend.FLASH_ATTENTION):
+        scaled_dot_product_attention(q, k, v)
+    """,
+        setup="""
+    from torch.nn.functional import scaled_dot_product_attention
+    from torch.nn.attention import SDPBackend, sdpa_kernel
+    """,
+        globals={'q': q_4d, 'k': k_4d, 'v': v_4d}
+    )
+
     print(optimized.timeit(1000))
     print(unoptimized.timeit(1000))
     print(default_compiled.timeit(1000))
+    print(flash_attention.timeit(1000))
