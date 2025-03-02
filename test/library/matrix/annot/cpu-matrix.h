@@ -171,8 +171,9 @@ public:
 		Variable l_y("l_y");
 
         return annotate(For(x = Expr(0), output["row"], l_x,
-                            Produces::Subset(output, {x, y, l_x, l_y}),
-                            Consumes::Subset(input, {x, y, l_x, l_y})));
+							For(y = Expr(0), output["col"], l_y,
+								Produces::Subset(output, {x, y, l_x, l_y}),
+								Consumes::Subset(input, {x, y, l_x, l_y}))));
     }
 
     std::vector<std::string> getHeader() override {

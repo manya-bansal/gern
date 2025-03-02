@@ -119,17 +119,15 @@ inline void add(MatrixCPU a, MatrixCPU b) {
 }
 
 inline void divn(MatrixCPU a, float n, MatrixCPU b) {
-	cblas_scopy(a.row * a.col, a.data, 1, b.data, 1);
-	cblas_sscal(a.row * a.col, 1 / n, b.data, 1);
-	// float *a_data;
-    // float *b_data;
-    // for (int64_t i = 0; i < a.row; i++) {
-    //     a_data = a.data + (i * a.lda);
-    //     b_data = b.data + (i * b.lda);
-    //     for (int64_t j = 0; j < a.col; j++) {
-    //         b_data[j] = a_data[j] / n;
-    //     }
-    // }
+	float *a_data;
+    float *b_data;
+    for (int64_t i = 0; i < a.row; i++) {
+        a_data = a.data + (i * a.lda);
+        b_data = b.data + (i * b.lda);
+
+		cblas_scopy(a.col, a_data, 1, b_data, 1);
+		cblas_sscal(a.col, 1 / n, b_data, 1);
+    }
 }
 
 inline void transpose(MatrixCPU a, MatrixCPU b) {
@@ -148,66 +146,34 @@ inline void transpose(MatrixCPU a, MatrixCPU b) {
 inline void softmax(MatrixCPU a, MatrixCPU b) {
 	float *a_data;
 	float *b_data;
-	int size = a.row * a.col;
-	vvexpf(b.data, a.data, &size);
+
 	for (int64_t i = 0; i < a.row; i++) {
 		a_data = a.data + (i * a.lda);
         b_data = b.data + (i * b.lda);	
+
+		int size = a.col;
+		vvexpf(b_data, a_data, &size);
+
 		float exp_sum = 0;
 
 		vDSP_sve(b_data, 1, &exp_sum, a.col);
 		cblas_sscal(a.col, 1 / exp_sum, b_data, 1);
-
-		// for (int64_t j = 0; j < a.col; j++) {
-		// 	exp_sum += expf(a_data[j]);
-		// }
-		// for (int64_t j = 0; j < a.col; j++) {
-		// 	b_data[j] = expf(a_data[j]) / exp_sum;
-		// }
 	}
 }
 
-// inline void softmax(MatrixCPU a, MatrixCPU b) {
-// 	float *a_data;
-// 	float *b_data;
-// 	for (int64_t i = 0; i < a.row; i++) {
-// 		a_data = a.data + (i * a.lda);
-//         b_data = b.data + (i * b.lda);	
-// 		float exp_sum = 0;
-// 		for (int64_t j = 0; j < a.col; j++) {
-// 			exp_sum += expf(a_data[j]);
-// 		}
-// 		for (int64_t j = 0; j < a.col; j++) {
-// 			b_data[j] = expf(a_data[j]) / exp_sum;
-// 		}
-// 	}
-// }
-
 inline void mmul(MatrixCPU a, MatrixCPU b, MatrixCPU out) {
 	cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, a.row, b.col, a.col, 1, a.data, a.lda, b.data, b.lda, 0, out.data, out.lda);
-	// for (int i = 0; i < a.row; i++) {
-	// 	for (int j = 0; j < b.col; j++) {
-	// 		float acc = 0;
-	// 		for (int k = 0; k < a.col; k++) {
-	// 			acc += *(a.data + (i * a.lda) + k) * *(b.data + (k * b.lda) + j);
-	// 		}
-	// 		*(out.data + (i * out.lda) + j) = acc;
-	// 	}
-    // }
 }
 
 inline void exp_matrix(MatrixCPU a, MatrixCPU b) {
-	int size = a.row * a.col;
-	vvexpf(b.data, a.data, &size);
-    // float *a_data;
-    // float *b_data;
-    // for (int64_t i = 0; i < a.row; i++) {
-    //     a_data = a.data + (i * a.lda);
-    //     b_data = b.data + (i * b.lda);
-    //     for (int64_t j = 0; j < a.col; j++) {
-    //         b_data[j] = expf(a_data[j]);
-    //     }
-    // }
+	float *a_data;
+    float *b_data;
+	for (int64_t i = 0; i < a.row; i++) {
+		a_data = a.data + (i * a.lda);
+		b_data = b.data + (i * b.lda);
+		int size = a.col;
+		vvexpf(b_data, a_data, &size);
+	}
 }
 
 inline void sum_row(MatrixCPU a, ArrayCPU b) {
