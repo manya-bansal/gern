@@ -266,28 +266,6 @@ StageNode::StageNode(AbstractDataTypePtr adt,
 void StageNode::init_annotation() {
     _annotation = refreshVariables(body.getAnnotation(), old_to_new);
     staged_subset = _annotation.getPattern().getCorrespondingSubset(adt);
-    // Go ahead and refresh the variables for that adt.
-    // SubsetObj old_subset = _annotation.getPattern().getCorrespondingSubset(adt);
-    // std::vector<Expr> fields = old_subset.getFields();
-    // std::map<Variable, Variable> old_to_new;
-    // for (const auto &field : fields) {
-    //     auto vars = getVariables(field);
-    //     for (const auto &var : vars) {
-    //         if (old_to_new.contains(var)) {
-    //             continue;
-    //         }
-    //         old_to_new[var] = Variable(getUniqueName(var.getName()), var.getDatatype(), var.isConstExpr());
-    //     }
-    // }
-
-    // std::vector<Expr> new_fields;
-    // for (const auto &field : fields) {
-    //     new_fields.push_back(replaceVariables(field, old_to_new));
-    // }
-
-    // _annotation = replaceSubset(_annotation, {{old_subset, SubsetObj(adt, new_fields)}});
-    std::cout << _annotation << std::endl;
-    // exit(0);
 }
 
 Annotation StageNode::getAnnotation() const {
