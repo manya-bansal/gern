@@ -70,8 +70,10 @@ int main() {
     });
 
     auto cpu_result = out.get();
+    auto in_result = in.get();
 
     std::cout << "CPU result: " << cpu_result << std::endl;
+    std::cout << "CPU result: " << in_result << std::endl;
 
     return 0;
 }
