@@ -129,7 +129,6 @@ void Computation::init_annotation() {
     Consumes consumes = mimicConsumes(last_pattern, input_subsets);
     Pattern p = mimicComputes(last_pattern, Computes(produces, consumes));
     _annotation = Annotation(p, occupied, constraints);
-    // _annotation = refreshVariables(Annotation(p, occupied, constraints));
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {
@@ -256,6 +255,64 @@ Composable TileDummy::operator()(Composable c) {
     }
 
     return new const TiledComputation(to_tile, v, nested, unit, reduce);
+}
+
+StageNode::StageNode(AbstractDataTypePtr adt,
+                     Composable body)
+    : adt(adt), body(body) {
+    init_annotation();
+}
+
+void StageNode::init_annotation() {
+    _annotation = refreshVariables(body.getAnnotation(), old_to_new);
+    staged_subset = _annotation.getPattern().getCorrespondingSubset(adt);
+    // Go ahead and refresh the variables for that adt.
+    // SubsetObj old_subset = _annotation.getPattern().getCorrespondingSubset(adt);
+    // std::vector<Expr> fields = old_subset.getFields();
+    // std::map<Variable, Variable> old_to_new;
+    // for (const auto &field : fields) {
+    //     auto vars = getVariables(field);
+    //     for (const auto &var : vars) {
+    //         if (old_to_new.contains(var)) {
+    //             continue;
+    //         }
+    //         old_to_new[var] = Variable(getUniqueName(var.getName()), var.getDatatype(), var.isConstExpr());
+    //     }
+    // }
+
+    // std::vector<Expr> new_fields;
+    // for (const auto &field : fields) {
+    //     new_fields.push_back(replaceVariables(field, old_to_new));
+    // }
+
+    // _annotation = replaceSubset(_annotation, {{old_subset, SubsetObj(adt, new_fields)}});
+    std::cout << _annotation << std::endl;
+    // exit(0);
+}
+
+Annotation StageNode::getAnnotation() const {
+    return _annotation;
+}
+
+void StageNode::accept(ComposableVisitorStrict *v) const {
+    v->visit(this);
+}
+
+Composable Stage(AbstractDataTypePtr adt, Composable body) {
+    auto annotation = body.getAnnotation();
+    auto inputs = annotation.getPattern().getInputs();
+
+    for (const auto &input : inputs) {
+        if (input.getDS() == adt) {
+            return new const StageNode(adt, body);
+        }
+    }
+
+    if (annotation.getPattern().getOutput().getDS() == adt) {
+        return new const StageNode(adt, body);
+    }
+    // Cannot stage at this scope.
+    throw error::UserError("Stage must have " + adt.getName() + " as an input or output of the body in scope.");
 }
 
 }  // namespace gern

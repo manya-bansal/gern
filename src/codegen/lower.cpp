@@ -144,6 +144,7 @@ void ComposableLower::lower(const TiledComputation *node) {
     tiled_vars.scope();
     all_relationships.scope();
     tiled_dimensions.scope();
+    staged_ds.scope();
 
     // Track all the relationships.
     for (const auto &var : old_to_new) {
@@ -161,6 +162,7 @@ void ComposableLower::lower(const TiledComputation *node) {
     parents.unscope();
     tiled_vars.unscope();
     tiled_dimensions.unscope();
+    staged_ds.unscope();
 
     Variable step_val = getFirstValue(all_relationships, parents, loop_index);
     bool has_parent = step_val.defined();
@@ -375,6 +377,29 @@ void ComposableLower::visit(const GlobalNode *node) {
     lowerIR = new const BlockNode(lowered);
 }
 
+void ComposableLower::visit(const StageNode *node) {
+    std::vector<LowerIR> lowered;
+    // declare the computes for the body.
+    lowered.push_back(declare_computes(node->getAnnotation().getPattern()));
+    lowered.push_back(declare_consumes(node->getAnnotation().getPattern()));
+    // Now, stage the input or output.
+    lowered.push_back(constructQueryNode(node->adt, node->staged_subset.getFields()));
+    // Track all the relationships.
+    for (const auto &var : node->old_to_new) {
+        all_relationships.insert(var.first, var.second);
+    }
+
+    // lower the body.
+    this->visit(node->body);
+    lowered.push_back(lowerIR);
+    // do we need to free?
+    if (node->adt.freeQuery()) {
+        lowered.push_back(new const FreeNode(node->adt));
+    }
+    // finally wrap it all up.
+    lowerIR = new const BlockNode(lowered);
+}
+
 AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
     if (current_ds.contains(ds)) {
         return current_ds.at(ds);
@@ -385,10 +410,12 @@ AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
 const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> args) {
 
     AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + ds.getName()), "auto", ds);
-    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds.getFields(), args);
-    f.name = ds.getName() + "." + f.name;
+    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds, ds.getFields(), args);
+    auto cur_scope_ds = getCurrent(ds);
+    f.name = cur_scope_ds.getName() + "." + f.name;
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
+    staged_ds.insert(queried, args);
     return new const QueryNode(ds, f);
 }
 
@@ -396,6 +423,7 @@ const InsertNode *ComposableLower::constructInsertNode(AbstractDataTypePtr paren
                                                        AbstractDataTypePtr child,
                                                        std::vector<Expr> insert_args) const {
     FunctionCall f = constructFunctionCall(parent.getInsertFunction(),
+                                           parent,
                                            parent.getFields(),
                                            insert_args);
     f.name = parent.getName() + "." + f.name;
@@ -404,23 +432,79 @@ const InsertNode *ComposableLower::constructInsertNode(AbstractDataTypePtr paren
 }
 
 const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
-    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds.getFields(), alloc_args);
+    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds, ds.getFields(), alloc_args);
     alloc_func.output = Parameter(ds);
     current_ds.insert(ds, ds);
     return new const AllocateNode(alloc_func);
 }
 
+template<typename T1>
+static Expr getValue(const util::ScopedMap<T1, T1> &rel,
+                     const util::ScopedMap<T1, T1> &map,
+                     T1 entry,
+                     std::set<Variable> stop_at = {}) {
+    Expr e;
+    while (rel.contains(entry)) {  // While we have the entry, go find it.
+        if (map.contains(entry)) {
+            e = map.at(entry);  // Just set up the first value.
+            entry = rel.at(entry);
+            break;
+        } else {
+            entry = rel.at(entry);
+        }
+    }
+
+    while (rel.contains(entry) && !stop_at.contains(entry)) {  // While we have the entry, go find it.
+        if (map.contains(entry)) {
+            e = e + map.at(entry);
+        }
+        entry = rel.at(entry);
+    }
+    return e;
+}
+
 FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
+                                                    AbstractDataTypePtr ds,
                                                     std::vector<Variable> ref_md_fields,
                                                     std::vector<Expr> true_md_fields) const {
 
     if (ref_md_fields.size() != true_md_fields.size()) {
         throw error::InternalError("Incorrect number of fields passed!");
     }
+
+    std::vector<Expr> new_true_md_fields = true_md_fields;
+    // What data-structure are we interested in?
+    if (current_ds.contains(ds)) {                    // if the data-structure is in the current scope.
+        if (staged_ds.contains(current_ds.at(ds))) {  // if the data-structure is staged.
+
+            std::map<Variable, Expr> offset_by;
+            std::set<Variable> staged_at;
+
+            auto staged_with = staged_ds.at(current_ds.at(ds));
+            for (const auto &staged : staged_with) {
+                auto vars = getVariables(staged);
+                for (const auto &v : vars) {
+                    staged_at.insert(v);
+                }
+            }
+
+            assert(staged_with.size() == true_md_fields.size());
+            for (size_t i = 0; i < staged_with.size(); i++) {
+                auto vars = getVariables(true_md_fields[i]);
+                for (const auto &v : vars) {
+                    if (tiled_vars.contains(v) && !offset_by.contains(v)) {
+                        offset_by[v] = getValue(all_relationships, tiled_vars, v, staged_at);
+                    }
+                }
+                new_true_md_fields[i] = replaceVariables(true_md_fields[i], offset_by);
+            }
+        }
+    }
+
     // Put all the fields in a map.
     std::map<Variable, Expr> mappings;
     for (size_t i = 0; i < ref_md_fields.size(); i++) {
-        mappings[ref_md_fields[i]] = true_md_fields[i];
+        mappings[ref_md_fields[i]] = new_true_md_fields[i];
     }
     // Now, set up the args.
     std::vector<Argument> new_args;
@@ -440,30 +524,6 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     f_new.block = LaunchArguments();
 
     return f_new;
-}
-
-template<typename T1>
-static Expr getValue(const util::ScopedMap<T1, T1> &rel,
-                     const util::ScopedMap<T1, T1> &map,
-                     T1 entry) {
-    Expr e;
-    while (rel.contains(entry)) {  // While we have the entry, go find it.
-        if (map.contains(entry)) {
-            e = map.at(entry);  // Just set up the first value.
-            entry = rel.at(entry);
-            break;
-        } else {
-            entry = rel.at(entry);
-        }
-    }
-
-    while (rel.contains(entry)) {  // While we have the entry, go find it.
-        if (map.contains(entry)) {
-            e = e + map.at(entry);
-        }
-        entry = rel.at(entry);
-    }
-    return e;
 }
 
 LowerIR ComposableLower::declare_computes(Pattern annotation) const {

@@ -48,6 +48,17 @@ void ComposablePrinter::visit(const GlobalNode *node) {
     os << "}";
 }
 
+void ComposablePrinter::visit(const StageNode *node) {
+    util::printIdent(os, ident);
+    os << "Stage " << node->adt.getName() << " {\n";
+    ident++;
+    ComposablePrinter printer(os, ident);
+    printer.visit(node->body);
+    ident--;
+    util::printIdent(os, ident);
+    os << "}";
+}
+
 void LegalToCompose::isLegal(Composable c) {
     c.accept(this);
     auto output = c.getAnnotation().getPattern().getOutput().getDS();
@@ -103,6 +114,10 @@ void LegalToCompose::visit(const GlobalNode *op) {
     this->visit(op->program);
 }
 
+void LegalToCompose::visit(const StageNode *node) {
+    this->visit(node->body);
+}
+
 void LegalToCompose::common(std::set<AbstractDataTypePtr> inputs, AbstractDataTypePtr output) {
 
     for (auto const &input : inputs) {
@@ -135,6 +150,10 @@ void ComposableVisitor::visit(const ComputeFunctionCall *) {
 
 void ComposableVisitor::visit(const GlobalNode *node) {
     this->visit(node->program);
+}
+
+void ComposableVisitor::visit(const StageNode *node) {
+    this->visit(node->body);
 }
 
 }  // namespace gern

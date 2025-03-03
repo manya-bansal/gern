@@ -435,6 +435,17 @@ SubsetObj Pattern::getOutput() const {
     return subset;
 }
 
+SubsetObj Pattern::getCorrespondingSubset(AbstractDataTypePtr d) const {
+    SubsetObj subset;
+    match(*this, std::function<void(const SubsetNode *)>(
+                     [&](const SubsetNode *op) {
+                         if (op->data == d) {
+                             subset = op;
+                         }
+                     }));
+    return subset;
+}
+
 Annotation::Annotation(const AnnotationNode *n)
     : Stmt(n) {
 }

@@ -18,6 +18,7 @@ public:
     virtual void visit(const TiledComputation *) = 0;
     virtual void visit(const ComputeFunctionCall *) = 0;
     virtual void visit(const GlobalNode *) = 0;
+    virtual void visit(const StageNode *) = 0;
 };
 
 class ComposablePrinter : public ComposableVisitorStrict {
@@ -32,6 +33,7 @@ public:
     void visit(const TiledComputation *);
     void visit(const ComputeFunctionCall *);
     void visit(const GlobalNode *);
+    void visit(const StageNode *);
 
 private:
     std::ostream &os;
@@ -46,6 +48,7 @@ public:
     void visit(const TiledComputation *);
     void visit(const ComputeFunctionCall *);
     void visit(const GlobalNode *);
+    void visit(const StageNode *);
 
 private:
     void common(std::set<AbstractDataTypePtr> input, AbstractDataTypePtr output);
@@ -61,6 +64,7 @@ public:
     void visit(const TiledComputation *);
     void visit(const ComputeFunctionCall *);
     void visit(const GlobalNode *);
+    void visit(const StageNode *);
 };
 
 #define COMPOSABLE_RULE(Rule)                                                     \
@@ -112,6 +116,8 @@ private:
     COMPOSABLE_RULE(ComputeFunctionCall);
     COMPOSABLE_RULE(TiledComputation);
     COMPOSABLE_RULE(Computation);
+    COMPOSABLE_RULE(GlobalNode);
+    COMPOSABLE_RULE(StageNode);
 };
 
 template<class T, class... Patterns>
