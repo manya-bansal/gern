@@ -108,6 +108,23 @@ public:
     bool reduce = false;
 };
 
+class StageNode : public ComposableNode {
+public:
+    StageNode(AbstractDataTypePtr adt,
+              Composable body);
+    Annotation getAnnotation() const override;
+    void init_annotation();
+    void accept(ComposableVisitorStrict *) const override;
+
+    Annotation _annotation;
+    AbstractDataTypePtr adt;
+    Composable body;
+    SubsetObj staged_subset;
+    std::map<Variable, Variable> old_to_new;
+};
+
+Composable Stage(AbstractDataTypePtr adt, Composable body);
+
 // This class only exists for the overload.
 struct TileDummy {
     TileDummy(Expr to_tile, Variable v,

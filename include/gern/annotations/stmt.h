@@ -53,7 +53,7 @@ DEFINE_BINARY_CLASS(Assign, Stmt)
 class SubsetObj : public Stmt {
 public:
     SubsetObj() = default;
-    explicit SubsetObj(const SubsetNode *);
+    SubsetObj(const SubsetNode *);
     SubsetObj(AbstractDataTypePtr data,
               std::vector<Expr> mdFields);
     std::vector<Expr> getFields() const;
@@ -174,6 +174,7 @@ public:
     std::vector<Variable> getProducesField() const;
     std::vector<Expr> getRequirement(AbstractDataTypePtr) const;
     SubsetObj getOutput() const;
+    SubsetObj getCorrespondingSubset(AbstractDataTypePtr) const;
     typedef PatternNode Node;
 };
 

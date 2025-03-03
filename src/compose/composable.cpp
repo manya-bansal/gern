@@ -129,7 +129,6 @@ void Computation::init_annotation() {
     Consumes consumes = mimicConsumes(last_pattern, input_subsets);
     Pattern p = mimicComputes(last_pattern, Computes(produces, consumes));
     _annotation = Annotation(p, occupied, constraints);
-    // _annotation = refreshVariables(Annotation(p, occupied, constraints));
 }
 
 void TiledComputation::accept(ComposableVisitorStrict *v) const {
@@ -256,6 +255,42 @@ Composable TileDummy::operator()(Composable c) {
     }
 
     return new const TiledComputation(to_tile, v, nested, unit, reduce);
+}
+
+StageNode::StageNode(AbstractDataTypePtr adt,
+                     Composable body)
+    : adt(adt), body(body) {
+    init_annotation();
+}
+
+void StageNode::init_annotation() {
+    _annotation = refreshVariables(body.getAnnotation(), old_to_new);
+    staged_subset = _annotation.getPattern().getCorrespondingSubset(adt);
+}
+
+Annotation StageNode::getAnnotation() const {
+    return _annotation;
+}
+
+void StageNode::accept(ComposableVisitorStrict *v) const {
+    v->visit(this);
+}
+
+Composable Stage(AbstractDataTypePtr adt, Composable body) {
+    auto annotation = body.getAnnotation();
+    auto inputs = annotation.getPattern().getInputs();
+
+    for (const auto &input : inputs) {
+        if (input.getDS() == adt) {
+            return new const StageNode(adt, body);
+        }
+    }
+
+    if (annotation.getPattern().getOutput().getDS() == adt) {
+        return new const StageNode(adt, body);
+    }
+    // Cannot stage at this scope.
+    throw error::UserError("Stage must have " + adt.getName() + " as an input or output of the body in scope.");
 }
 
 }  // namespace gern
