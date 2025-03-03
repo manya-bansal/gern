@@ -55,6 +55,10 @@ public:
         return MatrixCPU(data + (x * lda + y), l_x, l_y, lda);
     }
 
+    float &operator()(int64_t x, int64_t y) {
+        return data[x * lda + y];
+    }
+
     void insert(int64_t x, int64_t y, int64_t l_x, int64_t l_y, MatrixCPU to_insert) {
         float *data_tmp;
         float *data_insert_tmp;
@@ -123,24 +127,16 @@ public:
         float *data_ptr = &data[x * row + y];
         float4 *val_ptr = reinterpret_cast<float4 *>(data_ptr);
 
-        for (int i = 0; i < num_row; i++) {
-            for (int j = 0; j < num_col; j++) {
-                printf("data_ptr[%d] = %f\n", i * num_col + j, data_ptr[i * num_col + j]);
-            }
-        }
-
         for (int m = 0; m < num_row; m++) {
 #pragma unroll URF
             for (int i = 0; i < col_to_return; i += stride) {
                 float4 val = val_ptr[i];
-                printf("val.x = %f\n", val.x);
                 matrix_data[i] = val;
             }
             val_ptr += LDA / 4;
 
             matrix_data += col_to_return;
         }
-        printf("--------------------------------\n");
         return matrix;
     }
 

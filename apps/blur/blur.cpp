@@ -8,6 +8,22 @@
 
 using namespace gern;
 
+void cpu_blur_x(impl::MatrixCPU &input, impl::MatrixCPU &output) {
+    for (int64_t i = 0; i < output.row; i++) {
+        for (int64_t j = 0; j < output.col; j++) {
+            output(i, j) = (input(i, j) + input(i, j + 1) + input(i, j + 2)) / 3;
+        }
+    }
+}
+
+void cpu_blur_y(impl::MatrixCPU &input, impl::MatrixCPU &output) {
+    for (int64_t i = 0; i < output.row; i++) {
+        for (int64_t j = 0; j < output.col; j++) {
+            output(i, j) = (input(i, j) + input(i + 1, j) + input(i + 2, j)) / 3;
+        }
+    }
+}
+
 int main() {
     constexpr int64_t row_val = 8;
     constexpr int64_t col_val = 8;
@@ -46,8 +62,8 @@ int main() {
 
     Composable program = {
         Global(
-            Tile(output["col"], col.bind(4))(
-                Tile(output["row"], row.bind(4))(
+            (Tile(output["col"], col.bind(4)) || Grid::THREAD_X)(
+                (Tile(output["row"], row.bind(4)) || Grid::THREAD_Y)(
                     blur_x_1->operator()(input, temp),
                     blur_x_2->operator()(temp, output))))};
 
@@ -69,11 +85,29 @@ int main() {
         {output.getName(), &out},
     });
 
-    auto cpu_result = out.get();
+    auto gern_result = out.get();
     auto in_result = in.get();
 
-    std::cout << "CPU result: " << cpu_result << std::endl;
-    std::cout << "CPU result: " << in_result << std::endl;
+    // Compute a reference result on the CPU.
+    auto blur_result_x = impl::MatrixCPU(row_val + 2, col_val, col_val);
+    auto blur_result_y = impl::MatrixCPU(row_val, col_val, col_val);
+
+    cpu_blur_x(in_result, blur_result_x);
+    cpu_blur_y(blur_result_x, blur_result_y);
+
+    // Make sure the result is correct.
+    for (int64_t i = 0; i < row_val; i++) {
+        for (int64_t j = 0; j < col_val; j++) {
+            assert(gern_result(i, j) == blur_result_y(i, j));
+        }
+    }
+
+    blur_result_y.destroy();
+    blur_result_x.destroy();
+    in_result.destroy();
+    out.destroy();
+    in.destroy();
+    gern_result.destroy();
 
     return 0;
 }
