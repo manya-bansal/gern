@@ -474,11 +474,11 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
 
     std::vector<Expr> new_true_md_fields = true_md_fields;
 
-    if (staged_ds.contains(ds)) {  // if the data-structure is in the current scope.
+    if (staged_ds.contains(ds)) {  // if the data-structure has been staged.
         std::map<Variable, Expr> offset_by;
         std::set<Variable> staged_at;
 
-        auto staged_with = staged_ds.at(ds);
+        auto staged_with = staged_ds.at(ds);  // Get the variables at which level the data-structure was staged.
         for (const auto &staged : staged_with) {
             auto vars = getVariables(staged);
             for (const auto &v : vars) {
@@ -491,13 +491,13 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
             auto vars = getVariables(true_md_fields[i]);
             for (const auto &v : vars) {
                 if (!offset_by.contains(v)) {
-                    Expr e = getValue(all_relationships, tiled_vars, v, staged_at);
+                    Expr e = getValue(all_relationships, tiled_vars, v, staged_at);  // Get the value of the variable at the level of the staged data-structure.
                     if (e.defined()) {
                         offset_by[v] = e;
                     }
                 }
             }
-            new_true_md_fields[i] = replaceVariables(true_md_fields[i], offset_by);
+            new_true_md_fields[i] = replaceVariables(true_md_fields[i], offset_by);  // Replace the variables with their offset values.
         }
     }
 

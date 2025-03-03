@@ -180,14 +180,15 @@ TEST(Stage, DoubleStage) {
                   Tile(outputDS["size"], v)(
                       Stage(inputDS,
                             Tile(outputDS["size"], v)(
-                                add_1(inputDS, outputDS))))));
+                                Tile(outputDS["size"], v)(
+                                    add_1(inputDS, outputDS)))))));
 
     Runner run(call);
     run.compile(test::cpuRunner("array"));
 
-    impl::ArrayCPU a(8);
+    impl::ArrayCPU a(16);
     a.ascending();
-    impl::ArrayCPU b(8);
+    impl::ArrayCPU b(16);
     b.vvals(0.0f);
     int64_t v_val = 2;
 
@@ -197,7 +198,7 @@ TEST(Stage, DoubleStage) {
         {"v", &v_val},
     });
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 16; i++) {
         ASSERT_TRUE(b.data[i] == (a.data[i] + 1));
     }
 
