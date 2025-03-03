@@ -21,17 +21,27 @@ q_width = Variable.init("q_width")
 q_height = Variable.init("q_height")
 sqrt_dk = Variable.init("sqrt_dk", DatatypeClass(Datatype.Float32))
 
-program = Composable([
-    Tile(output["row"], l_x)( 
-        Tile(output["col"], l_y)(
-            MatrixTranspose(k, kt),
-            MatrixMultiply(q, kt, q_kt, {"shared_len": q_width}),
-            MatrixDivn(q_kt, sqrt_dk, sm_in),
-            MatrixSoftmax(sm_in, sm_out),
-            MatrixMultiply(sm_out, v, output, {"shared_len": q_height})
-        )
-     )
+tile_vars = {
+    "row": l_x,
+    "col": l_y
+}
+
+untiled_program = Composable([
+    MatrixTranspose(k, kt),
+    MatrixMultiply(q, kt, q_kt, {"shared_len": q_width}),
+    MatrixDivn(q_kt, sqrt_dk, sm_in),
+    MatrixSoftmax(sm_in, sm_out),
+    MatrixMultiply(sm_out, v, output, {"shared_len": q_height})
 ])
+
+annotation = untiled_program.getAnnotation()
+pattern = annotation.getPattern()
+tileableFields = pattern.getTileableFields()
+
+program = untiled_program
+
+for key, val in tileableFields.items():
+    program = Tile(key, tile_vars[key.getMember()])(program)
 
 run = Runner(program)
 
