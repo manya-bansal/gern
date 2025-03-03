@@ -415,7 +415,7 @@ const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std
     f.name = cur_scope_ds.getName() + "." + f.name;
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
-    staged_ds.insert(queried, args);
+    staged_ds.insert(ds, args);
     return new const QueryNode(ds, f);
 }
 
@@ -473,31 +473,31 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     }
 
     std::vector<Expr> new_true_md_fields = true_md_fields;
-    // What data-structure are we interested in?
-    if (current_ds.contains(ds)) {                    // if the data-structure is in the current scope.
-        if (staged_ds.contains(current_ds.at(ds))) {  // if the data-structure is staged.
 
-            std::map<Variable, Expr> offset_by;
-            std::set<Variable> staged_at;
+    if (staged_ds.contains(ds)) {  // if the data-structure is in the current scope.
+        std::map<Variable, Expr> offset_by;
+        std::set<Variable> staged_at;
 
-            auto staged_with = staged_ds.at(current_ds.at(ds));
-            for (const auto &staged : staged_with) {
-                auto vars = getVariables(staged);
-                for (const auto &v : vars) {
-                    staged_at.insert(v);
-                }
+        auto staged_with = staged_ds.at(ds);
+        for (const auto &staged : staged_with) {
+            auto vars = getVariables(staged);
+            for (const auto &v : vars) {
+                staged_at.insert(v);
             }
+        }
 
-            assert(staged_with.size() == true_md_fields.size());
-            for (size_t i = 0; i < staged_with.size(); i++) {
-                auto vars = getVariables(true_md_fields[i]);
-                for (const auto &v : vars) {
-                    if (tiled_vars.contains(v) && !offset_by.contains(v)) {
-                        offset_by[v] = getValue(all_relationships, tiled_vars, v, staged_at);
+        assert(staged_with.size() == true_md_fields.size());
+        for (size_t i = 0; i < staged_with.size(); i++) {
+            auto vars = getVariables(true_md_fields[i]);
+            for (const auto &v : vars) {
+                if (!offset_by.contains(v)) {
+                    Expr e = getValue(all_relationships, tiled_vars, v, staged_at);
+                    if (e.defined()) {
+                        offset_by[v] = e;
                     }
                 }
-                new_true_md_fields[i] = replaceVariables(true_md_fields[i], offset_by);
             }
+            new_true_md_fields[i] = replaceVariables(true_md_fields[i], offset_by);
         }
     }
 
