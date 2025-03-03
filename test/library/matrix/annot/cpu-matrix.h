@@ -238,5 +238,53 @@ public:
     }
 };
 
+class MatrixMultiplyCPU : public AbstractFunction {
+public:
+    MatrixMultiplyCPU()
+        : A(new const MatrixCPU("A")),
+          B(new const MatrixCPU("B")),
+          C(new const MatrixCPU("C")) {
+    }
+
+    Annotation getAnnotation() override {
+        Variable i("i");
+        Variable j("j");
+        Variable k("k");
+
+        Variable ti("ti", Datatype::Int64);
+        Variable tj("tj", Datatype::Int64);
+        Variable tk("tk", Datatype::Int64);
+
+        return annotate(For(i = Expr(0), ADTMember(C, "row", false), ti,
+                            For(j = Expr(0), ADTMember(C, "col", false), tj,
+                                Produces::Subset(C, {i, j, ti, tj}),
+                                Consumes::Subsets(
+                                    Reduce(k = Expr(0), k_dim, tk,
+                                           SubsetObjMany({
+                                               SubsetObj(A, {i, k, ti, tk}),
+                                               SubsetObj(B, {k, j, tk, tj}),
+                                           }))))));
+    }
+
+    FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::matrix_multiply";
+        f.args = {Parameter(A), Parameter(B), Parameter(C), k_dim};
+        return f;
+    }
+
+    std::vector<std::string> getHeader() override {
+        return {
+            "cpu-matrix.h",
+        };
+    }
+
+private:
+    AbstractDataTypePtr A;
+    AbstractDataTypePtr B;
+    AbstractDataTypePtr C;
+    Variable k_dim{"k_dim", Datatype::Int64};
+};
+
 }  // namespace annot
 }  // namespace gern

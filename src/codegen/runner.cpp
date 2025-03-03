@@ -12,11 +12,12 @@ void Runner::compile(Options config) {
 
     codegen::CodeGenerator cg;
     codegen::CGStmt code = cg.generate_code(c);
+    signature = cg.getComputeFunctionSignature();
 
     config.prefix += "/";
     bool at_device = c.isDeviceLaunch();
-    std::string suffix = at_device ? ".cu" : ".cpp";
-    std::string file = config.prefix + config.filename + suffix;
+    // std::string suffix = at_device ? ".cu" : ".cpp";
+    std::string file = config.prefix + config.filename;
     std::ofstream outFile(file);
     outFile << code;
     outFile.close();
@@ -26,7 +27,7 @@ void Runner::compile(Options config) {
     std::string compiler_option = at_device ? "--compiler-options " : "";
     std::string shared_obj = config.prefix + getUniqueName("libGern") + ".so";
     std::string cmd = compiler +
-                      " -std=c++11 " +
+                      " -std=" + config.cpp_std + " " +
                       compiler_option +
                       " -fPIC " +
                       arch + " " + config.include +
@@ -76,6 +77,10 @@ void Runner::evaluate(std::map<std::string, void *> args) {
 
     // Now, actually run the function.
     fp(args_in_order.data());
+}
+
+FunctionSignature Runner::getSignature() const {
+    return signature;
 }
 
 }  // namespace gern

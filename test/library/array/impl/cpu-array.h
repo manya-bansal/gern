@@ -67,9 +67,9 @@ inline void add(ArrayCPU a, ArrayCPU b) {
     }
 }
 
-inline void reduction(ArrayCPU a, ArrayCPU b) {
+inline void reduction(ArrayCPU a, ArrayCPU b, int64_t k) {
     for (int64_t i = 0; i < b.size; i++) {
-        for (int64_t j = 0; j < a.size; j++) {
+        for (int64_t j = 0; j < k; j++) {
             b.data[i] += a.data[j];
         }
     }
@@ -85,6 +85,12 @@ template<int64_t Len>
 inline void add1Template(ArrayCPU a, ArrayCPU b) {
     for (int64_t i = 0; i < Len; i++) {
         b.data[i] = a.data[i] + 1;
+    }
+}
+
+inline void add_1_float(ArrayCPU a, ArrayCPU b, float f) {
+    for (int64_t i = 0; i < a.size; i++) {
+        b.data[i] = a.data[i] + f;
     }
 }
 

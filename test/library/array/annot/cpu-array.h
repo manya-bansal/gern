@@ -93,6 +93,22 @@ protected:
     Variable step{"step"};
 };
 
+class add_1_float : public add_1 {
+public:
+    add_1_float()
+        : add_1() {
+    }
+    FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::add_1_float";
+        f.args = {Parameter(input), Parameter(output), Parameter(float_val)};
+        return f;
+    }
+
+protected:
+    Variable float_val{"float_val", Datatype::Float32};
+};
+
 class add1Template : public add_1 {
 public:
     add1Template()
@@ -141,13 +157,14 @@ public:
         Variable x("x");
         Variable r("r");
         Variable step("step");
-        Variable reduce("reduce");
+        Variable reduce{"reduce"};
+        // Variable reduce("reduce");
 
         return annotate(For(x = Expr(0), output["size"], step,
                             Computes(
                                 Produces::Subset(output, {x, step}),
                                 Consumes::Subsets(
-                                    Reduce(r = Expr(0), output["size"], reduce,
+                                    Reduce(r = Expr(0), k, reduce,
                                            SubsetObjMany{
                                                SubsetObj(input, {r, reduce})})))));
     }
@@ -161,13 +178,14 @@ public:
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
         f.name = "gern::impl::reduction";
-        f.args = {Parameter(input), Parameter(output)};
+        f.args = {Parameter(input), Parameter(output), Parameter(k)};
         return f;
     }
 
 protected:
     AbstractDataTypePtr input;
     AbstractDataTypePtr output;
+    Variable k{"k"};
 };
 
 }  // namespace annot

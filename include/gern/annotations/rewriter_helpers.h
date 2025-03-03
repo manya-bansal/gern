@@ -2,17 +2,17 @@
 
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
-#include "annotations/visitor.h"
+#include "annotations/rewriter.h"
 #include <map>
 #include <set>
 
 namespace gern {
 
-template<typename T>
+template<typename T, typename F>
 inline T replaceVariables(T annot,
-                          const std::map<Variable, Variable> &rw_vars) {
+                          const std::map<Variable, F> &rw_vars) {
     struct rewriteVar : public Rewriter {
-        rewriteVar(std::map<Variable, Variable> rw_vars)
+        rewriteVar(std::map<Variable, F> rw_vars)
             : rw_vars(rw_vars) {
         }
         using Rewriter::rewrite;
@@ -24,7 +24,7 @@ inline T replaceVariables(T annot,
                 expr = op;
             }
         }
-        std::map<Variable, Variable> rw_vars;
+        std::map<Variable, F> rw_vars;
     };
     rewriteVar rw{rw_vars};
     return to<T>(rw.rewrite(annot));
@@ -78,13 +78,49 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
     auto output_var_vec = annot.getPattern().getProducesField();
     auto interval_vars = annot.getIntervalVariables();
     std::set<Variable> output_var_set{output_var_vec.begin(), output_var_vec.end()};
+
     std::set<Variable> old_vars = getVariables(annot);
-    std::map<Variable, Variable> fresh_names;
+    std::set<Expr> to_avoid;
+
+    match(annot,
+          std::function<void(const ConsumesForNode *, Matcher *)>(
+              [&](const ConsumesForNode *op, Matcher *ctx) {
+                  to_avoid.insert(op->parameter);
+                  ctx->match(op->body);
+              }),
+          std::function<void(const ComputesForNode *op, Matcher *)>(
+              [&](const ComputesForNode *op, Matcher *ctx) {
+                  to_avoid.insert(op->parameter);
+                  ctx->match(op->body);
+              }));
+
     for (const auto &v : old_vars) {
-        fresh_names[v] = Variable(getUniqueName(v.getName()), v.isConstExpr());
+        if (to_avoid.contains(v)) {
+            continue;
+        }
+        new_vars[v] = Variable(getUniqueName(v.getName()), v.getDatatype(), v.isConstExpr());
     }
-    new_vars = fresh_names;
-    return replaceVariables(annot, fresh_names);
+    return replaceVariables(annot, new_vars);
+}
+template<typename T>
+inline T replaceDim(T annot, const std::map<Grid::Dim, Expr> &rw_dims) {
+    struct rewriteDS : public Rewriter {
+        rewriteDS(const std::map<Grid::Dim, Expr> &rw_dims)
+            : rw_dims(rw_dims) {
+        }
+        using Rewriter::rewrite;
+
+        void visit(const GridDimNode *op) {
+            if (rw_dims.contains(op->dim)) {
+                expr = rw_dims.at(op->dim);
+            } else {
+                expr = op;
+            }
+        }
+        const std::map<Grid::Dim, Expr> &rw_dims;
+    };
+    rewriteDS rw{rw_dims};
+    return to<T>(rw.rewrite(annot));
 }
 
 /**
@@ -96,7 +132,7 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
  * @return false
  */
 template<typename T>
-bool isConstExpr(T e) {
+inline bool isConstExpr(T e) {
     bool is_const_expr = true;
     match(e,
           std::function<void(const VariableNode *)>(

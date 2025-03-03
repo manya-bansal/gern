@@ -69,39 +69,23 @@ Variable::Variable(const VariableNode *n)
     : Expr(n) {
 }
 
-Variable::Variable(const std::string &name)
-    : Expr(new const VariableNode(name)) {
-}
-
-Variable::Variable(const std::string &name, bool const_expr)
+Variable::Variable(const std::string &name, Datatype type, bool const_expr)
     : Expr(new const VariableNode(name,
                                   Grid::Unit::UNDEFINED,
-                                  Datatype::Int64, const_expr)) {
+                                  type, const_expr)) {
 }
 
-Variable Variable::bindToGrid(const Grid::Unit &p) const {
-    return Variable(new const VariableNode(getName(), p));
-}
-
-Variable Variable::bindToInt64(int64_t val) const {
+Variable Variable::bind(int64_t val) const {
     return Variable(new const VariableNode(getName(), getBoundUnit(),
                                            Datatype::Int64, true, true, val));
-}
-
-bool Variable::isBoundToGrid() const {
-    return isLegalUnit(getBoundUnit());
 }
 
 bool Variable::isConstExpr() const {
     return getNode(*this)->const_expr;
 }
 
-bool Variable::isBoundToInt64() const {
-    return getNode(*this)->bound;
-}
-
 bool Variable::isBound() const {
-    return (isBoundToGrid() || isBoundToInt64());
+    return getNode(*this)->bound;
 }
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads) {
@@ -118,6 +102,10 @@ int64_t Variable::getInt64Val() const {
 
 Grid::Unit Variable::getBoundUnit() const {
     return getNode(*this)->p;
+}
+
+Datatype Variable::getDatatype() const {
+    return getNode(*this)->type;
 }
 
 std::string Variable::getName() const {
@@ -255,23 +243,23 @@ std::map<Variable, Variable> Stmt::getComputesIntervalAndStepVars() const {
     return vars;
 }
 
-std::map<ADTMember, std::tuple<Variable, Expr, Variable>> Stmt::getTileableFields() const {
-    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable;
+std::map<Expr, std::tuple<Variable, Expr, Variable>> Stmt::getTileableFields() const {
+    std::map<Expr, std::tuple<Variable, Expr, Variable>> tileable;
     match(*this,
           std::function<void(const ComputesForNode *op, Matcher *ctx)>([&](const ComputesForNode *op,
                                                                            Matcher *ctx) {
-              tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
+              tileable[op->parameter] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
               ctx->match(op->body);
           }));
     return tileable;
 }
 
-std::map<ADTMember, std::tuple<Variable, Expr, Variable>> Stmt::getReducableFields() const {
-    std::map<ADTMember, std::tuple<Variable, Expr, Variable>> tileable;
+std::map<Expr, std::tuple<Variable, Expr, Variable>> Stmt::getReducableFields() const {
+    std::map<Expr, std::tuple<Variable, Expr, Variable>> tileable;
     match(*this,
           std::function<void(const ConsumesForNode *op, Matcher *ctx)>([&](const ConsumesForNode *op,
                                                                            Matcher *ctx) {
-              tileable[op->end] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
+              tileable[op->parameter] = std::make_tuple(to<Variable>(op->start.getA()), op->start.getB(), op->step);
               ctx->match(op->body);
           }));
     return tileable;
@@ -365,20 +353,20 @@ Consumes Consumes::Subsets(ConsumeMany many) {
     return Consumes(getNode(many));
 }
 
-ConsumeMany Reduce(Assign start, ADTMember end, Variable step, ConsumeMany body,
+ConsumeMany Reduce(Assign start, Expr parameter, Variable step, ConsumeMany body,
                    bool parallel) {
     return ConsumeMany(
-        new const ConsumesForNode(start, end, step, body, parallel));
+        new const ConsumesForNode(start, parameter, step, body, parallel));
 }
 
-ConsumeMany Reduce(Assign start, ADTMember end, Variable step, std::vector<SubsetObj> body,
+ConsumeMany Reduce(Assign start, Expr parameter, Variable step, std::vector<SubsetObj> body,
                    bool parallel) {
-    return Reduce(start, end, step, SubsetObjMany(body), parallel);
+    return Reduce(start, parameter, step, SubsetObjMany(body), parallel);
 }
 
-ConsumeMany Reduce(Assign start, ADTMember end, Variable step, SubsetObj body,
+ConsumeMany Reduce(Assign start, Expr parameter, Variable step, SubsetObj body,
                    bool parallel) {
-    return Reduce(start, end, step, std::vector<SubsetObj>{body}, parallel);
+    return Reduce(start, parameter, step, std::vector<SubsetObj>{body}, parallel);
 }
 
 Allocates::Allocates(const AllocatesNode *n)
@@ -502,16 +490,16 @@ Annotation resetUnit(Annotation annot, std::set<Grid::Unit> occupied) {
     return Annotation(annot.getPattern(), occupied, annot.getConstraints());
 }
 
-Pattern For(Assign start, ADTMember end, Variable step, Pattern body,
+Pattern For(Assign start, Expr parameter, Variable step, Pattern body,
             bool parallel) {
     return Pattern(
-        new const ComputesForNode(start, end, step, body, parallel));
+        new const ComputesForNode(start, parameter, step, body, parallel));
 }
 
-Pattern For(Assign start, ADTMember end, Variable step,
+Pattern For(Assign start, Expr parameter, Variable step,
             Produces produces, Consumes consumes,
             bool parallel) {
-    return For(start, end, step, Computes(produces, consumes), parallel);
+    return For(start, parameter, step, Computes(produces, consumes), parallel);
 }
 
 std::string AbstractDataTypePtr::getName() const {

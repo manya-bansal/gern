@@ -3,6 +3,7 @@
 #include "annotations/lang_nodes.h"
 #include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
+#include "codegen/codegen.h"
 #include "utils/name_generator.h"
 #include <map>
 
@@ -68,7 +69,9 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
             fresh_names[template_arg] = bindings.at(template_arg.getName());
             continue;
         }
-        fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()), true);
+        fresh_names[template_arg] = Variable(getUniqueName("_gern_" + template_arg.getName()),
+                                             template_arg.getDatatype(),
+                                             true);
     }
 
     Annotation annotation = getAnnotation();
@@ -87,6 +90,7 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
         }
         // Otherwise, generate a new name.
         fresh_names[v] = Variable(getUniqueName("_gern_" + v.getName()),
+                                  v.getDatatype(),
                                   v.isConstExpr());
     }
 
@@ -131,6 +135,26 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
 void AbstractFunction::bindVariables(const std::map<std::string, Variable> &replacements) {
 
     bindings.insert(replacements.begin(), replacements.end());
+}
+
+FunctionPtr::FunctionPtr(Composable function, Runner::Options options)
+    : function(function), options(options) {
+    // Let's lower the function to get the signature.
+    Runner runner(function);
+    runner.compile(options);
+    signature = runner.getSignature();
+}
+
+Annotation FunctionPtr::getAnnotation() {
+    return function.getAnnotation();
+}
+
+std::vector<std::string> FunctionPtr::getHeader() {
+    return {options.filename};
+}
+
+FunctionSignature FunctionPtr::getFunction() {
+    return signature;
 }
 
 }  // namespace gern

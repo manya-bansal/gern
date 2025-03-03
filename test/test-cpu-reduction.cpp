@@ -17,14 +17,16 @@ TEST(LoweringCPU, ReductionNoTile) {
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 
     annot::reduction reduction;
+    Variable r_dim("r_dim");
 
     Composable program(
-        reduction(inputDS, outputDS));
+        reduction(inputDS, outputDS, r_dim));
 
     Runner run(program);
     run.compile(test::cpuRunner("array"));
 
     int64_t size = 10;
+    int64_t r_dim_val = size;
     impl::ArrayCPU a(size);
     a.ascending();
     impl::ArrayCPU b(size);
@@ -32,6 +34,7 @@ TEST(LoweringCPU, ReductionNoTile) {
     ASSERT_NO_THROW(run.evaluate({
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
+        {r_dim.getName(), &r_dim_val},
     }));
 
     // Make sure we got the correct answer.
@@ -50,15 +53,17 @@ TEST(LoweringCPU, ReductionOuterTile) {
 
     annot::reduction reduction;
     Variable v("v");
+    Variable r_dim("r_dim");
 
     Composable program(
         Tile(outputDS["size"], v)(
-            reduction(inputDS, outputDS)));
+            reduction(inputDS, outputDS, r_dim)));
 
     Runner run(program);
     run.compile(test::cpuRunner("array"));
 
     int64_t size = 10;
+    int64_t r_dim_val = size;
     int64_t v_tile = 1;
     impl::ArrayCPU a(size);
     a.ascending();
@@ -69,6 +74,7 @@ TEST(LoweringCPU, ReductionOuterTile) {
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
         {v.getName(), &v_tile},
+        {r_dim.getName(), &r_dim_val},
     }));
 
     // Make sure we got the correct answer.
@@ -86,18 +92,20 @@ TEST(LoweringCPU, ReductionInnerTile) {
     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
 
     annot::reduction reduction;
-    Variable v("v");
 
+    Variable v("v");
+    Variable r_dim("r_dim");
     Composable program(
         Tile(outputDS["size"], v)(
-            Reduce(outputDS["size"], v)(
-                reduction(inputDS, outputDS))));
+            Reduce(r_dim, v)(  // Ideal?
+                reduction(inputDS, outputDS, r_dim))));
 
     Runner run(program);
     run.compile(test::cpuRunner("array"));
 
     int64_t size = 10;
     int64_t v_tile = 1;
+    int64_t r_dim_val = size;
     impl::ArrayCPU a(size);
     a.ascending();
     impl::ArrayCPU b(size);
@@ -107,6 +115,7 @@ TEST(LoweringCPU, ReductionInnerTile) {
         {inputDS.getName(), &a},
         {outputDS.getName(), &b},
         {v.getName(), &v_tile},
+        {r_dim.getName(), &r_dim_val},
     }));
 
     // Make sure we got the correct answer.
@@ -126,13 +135,14 @@ TEST(LoweringCPU, TileReductions) {
     annot::reduction reduction;
     Variable v("v");
     Variable v1("v1");
+    Variable r_dim("r_dim");
 
     Composable program(
         Tile(outputDS["size"], v)(
             Tile(outputDS["size"], v1)(
-                Reduce(outputDS["size"], v)(
-                    Reduce(outputDS["size"], v1)(
-                        reduction(inputDS, outputDS))))));
+                Reduce(r_dim, v)(
+                    Reduce(r_dim, v1)(
+                        reduction(inputDS, outputDS, r_dim))))));
 
     Runner run(program);
     run.compile(test::cpuRunner("array"));
@@ -140,6 +150,7 @@ TEST(LoweringCPU, TileReductions) {
     int64_t size = 10;
     int64_t v_tile = 5;
     int64_t v1_tile = 5;
+    int64_t r_dim_val = size;
     impl::ArrayCPU a(size);
     a.ascending();
     impl::ArrayCPU b(size);
@@ -150,6 +161,7 @@ TEST(LoweringCPU, TileReductions) {
         {outputDS.getName(), &b},
         {v.getName(), &v_tile},
         {v1.getName(), &v1_tile},
+        {r_dim.getName(), &r_dim_val},
     }));
 
     // Make sure we got the correct answer.
@@ -170,14 +182,16 @@ TEST(LoweringCPU, MixReductionStrategy) {
     annot::add_1 add_1;
     Variable v("v");
     Variable v1("v1");
+    Variable k("k");
+    Variable r_dim("r_dim");
 
     Composable program(
         Tile(outputDS["size"], v)(
             Tile(outputDS["size"], v1)(
-                Reduce(outputDS["size"], v)(
-                    Reduce(outputDS["size"], v1)(
+                Reduce(r_dim, v)(
+                    Reduce(r_dim, v1)(
                         add_1(inputDS, tempDS),
-                        reduction(tempDS, outputDS))))));
+                        reduction(tempDS, outputDS, r_dim))))));
 
     Runner run_1(program);
     run_1.compile(test::cpuRunner("array"));
@@ -186,6 +200,7 @@ TEST(LoweringCPU, MixReductionStrategy) {
     int64_t size = 10;
     int64_t v_tile = 5;
     int64_t v1_tile = 5;
+    int64_t r_dim_val = size;
     impl::ArrayCPU a(size);
     a.ascending();
     impl::ArrayCPU b(size);
@@ -196,6 +211,7 @@ TEST(LoweringCPU, MixReductionStrategy) {
         {outputDS.getName(), &b},
         {v.getName(), &v_tile},
         {v1.getName(), &v1_tile},
+        {r_dim.getName(), &r_dim_val},
     }));
 
     // Make sure we got the correct answer.
@@ -207,9 +223,9 @@ TEST(LoweringCPU, MixReductionStrategy) {
         Tile(outputDS["size"], v)(
             Tile(outputDS["size"], v1)(
                 add_1(inputDS, tempDS),
-                Reduce(outputDS["size"], v)(
-                    Reduce(outputDS["size"], v1)(
-                        reduction(tempDS, outputDS)))));
+                Reduce(r_dim, v)(
+                    Reduce(r_dim, v1)(
+                        reduction(tempDS, outputDS, r_dim)))));
 
     Runner run_2(program);
     run_2.compile(test::cpuRunner("array"));
@@ -220,6 +236,7 @@ TEST(LoweringCPU, MixReductionStrategy) {
         {outputDS.getName(), &b},
         {v.getName(), &v_tile},
         {v1.getName(), &v1_tile},
+        {r_dim.getName(), &r_dim_val},
     }));
 
     // Make sure we got the correct answer.

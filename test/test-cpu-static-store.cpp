@@ -20,7 +20,7 @@ TEST(StaticStore, Single) {
     Variable step("step");
 
     Composable program =
-        Tile(outputDS["size"], step.bindToInt64(5))(
+        Tile(outputDS["size"], step.bind(5))(
             add_1(inputDS, outputDS));
 
     Runner run(program);
@@ -52,7 +52,7 @@ TEST(StaticStore, Multi) {
     Variable step("step");
 
     Composable program = Composable(
-        Tile(outputDS["size"], step.bindToInt64(5))(
+        Tile(outputDS["size"], step.bind(5))(
             add_1(inputDS, tempDS),
             add_1(tempDS, outputDS)));
 

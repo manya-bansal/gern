@@ -29,7 +29,7 @@ public:
     }
 
     static MatrixCPU allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
-        return MatrixCPU(l_x, l_y, l_x);
+        return MatrixCPU(l_x, l_y, l_y);
     }
 
     MatrixCPU query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
@@ -74,6 +74,16 @@ public:
         }
     }
 
+    void ascending() {
+        float *data_tmp;
+        for (int64_t i = 0; i < row; i++) {
+            data_tmp = data + (i * lda);
+            for (int64_t j = 0; j < col; j++) {
+                data_tmp[j] = i * col + j;
+            }
+        }
+    }
+
     float *data;
     int64_t row;
     int64_t col;
@@ -82,7 +92,8 @@ public:
 
 [[maybe_unused]] static std::ostream &operator<<(std::ostream &os, const MatrixCPU &m) {
     float *data_tmp;
-    os << "[" << "\n";
+    os << "["
+       << "\n";
     for (int64_t i = 0; i < m.row; i++) {
         data_tmp = m.data + (i * m.lda);
         for (int64_t j = 0; j < m.col; j++) {
@@ -164,6 +175,24 @@ inline void divide_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
         out_data = out.data + (i * out.lda);
         for (int64_t j = 0; j < a.col; j++) {
             out_data[j] = a_data[j] / vec_data;
+        }
+    }
+}
+
+inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dummy) {
+    float *a_data;
+    float *b_data;
+    float *c_data;
+    for (int64_t i = 0; i < c.row; i++) {
+        c_data = c.data + (i * c.lda);
+        a_data = a.data + (i * a.lda);
+        for (int64_t j = 0; j < c.col; j++) {
+            float sum = 0.0f;
+            for (int64_t k = 0; k < k_dummy; k++) {
+                b_data = b.data + (k * b.lda) + j;
+                sum += a_data[k] * b_data[0];
+            }
+            c_data[j] += sum;
         }
     }
 }

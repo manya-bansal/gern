@@ -36,7 +36,7 @@ static bool areDisjoint(std::set<T> s1, std::set<T> s2) {
     }
 
     gern::Runner::Options o;
-    o.filename = "test";
+    o.filename = "test.cpp";
     o.prefix = "/tmp";
     o.include = include;
 
