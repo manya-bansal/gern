@@ -12,7 +12,7 @@
 
 int main(int argc, char **argv) {
     // for (int num_elem = SLIDING_START_DIM; num_elem <= SLIDING_END_DIM; num_elem += SLIDING_STEP_DIM) {
-    int num_elem = 4488 * 5 + 2;
+    int num_elem = 4488 * 8 + 2;
     Halide::Runtime::Buffer<float> input(num_elem, num_elem);
     // Halide::Runtime::Buffer<float> blur_x(num_elem, num_elem - 2);
     Halide::Runtime::Buffer<float> blur_y(num_elem - 2, num_elem - 2);

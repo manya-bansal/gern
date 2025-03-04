@@ -5,7 +5,7 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-constexpr int64_t row_val_set = 4488 * 10;
+constexpr int64_t row_val_set = 4488 * 8;
 
 template<int64_t col, int64_t row, int64_t stride>
 __global__ void function_19(impl::MatrixGPU<row_val_set + 4, row_val_set + 4, row_val_set + 4, 1> input, impl::MatrixGPU<row_val_set, row_val_set, row_val_set, 1> output) {
