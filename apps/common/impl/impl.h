@@ -188,7 +188,7 @@ max_shuffle(T1 &output, const T2 &input) {
 }
 
 template<int64_t stride, typename T1, typename T2>
-__device__ void
+inline __device__ void
 blur_x(const T1 &input,
        T2 &output) {
     // Treat as normal float arrays.
@@ -214,7 +214,7 @@ blur_x(const T1 &input,
 }
 
 template<int64_t stride, typename T1, typename T2>
-__device__ void
+inline __device__ void
 blur_y(const T1 &input,
        T2 &output) {
     // Treat as normal float arrays.

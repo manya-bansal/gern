@@ -5,6 +5,15 @@
 #include <iostream>
 #include <stdlib.h>
 
+#define CUDA_CHECK(x)                                                                    \
+    {                                                                                    \
+        cudaError_t e = x;                                                               \
+        if (e != cudaSuccess) {                                                          \
+            printf("CUDA error %s:%d: %s\n", __FILE__, __LINE__, cudaGetErrorString(e)); \
+            exit(EXIT_FAILURE);                                                          \
+        }                                                                                \
+    }
+
 template<int Size>
 struct holder {
     float val[Size];
@@ -116,7 +125,7 @@ template<int64_t Row, int64_t Col, int64_t LDA, int64_t stride>
 class MatrixGPU {
 public:
     MatrixGPU() {
-        cudaMalloc(&data, lda * row * sizeof(float));
+        CUDA_CHECK(cudaMalloc(&data, lda * row * sizeof(float)));
     }
 
     template<int64_t num_row, int64_t num_col>

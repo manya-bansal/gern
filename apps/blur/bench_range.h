@@ -1,3 +1,5 @@
+#pragma once
+
 #define TILE_SIZE 32
 
 #define SLIDING_START_DIM (TILE_SIZE * 40 + 6)

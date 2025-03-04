@@ -36,6 +36,15 @@ halide_run: $(PROGRAM)_main.cpp
 		`libpng-config --cflags --ldflags` -ljpeg  -o $(HALIDE_BUILD)/$@ \
 		-Wl,-rpath, $(HALIDE_PATH)/lib -ldl -lpthread 
 
+gern: 
+	nvcc -O3 -arch=sm_89 \
+	-I  /home/manya/gern/apps/common \
+	-I  /home/manya/gern/test/ \
+	blur.cu  -o gern_blur
+
+	./gern_blur
+
+
 %.dir:
 	mkdir -p $*
 
