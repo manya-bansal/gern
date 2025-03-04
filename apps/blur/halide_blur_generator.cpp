@@ -42,19 +42,24 @@ public:
         blur_y(x, y) = (blur_x(x, y) + blur_x(x, y + 1) + blur_x(x, y + 2)) / 3;
 
         // How to schedule it
+        std::cout << get_target() << std::endl;
         if (get_target().has_gpu_feature()) {
+            std::cout << "hit GPU schedule" << std::endl;
             // GPU schedule.
             switch (schedule) {
             case BlurGPUSchedule::Inline:
+                std::cout << "BlurGPUSchedule::Inline" << std::endl;
                 // - Fully inlining.
                 blur_y.gpu_tile(x, y, xi, yi, tile_x, tile_y);
                 break;
             case BlurGPUSchedule::Cache:
+                std::cout << "BlurGPUSchedule::Cache" << std::endl;
                 // - Cache blur_x calculation.
                 blur_y.gpu_tile(x, y, xi, yi, tile_x, tile_y);
                 blur_x.compute_at(blur_y, x).gpu_threads(x, y);
                 break;
             case BlurGPUSchedule::Slide: {
+                std::cout << "BlurGPUSchedule::Slide" << std::endl;
                 // - Instead caching blur_x calculation explicitly, the
                 //   alternative is to allow each work-item in OpenCL or thread
                 //   in CUDA to calculate more rows of blur_y so that temporary
@@ -69,6 +74,7 @@ public:
                 break;
             }
             case BlurGPUSchedule::SlideVectorize: {
+                std::cout << "BlurGPUSchedule::SlideVectorize" << std::endl;
                 // Vectorization factor.
                 int factor = sizeof(int) / sizeof(short);
                 Var y_inner("y_inner");
@@ -83,6 +89,7 @@ public:
                 break;
             }
         } else if (get_target().has_feature(Target::HVX)) {
+            std::cout << "hit HVX schedule" << std::endl;
             // Hexagon schedule.
             // TODO: Try using a schedule like the CPU one below.
             const int vector_size = 128;
@@ -98,6 +105,7 @@ public:
                 .compute_at(blur_y, yi)
                 .vectorize(x, vector_size);
         } else {
+            std::cout << "hit CPU schedule" << std::endl;
             // CPU schedule.
             // Compute blur_x as needed at each vector of the output.
             // Halide will store blur_x in a circular buffer so its

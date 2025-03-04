@@ -20,7 +20,8 @@ halide: halide_blur_generator.cpp $(BUILD).dir $(BIN).dir
 		-o $(BIN)/$@
 	
 		./$(BIN)/$@ -g halide_blur \
-		-e static_library,c_header,registration,stmt \
+		-e static_library,c_header,c_source,registration,stmt \
+		-r gpu \
 		-o ./$(HALIDE_BUILD) target=host
 
 %.dir:
