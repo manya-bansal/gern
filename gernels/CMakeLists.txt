@@ -10,3 +10,4 @@ find_package(CUDAToolkit REQUIRED)
 find_package(CCCL)
 
 add_subdirectory(cccl)
+add_subdirectory(mm)
