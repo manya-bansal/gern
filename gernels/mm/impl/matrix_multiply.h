@@ -27,9 +27,7 @@ inline __device__ void matrix_multiply_reg(const AT &A,
         for (int64_t j = 0; j < C.cols_by_4; j++) {
             float tmp[4] = {0.0f, 0.0f, 0.0f, 0.0f};
             for (int64_t k = 0; k < A.cols_by_4; k++) {
-                // printf("k: %d\n", k);
                 float4 a = A.array[i * A.cols_by_4 + k];
-                // printf("a: %f %f %f %f\n", a.x, a.y, a.z, a.w);
                 for (int64_t l = 0; l < 4; l++) {
                     int64_t k4 = k * 4;
                     int64_t j4 = j * 4;
@@ -37,12 +35,7 @@ inline __device__ void matrix_multiply_reg(const AT &A,
                     tmp[l] += a.y * b_flat[(k4 + 1) * B_cols + j4 + l];
                     tmp[l] += a.z * b_flat[(k4 + 2) * B_cols + j4 + l];
                     tmp[l] += a.w * b_flat[(k4 + 3) * B_cols + j4 + l];
-                    // printf("b: %f %f %f %f\n", b_flat[k4 * B_cols + j4 + l],
-                    //        b_flat[(k4 + 1) * B_cols + j4 + l],
-                    //        b_flat[(k4 + 2) * B_cols + j4 + l],
-                    //        b_flat[(k4 + 3) * B_cols + j4 + l]);
                 }
-                // printf("tmp: %f %f %f %f\n", tmp[0], tmp[1], tmp[2], tmp[3]);
             }
 
             float4 res = *(float4 *)tmp;
@@ -50,10 +43,6 @@ inline __device__ void matrix_multiply_reg(const AT &A,
             C.array[i * C.cols_by_4 + j].y += res.y;
             C.array[i * C.cols_by_4 + j].z += res.z;
             C.array[i * C.cols_by_4 + j].w += res.w;
-            // printf("c: %f %f %f %f\n", C.array[i * C.cols_by_4 + j].x,
-            //        C.array[i * C.cols_by_4 + j].y,
-            //        C.array[i * C.cols_by_4 + j].z,
-            //        C.array[i * C.cols_by_4 + j].w);
         }
     }
 }
