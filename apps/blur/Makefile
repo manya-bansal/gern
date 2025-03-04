@@ -9,6 +9,7 @@ PROGRAM=halide_blur
 
 
 all: $(HALIDE_BUILD).dir halide_gen halide_run 
+	$(HALIDE_BUILD)/halide_run
 
 halide_gen: $(PROGRAM)_generator.cpp
 	$(CXX) $(CXX_FLAGS) $< \

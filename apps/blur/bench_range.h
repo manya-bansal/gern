@@ -4,5 +4,5 @@
 #define SLIDING_END_DIM (TILE_SIZE * 150)
 #define SLIDING_STEP_DIM (TILE_SIZE * 10)
 
-#define SAMPLES 3
-#define ITERATIONS 5
+#define SAMPLES 5
+#define ITERATIONS 10
