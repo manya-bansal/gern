@@ -1,4 +1,12 @@
-// Taken directly from  https://github.com/halide/Halide/blob/main/apps/blur/halide_blur_generator.cpp
+/**
+ * Taken directly from  https://github.com/halide/Halide/blob/main/apps/blur/halide_blur_generator.cpp
+ *  
+ *  Minor changes:
+ *  - Changed input type to float
+ *  - Changed output type to float
+ *  - Added printing to make sure we are hitting the GPU schedule.
+ * 
+ */
 
 #include "Halide.h"
 
@@ -30,8 +38,8 @@ public:
     GeneratorParam<int> tile_x{"tile_x", 32};  // X tile.
     GeneratorParam<int> tile_y{"tile_y", 8};   // Y tile.
 
-    Input<Buffer<uint16_t, 2>> input{"input"};
-    Output<Buffer<uint16_t, 2>> blur_y{"blur_y"};
+    Input<Buffer<float, 2>> input{"input"};
+    Output<Buffer<float, 2>> blur_y{"blur_y"};
 
     void generate() {
         Func blur_x("blur_x");

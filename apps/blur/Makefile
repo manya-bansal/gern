@@ -1,28 +1,44 @@
 # Makefile for Halide build.
-
-BUILD=build
-BIN=bin
 HALIDE_PATH=/home/manya/halide_local
-
-
+HALIDE_BUILD=halide_build
 
 CXX=clang++-17
-GLIBC=/snap/core18/2855/lib/x86_64-linux-gnu/
+CXX_FLAGS=-std=c++17 -O3
+
+PROGRAM=halide_blur
 
 
-halide: halide_blur_generator.cpp $(BUILD).dir $(BIN).dir
-	$(CXX) -std=c++17 -O3 $< \
+all: $(HALIDE_BUILD).dir halide_gen halide_run 
+
+halide_gen: $(PROGRAM)_generator.cpp
+	$(CXX) $(CXX_FLAGS) $< \
 	    -I $(HALIDE_PATH)/include \
 	    -I $(HALIDE_PATH)/share/tools \
 		-Wl,-rpath=$(HALIDE_PATH)/lib \
 		-L $(HALIDE_PATH)/lib -lHalide \
+		-rdynamic \
 	   	-Wl,--whole-archive -lHalide_GenGen -Wl,--no-whole-archive \
-		-o $(BIN)/$@
+		-o $(HALIDE_BUILD)/$@ -ldl
 	
-		./$(BIN)/$@ -g halide_blur \
+		./$(HALIDE_BUILD)/$@ -g $(PROGRAM) \
 		-e static_library,c_header,c_source,registration,stmt \
-		-r gpu \
-		-o ./$(HALIDE_BUILD) target=host
+		-o ./$(HALIDE_BUILD) target=host-cuda
+
+halide_run: $(PROGRAM)_main.cpp 
+	$(CXX) $(CXX_FLAGS) $< \
+		./$(HALIDE_BUILD)/$(PROGRAM).a \
+		-g -std=c++17 -O3 \
+		-I ./$(HALIDE_BUILD) \
+		-I $(HALIDE_PATH)/include \
+		-I $(HALIDE_PATH)/share/tools \
+		-L $(HALIDE_PATH)/lib -lHalide \
+		`libpng-config --cflags --ldflags` -ljpeg  -o $(HALIDE_BUILD)/$@ \
+		-Wl,-rpath, $(HALIDE_PATH)/lib -ldl -lpthread 
 
 %.dir:
 	mkdir -p $*
+
+
+.PHONY: clean
+clean:
+	rm -rf $(HALIDE_BUILD)

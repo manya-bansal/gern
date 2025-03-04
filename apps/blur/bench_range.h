@@ -1,0 +1,8 @@
+#define TILE_SIZE 32
+
+#define SLIDING_START_DIM (TILE_SIZE * 40 + 6)
+#define SLIDING_END_DIM (TILE_SIZE * 150)
+#define SLIDING_STEP_DIM (TILE_SIZE * 10)
+
+#define SAMPLES 3
+#define ITERATIONS 5
