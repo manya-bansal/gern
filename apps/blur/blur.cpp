@@ -48,7 +48,9 @@ int main() {
     auto temp = AbstractDataTypePtr(new const OutputTypeAnnot("temp", true));  // The type of this guy will not matter.
 
     Variable col("col");
+    Variable col_inner("col_inner");
     Variable row("row");
+    Variable row_inner("row_inner");
     Variable stride{"stride"};
 
     annot::BlurX blur_x_no_template{input, temp};
@@ -62,10 +64,12 @@ int main() {
 
     Composable program = {
         Global(
-            (Tile(output["col"], col.bind(4)) || Grid::THREAD_X)(
-                (Tile(output["row"], row.bind(4)) || Grid::THREAD_Y)(
-                    blur_x_1->operator()(input, temp),
-                    blur_x_2->operator()(temp, output))))};
+            (Tile(output["col"], col.bind(128)) || Grid::BLOCK_X)(
+                (Tile(output["row"], row.bind(128)) || Grid::BLOCK_Y)(
+                    (Tile(output["col"], col_inner.bind(4)) || Grid::THREAD_X)(
+                        (Tile(output["row"], row_inner.bind(4)) || Grid::THREAD_Y)(
+                            blur_x_1->operator()(input, temp),
+                            blur_x_2->operator()(temp, output))))))};
 
     Runner run(program);
     Runner::Options options;
