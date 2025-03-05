@@ -28,7 +28,7 @@ public:
                            LaunchArguments(),
                            DEVICE},
               {
-                  std::string(GERN_ROOT_DIR) + "/smem_allocator/sh_malloc.cuh",
+                  std::string(GERN_ROOT_DIR) + "/test/library/smem_allocator/sh_malloc.h",
               }) {
     }
 };

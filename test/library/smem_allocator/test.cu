@@ -39,8 +39,6 @@ __global__ void test() {
 
 int main() {
 
-    std::cout << "Hello, World!" << std::endl;
-
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0);
     printf("Max shared memory per block: %d bytes\n", prop.sharedMemPerBlockOptin);

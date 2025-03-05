@@ -4,18 +4,18 @@
 #include <cassert>
 #include <cuda_runtime.h>
 
-extern "C" {
-
 /**
  * @brief Initialize the shared memory region.
  *
  * @param size Size of the shared memory region.
  */
-__device__ void init_shmem(size_t size) {
-    extern __shared__ char shmem[];
-    size_t *shmem_size_t = (size_t *)shmem;
-    shmem_size_t[0] = size;                // How large is our shared memory region?
-    shmem_size_t[1] = 2 * sizeof(size_t);  // Sets up the offset for the next allocation
+inline __device__ void init_shmem(size_t size) {
+    if (threadIdx.x == 0) {
+        extern __shared__ char shmem[];
+        size_t *shmem_size_t = (size_t *)shmem;
+        shmem_size_t[0] = size;                // How large is our shared memory region?
+        shmem_size_t[1] = 2 * sizeof(size_t);  // Sets up the offset for the next allocation
+    }
 }
 
 /**
@@ -25,7 +25,8 @@ __device__ void init_shmem(size_t size) {
  * @param size  Size of the memory to allocate.
  * @return void*  Pointer to the allocated memory.
  */
-__device__ void *sh_malloc(size_t size) {
+inline __device__ void *sh_malloc(size_t size) {
+
     extern __shared__ char shmem[];
     size_t *shmem_size_t = (size_t *)shmem;
     size_t max_size = shmem_size_t[0];
@@ -47,7 +48,6 @@ __device__ void *sh_malloc(size_t size) {
  *
  * @param ptr Pointer to the memory to free.
  */
-__device__ void sh_free(void *ptr) {
-    // Do nothing right now.
-}
+inline __device__ void sh_free(void *ptr) {
+    // Do nothing for trivial allocator.
 }
