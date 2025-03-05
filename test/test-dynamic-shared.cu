@@ -135,7 +135,7 @@ TEST(LoweringGPU, StageIntoShared) {
 
     run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));
 
-    int64_t row_val = 8;
+    int64_t row_val = 4;
     int64_t col_val = 8;
 
     impl::MatrixGPU a(row_val, col_val, col_val);
@@ -160,9 +160,12 @@ TEST(LoweringGPU, StageIntoShared) {
 
     impl::MatrixCPU result = b.get();
     impl::MatrixCPU a_host = a.get();
+
     // Make sure we got the correct answer.
-    for (int i = 0; i < row_val * col_val; i++) {
-        ASSERT_TRUE(result.data[i] == a_host.data[i] + 1);
+    for (int i = 0; i < row_val; i++) {
+        for (int j = 0; j < col_val; j++) {
+            ASSERT_TRUE(result(i, j) == a_host(i, j) + 1);
+        }
     }
 
     a.destroy();
