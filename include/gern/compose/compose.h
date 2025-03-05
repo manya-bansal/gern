@@ -2,7 +2,7 @@
 
 #include "annotations/argument.h"
 #include "annotations/data_dependency_language.h"
-#include "compose/composable.h"
+#include "compose/composable_node.h"
 #include "utils/uncopyable.h"
 #include <vector>
 

@@ -1,11 +1,13 @@
 
-BUILD_DIR = build
+BUILD = build
 
-all:
-	nvcc -o $(BUILD_DIR)/test test.cu 
-	./$(BUILD_DIR)/test
+all: $(BUILD).dir
+	nvcc -o $(BUILD)/test test.cu 
+	./$(BUILD)/test
 
 
 clean:
-	rm -f $(BUILD_DIR)
+	rm -f $(BUILD)
 
+%.dir:
+	mkdir -p $* 
