@@ -8,8 +8,10 @@
 namespace gern {
 
 GlobalNode::GlobalNode(Composable program,
-                       std::map<Grid::Dim, Variable> launch_args)
-    : program(program), launch_args(launch_args) {
+                       std::map<Grid::Dim, Variable> launch_args,
+                       Variable smem_size,
+                       grid::SharedMemoryManager smem_manager)
+    : program(program), launch_args(launch_args), smem_size(smem_size), smem_manager(smem_manager) {
 
     auto legal_dims = getDims(program.getAnnotation().getOccupiedUnits());
     for (const auto &arg : launch_args) {
@@ -30,8 +32,10 @@ void GlobalNode::accept(ComposableVisitorStrict *v) const {
 
 // Wrap a function in a global interface, mostly for a nicety.
 Composable Global(Composable program,
-                  std::map<Grid::Dim, Variable> launch_args) {
-    return new const GlobalNode(program, launch_args);
+                  std::map<Grid::Dim, Variable> launch_args,
+                  Variable smem_size,
+                  grid::SharedMemoryManager smem_manager) {
+    return new const GlobalNode(program, launch_args, smem_size, smem_manager);
 }
 
 Computation::Computation(std::vector<Composable> composed)

@@ -76,6 +76,7 @@ enum class CGNodeType {
     EscapeCGExpr,
     EscapeCGStmt,
     MetaData,
+    SpecializedFunction,  // To model templated function as a value.
 };
 
 /** Base class for backend CG */
@@ -183,6 +184,10 @@ public:
 
     CGExpr(const BaseCGExprNode *expr)
         : CGHandle(expr) {
+    }
+
+    bool defined() const {
+        return ptr != nullptr;
     }
 
     std::string str() const;
@@ -511,6 +516,19 @@ struct Div : CGExprNode<Div> {
     static const CGNodeType _type_info = CGNodeType::Div;
 };
 
+struct SpecializedFunction : public CGExprNode<SpecializedFunction> {
+    std::string name;
+    std::vector<CGExpr> template_args;
+
+    static CGExpr make(std::string name, std::vector<CGExpr> template_args) {
+        SpecializedFunction *node = new SpecializedFunction;
+        node->name = name;
+        node->template_args = template_args;
+        return node;
+    }
+
+    static const CGNodeType _type_info = CGNodeType::SpecializedFunction;
+};
 struct Mod : CGExprNode<Mod> {
     CGExpr a;
     CGExpr b;
@@ -538,7 +556,7 @@ struct EscapeCGStmt : public CGStmtNode<EscapeCGStmt> {
 /** A literal. */
 struct Scope : public CGStmtNode<Scope> {
     Scope(CGStmt stmt)
-        : stmt(stmt) {};
+        : stmt(stmt){};
     CGStmt getCGStmt() {
         return stmt;
     }
@@ -581,7 +599,7 @@ struct Block : public CGStmtNode<Block> {
     }
 
     template<typename... CGStmts>
-    static CGStmt make(const CGStmts &...stmts) {
+    static CGStmt make(const CGStmts &... stmts) {
         return make({stmts...});
     }
 
@@ -699,19 +717,21 @@ struct KernelLaunch : public CGExprNode<KernelLaunch> {
     std::vector<CGExpr> template_args;
     CGExpr grid;
     CGExpr block;
+    CGExpr smem_size;
 
     static CGExpr make(std::string name,
                        std::vector<CGExpr> args,
                        std::vector<CGExpr> template_args,
                        CGExpr grid,
-                       CGExpr block) {
-
+                       CGExpr block,
+                       CGExpr smem_size = CGExpr()) {
         KernelLaunch *call = new KernelLaunch;
         call->name = name;
         call->args = args;
         call->template_args = template_args;
         call->grid = grid;
         call->block = block;
+        call->smem_size = smem_size;
         return call;
     }
     static const CGNodeType _type_info = CGNodeType::KernelLaunch;

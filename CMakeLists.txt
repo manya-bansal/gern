@@ -65,10 +65,12 @@ target_sources(
         include/gern/annotations/stmt_nodes.h
         include/gern/annotations/visitor.h
         include/gern/annotations/rewriter.h
+        include/gern/annotations/shared_memory_manager.h
         # includgern/e/resolve_constraints/resolve_constraints.h
         include/gern/compose/compose.h
         include/gern/compose/composable.h
         include/gern/compose/composable_visitor.h
+        include/gern/compose/composable_node.h
         include/gern/compose/runner.h
         include/gern/codegen/codegen.h
         include/gern/codegen/codegen_ir.h

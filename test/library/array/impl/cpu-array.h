@@ -26,7 +26,6 @@ public:
         return ArrayCPU(len);
     }
     ArrayCPU query(int64_t start, int64_t len) {
-        std::cout << "query: " << start << " " << len << std::endl;
         return ArrayCPU(data + start, len);
     }
     void insert(int64_t start, int64_t len, ArrayCPU to_insert) {
