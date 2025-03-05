@@ -135,8 +135,8 @@ TEST(LoweringGPU, StageIntoShared) {
 
     run.compile(test::gpuRunner(std::vector<std::string>{"matrix", "array"}));
 
-    int64_t row_val = 4;
-    int64_t col_val = 4;
+    int64_t row_val = 8;
+    int64_t col_val = 8;
 
     impl::MatrixGPU a(row_val, col_val, row_val);
     a.ascending();
@@ -144,7 +144,7 @@ TEST(LoweringGPU, StageIntoShared) {
 
     int64_t l_x_val = 4;
     int64_t l_y_val = 4;
-    int64_t thread_x_val = 2;
+    int64_t thread_x_val = 1;
     int64_t thread_y_val = 2;
     int64_t smem_size_val = 1024;
 

@@ -43,8 +43,8 @@ public:
         for (int64_t i = 0; i < l_x; i += blockDim.x) {
             for (int64_t j = 0; j < l_y; j += blockDim.y) {
                 float *start = smem_data_global + (i * l_y + j);
-                float *data_start = data + (x + i) * lda + (y + j);
-                start[(threadIdx.x * l_y) + threadIdx.y] = data_start[(threadIdx.x * l_y) + threadIdx.y];
+                float *data_start = data + (x + i + threadIdx.x) * lda + (y + j + threadIdx.y);
+                start[(threadIdx.x * l_y) + threadIdx.y] = data_start[0];
             }
             // data_start += lda * blockDim.x;
         }
