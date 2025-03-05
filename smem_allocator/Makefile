@@ -1,12 +1,11 @@
 
-
+BUILD_DIR = build
 
 all:
-	# nvcc -c sh_malloc.cu -o sh_malloc.o -rdc=true
-	nvcc -o test test.cu 
-	./test
+	nvcc -o $(BUILD_DIR)/test test.cu 
+	./$(BUILD_DIR)/test
 
 
 clean:
-	rm -f test
+	rm -f $(BUILD_DIR)
 
