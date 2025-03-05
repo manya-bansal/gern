@@ -382,7 +382,8 @@ void ComposableLower::visit(const GlobalNode *node) {
     }
     lowered.push_back(new const SharedMemoryDeclNode(node->smem_size));
     if (node->smem_manager.isInitialized()) {
-        lowered.push_back(new const OpaqueCall(node->smem_manager.getInit()));
+        lowered.push_back(new const OpaqueCall(node->smem_manager.getInit(),
+                                               node->smem_manager.getHeaders()));
     }
     this->visit(node->program);  // Just visit the program.
     lowered.push_back(lowerIR);

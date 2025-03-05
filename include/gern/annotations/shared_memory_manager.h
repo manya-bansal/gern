@@ -1,3 +1,4 @@
+#pragma once
 #include "compose/compose.h"
 
 namespace gern {

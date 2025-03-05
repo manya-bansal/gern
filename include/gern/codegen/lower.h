@@ -264,11 +264,13 @@ struct FunctionBoundary : public LowerIRNode {
 };
 
 struct OpaqueCall : public LowerIRNode {
-    OpaqueCall(FunctionCall f)
-        : f(f) {
+    OpaqueCall(FunctionCall f,
+               std::vector<std::string> headers)
+        : f(f), headers(headers) {
     }
     void accept(LowerIRVisitor *) const;
     FunctionCall f;
+    std::vector<std::string> headers;
 };
 
 // Defining an abstract data class that we can use to define query and free node.

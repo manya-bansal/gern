@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <cuda_runtime.h>
 
 extern "C" {
 

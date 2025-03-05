@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cpu-matrix.h"
+#include "library/smem_allocator/sh_malloc.h"
 
 #include <cstring>
 #include <cuda_runtime.h>
@@ -28,6 +29,16 @@ public:
 
     __device__ MatrixGPU query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
         return MatrixGPU(data + (x * lda + y), l_x, l_y, lda);
+    }
+
+    __device__ MatrixGPU stage_into_smem(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
+        float *smem_data = (float *)sh_malloc(l_x * l_y * sizeof(float));
+        for (int64_t i = 0; i < l_x; i++) {
+            for (int64_t j = 0; j < l_y; j++) {
+                smem_data[i * l_y + j] = data[(x + i) * lda + (y + j)];
+            }
+        }
+        return MatrixGPU(smem_data, l_x, l_y, l_y);
     }
 
     MatrixCPU get() {

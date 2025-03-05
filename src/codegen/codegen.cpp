@@ -214,6 +214,7 @@ void CodeGenerator::visit(const SharedMemoryDeclNode *op) {
 
 void CodeGenerator::visit(const OpaqueCall *op) {
     code = gen(op->f);
+    headers.insert(op->headers.begin(), op->headers.end());
 }
 
 void CodeGenerator::visit(const BlankNode *) {
