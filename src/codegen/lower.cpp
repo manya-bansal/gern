@@ -36,6 +36,10 @@ void GridDeclNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 
+void SharedMemoryDeclNode::accept(LowerIRVisitor *v) const {
+    v->visit(this);
+}
+
 void QueryNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
@@ -70,6 +74,10 @@ void BlankNode::accept(LowerIRVisitor *v) const {
 }
 
 void FunctionBoundary::accept(LowerIRVisitor *v) const {
+    v->visit(this);
+}
+
+void OpaqueCall::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 
@@ -371,6 +379,10 @@ void ComposableLower::visit(const GlobalNode *node) {
     std::vector<LowerIR> lowered;
     for (const auto &def : node->launch_args) {
         lowered.push_back(new const GridDeclNode(def.first, def.second));
+    }
+    lowered.push_back(new const SharedMemoryDeclNode(node->smem_size));
+    if (node->smem_manager.isInitialized()) {
+        lowered.push_back(new const OpaqueCall(node->smem_manager.getInit()));
     }
     this->visit(node->program);  // Just visit the program.
     lowered.push_back(lowerIR);

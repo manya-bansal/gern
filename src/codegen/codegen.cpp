@@ -97,6 +97,7 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
     gen(grid_dim.x);
     gen(grid_dim.y);
     gen(grid_dim.z);
+    gen(smem_size);
 
     // Declare all the variables that have been used, but have not been defined.
     for (const auto &v : used) {
@@ -123,6 +124,7 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
     compute_func.device = is_device_launch;
     compute_func.block = block_dim;
     compute_func.grid = grid_dim;
+    compute_func.smem_size = smem_size;
 
     if (is_device_launch) {
         compute_func.access = GLOBAL;
@@ -203,6 +205,15 @@ void CodeGenerator::visit(const AssertNode *op) {
 
 void CodeGenerator::visit(const GridDeclNode *op) {
     code = declDim(op->dim, op->v);
+}
+
+void CodeGenerator::visit(const SharedMemoryDeclNode *op) {
+    smem_size = op->size;
+    code = BlankLine::make();
+}
+
+void CodeGenerator::visit(const OpaqueCall *op) {
+    code = gen(op->f);
 }
 
 void CodeGenerator::visit(const BlankNode *) {
@@ -296,6 +307,10 @@ CGStmt CodeGenerator::declDim(const Grid::Dim &p, Expr val) {
     }
 
 CGExpr CodeGenerator::gen(Expr e) {
+
+    if (!e.defined()) {
+        return CGExpr();
+    }
 
     struct ConvertToCode : public ExprVisitorStrict {
         ConvertToCode(CodeGenerator *cg)
@@ -500,8 +515,25 @@ CGStmt CodeGenerator::gen(FunctionCall f) {
         stmt.push_back(VarAssign::make(
             VarDecl::make(dim3_type, block_name, DeclProperties()),
             Call::make("dim3", {gen(block.x), gen(block.y), gen(block.z)})));
-        call = KernelLaunch::make(f.name, args, template_args,
-                                  Var::make(grid_name), Var::make(block_name));
+
+        // Define the specialized function.
+        std::string func_sp_name = getUniqueName("function_sp");
+        stmt.push_back(VarAssign::make(
+            VarDecl::make(Type::make("auto"), func_sp_name, DeclProperties()),
+            SpecializedFunction::make(f.name, template_args)));
+
+        // Define the size of shared memory if applicable.
+        if (f.smem_size.defined()) {
+            stmt.push_back(VoidCall::make(Call::make("cudaFuncSetAttribute",
+                                                     {EscapeCGExpr::make(func_sp_name),
+                                                      EscapeCGExpr::make("cudaFuncAttributeMaxDynamicSharedMemorySize"),
+                                                      gen(f.smem_size)})));
+        }
+        // Has been specialized, use that.
+        call = KernelLaunch::make(func_sp_name, args, {},
+                                  Var::make(grid_name),
+                                  Var::make(block_name),
+                                  gen(f.smem_size));
     }
 
     if (f.output.defined()) {

@@ -49,7 +49,8 @@ if (Gern_CUDA_ARCH)
     list(APPEND TEST_SOURCES
     test-gpu-array.cpp
     test-set-grid.cpp
-    test-gpu-matrix.cpp)
+    test-gpu-matrix.cpp
+    test-dynamic-shared.cpp)
 endif()
 
 

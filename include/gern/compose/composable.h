@@ -34,17 +34,21 @@ class GlobalNode : public ComposableNode {
 public:
     GlobalNode(Composable program,
                std::map<Grid::Dim, Variable> launch_args,
+               Variable smem_size,
                grid::SharedMemoryManager smem_manager);
+
     Annotation getAnnotation() const override;
     void accept(ComposableVisitorStrict *) const override;
     Composable program;
     std::map<Grid::Dim, Variable> launch_args;
+    Variable smem_size;
     grid::SharedMemoryManager smem_manager;
 };
 
 // Wrap a function in a global interface, mostly for a nicety.
 Composable Global(Composable program,
                   std::map<Grid::Dim, Variable> launch_args = {},
+                  Variable smem_size = Variable(),
                   grid::SharedMemoryManager smem_manager = {});
 
 /**

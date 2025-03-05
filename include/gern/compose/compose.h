@@ -33,6 +33,7 @@ struct FunctionCall {
     LaunchArguments grid;
     LaunchArguments block;
     Access access;
+    Expr smem_size = Expr();
 
     /**
      * @brief Replace the data-structures in this function call.
@@ -68,6 +69,8 @@ struct FunctionSignature {
 
     Access access = HOST;
     bool device = false;
+    Variable smem_size = Variable();
+
     FunctionCall constructCall() const;
 };
 

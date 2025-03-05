@@ -47,6 +47,7 @@ public:
     virtual void visit(const MetaData *);
     virtual void visit(const Cast *);
     virtual void visit(const Deref *);
+    virtual void visit(const SpecializedFunction *);
 
 private:
     std::ostream &os;

@@ -145,6 +145,25 @@ struct GridDeclNode : public LowerIRNode {
     Variable v;
 };
 
+// struct GlobalDeclNode : public LowerIRNode {
+//     GlobalDeclNode(std::map<Grid::Dim, Variable> grid_dims,
+//                    Variable shared_mem,
+//                    LowerIR body);
+
+//     void accept(LowerIRVisitor *) const;
+//     std::map<Grid::Dim, Variable> grid_dims;
+//     Variable shared_mem;
+//     LowerIR body;
+// };
+
+struct SharedMemoryDeclNode : public LowerIRNode {
+    SharedMemoryDeclNode(Variable size)
+        : size(size) {
+    }
+    void accept(LowerIRVisitor *) const;
+    Variable size;
+};
+
 // IR Node that marks a query
 // The child data structure is produced
 // from the parent data-structure corresponding to
@@ -242,6 +261,14 @@ struct FunctionBoundary : public LowerIRNode {
     void accept(LowerIRVisitor *) const;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> queried_names;
     LowerIR nodes;
+};
+
+struct OpaqueCall : public LowerIRNode {
+    OpaqueCall(FunctionCall f)
+        : f(f) {
+    }
+    void accept(LowerIRVisitor *) const;
+    FunctionCall f;
 };
 
 // Defining an abstract data class that we can use to define query and free node.

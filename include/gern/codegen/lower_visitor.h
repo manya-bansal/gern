@@ -21,6 +21,8 @@ public:
     virtual void visit(const FunctionBoundary *) = 0;
     virtual void visit(const BlockNode *) = 0;
     virtual void visit(const GridDeclNode *) = 0;
+    virtual void visit(const SharedMemoryDeclNode *) = 0;
+    virtual void visit(const OpaqueCall *) = 0;
 };
 
 class LowerPrinter : LowerIRVisitor {
@@ -42,7 +44,8 @@ public:
     void visit(const FunctionBoundary *);
     void visit(const BlockNode *);
     void visit(const GridDeclNode *);
-
+    void visit(const SharedMemoryDeclNode *);
+    void visit(const OpaqueCall *);
 private:
     std::ostream &os;
     int ident = 0;

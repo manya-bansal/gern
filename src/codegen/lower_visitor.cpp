@@ -76,12 +76,14 @@ void LowerPrinter::visit(const AssertNode *op) {
 
 void LowerPrinter::visit(const FunctionBoundary *node) {
     util::printIdent(os, ident);
-    os << "Function {" << "\n";
+    os << "Function {"
+       << "\n";
     ident++;
     this->visit(node->nodes);
     ident--;
     util::printIdent(os, ident);
-    os << "}" << "\n";
+    os << "}"
+       << "\n";
 }
 
 void LowerPrinter::visit(const BlockNode *node) {
@@ -95,6 +97,16 @@ void LowerPrinter::visit(const BlockNode *node) {
 void LowerPrinter::visit(const GridDeclNode *node) {
     util::printIdent(os, ident);
     os << node->dim << " = " << node->v;
+}
+
+void LowerPrinter::visit(const SharedMemoryDeclNode *node) {
+    util::printIdent(os, ident);
+    os << "shared mem = " << node->size;
+}
+
+void LowerPrinter::visit(const OpaqueCall *node) {
+    util::printIdent(os, ident);
+    os << "Opaque call " << node->f;
 }
 
 }  // namespace gern
