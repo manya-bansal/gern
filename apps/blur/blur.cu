@@ -63,9 +63,9 @@ int main() {
     OutputType out;
     out.vvals(0.0f);
 
-    constexpr int64_t col = 64;
+    constexpr int64_t col = 128;
     constexpr int64_t col_inner = 4;
-    constexpr int64_t row = 64;
+    constexpr int64_t row = 128;
     constexpr int64_t row_inner = 4;
     constexpr int64_t stride = 3;
 
@@ -74,7 +74,7 @@ int main() {
 
     auto start = std::chrono::high_resolution_clock::now();
     function_19<col, col_inner, row, row_inner, stride><<<grid_32, block_33>>>(in, out);
-    // cudaDeviceSynchronize();
+    cudaDeviceSynchronize();
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Time taken: " << elapsed.count() << "s" << std::endl;
@@ -82,7 +82,7 @@ int main() {
 
     auto start_2 = std::chrono::high_resolution_clock::now();
     function_19<col, col_inner, row, row_inner, stride><<<grid_32, block_33>>>(in, out);
-    // cudaDeviceSynchronize();
+    cudaDeviceSynchronize();
     auto end_2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_2 = end_2 - start_2;
     std::cout << "Time taken: " << elapsed_2.count() << "s" << std::endl;
@@ -90,7 +90,7 @@ int main() {
 
     auto start_3 = std::chrono::high_resolution_clock::now();
     function_19<col, col_inner, row, row_inner, stride><<<grid_32, block_33>>>(in, out);
-    // cudaDeviceSynchronize();
+    cudaDeviceSynchronize();
     auto end_3 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_3 = end_3 - start_3;
     std::cout << "Time taken: " << elapsed_3.count() << "s" << std::endl;
