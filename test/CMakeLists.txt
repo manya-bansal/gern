@@ -34,6 +34,7 @@ set(TEST_SOURCES
     test-set-unit.cpp
     # test-resolve-constraints.cpp
     test-runner.cpp
+    test-stage.cpp
 )
 
 
