@@ -55,15 +55,6 @@ public:
 
     __device__ void insert(int64_t x, int64_t y, int64_t l_x, int64_t l_y, MatrixGPU m) {
 
-        if (threadIdx.x == 0 && threadIdx.y == 0) {
-            printf("Inserting matrix at %lld, %lld\n", x, y);
-            for (int64_t i = 0; i < l_x; i++) {
-                for (int64_t j = 0; j < l_y; j++) {
-                    printf("%f \n", m.data[i * l_y + j]);
-                }
-            }
-        }
-
         for (int64_t i = 0; i < l_x; i += blockDim.x) {
             for (int64_t j = 0; j < l_y; j += blockDim.y) {
                 float *m_start = m.data + (i + threadIdx.x) * m.lda + (j + threadIdx.y);
@@ -121,33 +112,11 @@ __device__ inline void add_smem(MatrixGPU a, MatrixGPU b) {
     float *a_data;
     float *b_data;
 
-    if (threadIdx.x == 0 && threadIdx.y == 0) {
-        printf("Inserting matrix at %lld, %lld\n", a.row, a.col);
-        for (int64_t i = 0; i < a.row; i += 2) {
-            for (int64_t ii = 0; ii < 2; ii++) {
-                for (int64_t j = 0; j < a.col; j++) {
-                    printf("%f \n", a.data[(i + ii) * a.lda + j]);
-                }
-            }
-        }
-    }
-
     for (int64_t i = 0; i < a.row; i += blockDim.x) {
         for (int64_t j = 0; j < a.col; j += blockDim.y) {
             a_data = a.data + (i + threadIdx.x) * a.lda + (j + threadIdx.y);
             b_data = b.data + (i + threadIdx.x) * b.lda + (j + threadIdx.y);
             b_data[0] = a_data[0] + 1;
-        }
-    }
-    __syncthreads();
-
-    if (threadIdx.x == 0 && threadIdx.y == 0) {
-        printf("Inserting matrix at %lld, %lld\n", a.row, a.col);
-        printf("blockDim.x: %u, blockDim.y: %u\n", blockDim.x, blockDim.y);
-        for (int64_t i = 0; i < a.row; i++) {
-            for (int64_t j = 0; j < a.col; j++) {
-                printf("%f \n", b.data[i * b.lda + j]);
-            }
         }
     }
     __syncthreads();

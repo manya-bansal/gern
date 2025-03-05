@@ -138,12 +138,12 @@ TEST(LoweringGPU, StageIntoShared) {
     int64_t row_val = 8;
     int64_t col_val = 8;
 
-    impl::MatrixGPU a(row_val, col_val, row_val);
+    impl::MatrixGPU a(row_val, col_val, col_val);
     a.ascending();
-    impl::MatrixGPU b(row_val, col_val, row_val);
+    impl::MatrixGPU b(row_val, col_val, col_val);
 
     int64_t l_x_val = 4;
-    int64_t l_y_val = 4;
+    int64_t l_y_val = 2;
     int64_t thread_x_val = 1;
     int64_t thread_y_val = 2;
     int64_t smem_size_val = 1024;
@@ -160,7 +160,6 @@ TEST(LoweringGPU, StageIntoShared) {
 
     impl::MatrixCPU result = b.get();
     impl::MatrixCPU a_host = a.get();
-    std::cout << "Result: " << result << std::endl;
     // Make sure we got the correct answer.
     for (int i = 0; i < row_val * col_val; i++) {
         ASSERT_TRUE(result.data[i] == a_host.data[i] + 1);
