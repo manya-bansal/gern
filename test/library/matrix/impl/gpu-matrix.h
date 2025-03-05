@@ -20,7 +20,7 @@ class MatrixGPU {
 public:
     MatrixGPU(int64_t row, int64_t col, int64_t lda)
         : row(row), col(col), lda(lda) {
-        cudaMalloc(&data, lda * col * sizeof(float));
+        cudaMalloc(&data, lda * row * sizeof(float));
     }
 
     __device__ MatrixGPU(float *data, int64_t row, int64_t col, int64_t lda)
@@ -39,14 +39,12 @@ public:
         }
         __syncthreads();
 
-        // float *data_start = data + (x)*lda + (y);
         for (int64_t i = 0; i < l_x; i += blockDim.x) {
             for (int64_t j = 0; j < l_y; j += blockDim.y) {
                 float *start = smem_data_global + (i * l_y + j);
                 float *data_start = data + (x + i + threadIdx.x) * lda + (y + j + threadIdx.y);
                 start[(threadIdx.x * l_y) + threadIdx.y] = data_start[0];
             }
-            // data_start += lda * blockDim.x;
         }
 
         __syncthreads();
@@ -55,12 +53,14 @@ public:
 
     __device__ void insert(int64_t x, int64_t y, int64_t l_x, int64_t l_y, MatrixGPU m) {
 
+        float *data_start = data + x * lda + y;
+
         for (int64_t i = 0; i < l_x; i += blockDim.x) {
             for (int64_t j = 0; j < l_y; j += blockDim.y) {
                 float *m_start = m.data + (i + threadIdx.x) * m.lda + (j + threadIdx.y);
-                float *data_start = data + (x + i + threadIdx.x) * lda + (y + j + threadIdx.y);
-                data_start[0] = m_start[0];
+                data_start[threadIdx.x * lda + threadIdx.y] = m_start[0];
             }
+            data_start += lda * blockDim.x;
         }
 
         __syncthreads();
@@ -68,7 +68,7 @@ public:
 
     MatrixCPU get() {
         MatrixCPU cpu(row, col, lda);
-        cudaMemcpy(cpu.data, data, lda * col * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(cpu.data, data, row * lda * sizeof(float), cudaMemcpyDeviceToHost);
         return cpu;
     }
 
@@ -79,14 +79,14 @@ public:
     void vvals(float f) {
         MatrixCPU tmp(row, col, lda);
         tmp.vvals(f);
-        cudaMemcpy(data, tmp.data, lda * col * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(data, tmp.data, row * lda * sizeof(float), cudaMemcpyHostToDevice);
         tmp.destroy();
     }
 
     void ascending() {
         MatrixCPU tmp(row, col, lda);
         tmp.ascending();
-        cudaMemcpy(data, tmp.data, lda * col * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(data, tmp.data, row * lda * sizeof(float), cudaMemcpyHostToDevice);
         tmp.destroy();
     }
 
