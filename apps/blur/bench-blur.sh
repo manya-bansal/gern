@@ -8,7 +8,7 @@ impls=(
 for impl in ${impls[@]}; do
     echo "Benchmarking $impl"
     for i in $(seq 2 2 40); do
-        echo "#define size 128 * $i" > value.h
+        echo "#define size_matrix 128 * $i" > value.h
         make -B gern
         echo  $((128 * i)) >> gern
         ./halide_build/gern_blur >> gern

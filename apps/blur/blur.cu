@@ -7,7 +7,7 @@
 
 #include "value.h"
 
-constexpr int64_t row_val_set = size;
+constexpr int64_t row_val_set = size_matrix;
 
 void checkCudaError() {
     cudaError_t err = cudaGetLastError();
@@ -83,13 +83,13 @@ int main() {
     cudaDeviceSynchronize();
     // Start actual benchmarking
     auto start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 200; i++) {
         function_19<col, col_inner, row, row_inner, stride><<<grid_32, block_33>>>(in, out);
     }
     cudaDeviceSynchronize();
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::micro> duration = (end - start);
-    auto min = (duration.count() / 1) / 1e6;
+    auto min = (duration.count() / 200) / 1e6;
 
     double bytes = row_val * col_val * 4 * 2;
     std::cout << bytes / min << std::endl;

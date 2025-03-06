@@ -30,11 +30,13 @@ halide_run: $(PROGRAM)_main.cpp
 		./$(HALIDE_BUILD)/$(PROGRAM).a \
 		-g -std=c++17 -O3 \
 		-I ./$(HALIDE_BUILD) \
+		-I /usr/local/cuda-12.3/include \
 		-I $(HALIDE_PATH)/include \
 		-I $(HALIDE_PATH)/share/tools \
 		-L $(HALIDE_PATH)/lib -lHalide \
 		`libpng-config --cflags --ldflags` -ljpeg  -o $(HALIDE_BUILD)/$@ \
-		-Wl,-rpath, $(HALIDE_PATH)/lib -ldl -lpthread 
+		-Wl,-rpath,/usr/local/cuda-12.3/lib64, -L/usr/local/cuda-12.3/lib64 \
+		-Wl,-rpath, $(HALIDE_PATH)/lib -ldl -lpthread -lcudart
 
 gern: 
 	nvcc -O3 -arch=sm_89 \

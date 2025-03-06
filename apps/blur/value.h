@@ -1,1 +1,1 @@
-#define size 128 * 40
+#define size_matrix 128 * 40

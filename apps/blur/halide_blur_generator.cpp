@@ -35,7 +35,7 @@ class HalideBlur : public Halide::Generator<HalideBlur> {
 public:
     GeneratorParam<BlurGPUSchedule> schedule{
         "schedule",
-        BlurGPUSchedule::SlideVectorize,
+        BlurGPUSchedule::Inline,
         blurGPUScheduleEnumMap()};
     GeneratorParam<int> tile_x{"tile_x", 32};  // X tile.
     GeneratorParam<int> tile_y{"tile_y", 8};   // Y tile.
