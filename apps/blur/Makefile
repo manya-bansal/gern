@@ -40,9 +40,8 @@ gern:
 	nvcc -O3 -arch=sm_89 \
 	-I  /home/manya/gern/apps/common \
 	-I  /home/manya/gern/test/ \
-	blur.cu  -o gern_blur
+	blur.cu  -o $(HALIDE_BUILD)/gern_blur
 
-	./gern_blur
 
 
 %.dir:

@@ -25,8 +25,8 @@ void cpu_blur_y(impl::MatrixCPU &input, impl::MatrixCPU &output) {
 }
 
 int main() {
-    constexpr int64_t row_val = 8;
-    constexpr int64_t col_val = 8;
+    constexpr int64_t row_val = 128 * 90;
+    constexpr int64_t col_val = 128 * 90;
 
     constexpr int64_t size_y_chain = 1;
     constexpr int64_t size_x_chain = 1;
@@ -54,11 +54,12 @@ int main() {
     Variable stride{"stride"};
 
     annot::BlurX blur_x_no_template{input, temp};
-    auto blur_x_1 = &blur_x_no_template[{
+    auto blur_x_t = &blur_x_no_template[{
         {"stride", stride.bind(stride_val)},
     }];
-    annot::BlurY blur_x_no_template_2{input, temp};
-    auto blur_x_2 = &blur_x_no_template_2[{
+
+    annot::BlurY blur_y{input, temp};
+    auto blur_y_t = &blur_y[{
         {"stride", stride.bind(stride_val)},
     }];
 
@@ -66,10 +67,10 @@ int main() {
         Global(
             (Tile(output["col"], col.bind(128)) || Grid::BLOCK_X)(
                 (Tile(output["row"], row.bind(128)) || Grid::BLOCK_Y)(
-                    (Tile(output["col"], col_inner.bind(4)) || Grid::THREAD_X)(
-                        (Tile(output["row"], row_inner.bind(4)) || Grid::THREAD_Y)(
-                            blur_x_1->operator()(input, temp),
-                            blur_x_2->operator()(temp, output))))))};
+                    (Tile(output["col"], col_inner.bind(8)) || Grid::THREAD_X)(
+                        (Tile(output["row"], row_inner.bind(8)) || Grid::THREAD_Y)(
+                            (*blur_x_t)(input, temp),
+                            (*blur_y_t)(temp, output))))))};
 
     Runner run(program);
     Runner::Options options;
@@ -105,6 +106,8 @@ int main() {
             assert(gern_result(i, j) == blur_result_y(i, j));
         }
     }
+
+    std::cout << "Values are equal" << std::endl;
 
     blur_result_y.destroy();
     blur_result_x.destroy();

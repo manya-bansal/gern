@@ -18,6 +18,7 @@ enum class BlurGPUSchedule {
     Slide,           // Schedule enabling sliding window opt within each
                      // work-item or cuda thread.
     SlideVectorize,  // The same as above plus vectorization per work-item.
+    GernEquivalent,  // Equivalent schedule Gern. (I hope)
 };
 
 std::map<std::string, BlurGPUSchedule> blurGPUScheduleEnumMap() {
@@ -26,6 +27,7 @@ std::map<std::string, BlurGPUSchedule> blurGPUScheduleEnumMap() {
         {"cache", BlurGPUSchedule::Cache},
         {"slide", BlurGPUSchedule::Slide},
         {"slide_vector", BlurGPUSchedule::SlideVectorize},
+        {"gern", BlurGPUSchedule::GernEquivalent},
     };
 };
 
@@ -33,7 +35,7 @@ class HalideBlur : public Halide::Generator<HalideBlur> {
 public:
     GeneratorParam<BlurGPUSchedule> schedule{
         "schedule",
-        BlurGPUSchedule::Slide,
+        BlurGPUSchedule::SlideVectorize,
         blurGPUScheduleEnumMap()};
     GeneratorParam<int> tile_x{"tile_x", 32};  // X tile.
     GeneratorParam<int> tile_y{"tile_y", 8};   // Y tile.
@@ -43,7 +45,7 @@ public:
 
     void generate() {
         Func blur_x("blur_x");
-        Var x("x"), y("y"), xi("xi"), yi("yi");
+        Var x("x"), y("y"), xi("xi"), yi("yi"), xii("xii"), yii("yii");
 
         // The algorithm
         blur_x(x, y) = (input(x, y) + input(x + 1, y) + input(x + 2, y)) / 3;
@@ -91,6 +93,17 @@ public:
                     .reorder(y_inner, x)
                     .unroll(y_inner)
                     .gpu_tile(x, y, xi, yi, tile_x, 1);
+                break;
+            }
+            case BlurGPUSchedule::GernEquivalent: {
+                std::cout << "BlurGPUSchedule::GernEquivalent" << std::endl;
+                // Gern equivalent schedule.
+                blur_y
+                    .gpu_tile(x, y, xi, yi, 128, 128)
+                    .tile(xi, yi, xii, yii, 8, 8, TailStrategy::RoundUp)
+                    .vectorize(xii)
+                    .unroll(yii);
+                blur_y.dim(0).set_min(0).dim(1).set_stride((blur_y.width() / 8) * 8);
                 break;
             }
             default:

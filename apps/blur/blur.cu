@@ -5,7 +5,9 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-constexpr int64_t row_val_set = 4488 / 2;
+#include "value.h"
+
+constexpr int64_t row_val_set = size;
 
 void checkCudaError() {
     cudaError_t err = cudaGetLastError();
@@ -64,36 +66,31 @@ int main() {
     out.vvals(0.0f);
 
     constexpr int64_t col = 128;
-    constexpr int64_t col_inner = 4;
+    constexpr int64_t col_inner = 8;
     constexpr int64_t row = 128;
-    constexpr int64_t row_inner = 4;
+    constexpr int64_t row_inner = 8;
     constexpr int64_t stride = 3;
 
     dim3 grid_32 = dim3((((col + (out.col - 0)) - 1) / col), (((row + (out.row - 0)) - 1) / row), 1);
     dim3 block_33 = dim3((((col_inner + (col - 0)) - 1) / col_inner), (((row_inner + (row - 0)) - 1) / row_inner), 1);
 
+    checkCudaError();
+
+    for (int i = 0; i < 10; i++) {
+        function_19<col, col_inner, row, row_inner, stride><<<grid_32, block_33>>>(in, out);
+    }
+
+    cudaDeviceSynchronize();
+    // Start actual benchmarking
     auto start = std::chrono::high_resolution_clock::now();
-    function_19<col, col_inner, row, row_inner, stride><<<grid_32, block_33>>>(in, out);
+    for (int i = 0; i < 1; i++) {
+        function_19<col, col_inner, row, row_inner, stride><<<grid_32, block_33>>>(in, out);
+    }
     cudaDeviceSynchronize();
     auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Time taken: " << elapsed.count() << "s" << std::endl;
-    checkCudaError();
+    std::chrono::duration<double, std::micro> duration = (end - start);
+    auto min = (duration.count() / 1) / 1e6;
 
-    auto start_2 = std::chrono::high_resolution_clock::now();
-    function_19<col, col_inner, row, row_inner, stride><<<grid_32, block_33>>>(in, out);
-    cudaDeviceSynchronize();
-    auto end_2 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed_2 = end_2 - start_2;
-    std::cout << "Time taken: " << elapsed_2.count() << "s" << std::endl;
-    checkCudaError();
-
-    auto start_3 = std::chrono::high_resolution_clock::now();
-    function_19<col, col_inner, row, row_inner, stride><<<grid_32, block_33>>>(in, out);
-    cudaDeviceSynchronize();
-    auto end_3 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed_3 = end_3 - start_3;
-    std::cout << "Time taken: " << elapsed_3.count() << "s" << std::endl;
-
-    checkCudaError();
+    double bytes = row_val * col_val * 4 * 2;
+    std::cout << bytes / min << std::endl;
 }
