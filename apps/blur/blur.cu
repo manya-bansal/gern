@@ -7,7 +7,7 @@
 
 #include "value.h"
 
-constexpr int64_t row_val_set = size_matrix;
+constexpr int64_t row_val_set = 128 * 120;
 
 void checkCudaError() {
     cudaError_t err = cudaGetLastError();
@@ -67,8 +67,8 @@ int main() {
 
     constexpr int64_t col = 128;
     constexpr int64_t col_inner = 8;
-    constexpr int64_t row = 128;
-    constexpr int64_t row_inner = 8;
+    constexpr int64_t row = 24;
+    constexpr int64_t row_inner = 4;
     constexpr int64_t stride = 3;
 
     dim3 grid_32 = dim3((((col + (out.col - 0)) - 1) / col), (((row + (out.row - 0)) - 1) / row), 1);
@@ -91,6 +91,7 @@ int main() {
     std::chrono::duration<double, std::micro> duration = (end - start);
     auto min = (duration.count() / 200) / 1e6;
 
-    double bytes = row_val * col_val * 4 * 2;
-    std::cout << bytes / min << std::endl;
+    // double bytes = row_val * col_val * 4 * 2;
+    double flops = 6 * row_val * col_val;
+    std::cout << flops / min << std::endl;
 }
