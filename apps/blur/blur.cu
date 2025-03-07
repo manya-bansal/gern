@@ -65,9 +65,9 @@ int main() {
     OutputType out;
     out.vvals(0.0f);
 
-    constexpr int64_t col = 128;
-    constexpr int64_t col_inner = 8;
-    constexpr int64_t row = 24;
+    constexpr int64_t col = 16;
+    constexpr int64_t col_inner = 4;
+    constexpr int64_t row = 16;
     constexpr int64_t row_inner = 4;
     constexpr int64_t stride = 3;
 
@@ -91,7 +91,7 @@ int main() {
     std::chrono::duration<double, std::micro> duration = (end - start);
     auto min = (duration.count() / 200) / 1e6;
 
-    // double bytes = row_val * col_val * 4 * 2;
-    double flops = 6 * row_val * col_val;
-    std::cout << flops / min << std::endl;
+    double measure = row_val * col_val * 4 * 2;
+    // double measure = 6 * row_val * col_val;
+    std::cout << measure / min << std::endl;
 }

@@ -157,7 +157,7 @@ def get_speedup_up(systems, compare_to, dir,
 # def num_bytes_blur(x):
 #     return x * x * 4 * 2 # * 2 for two inputs
 
-generate_plot(["gern"], 
+generate_plot(["gern", "triton"], 
                "apps/blur",
               "Blur X -> Blur Y", "Size of (N X N) Image", 
               "MB/s (Bandwidth)", "bandwidth_gern", 

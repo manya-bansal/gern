@@ -66,9 +66,9 @@ int main() {
     Composable program = {
         Global(
             (Tile(output["col"], col.bind(128)) || Grid::BLOCK_X)(
-                (Tile(output["row"], row.bind(128)) || Grid::BLOCK_Y)(
+                (Tile(output["row"], row.bind(24)) || Grid::BLOCK_Y)(
                     (Tile(output["col"], col_inner.bind(8)) || Grid::THREAD_X)(
-                        (Tile(output["row"], row_inner.bind(8)) || Grid::THREAD_Y)(
+                        (Tile(output["row"], row_inner.bind(4)) || Grid::THREAD_Y)(
                             (*blur_x_t)(input, temp),
                             (*blur_y_t)(temp, output))))))};
 
