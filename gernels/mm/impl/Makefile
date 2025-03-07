@@ -2,7 +2,7 @@
 BUILD = build
 
 all: $(BUILD).dir
-	nvcc -o $(BUILD)/test test.cu 
+	nvcc -g -o $(BUILD)/test test.cu 
 	./$(BUILD)/test
 
 

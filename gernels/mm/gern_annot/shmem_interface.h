@@ -4,6 +4,7 @@
 #include "annotations/shared_memory_manager.h"
 
 namespace gern {
+// To whomever: this is a shitty maloc. It WILL overwrite data if you overallocate. You have been warned.
 class TrivialManager : public grid::SharedMemoryManager {
 public:
     TrivialManager(Variable smem_size)

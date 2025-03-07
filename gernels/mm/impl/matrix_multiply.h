@@ -56,9 +56,6 @@ __device__ void matrix_multiply(const AT &A,
         for (int64_t j = 0; j < B.col; j++) {
             for (int64_t k = 0; k < k_dim; k++) {
                 C(i, j) += A(i, k) * B(k, j);
-                printf("C(%ld, %ld)  = %f\n", i, j, C(i, j));
-                printf("A(%ld, %ld)  = %f\n", i, k, A(i, k));
-                printf("B(%ld, %ld)  = %f\n", k, j, B(k, j));
             }
         }
     }

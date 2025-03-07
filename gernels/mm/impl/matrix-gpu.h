@@ -103,7 +103,7 @@ public:
 
     void ascending() {
         for (int64_t i = 0; i < lda * row; i++) {
-            data[i] = (float)i + 1;
+            data[i] = (float)(i / 10000.f);
         }
     }
 
@@ -162,12 +162,7 @@ public:
     }
     template<int64_t q_height, int64_t q_width>
     __device__ MatrixGPUShared<q_height, q_width, LDA> stage_into_smem(int64_t x, int64_t y) {
-        printf("--> querying for %ld, %ld\n", x, y);
-        for (int64_t i = 0; i < q_height; i++) {
-            for (int64_t j = 0; j < q_width; j++) {
-                printf(" --> data[%ld][%ld] = %f\n", i, j, data[(x + i) * Width + (y + j)]);
-            }
-        }
+
         return MatrixGPUShared<q_height, q_width, LDA>(data + (x * Width + y));
     }
 
@@ -235,8 +230,6 @@ public:
         }
         __syncthreads();
 
-        printf("num_row = %ld, num_col = %ld, x = %ld, y = %ld\n", num_row, num_col, x, y);
-
         for (int64_t i = 0; i < num_row; i += blockDim.x) {
             for (int64_t j = 0; j < num_col; j += blockDim.y) {
                 float *start = smem_data_global + (i * num_col + j);
@@ -247,16 +240,6 @@ public:
 
         __syncthreads();
 
-        for (int64_t i = 0; i < num_row; i++) {
-            for (int64_t j = 0; j < num_col; j++) {
-                printf("smem_data_global[%ld][%ld] = %f\n", i, j, smem_data_global[i * num_col + j]);
-            }
-        }
-        for (int64_t i = 0; i < num_row; i++) {
-            for (int64_t j = 0; j < num_col; j++) {
-                printf("data[%ld][%ld] = %f\n", i, j, data[(x + i) * lda + (y + j)]);
-            }
-        }
         return MatrixGPUShared<num_row, num_col, num_col>(smem_data_global);
     }
 

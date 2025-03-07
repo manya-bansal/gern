@@ -13,9 +13,9 @@ using namespace gern;
 
 int main() {
 
-    constexpr int64_t m = 1;
-    constexpr int64_t n = 1;
-    constexpr int64_t k = 2;
+    constexpr int64_t m = 128;
+    constexpr int64_t n = 128;
+    constexpr int64_t k = 128;
     constexpr int64_t block_size = 1;
 
     using AType = annot::MatrixGlobalToShared<m, k, block_size>;
@@ -40,14 +40,14 @@ int main() {
     Variable smem_size("smem_size");
     Variable one_val("one_val");
 
-    block_x = block_x.bind(1);    // 8 elements per block_x
-    block_y = block_y.bind(1);    // 8 elements per block_y
-    thread_x = thread_x.bind(1);  // 1 element per thread_x
-    thread_y = thread_y.bind(1);  // 1 element per thread_y
+    block_x = block_x.bind(32);   // 8 elements per block_x
+    block_y = block_y.bind(32);   // 8 elements per block_y
+    thread_x = thread_x.bind(8);  // 1 element per thread_x
+    thread_y = thread_y.bind(8);  // 1 element per thread_y
     k_dim = k_dim.bind(k);
-    k_tiled = k_tiled.bind(1);
-    one_val = one_val.bind(1);
-    int64_t smem_size_val = 12800;  // overallocating by a bit
+    k_tiled = k_tiled.bind(32);
+    one_val = one_val.bind(32);
+    int64_t smem_size_val = 32 * 32 * 8 * 2 + 1000;  // overallocating by a bit
 
     annot::MatrixMultiply mm(A_DS, B_DS, C_DS);
     auto mm_sp = &mm[{
@@ -64,7 +64,7 @@ int main() {
                         Stage(A_DS,
                               Stage(B_DS,
                                     (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X)(
-                                        (Tile(C_DS["col"], thread_x) || Grid::Unit::THREAD_Y)(
+                                        (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_Y)(
                                             (Reduce(k_dim, one_val))(
                                                 (*mm_sp)(A_DS, B_DS, C_DS))))))))),
             {}, smem_size, TrivialManager(smem_size)),
@@ -102,7 +102,8 @@ int main() {
 
     for (int64_t i = 0; i < m; i++) {
         for (int64_t j = 0; j < n; j++) {
-            std::cout << C_cpu(i, j) << " " << C_cpu_ref(i, j) << std::endl;
+            // std::cout << C_cpu(i, j) << " " << C_cpu_ref(i, j) << std::endl;
+            // std::cout << "i: " << i << " j: " << j << std::endl;
             assert_close(C_cpu(i, j), C_cpu_ref(i, j));
         }
     }
