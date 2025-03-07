@@ -160,8 +160,8 @@ def get_speedup_up(systems, compare_to, dir,
 generate_plot(["gern"], 
                "apps/blur",
               "Blur X -> Blur Y", "Size of (N X N) Image", 
-              "MB/s (Bandwidth)", "bandwidth_gern", 
-              ['Gern', 'Halide'], 
-              [colors["gern"], "green"],
-               roofline = False,
-               bandwidth = True)
+              "GFLOPS/s (FLOPS)", "flops_gern", 
+              ['Gern'], 
+              [colors["gern"]],
+               roofline = True,
+               bandwidth = False)
