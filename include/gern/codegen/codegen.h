@@ -31,6 +31,8 @@ public:
     void visit(const BlockNode *);
     void visit(const FunctionBoundary *);
     void visit(const GridDeclNode *);
+    void visit(const SharedMemoryDeclNode *);
+    void visit(const OpaqueCall *);
 
     CGExpr gen(Expr);
     CGExpr gen(Constraint);
@@ -102,6 +104,7 @@ private:
 
     LaunchArguments grid_dim;
     LaunchArguments block_dim;
+    Variable smem_size;
 };
 
 }  // namespace codegen

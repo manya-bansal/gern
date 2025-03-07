@@ -102,6 +102,7 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
     }
     return replaceVariables(annot, new_vars);
 }
+
 template<typename T>
 inline T replaceDim(T annot, const std::map<Grid::Dim, Expr> &rw_dims) {
     struct rewriteDS : public Rewriter {
@@ -120,6 +121,27 @@ inline T replaceDim(T annot, const std::map<Grid::Dim, Expr> &rw_dims) {
         const std::map<Grid::Dim, Expr> &rw_dims;
     };
     rewriteDS rw{rw_dims};
+    return to<T>(rw.rewrite(annot));
+}
+
+template<typename T>
+inline T replaceSubset(T annot, const std::map<SubsetObj, SubsetObj> &rw_subset) {
+    struct rewriteSubset : public Rewriter {
+        rewriteSubset(const std::map<SubsetObj, SubsetObj> &rw_subset)
+            : rw_subset(rw_subset) {
+        }
+        using Rewriter::rewrite;
+
+        void visit(const SubsetNode *op) {
+            if (rw_subset.contains(op)) {
+                stmt = rw_subset.at(op);
+            } else {
+                stmt = op;
+            }
+        }
+        const std::map<SubsetObj, SubsetObj> &rw_subset;
+    };
+    rewriteSubset rw{rw_subset};
     return to<T>(rw.rewrite(annot));
 }
 

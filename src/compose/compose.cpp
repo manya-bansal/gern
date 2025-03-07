@@ -48,6 +48,7 @@ FunctionCall FunctionSignature::constructCall() const {
         .grid = grid,
         .block = block,
         .access = access,
+        .smem_size = smem_size,
     };
     return f_call;
 }

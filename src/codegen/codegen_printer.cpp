@@ -106,7 +106,8 @@ void CGPrinter::visit(const DeclFunc *op) {
             os << op->template_args[i];
             os << ((i != num_template_args - 1) ? ", " : "");
         }
-        os << ">" << "\n";
+        os << ">"
+           << "\n";
     }
 
     doIdent();
@@ -179,6 +180,18 @@ void CGPrinter::visit(const Deref *op) {
     os << "*(" << op->expr << ")";
 }
 
+void CGPrinter::visit(const SpecializedFunction *op) {
+    os << op->name;
+    if (op->template_args.size() > 0) {
+        os << "<";
+        for (size_t i = 0; i < op->template_args.size(); i++) {
+            os << op->template_args[i];
+            os << ((i != op->template_args.size() - 1) ? ", " : "");
+        }
+        os << ">";
+    }
+}
+
 void CGPrinter::visit(const VoidCall *op) {
     doIdent();
     os << op->func << ";";
@@ -195,7 +208,13 @@ void CGPrinter::visit(const KernelLaunch *op) {
         }
         os << ">";
     }
-    os << "<<<" << op->grid << ", " << op->block << ">>>";
+    os << "<<<" << op->grid << ", " << op->block;
+    // Add the shared memory size if defined.
+    if (op->smem_size.defined()) {
+        os << ", " << op->smem_size;
+    }
+    os << ">>>";
+
     if (op->args.size() == 0) {
         os << "()";
     } else {

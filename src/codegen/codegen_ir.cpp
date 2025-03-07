@@ -295,6 +295,11 @@ void CGStmtNode<Scope>::accept(CGVisitorStrict *v) const {
     v->visit((const Scope *)this);
 }
 
+template<>
+void CGExprNode<SpecializedFunction>::accept(CGVisitorStrict *v) const {
+    v->visit((const SpecializedFunction *)this);
+}
+
 // template <>
 // void CGStmtNode<CilkFor>::accept(CGVisitorStrict* v)
 //     const { v->visit((const CilkFor*)this); }

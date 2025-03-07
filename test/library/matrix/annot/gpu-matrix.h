@@ -54,12 +54,30 @@ public:
         };
     }
 
-private:
+protected:
     std::string name;
     Variable x{"x"};
     Variable y{"y"};
     Variable l_x{"row"};
     Variable l_y{"col"};
+};
+
+class MatrixGPUStageSmem : public MatrixGPU {
+public:
+    MatrixGPUStageSmem(const std::string &name)
+        : MatrixGPU(name) {
+    }
+    // Just override the getQueryFunction to return the stage_into_smem function.
+    FunctionSignature getQueryFunction() const override {
+        return FunctionSignature{
+            .name = "stage_into_smem",
+            .args = {x, y, l_x, l_y},
+        };
+    }
+
+    bool insertQuery() const override {
+        return true;
+    }
 };
 
 class MatrixAddGPU : public MatrixAddCPU {
@@ -78,6 +96,32 @@ public:
             "gpu-matrix.h",
         };
     }
+};
+
+class MatrixAddGPUBlocks : public MatrixAddCPU {
+public:
+    MatrixAddGPUBlocks()
+        : MatrixAddCPU() {
+    }
+
+    Annotation getAnnotation() override {
+        return resetUnit(MatrixAddCPU::getAnnotation(),
+                         {Grid::Unit::THREAD_X, Grid::Unit::THREAD_Y});
+    }
+
+    FunctionSignature getFunction() override {
+        return FunctionSignature{
+            .name = "gern::impl::add_smem",
+            .args = {Parameter(input), Parameter(output)},
+        };
+    }
+
+    std::vector<std::string> getHeader() override {
+        return {
+            "gpu-matrix.h",
+        };
+    }
+
 };
 
 }  // namespace annot
