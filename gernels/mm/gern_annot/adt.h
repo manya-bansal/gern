@@ -92,6 +92,32 @@ public:
     }
 };
 
+template<int Row, int Col, int Stride>
+class MatrixGlobalToGlobal : public MatrixGPU<Row, Col, Stride> {
+public:
+    MatrixGlobalToGlobal(const std::string &name, bool temp)
+        : MatrixGPU<Row, Col, Stride>(name, temp) {
+    }
+    FunctionSignature getQueryFunction() const {
+        return FunctionSignature{
+            .name = "template query_global_2_global",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+    FunctionSignature getInsertFunction() const {
+        return FunctionSignature{
+            .name = "template insert_global_2_global",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+
+    bool insertQuery() const override {
+        return false;  // Just a view, no insert.
+    }
+};
+
 class StaticArray : public AbstractDataType {
 public:
     StaticArray(const std::string &name,

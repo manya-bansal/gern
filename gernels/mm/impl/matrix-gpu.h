@@ -132,6 +132,28 @@ public:
         CUDA_CHECK(cudaMalloc(&data, lda * row * sizeof(float)));
     }
 
+    __device__ MatrixGPU(float *data)
+        : data(data) {
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ MatrixGPU<num_row, num_col, LDA, stride> query_global_2_global(int64_t x, int64_t y) {
+        return MatrixGPU<num_row, num_col, LDA, stride>(data + (x * lda + y));
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ void insert_global_2_global(int64_t x, int64_t y, MatrixGPU<num_row, num_col, LDA, stride> to_insert) {
+        float *data_tmp;
+        float *data_insert_tmp;
+        for (int64_t i = 0; i < num_row; i++) {
+            data_tmp = data + ((x + i) * lda) + y;
+            data_insert_tmp = to_insert.data + (i * to_insert.lda);
+            for (int64_t j = 0; j < num_col; j++) {
+                data_tmp[j] = data_insert_tmp[j];
+            }
+        }
+    }
+
     template<int64_t num_row, int64_t num_col>
     __device__ StaticMatrix<num_row, CEILING(num_col, 4)> query(int64_t x, int64_t y) {
         constexpr int64_t col_to_return = CEILING(num_col, 4);

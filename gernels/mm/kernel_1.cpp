@@ -1,4 +1,3 @@
-
 #include "../current_path.h"
 #include "compose/runner.h"
 #include "gern_annot/adt.h"
@@ -12,18 +11,14 @@ using namespace gern;
 
 int main() {
 
-    constexpr int64_t m = 8;
-    constexpr int64_t n = 8;
+    constexpr int64_t m = 64;
+    constexpr int64_t n = 64;
     constexpr int64_t k = 8;
-
-    constexpr int64_t tile_size_m = 2;
-    constexpr int64_t tile_size_n = 8;
-    constexpr int64_t tile_size_k = 8;
     constexpr int64_t block_size = 1;
 
-    using AType = annot::MatrixGPU<m, k, block_size>;
-    using BType = annot::MatrixGPU<k, n, block_size>;
-    using CType = annot::MatrixGPU<m, n, block_size>;
+    using AType = annot::MatrixGlobalToGlobal<m, k, block_size>;
+    using BType = annot::MatrixGlobalToGlobal<k, n, block_size>;
+    using CType = annot::MatrixGlobalToGlobal<m, n, block_size>;
 
     using AImpl = impl::MatrixGPU<m, k, k, block_size>;
     using BImpl = impl::MatrixGPU<k, n, n, block_size>;
@@ -34,32 +29,34 @@ int main() {
     auto C_DS = AbstractDataTypePtr(new const CType("C", false));
 
     Variable k_dim("k_dim");
-    Variable c_row("c_row");
-    Variable c_col("c_col");
-    Variable k_tile("k_tile");
+    Variable block_x("block_x");
+    Variable block_y("block_y");
+    Variable thread_x("thread_x");
+    Variable thread_y("thread_y");
 
-    c_row = c_row.bind(tile_size_m);
-    c_col = c_col.bind(tile_size_n);
-    k_tile = k_tile.bind(tile_size_k);
+    block_x = block_x.bind(32);   // 8 elements per block_x
+    block_y = block_y.bind(32);   // 8 elements per block_y
+    thread_x = thread_x.bind(1);  // 1 element per thread_x
+    thread_y = thread_y.bind(1);  // 1 element per thread_y
     k_dim = k_dim.bind(k);
 
-    // Get the function object.
-    annot::MatrixMultiplyReg mm(A_DS, B_DS, C_DS);
+    annot::MatrixMultiply mm(A_DS, B_DS, C_DS);
     auto mm_sp = &mm[{
         {"k_dim", k_dim},
     }];
 
-    // Our program.
+    // Distribute over blocks and threads trivially.
     Composable program = {
         Global(
-            (Tile(C_DS["row"], c_row) || Grid::Unit::THREAD_X)(
-                (Tile(C_DS["col"], c_col) || Grid::Unit::THREAD_Y)(
-                    Reduce(k_dim, k_tile)(
-                        (*mm_sp)(A_DS, B_DS, C_DS))))),
+            (Tile(C_DS["row"], block_x) || Grid::Unit::BLOCK_X)(
+                (Tile(C_DS["col"], block_y) || Grid::Unit::BLOCK_Y)(
+                    (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X)(
+                        (Tile(C_DS["col"], thread_x) || Grid::Unit::THREAD_Y)(
+                            (*mm_sp)(A_DS, B_DS, C_DS)))))),
     };
 
     Runner::Options options;
-    options.filename = "hello_mm.cu";
+    options.filename = "kernel_1.cu";
     options.cpp_std = "c++17";
     options.arch = GERNELS_ARCH;
     options.include = " -I" + std::string(GERNELS_PATH) + "/mm";
@@ -74,21 +71,18 @@ int main() {
     CImpl C;
     C.vvals(0.0f);
 
+    // Set up all the values.
     runner.evaluate({{A_DS.getName(), &A},
                      {B_DS.getName(), &B},
                      {C_DS.getName(), &C}});
 
+    // Make sure the output is correct!
     auto C_cpu = C.get();
     auto C_cpu_ref = C.get();
     C_cpu_ref.vvals(0.0f);
     auto A_cpu = A.get();
     auto B_cpu = B.get();
-
-    // std::cout << "A_cpu: " << A_cpu << std::endl;
-    // std::cout << "B_cpu: " << B_cpu << std::endl;
-
     matrix_multiply_cpu(A_cpu, B_cpu, C_cpu_ref);
-    // std::cout << "C_cpu_ref: " << C_cpu_ref << std::endl;
 
     for (int64_t i = 0; i < m; i++) {
         for (int64_t j = 0; j < n; j++) {

@@ -5,10 +5,11 @@ find_package(Gern REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
 
-add_executable(mm_trivial mm_trivial.cpp)
-add_executable(mm_registers mm_registers.cpp)
+add_gernel(mm_trivial)
+add_gernel(mm_registers)
+add_gernel(mm_shared)
 
-target_link_libraries(mm_trivial PRIVATE Gern::Gern)
-target_link_libraries(mm_trivial PRIVATE CUDA::cudart)
-target_link_libraries(mm_registers PRIVATE Gern::Gern)
-target_link_libraries(mm_registers PRIVATE CUDA::cudart)
+
+# Step by Step kernels
+add_gernel(kernel_1)
+
