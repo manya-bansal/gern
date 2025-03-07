@@ -12,10 +12,9 @@ using namespace gern;
 
 int main() {
 
-    constexpr int64_t m = 64;
-    constexpr int64_t n = 64;
-    constexpr int64_t k = 64;
-
+    constexpr int64_t m = 128 * 2;
+    constexpr int64_t n = 128 * 2;
+    constexpr int64_t k = 128 * 2;
     constexpr int64_t block_size = 1;
 
     using AType = annot::MatrixGlobalToGlobal<m, k, block_size>;
@@ -48,17 +47,18 @@ int main() {
     }];
 
     // Distribute over blocks and threads trivially.
+    // But does memory coalescing flipping col and row basically gives memory coalescing.
     Composable program = {
         Global(
-            (Tile(C_DS["row"], block_x) || Grid::Unit::BLOCK_X)(
-                (Tile(C_DS["col"], block_y) || Grid::Unit::BLOCK_Y)(
+            (Tile(C_DS["row"], block_x) || Grid::Unit::BLOCK_Y)(
+                (Tile(C_DS["col"], block_y) || Grid::Unit::BLOCK_X)(
                     (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X)(
                         (Tile(C_DS["col"], thread_x) || Grid::Unit::THREAD_Y)(
                             (*mm_sp)(A_DS, B_DS, C_DS)))))),
     };
 
     Runner::Options options;
-    options.filename = "kernel_1.cu";
+    options.filename = "kernel_2.cu";
     options.cpp_std = "c++17";
     options.arch = GERNELS_ARCH;
     options.include = " -I" + std::string(GERNELS_PATH) + "/mm";

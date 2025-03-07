@@ -86,7 +86,7 @@ public:
 
     void ascending() {
         for (int64_t i = 0; i < lda * row; i++) {
-            data[i] = i / 1000.0f;
+            data[i] = i / 100000.0f;
         }
     }
 

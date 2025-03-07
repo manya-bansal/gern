@@ -12,4 +12,5 @@ add_gernel(mm_shared)
 
 # Step by Step kernels
 add_gernel(kernel_1)
-
+add_gernel(kernel_2)
+add_gernel(kernel_3)
