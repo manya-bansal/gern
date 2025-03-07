@@ -397,6 +397,7 @@ void ComposableLower::visit(const StageNode *node) {
     lowered.push_back(declare_consumes(node->getAnnotation().getPattern()));
     // Now, stage the input or output.
     lowered.push_back(constructQueryNode(node->adt, node->staged_subset.getFields()));
+    auto cur_scope_adt = getCurrent(node->adt);
     // Track all the relationships.
     for (const auto &var : node->old_to_new) {
         all_relationships.insert(var.first, var.second);
@@ -406,8 +407,8 @@ void ComposableLower::visit(const StageNode *node) {
     this->visit(node->body);
     lowered.push_back(lowerIR);
     // do we need to free?
-    if (node->adt.freeQuery()) {
-        lowered.push_back(new const FreeNode(node->adt));
+    if (cur_scope_adt.freeQuery()) {
+        lowered.push_back(new const FreeNode(cur_scope_adt));
     }
     // finally wrap it all up.
     lowerIR = new const BlockNode(lowered);
@@ -507,6 +508,10 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
                     Expr e = getValue(all_relationships, tiled_vars, v, staged_at);  // Get the value of the variable at the level of the staged data-structure.
                     if (e.defined()) {
                         offset_by[v] = e;
+                    }
+                    // it was the first one, return
+                    if (isa<Variable>(e) && staged_at.contains(to<Variable>(e))) {
+                        offset_by[v] = 0;
                     }
                 }
             }

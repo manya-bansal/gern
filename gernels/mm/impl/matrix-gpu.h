@@ -59,7 +59,7 @@ struct StaticMatrixNoVector {
 #endif
 constexpr int URF{UNROLL_FACTOR};
 
-#define CEILING(x, y) (((x) + (y)-1) / (y))
+#define CEILING(x, y) (((x) + (y) - 1) / (y))
 
 namespace impl {
 
@@ -103,7 +103,7 @@ public:
 
     void ascending() {
         for (int64_t i = 0; i < lda * row; i++) {
-            data[i] = i / 100000.0f;
+            data[i] = (float)i + 1;
         }
     }
 
@@ -141,6 +141,41 @@ public:
     os << "]";
     return os;
 }
+
+template<int64_t Height, int64_t Width, int LDA>
+class MatrixGPUShared {
+public:
+    __device__ MatrixGPUShared(float *data)
+        : data(data) {
+    }
+
+    __device__ float &operator()(int64_t x, int64_t y) {
+        return data[x * Width + y];
+    }
+
+    __device__ float operator()(int64_t x, int64_t y) const {
+        return data[x * Width + y];
+    }
+
+    __device__ void free_smem() {
+        // sh_free(data);
+    }
+    template<int64_t q_height, int64_t q_width>
+    __device__ MatrixGPUShared<q_height, q_width, LDA> stage_into_smem(int64_t x, int64_t y) {
+        printf("--> querying for %ld, %ld\n", x, y);
+        for (int64_t i = 0; i < q_height; i++) {
+            for (int64_t j = 0; j < q_width; j++) {
+                printf(" --> data[%ld][%ld] = %f\n", i, j, data[(x + i) * Width + (y + j)]);
+            }
+        }
+        return MatrixGPUShared<q_height, q_width, LDA>(data + (x * Width + y));
+    }
+
+    float *data;
+    static constexpr int64_t row = Height;
+    static constexpr int64_t col = Width;
+    static constexpr int64_t lda = LDA;
+};
 
 template<int64_t Row, int64_t Col, int64_t LDA, int64_t stride>
 class MatrixGPU {
@@ -188,6 +223,62 @@ public:
             for (int64_t j = 0; j < num_col; j++) {
                 data[(x + i) * lda + (y + j)] = to_insert(i, j);
             }
+        }
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ MatrixGPUShared<num_row, num_col, num_col> stage_into_smem(int64_t x, int64_t y) {
+        __shared__ float *smem_data_global;
+
+        if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+            smem_data_global = (float *)sh_malloc(num_row * num_col * sizeof(float));
+        }
+        __syncthreads();
+
+        printf("num_row = %ld, num_col = %ld, x = %ld, y = %ld\n", num_row, num_col, x, y);
+
+        for (int64_t i = 0; i < num_row; i += blockDim.x) {
+            for (int64_t j = 0; j < num_col; j += blockDim.y) {
+                float *start = smem_data_global + (i * num_col + j);
+                float *data_start = data + (x + i + threadIdx.x) * lda + (y + j + threadIdx.y);
+                start[(threadIdx.x * num_col) + threadIdx.y] = data_start[0];
+            }
+        }
+
+        __syncthreads();
+
+        for (int64_t i = 0; i < num_row; i++) {
+            for (int64_t j = 0; j < num_col; j++) {
+                printf("smem_data_global[%ld][%ld] = %f\n", i, j, smem_data_global[i * num_col + j]);
+            }
+        }
+        for (int64_t i = 0; i < num_row; i++) {
+            for (int64_t j = 0; j < num_col; j++) {
+                printf("data[%ld][%ld] = %f\n", i, j, data[(x + i) * lda + (y + j)]);
+            }
+        }
+        return MatrixGPUShared<num_row, num_col, num_col>(smem_data_global);
+    }
+
+    template<int64_t num_row, int64_t num_col, int q_lda>
+    __device__ void insert_from_smem(int64_t x, int64_t y, MatrixGPUShared<num_row, num_col, q_lda> m) {
+
+        float *data_start = data + x * lda + y;
+
+        for (int64_t i = 0; i < num_row; i += blockDim.x) {
+            for (int64_t j = 0; j < num_col; j += blockDim.y) {
+                float *m_start = m.data + (i + threadIdx.x) * m.lda + (j + threadIdx.y);
+                data_start[threadIdx.x * lda + threadIdx.y] = m_start[0];
+            }
+            data_start += lda * blockDim.x;
+        }
+
+        __syncthreads();
+    }
+
+    __device__ void free_smem() {
+        if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+            sh_free(data);
         }
     }
 

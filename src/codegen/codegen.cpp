@@ -147,7 +147,7 @@ void CodeGenerator::visit(const FreeNode *op) {
         throw error::InternalError("Freeing a data-structure that hasn't been allocated??");
     }
 
-    std::string method_call = op->data.getName() + ".destroy";
+    std::string method_call = op->data.getName() + "." + op->data.getFreeFunction().name;
     code = VoidCall::make(Call::make(method_call, {}));
 }
 

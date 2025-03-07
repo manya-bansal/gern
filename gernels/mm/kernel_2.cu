@@ -12,9 +12,9 @@ using namespace gern;
 
 int main() {
 
-    constexpr int64_t m = 128 * 2;
-    constexpr int64_t n = 128 * 2;
-    constexpr int64_t k = 128 * 2;
+    constexpr int64_t m = 64;
+    constexpr int64_t n = 64;
+    constexpr int64_t k = 64;
     constexpr int64_t block_size = 1;
 
     using AType = annot::MatrixGlobalToGlobal<m, k, block_size>;

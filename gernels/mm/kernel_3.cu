@@ -3,6 +3,7 @@
 #include "float-error.h"
 #include "gern_annot/adt.h"
 #include "gern_annot/functions.h"
+#include "gern_annot/shmem_interface.h"
 #include "impl/matrix-gpu.h"
 #include "impl/matrix_multiply.h"
 #include <assert.h>
@@ -12,14 +13,14 @@ using namespace gern;
 
 int main() {
 
-    constexpr int64_t m = 128 * 2;
-    constexpr int64_t n = 128 * 2;
-    constexpr int64_t k = 128 * 2;
+    constexpr int64_t m = 1;
+    constexpr int64_t n = 1;
+    constexpr int64_t k = 2;
     constexpr int64_t block_size = 1;
 
-    using AType = annot::MatrixGlobalToGlobal<m, k, block_size>;
-    using BType = annot::MatrixGlobalToGlobal<k, n, block_size>;
-    using CType = annot::MatrixQueryRegNoVector<m, n, block_size>;
+    using AType = annot::MatrixGlobalToShared<m, k, block_size>;
+    using BType = annot::MatrixGlobalToShared<k, n, block_size>;
+    using CType = annot::MatrixGlobalToGlobal<m, n, block_size>;
 
     using AImpl = impl::MatrixGPU<m, k, k, block_size>;
     using BImpl = impl::MatrixGPU<k, n, n, block_size>;
@@ -36,13 +37,17 @@ int main() {
     Variable block_y("block_y");
     Variable thread_x("thread_x");
     Variable thread_y("thread_y");
+    Variable smem_size("smem_size");
+    Variable one_val("one_val");
 
-    block_x = block_x.bind(32);   // 8 elements per block_x
-    block_y = block_y.bind(32);   // 8 elements per block_y
+    block_x = block_x.bind(1);    // 8 elements per block_x
+    block_y = block_y.bind(1);    // 8 elements per block_y
     thread_x = thread_x.bind(1);  // 1 element per thread_x
     thread_y = thread_y.bind(1);  // 1 element per thread_y
     k_dim = k_dim.bind(k);
-    k_tiled = k_tiled.bind(32);
+    k_tiled = k_tiled.bind(1);
+    one_val = one_val.bind(1);
+    int64_t smem_size_val = 12800;  // overallocating by a bit
 
     annot::MatrixMultiply mm(A_DS, B_DS, C_DS);
     auto mm_sp = &mm[{
@@ -55,10 +60,14 @@ int main() {
         Global(
             (Tile(C_DS["row"], block_x) || Grid::Unit::BLOCK_Y)(
                 (Tile(C_DS["col"], block_y) || Grid::Unit::BLOCK_X)(
-                    (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X)(
-                        (Tile(C_DS["col"], thread_x) || Grid::Unit::THREAD_Y)(
-                            (Reduce(k_dim, k_tiled))(
-                                (*mm_sp)(A_DS, B_DS, C_DS))))))),
+                    (Reduce(k_dim, k_tiled))(
+                        Stage(A_DS,
+                              Stage(B_DS,
+                                    (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X)(
+                                        (Tile(C_DS["col"], thread_x) || Grid::Unit::THREAD_Y)(
+                                            (Reduce(k_dim, one_val))(
+                                                (*mm_sp)(A_DS, B_DS, C_DS))))))))),
+            {}, smem_size, TrivialManager(smem_size)),
     };
 
     Runner::Options options;
@@ -80,7 +89,8 @@ int main() {
     // Set up all the values.
     runner.evaluate({{A_DS.getName(), &A},
                      {B_DS.getName(), &B},
-                     {C_DS.getName(), &C}});
+                     {C_DS.getName(), &C},
+                     {smem_size.getName(), &smem_size_val}});
 
     // Make sure the output is correct!
     auto C_cpu = C.get();
@@ -92,6 +102,7 @@ int main() {
 
     for (int64_t i = 0; i < m; i++) {
         for (int64_t j = 0; j < n; j++) {
+            std::cout << C_cpu(i, j) << " " << C_cpu_ref(i, j) << std::endl;
             assert_close(C_cpu(i, j), C_cpu_ref(i, j));
         }
     }

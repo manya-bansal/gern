@@ -39,7 +39,7 @@ public:
     }
     FunctionSignature getFreeFunction() const {
         return FunctionSignature{
-            .name = "destroy",
+            .name = "...>",
         };
     }
     FunctionSignature getInsertFunction() const {
@@ -140,6 +140,46 @@ public:
     }
 
     bool insertQuery() const override {
+        return true;
+    }
+};
+
+template<int Row, int Col, int Stride>
+class MatrixGlobalToShared : public MatrixGPU<Row, Col, Stride> {
+public:
+    MatrixGlobalToShared(const std::string &name, bool temp)
+        : MatrixGPU<Row, Col, Stride>(name, temp) {
+    }
+    FunctionSignature getQueryFunction() const {
+        return FunctionSignature{
+            .name = "template stage_into_smem",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+    FunctionSignature getInsertFunction() const {
+        return FunctionSignature{
+            .name = "template insert_from_smem",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+
+    FunctionSignature getFreeFunction() const {
+        return FunctionSignature{
+            .name = "free_smem",
+        };
+    }
+
+    bool insertQuery() const override {
+        return true;  // Just a view, no insert.
+    }
+
+    bool freeQuery() const override {
+        return true;
+    }
+
+    bool freeAlloc() const override {
         return true;
     }
 };

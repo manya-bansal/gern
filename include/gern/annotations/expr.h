@@ -207,6 +207,7 @@ public:
     FunctionSignature getAllocateFunction() const;
     FunctionSignature getQueryFunction() const;
     FunctionSignature getInsertFunction() const;
+    FunctionSignature getFreeFunction() const;
     std::vector<Variable> getFields() const;
     bool freeQuery() const;
     bool insertQuery() const;
