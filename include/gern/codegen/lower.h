@@ -64,7 +64,7 @@ private:
 
     void visit(const ComputeFunctionCall *);
     void visit(const GlobalNode *);
-
+    void visit(const StageNode *);
     /**
      * @brief common pulls out functionality used to define output.
      *        common internally calls lower, so the lower function
@@ -84,6 +84,7 @@ private:
 
     // Helper methods to generate calls.
     FunctionCall constructFunctionCall(FunctionSignature f,
+                                       AbstractDataTypePtr ds,
                                        std::vector<Variable> ref_md_fields,
                                        std::vector<Expr> true_md_fields) const;                                // Constructs a call with the true meta data fields mapped in the correct place.
     const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);                               // Constructs a query node for a data-structure, and tracks this relationship.
@@ -94,6 +95,7 @@ private:
     AbstractDataTypePtr getCurrent(AbstractDataTypePtr) const;
 
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
+    util::ScopedMap<AbstractDataTypePtr, std::vector<Expr>> staged_ds;
     util::ScopedMap<Variable, Variable> tiled_vars;
     util::ScopedMap<Expr, Variable> parents;                // Used for splits.
     util::ScopedMap<Variable, Variable> all_relationships;  // Used to track all relationships.
@@ -141,6 +143,25 @@ struct GridDeclNode : public LowerIRNode {
     void accept(LowerIRVisitor *) const;
     Grid::Dim dim;
     Variable v;
+};
+
+// struct GlobalDeclNode : public LowerIRNode {
+//     GlobalDeclNode(std::map<Grid::Dim, Variable> grid_dims,
+//                    Variable shared_mem,
+//                    LowerIR body);
+
+//     void accept(LowerIRVisitor *) const;
+//     std::map<Grid::Dim, Variable> grid_dims;
+//     Variable shared_mem;
+//     LowerIR body;
+// };
+
+struct SharedMemoryDeclNode : public LowerIRNode {
+    SharedMemoryDeclNode(Variable size)
+        : size(size) {
+    }
+    void accept(LowerIRVisitor *) const;
+    Variable size;
 };
 
 // IR Node that marks a query
@@ -240,6 +261,16 @@ struct FunctionBoundary : public LowerIRNode {
     void accept(LowerIRVisitor *) const;
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> queried_names;
     LowerIR nodes;
+};
+
+struct OpaqueCall : public LowerIRNode {
+    OpaqueCall(FunctionCall f,
+               std::vector<std::string> headers)
+        : f(f), headers(headers) {
+    }
+    void accept(LowerIRVisitor *) const;
+    FunctionCall f;
+    std::vector<std::string> headers;
 };
 
 // Defining an abstract data class that we can use to define query and free node.

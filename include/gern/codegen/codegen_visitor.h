@@ -71,6 +71,7 @@ public:
     virtual void visit(const MetaData *) = 0;
     virtual void visit(const Cast *) = 0;
     virtual void visit(const Deref *) = 0;
+    virtual void visit(const SpecializedFunction *) = 0;
 };
 
 }  // namespace codegen

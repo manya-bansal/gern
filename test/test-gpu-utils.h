@@ -16,5 +16,22 @@ namespace test {
     return gpuRunner(std::vector<std::string>{dir});
 }
 
+class TrivialManager : public grid::SharedMemoryManager {
+public:
+    TrivialManager(Variable smem_size)
+        : grid::SharedMemoryManager(
+              FunctionCall{"init_shmem",
+                           {smem_size},
+                           {},
+                           Parameter(),
+                           LaunchArguments(),
+                           LaunchArguments(),
+                           DEVICE},
+              {
+                  std::string(GERN_ROOT_DIR) + "/test/library/smem_allocator/sh_malloc.h",
+              }) {
+    }
+};
+
 }  // namespace test
 }  // namespace gern
