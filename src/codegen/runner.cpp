@@ -39,6 +39,12 @@ void Runner::compile(Options config) {
         throw error::UserError("Compilation Failed");
     }
 
+    std::string clang_format_cmd = "/usr/bin/clang-format -i " + file;
+    std::cout << clang_format_cmd << std::endl;
+    runStatus = std::system(clang_format_cmd.data());
+    if (runStatus != 0) {
+        throw error::UserError("Formatting Failed");
+    }
     void *handle = dlopen(shared_obj.data(), RTLD_LAZY);
     if (!handle) {
         throw error::UserError("Error loading library: " + std::string(dlerror()));  // LCOV_EXCL_LINE
