@@ -118,6 +118,32 @@ public:
     }
 };
 
+template<int Row, int Col, int Stride>
+class MatrixQueryRegNoVector : public MatrixGPU<Row, Col, Stride> {
+public:
+    MatrixQueryRegNoVector(const std::string &name, bool temp)
+        : MatrixGPU<Row, Col, Stride>(name, temp) {
+    }
+    FunctionSignature getQueryFunction() const {
+        return FunctionSignature{
+            .name = "template query_2_reg_no_vector",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+    FunctionSignature getInsertFunction() const {
+        return FunctionSignature{
+            .name = "template insert_2_reg_no_vector",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+
+    bool insertQuery() const override {
+        return true;
+    }
+};
+
 class StaticArray : public AbstractDataType {
 public:
     StaticArray(const std::string &name,

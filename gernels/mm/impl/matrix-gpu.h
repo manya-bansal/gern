@@ -5,6 +5,8 @@
 #include <iostream>
 #include <stdlib.h>
 
+#include "sh_malloc.h"
+
 #define CUDA_CHECK(x)                                                                    \
     {                                                                                    \
         cudaError_t e = x;                                                               \
@@ -35,6 +37,21 @@ struct StaticMatrix {
     // __device__ StaticMatrix<num_row, num_col / 4> query_new(int64_t x, int64_t y) {
     //     return *this;
     // }
+};
+
+template<int Height, int Width>
+struct StaticMatrixNoVector {
+    float array[Height * Width];
+    static constexpr int height = Height;
+    static constexpr int width = Width;
+
+    __device__ __host__ float &operator()(int64_t x, int64_t y) {
+        return array[x * width + y];
+    }
+
+    __device__ __host__ float operator()(int64_t x, int64_t y) const {
+        return array[x * width + y];
+    }
 };
 
 #ifndef UNROLL_FACTOR
@@ -150,6 +167,26 @@ public:
             data_insert_tmp = to_insert.data + (i * to_insert.lda);
             for (int64_t j = 0; j < num_col; j++) {
                 data_tmp[j] = data_insert_tmp[j];
+            }
+        }
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ StaticMatrixNoVector<num_row, num_col> query_2_reg_no_vector(int64_t x, int64_t y) {
+        StaticMatrixNoVector<num_row, num_col> matrix;
+        for (int64_t i = 0; i < num_row; i++) {
+            for (int64_t j = 0; j < num_col; j++) {
+                matrix(i, j) = data[(x + i) * lda + (y + j)];
+            }
+        }
+        return matrix;
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ void insert_2_reg_no_vector(int64_t x, int64_t y, StaticMatrixNoVector<num_row, num_col> to_insert) {
+        for (int64_t i = 0; i < num_row; i++) {
+            for (int64_t j = 0; j < num_col; j++) {
+                data[(x + i) * lda + (y + j)] = to_insert(i, j);
             }
         }
     }

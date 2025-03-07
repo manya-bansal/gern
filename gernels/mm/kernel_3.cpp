@@ -19,7 +19,7 @@ int main() {
 
     using AType = annot::MatrixGlobalToGlobal<m, k, block_size>;
     using BType = annot::MatrixGlobalToGlobal<k, n, block_size>;
-    using CType = annot::MatrixGlobalToGlobal<m, n, block_size>;
+    using CType = annot::MatrixQueryRegNoVector<m, n, block_size>;
 
     using AImpl = impl::MatrixGPU<m, k, k, block_size>;
     using BImpl = impl::MatrixGPU<k, n, n, block_size>;
