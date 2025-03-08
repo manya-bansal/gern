@@ -18,9 +18,18 @@ void Runner::compile(Options config) {
     bool at_device = c.isDeviceLaunch();
     // std::string suffix = at_device ? ".cu" : ".cpp";
     std::string file = config.prefix + config.filename;
-    std::ofstream outFile(file);
+    std::string format_file = "/tmp/format_" + config.filename;
+
+    std::ofstream outFile(format_file);
     outFile << code;
     outFile.close();
+
+    std::string clang_format_cmd = "/usr/bin/clang-format " + format_file + " > " + file;
+    std::cout << clang_format_cmd << std::endl;
+    int runStatus = std::system(clang_format_cmd.data());
+    if (runStatus != 0) {
+        throw error::UserError("Formatting Failed");
+    }
 
     std::string arch = at_device ? "-arch=sm_" + config.arch : "";
     std::string compiler = at_device ? "nvcc" : "g++";
@@ -34,17 +43,11 @@ void Runner::compile(Options config) {
                       " --shared -o " + shared_obj + " " +
                       file + " " + config.ldflags + " 2>&1";
 
-    int runStatus = std::system(cmd.data());
+    runStatus = std::system(cmd.data());
     if (runStatus != 0) {
         throw error::UserError("Compilation Failed");
     }
 
-    std::string clang_format_cmd = "/usr/bin/clang-format -i " + file;
-    std::cout << clang_format_cmd << std::endl;
-    runStatus = std::system(clang_format_cmd.data());
-    if (runStatus != 0) {
-        throw error::UserError("Formatting Failed");
-    }
     void *handle = dlopen(shared_obj.data(), RTLD_LAZY);
     if (!handle) {
         throw error::UserError("Error loading library: " + std::string(dlerror()));  // LCOV_EXCL_LINE
