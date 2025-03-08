@@ -91,7 +91,7 @@ int main() {
     std::chrono::duration<double, std::micro> duration = (end - start);
     auto min = (duration.count() / 200) / 1e6;
 
-    // double measure = row_val * col_val * 4 * 2;
-    double measure = 6 * row_val * col_val;
+    double measure = row_val * col_val * 4 * 2;
+    // double measure = 6 * row_val * col_val;
     std::cout << measure / min << std::endl;
 }
