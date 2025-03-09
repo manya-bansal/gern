@@ -155,6 +155,146 @@ void tiled_packed_mult(impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl:
     }
 }
 
+void inner_kernel_handwritten(impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c) {
+    int64_t N = c.row, M = c.col, K = a.col;
+
+    constexpr int64_t tile_size = 128;
+
+    for (int64_t i_out = 0; i_out < N; i_out += tile_size)
+    for (int64_t k = 0; k < K; k += tile_size)
+    for (int64_t j_out = 0; j_out < M; j_out += tile_size)
+    for (int64_t i = i_out; i < i_out+tile_size; i += 8)
+    for (int64_t j = j_out; j < j_out+tile_size; j += 16) {
+
+        impl::MatrixViewBasic a_tmp = a.query(i, k, 8, tile_size);
+        impl::MatrixViewBasic b_tmp = b.query(k, j, tile_size, 16);
+        impl::MatrixViewBasic c_tmp = c.query(i, j, 8, 16); 
+
+        impl::inner_kernel(a_tmp, b_tmp, c_tmp, 0);
+    }    
+}
+
+// std::function<void(impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c)> get_inner_kernel_gern() {
+
+//     auto A_in = AbstractDataTypePtr(new const annot::MatrixViewBasic("A_in"));
+//     auto B_in = AbstractDataTypePtr(new const annot::MatrixViewBasic("B_in"));
+//     auto C_in = AbstractDataTypePtr(new const annot::MatrixViewBasic("C_in"));
+
+//     annot::MatrixMultiplyKernel matrix_multiply;
+
+//     Variable ti_in("ti_in");
+//     Variable tj_in("tj_in");
+//     Variable kdim_in("kdim_in");
+
+//     Composable program_in{
+//         Tile(C_in["row"], ti_in.bind(8))(
+//             Tile(C_in["col"], tj_in.bind(16))(
+//                 matrix_multiply(A_in, B_in, C_in, kdim_in)
+//             )
+//         )
+//     };
+
+//     auto options_in = benchmark::cpuRunner();
+//     options_in.filename = "benchmark_in.cpp";
+
+//     FunctionPtr func_in_pre{program_in, options_in};
+//     auto func_in = &func_in_pre[{{"ti_in", ti_in.bind(8)}, {"tj_in", tj_in.bind(16)}}];
+
+//     auto A_out = AbstractDataTypePtr(new const annot::MatrixViewBasic("A_out"));
+//     auto B_out = AbstractDataTypePtr(new const annot::MatrixViewBasic("B_out"));
+//     auto C_out = AbstractDataTypePtr(new const annot::MatrixViewBasic("C_out"));
+
+//     int64_t outer_tile = 256;
+
+//     Variable ti_out("ti_out");
+//     Variable tj_out("tj_out");
+//     Variable tk_out("tk_out");
+//     Variable kdim_out("kdim_out");
+
+//     Composable program_out{
+//         Tile(C_out["row"], ti_out.bind(outer_tile))(
+//             Reduce(kdim_out, tk_out.bind(outer_tile))(
+//                 Tile(C_out["col"], tj_out.bind(outer_tile))(
+//                     (*func_in)(C_out, B_out, A_out, kdim_out)
+//                 )
+//             )
+//         )
+//     };
+
+//     Runner run{program_out};
+//     run.compile(benchmark::cpuRunner());
+
+//     return [
+//         run,
+//         A_name = A_out.getName(),
+//         B_name = B_out.getName(),
+//         C_name = C_out.getName(),
+//         kdim_out_name = kdim_out.getName()
+//     ] (impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c) mutable {
+//         int64_t K = a.col;
+
+//         run.evaluate({
+//             {A_name, &a},
+//             {B_name, &b},
+//             {C_name, &c},
+//             {kdim_out_name, &K},
+//         });
+//     };
+// }
+
+std::function<void(impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c)> get_inner_kernel_gern() {
+
+    auto A = AbstractDataTypePtr(new const annot::MatrixViewBasic("A"));
+    auto B = AbstractDataTypePtr(new const annot::MatrixViewBasic("B"));
+    auto C = AbstractDataTypePtr(new const annot::MatrixViewBasic("C"));
+
+    annot::MatrixMultiplyKernel matrix_multiply;
+
+    Variable ti_in("ti_in");
+    Variable tj_in("tj_in");
+    Variable kdim_in("kdim_in");
+
+    Variable ti_out("ti_out");
+    Variable tj_out("tj_out");
+    Variable tk_out("tk_out");
+    Variable kdim("kdim");
+
+    int64_t tile_size = 256;
+
+    Composable program{
+        Tile(C["row"], ti_out.bind(tile_size))(
+            Reduce(kdim, tk_out.bind(tile_size))(
+                Tile(C["col"], tj_out.bind(tile_size))(
+                    Tile(C["row"], ti_in.bind(8))(
+                        Tile(C["col"], tj_in.bind(16))(
+                            matrix_multiply(A, B, C, kdim)
+                        )
+                    )
+                )
+            )
+        )
+    };
+
+    Runner run(program);
+    run.compile(benchmark::cpuRunner());
+
+    return [
+        run,
+        A_name = A.getName(),
+        B_name = B.getName(),
+        C_name = C.getName(),
+        kdim_name = kdim.getName()
+    ] (impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c) mutable {
+        int64_t K = a.col;
+
+        run.evaluate({
+            {A_name, &a},
+            {B_name, &b},
+            {C_name, &c},
+            {kdim_name, &K},
+        });
+    };
+}
 
 template <typename T1, typename T2, typename T3, typename T4>
 static void run_function(std::function<void(T1 &, T2 &, T3 &)> func, std::string func_name, bool warmup, int64_t samples, int64_t iterations,
@@ -210,7 +350,7 @@ int main() {
     // run_function(basic_mm<impl::MatrixViewBasic>, "basic_mm", false, 1, 1, a, b, res, false, c);
 
     run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
-        open_blas_mm<impl::MatrixViewBasic>, "open_blas", false, 2, 2, a, b, res, false, c);
+        open_blas_mm<impl::MatrixViewBasic>, "open_blas", false, 1, 1, a, b, res, false, c);
     run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
         tiled_packed_mult, "hand_packed", false, 1, 1, a, b, c, true, res);
 
@@ -220,4 +360,12 @@ int main() {
 
     run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
         get_gern_packed(), "gern_packed", false, 1, 1, a_pack, b_pack, c, true, res);
+    
+    run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
+        inner_kernel_handwritten, "inner_kernel_handwritten", false, 1, 1, a, b, c, true, res
+    );
+
+    run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
+        get_inner_kernel_gern(), "inner_kernel_gern", false, 1, 1, a, b, c, true, res
+    );
 }

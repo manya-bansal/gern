@@ -175,6 +175,17 @@ public:
     }
 };
 
+class MatrixMultiplyKernel : public MatrixMultiplyGeneric<MatrixViewBasic, MatrixViewBasic, MatrixViewBasic> {
+public:
+    MatrixMultiplyKernel() : MatrixMultiplyGeneric<MatrixViewBasic, MatrixViewBasic, MatrixViewBasic>() {}
+    FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::inner_kernel";
+        f.args = {Parameter(this->A), Parameter(this->B), Parameter(this->C), this->k_dim};
+        return f;
+    }
+};
+
 
 }  // namespace annot
 }  // namespace gern
