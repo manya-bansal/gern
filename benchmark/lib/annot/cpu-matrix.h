@@ -103,6 +103,13 @@ public:
     std::string getType() const override {
         return "gern::impl::MatrixTemplated<" + std::to_string(L_X) + ", " + std::to_string(L_Y) + ">";
     }
+    virtual FunctionSignature getQueryFunction() const override {
+        return FunctionSignature{
+            .name = "query",
+            .args = {x, y, l_x, l_y}
+        };
+    }
+
     
     bool freeAlloc() const override {
         return false;

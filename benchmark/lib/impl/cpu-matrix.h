@@ -85,6 +85,26 @@ public:
     }
 };
 
+
+class MatrixViewBasic : public MatrixBase {
+private:
+    MatrixViewBasic(int64_t row, int64_t col)
+        : MatrixBase(row, col) {
+    }
+    MatrixViewBasic() = delete;
+
+public:
+    static MatrixViewBasic allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
+        return MatrixViewBasic(l_x, l_y);
+    }
+    MatrixViewBasic(float *data, int64_t row, int64_t col, int64_t lda)
+        : MatrixBase(data, row, col, lda) {
+    }
+    MatrixViewBasic query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
+        return MatrixViewBasic(&this->get(x, y), l_x, l_y, this->m_lda);
+    }
+};
+
 template<int64_t L_X, int64_t L_Y>
 class MatrixTemplated {
 private:
@@ -110,26 +130,8 @@ public:
         return this->data()[x * L_Y + y];
     }
 
-    template<int64_t Q_X, int64_t Q_Y>
-    MatrixTemplated<Q_X, Q_Y> query(int64_t x, int64_t y) {
-        MatrixTemplated<Q_X, Q_Y> res;
-        for (int i = 0; i < Q_X; ++i) {
-            std::copy(
-                &this->get(x + i, y),
-                &this->get(x + i, y + Q_Y),
-                &res.get(i, 0));
-        }
-        return res;
-    }
-
-    template<int64_t Q_X, int64_t Q_Y>
-    void insert(int64_t x, int64_t y, MatrixTemplated<Q_X, Q_Y> to_insert) {
-        for (int i = 0; i < Q_X; ++i) {
-            std::copy(
-                &to_insert.get(i, 0),
-                &to_insert.get(i, Q_Y),
-                &this->get(x + i, y));
-        }
+    MatrixBase query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
+        return MatrixViewBasic(&this->get(x, y), l_x, l_y, LDA);
     }
 
     void destroy() {
@@ -143,24 +145,6 @@ public:
     }
 };
 
-class MatrixViewBasic : public MatrixBase {
-private:
-    MatrixViewBasic(int64_t row, int64_t col)
-        : MatrixBase(row, col) {
-    }
-    MatrixViewBasic() = delete;
-
-public:
-    static MatrixViewBasic allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
-        return MatrixViewBasic(l_x, l_y);
-    }
-    MatrixViewBasic(float *data, int64_t row, int64_t col, int64_t lda)
-        : MatrixBase(data, row, col, lda) {
-    }
-    MatrixViewBasic query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
-        return MatrixViewBasic(&this->get(x, y), l_x, l_y, this->m_lda);
-    }
-};
 
 class MatrixViewPackOnQuery : public MatrixBase {
 private:
