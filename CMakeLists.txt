@@ -70,6 +70,7 @@ target_sources(
         include/gern/compose/compose.h
         include/gern/compose/composable.h
         include/gern/compose/composable_visitor.h
+    auto runner = compile_program(program);
         include/gern/compose/composable_node.h
         include/gern/compose/runner.h
         include/gern/codegen/codegen.h

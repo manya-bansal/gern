@@ -21,7 +21,7 @@ int main() {
     a.ascending();
     gern::impl::ArrayCPU b(10);
 
-    auto runner = compile_program(program, "multi_func.cpp");
+    auto runner = compile_program(program);
     runner.evaluate(
         {
             {"output", &b},

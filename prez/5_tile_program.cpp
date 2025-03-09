@@ -26,7 +26,7 @@ int main() {
     gern::impl::ArrayCPU b(10);
     int64_t t_val = 2;
 
-    auto runner = compile_program(program, "tile_program.cpp");
+    auto runner = compile_program(program);
     runner.evaluate(
         {
             {"output", &b},

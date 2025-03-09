@@ -70,9 +70,10 @@ public:
     Annotation getAnnotation() override {
         Variable x("x");
 
-        return annotate(For(x = Expr(0), output["size"], step,
-                            Produces::Subset(output, {x, step}),
-                            Consumes::Subset(input, {x, step})));
+        return annotate(
+            For(x = Expr(0), output["size"], step,
+                Produces::Subset(output, {x, step}),
+                Consumes::Subset(input, {x, step})));
     }
 
     virtual FunctionSignature getFunction() override {

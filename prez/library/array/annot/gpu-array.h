@@ -1,7 +1,7 @@
 #pragma once
 
 #include "annotations/abstract_function.h"
-#include "library/array/annot/cpu-array.h"
+#include "cpu-array.h"
 
 namespace gern {
 namespace annot {
