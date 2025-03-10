@@ -103,7 +103,7 @@ public:
 
     void ascending() {
         for (int64_t i = 0; i < lda * row; i++) {
-            data[i] = (float)(i / 10000.f);
+            data[i] = (float)(i % 100);
         }
     }
 
@@ -150,11 +150,11 @@ public:
     }
 
     __device__ float &operator()(int64_t x, int64_t y) {
-        return data[x * Width + y];
+        return data[x * lda + y];
     }
 
     __device__ float operator()(int64_t x, int64_t y) const {
-        return data[x * Width + y];
+        return data[x * lda + y];
     }
 
     __device__ void free_smem() {
@@ -163,7 +163,7 @@ public:
     template<int64_t q_height, int64_t q_width>
     __device__ MatrixGPUShared<q_height, q_width, LDA> stage_into_smem(int64_t x, int64_t y) {
 
-        return MatrixGPUShared<q_height, q_width, LDA>(data + (x * Width + y));
+        return MatrixGPUShared<q_height, q_width, LDA>(data + (x * lda + y));
     }
 
     float *data;

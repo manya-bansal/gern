@@ -40,13 +40,13 @@ int main() {
     Variable smem_size("smem_size");
     Variable one_val("one_val");
 
-    block_x = block_x.bind(32);   // 8 elements per block_x
-    block_y = block_y.bind(32);   // 8 elements per block_y
-    thread_x = thread_x.bind(8);  // 1 element per thread_x
-    thread_y = thread_y.bind(8);  // 1 element per thread_y
+    block_x = block_x.bind(4);    // 8 elements per block_x
+    block_y = block_y.bind(4);    // 8 elements per block_y
+    thread_x = thread_x.bind(1);  // 1 element per thread_x
+    thread_y = thread_y.bind(1);  // 1 element per thread_y
     k_dim = k_dim.bind(k);
-    k_tiled = k_tiled.bind(32);
-    one_val = one_val.bind(32);
+    k_tiled = k_tiled.bind(8);
+    one_val = one_val.bind(8);
     int64_t smem_size_val = 32 * 32 * 8 * 2 + 1000;  // overallocating by a bit
 
     annot::MatrixMultiply mm(A_DS, B_DS, C_DS);
@@ -102,8 +102,6 @@ int main() {
 
     for (int64_t i = 0; i < m; i++) {
         for (int64_t j = 0; j < n; j++) {
-            // std::cout << C_cpu(i, j) << " " << C_cpu_ref(i, j) << std::endl;
-            // std::cout << "i: " << i << " j: " << j << std::endl;
             assert_close(C_cpu(i, j), C_cpu_ref(i, j));
         }
     }
