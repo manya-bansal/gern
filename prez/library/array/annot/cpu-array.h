@@ -161,7 +161,6 @@ public:
         Variable r("r");
         Variable step("step");
         Variable reduce{"reduce"};
-        // Variable reduce("reduce");
 
         return annotate(For(x = Expr(0), output["size"], step,
                             Computes(

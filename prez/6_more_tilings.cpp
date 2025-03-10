@@ -38,7 +38,6 @@ int main() {
             {"t2", &t2_val},
         });
 
-    std::cout << b << std::endl;
     // SANITY CHECK
     for (int i = 0; i < 10; i++) {
         assert(a.data[i] + 2 == b.data[i]);
