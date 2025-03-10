@@ -15,10 +15,9 @@ int main() {
     gern::annot::add_1 add_1;
 
     Composable program({
-        Tile(temp["size"], t)(
-            Tile(temp["size"], t2)(
-                add_1(input, temp))),
+        // More tiling!
         Tile(output["size"], t)(
+            add_1(input, temp),
             add_1(temp, output)),
     });
 
@@ -27,7 +26,7 @@ int main() {
     a.ascending();
     library::impl::ArrayCPU b(10);
     int64_t t_val = 2;
-    int64_t t2_val = 1;
+    // int64_t t2_val = 1;
 
     auto runner = compile_program(program);
     runner.evaluate(
@@ -35,7 +34,7 @@ int main() {
             {"output", &b},
             {"input", &a},
             {"t", &t_val},
-            {"t2", &t2_val},
+
         });
 
     // SANITY CHECK

@@ -13,21 +13,4 @@ int main() {
     Composable program = {
         add_1(input, output),
     };
-
-    // ***** PROGRAM EVALUATION *****
-    library::impl::ArrayCPU a(10);
-    a.ascending();
-    library::impl::ArrayCPU b(10);
-
-    auto runner = compile_program(program);
-    runner.evaluate(
-        {
-            {"output", &b},
-            {"input", &a},
-        });
-
-    // SANITY CHECK
-    for (int i = 0; i < 10; i++) {
-        assert(a.data[i] + 1 == b.data[i]);
-    }
 }

@@ -15,9 +15,7 @@ int main() {
     gern::annot::add_1 add_1;
 
     Composable program({
-        Tile(output["size"], t)(
-            add_1(input, temp),
-            add_1(temp, output)),
+        // A program with tiling!
     });
 
     // ***** PROGRAM EVALUATION *****

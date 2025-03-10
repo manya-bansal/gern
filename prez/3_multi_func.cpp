@@ -12,8 +12,7 @@ int main() {
     gern::annot::add_1 add_1;
 
     Composable program({
-        add_1(input, temp),
-        add_1(temp, output),
+
     });
 
     // ***** PROGRAM EVALUATION *****
