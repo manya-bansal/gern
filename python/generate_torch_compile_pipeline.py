@@ -16,24 +16,22 @@ class FnInterface:
         self.fn = fn
         self.extra_args = extra_args
 
-def gen(M, torch_to_gern, *args):
-    variables = []
-
-    generated_runner = None
-
-    input_name_to_arg_idx = {}
-    input_adt_ptr_to_arg_idx = {}
-
-    out_size = None
-    output_adt_ptr = None
-
+def gen(M, torch_to_gern, *args, tile_rows=512):
     def custom_backend(gm: torch.fx.GraphModule, example_inputs: List[torch.Tensor]):
-        print("custom backend called with FX graph:")
-        print(example_inputs)
-        gm.graph.print_tabular()
-        print("GM FORWARD")
+        generated_runner = None
+        variables = []
+
+        input_name_to_arg_idx = {}
+        input_adt_ptr_to_arg_idx = {}
+
+        out_size = None
+        output_adt_ptr = None
+        # print("custom backend called with FX graph:")
+        # print(example_inputs)
+        # gm.graph.print_tabular()
         def custom_callable(*args):
             # print("ARGS", args)
+            # print("EXAMPLE INPUTS", example_inputs)
             nonlocal generated_runner
             if generated_runner is None:
                 # print("COMPILING RUNNER")
@@ -55,15 +53,15 @@ def gen(M, torch_to_gern, *args):
                         env[node.name] = AbstractDataTypePtr(AnnotMatrixCPU.init(node.name))
                         input_name_to_arg_idx[node.name] = i
                     input_vals[node.name] = args[i]
-                    print("i", i, "node", node, "args[i]", args[i])
+                    # print("i", i, "node", node, "args[i]", args[i])
                     
                 for node in gm.graph.nodes:
                     if node.op != "call_function":
                         continue
 
-                    print("node.target", node.target)
-                    print("node.args", node.args)
-                    print("node.name", node.name)
+                    # print("node.target", node.target)
+                    # print("node.args", node.args)
+                    # print("node.name", node.name)
 
 
                     if node.target in torch_to_gern:
@@ -125,10 +123,14 @@ def gen(M, torch_to_gern, *args):
 
                 generated_runner = Runner(program)
 
+                print("RUNNER COMPILE")
                 generated_runner.compile(cpuRunner(["matrix"]))
 
-                l_x_val = Int.init(512)
-                l_y_val = Int.init(64)
+                l_x_val = Int.init(tile_rows)
+                l_y_val = Int.init(out_size[1])
+
+                print("L_X_VAL", tile_rows)
+                print("L_Y_VAL", out_size[1])
 
                 variables.append((l_x, l_x_val))
                 variables.append((l_y, l_y_val))
@@ -139,8 +141,7 @@ def gen(M, torch_to_gern, *args):
                     for input_arg_name, input_arg_idx in input_name_to_arg_idx.items()
                 }
 
-
-                generated_runner.evaluate({
+                gern_args = {
                     var.getName(): getAddress(var_val)
                     for var, var_val in variables
                 } | {
@@ -152,7 +153,9 @@ def gen(M, torch_to_gern, *args):
                     output_adt_ptr.getName(): getAddress(
                         MatrixCPU.init(out_tensor.data_ptr(), *out_tensor.size(), out_tensor.stride()[0])
                     )
-                })
+                }
+                print("RUNNER EVALUATE")
+                generated_runner.evaluate(gern_args)
 
                 return (out_tensor,)
                 # return gm.forward(*args)
@@ -161,7 +164,7 @@ def gen(M, torch_to_gern, *args):
 
                 out_tensor = torch.empty(list(map(int, out_size)))
 
-                args = {
+                gern_args = {
                     var.getName(): getAddress(var_val)
                     for var, var_val in variables
                 } | {
@@ -175,7 +178,7 @@ def gen(M, torch_to_gern, *args):
                     )
                 }
 
-                generated_runner.evaluate(args)
+                generated_runner.evaluate(gern_args)
 
                 return (out_tensor,)
         return custom_callable
