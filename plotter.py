@@ -161,7 +161,7 @@ generate_plot(["gern", "triton"],
                "apps/blur",
               "Blur X -> Blur Y", "Size of (N X N) Image", 
               "MB/s (Bandwidth)", "bandwidth_gern", 
-              ['Gern', 'Halide'], 
+              ['Gern', 'Triton'], 
               [colors["gern"], "green"],
                roofline = False,
                bandwidth = True)
