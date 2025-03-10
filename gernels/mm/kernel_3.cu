@@ -40,8 +40,8 @@ int main() {
     Variable smem_size("smem_size");
     Variable one_val("one_val");
 
-    block_x = block_x.bind(4);    // 8 elements per block_x
-    block_y = block_y.bind(4);    // 8 elements per block_y
+    block_x = block_x.bind(32);   // 8 elements per block_x
+    block_y = block_y.bind(32);   // 8 elements per block_y
     thread_x = thread_x.bind(1);  // 1 element per thread_x
     thread_y = thread_y.bind(1);  // 1 element per thread_y
     k_dim = k_dim.bind(k);
