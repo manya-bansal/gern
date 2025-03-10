@@ -52,8 +52,8 @@ int main() {
         Global(
             (Tile(C_DS["row"], block_x) || Grid::Unit::BLOCK_Y)(
                 (Tile(C_DS["col"], block_y) || Grid::Unit::BLOCK_X)(
-                    (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X)(
-                        (Tile(C_DS["col"], thread_x) || Grid::Unit::THREAD_Y)(
+                    (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_Y)(
+                        (Tile(C_DS["col"], thread_x) || Grid::Unit::THREAD_X)(
                             (*mm_sp)(A_DS, B_DS, C_DS)))))),
     };
 
