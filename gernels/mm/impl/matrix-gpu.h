@@ -166,6 +166,12 @@ public:
         return MatrixGPUShared<q_height, q_width, LDA>(data + (x * lda + y));
     }
 
+    template<int64_t q_height, int64_t q_width>
+    __device__ MatrixGPUShared<q_height, q_width, LDA> stage_into_smem_vec(int64_t x, int64_t y) {
+
+        return MatrixGPUShared<q_height, q_width, LDA>(data + (x * lda + y));
+    }
+
     float *data;
     static constexpr int64_t row = Height;
     static constexpr int64_t col = Width;
@@ -236,6 +242,34 @@ public:
                 float *data_start = data + (x + i + threadIdx.x) * lda + (y + j + threadIdx.y);
                 start[(threadIdx.x * num_col) + threadIdx.y] = data_start[0];
             }
+        }
+
+        __syncthreads();
+
+        return MatrixGPUShared<num_row, num_col, num_col>(smem_data_global);
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ MatrixGPUShared<num_row, num_col, num_col> stage_into_smem_vec(int64_t x, int64_t y) {
+        static_assert(num_col % 4 == 0, "num_col must be divisible by 4");
+        static_assert(lda % 4 == 0, "num_col must be divisible by 4");
+        __shared__ float *smem_data_global;
+
+        if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+            smem_data_global = (float *)sh_malloc(num_row * num_col * sizeof(float));
+        }
+        __syncthreads();
+
+        // Get to the start of the data.
+        float4 *val_ptr = reinterpret_cast<float4 *>(data + (x * lda + y));
+        float4 *smem_val_ptr = reinterpret_cast<float4 *>(smem_data_global);
+
+        for (int64_t i = 0; i < num_row; i += blockDim.x) {
+            for (int64_t j = 0; j < num_col / 4; j += blockDim.y) {
+                smem_val_ptr[threadIdx.x * (num_col / 4) + threadIdx.y] = val_ptr[threadIdx.x * (lda / 4) + threadIdx.y];
+            }
+            val_ptr += blockDim.x * lda / 4;
+            smem_val_ptr += blockDim.x * num_col / 4;
         }
 
         __syncthreads();
