@@ -71,7 +71,7 @@ int main() {
     };
 
     Runner::Options options;
-    options.filename = "kernel_3.cu";
+    options.filename = "kernel_6.cu";
     options.cpp_std = "c++17";
     options.arch = GERNELS_ARCH;
     options.include = " -I" + std::string(GERNELS_PATH) + "/mm";
