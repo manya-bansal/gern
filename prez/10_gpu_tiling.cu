@@ -22,9 +22,9 @@ int main() {
     });
 
     // ***** PROGRAM EVALUATION *****
-    gern::impl::ArrayGPU a_gpu(10);
+    library::impl::ArrayGPU a_gpu(10);
     a_gpu.ascending();
-    gern::impl::ArrayGPU b_gpu(10);
+    library::impl::ArrayGPU b_gpu(10);
     b_gpu.ascending();
 
     auto runner = compile_program_gpu(program);

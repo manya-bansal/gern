@@ -20,7 +20,7 @@ public:
     }
 
     std::string getType() const override {
-        return "gern::impl::MatrixCPU";
+        return "library::impl::MatrixCPU";
     }
 
     std::vector<Variable> getFields() const override {
@@ -29,7 +29,7 @@ public:
 
     FunctionSignature getAllocateFunction() const override {
         return FunctionSignature{
-            .name = "gern::impl::MatrixCPU::allocate",
+            .name = "library::impl::MatrixCPU::allocate",
             .args = {x, y, l_x, l_y},
         };
     }
@@ -67,7 +67,7 @@ public:
           output(new const MatrixCPU("output")) {
     }
     std::string getName() {
-        return "gern::impl::add";
+        return "library::impl::add";
     }
 
     Annotation getAnnotation() override {
@@ -94,7 +94,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add";
+        f.name = "library::impl::add";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }
@@ -135,7 +135,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::sum_row";
+        f.name = "library::impl::sum_row";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }
@@ -154,7 +154,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::max_row";
+        f.name = "library::impl::max_row";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }
@@ -168,7 +168,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::exp_matrix";
+        f.name = "library::impl::exp_matrix";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }
@@ -204,7 +204,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::subtract_vec";
+        f.name = "library::impl::subtract_vec";
         f.args = {Parameter(vec), Parameter(input), Parameter(output)};
         return f;
     }
@@ -230,7 +230,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::divide_vec";
+        f.name = "library::impl::divide_vec";
         f.args = {Parameter(vec), Parameter(input), Parameter(output)};
         return f;
     }
@@ -266,7 +266,7 @@ public:
 
     FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::matrix_multiply";
+        f.name = "library::impl::matrix_multiply";
         f.args = {Parameter(A), Parameter(B), Parameter(C), k_dim};
         return f;
     }

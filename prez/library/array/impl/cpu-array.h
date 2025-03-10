@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdlib.h>
 
-namespace gern {
+namespace library {
 namespace impl {
 
 /**
@@ -95,4 +95,4 @@ inline void add_1_float(ArrayCPU a, ArrayCPU b, float f) {
 }
 
 }  // namespace impl
-}  // namespace gern
+}  // namespace library

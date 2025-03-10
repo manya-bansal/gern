@@ -10,7 +10,8 @@ int main() {
     function_3(a, b);
 
     for (int i = 0; i < 10; i++) {
-        std::cout << a.data[i] << " " << b.data[i] << std::endl;
+        std::cout << "a[" << i << "] = " << a.data[i]
+                  << ", b[" << i << "] = " << b.data[i] << std::endl;
         assert(a.data[i] + 1 == b.data[i]);
     }
 }

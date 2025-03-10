@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdlib.h>
 
-namespace gern {
+namespace library {
 namespace impl {
 
 /**
@@ -63,4 +63,4 @@ inline void add(ArrayCPUTemplate<Size> &a, ArrayCPUTemplate<Size> &b) {
 }
 
 }  // namespace impl
-}  // namespace gern
+}  // namespace library

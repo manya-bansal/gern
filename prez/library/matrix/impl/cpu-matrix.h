@@ -9,7 +9,7 @@
 #include <random>
 #include <stdlib.h>
 
-namespace gern {
+namespace library {
 namespace impl {
 
 /**

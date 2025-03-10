@@ -23,7 +23,7 @@ public:
     }
 
     std::string getType() const override {
-        return "gern::impl::ArrayCPU";
+        return "library::impl::ArrayCPU";
     }
 
     std::vector<Variable> getFields() const override {
@@ -31,7 +31,7 @@ public:
     }
     FunctionSignature getAllocateFunction() const override {
         return FunctionSignature{
-            .name = "gern::impl::ArrayCPU::allocate",
+            .name = "library::impl::ArrayCPU::allocate",
             .args = {x, len},
         };
     }
@@ -78,7 +78,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add_1";
+        f.name = "library::impl::add_1";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }
@@ -103,7 +103,7 @@ public:
     }
     FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add_1_float";
+        f.name = "library::impl::add_1_float";
         f.args = {Parameter(input), Parameter(output), Parameter(float_val)};
         return f;
     }
@@ -120,7 +120,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add1Template";
+        f.name = "library::impl::add1Template";
         f.args = {Parameter(input), Parameter(output)};
         f.template_args = {step};
         return f;
@@ -135,12 +135,12 @@ public:
         : add_1() {
     }
     std::string getName() {
-        return "gern::impl::addWithSize";
+        return "library::impl::addWithSize";
     }
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add1Template";
+        f.name = "library::impl::add1Template";
         f.args = {Parameter(input), Parameter(output), Parameter(step)};
         return f;
     }
@@ -179,7 +179,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::reduction";
+        f.name = "library::impl::reduction";
         f.args = {Parameter(input), Parameter(output), Parameter(k)};
         return f;
     }

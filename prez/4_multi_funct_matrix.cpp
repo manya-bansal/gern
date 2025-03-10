@@ -14,9 +14,9 @@ int main() {
     });
 
     // ***** PROGRAM EVALUATION *****
-    gern::impl::MatrixCPU a(10, 10, 10);
+    library::impl::MatrixCPU a(10, 10, 10);
     a.ascending();
-    gern::impl::MatrixCPU b(10, 10, 10);
+    library::impl::MatrixCPU b(10, 10, 10);
 
     auto runner = compile_program(program);
     runner.evaluate({

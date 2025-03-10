@@ -26,12 +26,12 @@ public:
     }
 
     std::string getType() const override {
-        return "gern::impl::MatrixGPU";
+        return "library::impl::MatrixGPU";
     }
 
     FunctionSignature getAllocateFunction() const override {
         return FunctionSignature{
-            .name = "gern::impl::MatrixGPU::allocate",
+            .name = "library::impl::MatrixGPU::allocate",
             .args = {x, y, l_x, l_y},
         };
     }
@@ -111,7 +111,7 @@ public:
 
     FunctionSignature getFunction() override {
         return FunctionSignature{
-            .name = "gern::impl::add_smem",
+            .name = "library::impl::add_smem",
             .args = {Parameter(input), Parameter(output)},
         };
     }

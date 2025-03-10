@@ -3,7 +3,7 @@
 #include "gpu-array.h"
 #include <cuda_runtime.h>
 
-namespace gern {
+namespace library {
 namespace impl {
 
 template<int Size>

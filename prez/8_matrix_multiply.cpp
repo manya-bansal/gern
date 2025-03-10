@@ -26,11 +26,11 @@ int main() {
     });
 
     // ***** PROGRAM EVALUATION *****
-    gern::impl::MatrixCPU a(10, 10);
+    library::impl::MatrixCPU a(10, 10);
     a.ascending();
-    gern::impl::MatrixCPU b(10, 10);
+    library::impl::MatrixCPU b(10, 10);
     b.ascending();
-    gern::impl::MatrixCPU c(10, 10);
+    library::impl::MatrixCPU c(10, 10);
     b.vvals(0.0f);
     int64_t k_dim_val = 10;
 

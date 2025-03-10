@@ -19,7 +19,7 @@ public:
     }
 
     std::string getType() const override {
-        return "gern::impl::ArrayGPU";
+        return "library::impl::ArrayGPU";
     }
 
     std::vector<Variable> getFields() const override {
@@ -27,7 +27,7 @@ public:
     }
     FunctionSignature getAllocateFunction() const override {
         return FunctionSignature{
-            .name = "gern::impl::ArrayGPU::allocate",
+            .name = "library::impl::ArrayGPU::allocate",
             .args = {x, len},
         };
     }
@@ -109,7 +109,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add_1";
+        f.name = "library::impl::add_1";
         f.args = {Parameter(input), Parameter(output)};
         return f;
     }
@@ -133,7 +133,7 @@ public:
         if (temp) {
             return "auto";
         }
-        return "gern::impl::ArrayGPU";
+        return "library::impl::ArrayGPU";
     }
 
     std::vector<Variable> getFields() const override {
@@ -142,7 +142,7 @@ public:
 
     FunctionSignature getAllocateFunction() const override {
         return FunctionSignature{
-            .name = "gern::impl::allocate_local",
+            .name = "library::impl::allocate_local",
             .template_args = {len},
         };
     }
@@ -191,7 +191,7 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::add_1";
+        f.name = "library::impl::add_1";
         f.args = {Parameter(input), Parameter(output)};
         f.template_args = {step};
         return f;

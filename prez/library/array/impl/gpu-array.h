@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace gern {
+namespace library {
 namespace impl {
 
 #define gpuErrchk(ans) \
@@ -88,4 +88,4 @@ public:
 };
 
 }  // namespace impl
-}  // namespace gern
+}  // namespace library

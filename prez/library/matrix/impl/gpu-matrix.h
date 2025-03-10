@@ -7,7 +7,7 @@
 #include <cuda_runtime.h>
 #include <stdlib.h>
 
-namespace gern {
+namespace library {
 namespace impl {
 
 /**
@@ -123,4 +123,4 @@ __device__ inline void add_smem(MatrixGPU a, MatrixGPU b) {
 }
 
 }  // namespace impl
-}  // namespace gern
+}  // namespace library

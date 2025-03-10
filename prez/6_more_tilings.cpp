@@ -23,9 +23,9 @@ int main() {
     });
 
     // ***** PROGRAM EVALUATION *****
-    gern::impl::ArrayCPU a(10);
+    library::impl::ArrayCPU a(10);
     a.ascending();
-    gern::impl::ArrayCPU b(10);
+    library::impl::ArrayCPU b(10);
     int64_t t_val = 2;
     int64_t t2_val = 1;
 
