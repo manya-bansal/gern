@@ -40,10 +40,10 @@ int main() {
     Variable smem_size("smem_size");
     Variable one_val("one_val");
 
-    block_x = block_x.bind(32);   // 8 elements per block_x
-    block_y = block_y.bind(32);   // 8 elements per block_y
-    thread_x = thread_x.bind(1);  // 1 element per thread_x
-    thread_y = thread_y.bind(1);  // 1 element per thread_y
+    block_x = block_x.bind(16);
+    block_y = block_y.bind(8);
+    thread_x = thread_x.bind(4);
+    thread_y = thread_y.bind(4);
     k_dim = k_dim.bind(k);
     k_tiled = k_tiled.bind(8);
     one_val = one_val.bind(8);
@@ -58,13 +58,13 @@ int main() {
     // But does memory coalescing flipping col and row basically gives memory coalescing.
     Composable program = {
         Global(
-            (Tile(C_DS["row"], block_x) || Grid::Unit::BLOCK_Y)(
-                (Tile(C_DS["col"], block_y) || Grid::Unit::BLOCK_X)(
+            (Tile(C_DS["row"], block_x) || Grid::Unit::BLOCK_X)(
+                (Tile(C_DS["col"], block_y) || Grid::Unit::BLOCK_Y)(
                     (Reduce(k_dim, k_tiled))(
                         Stage(A_DS,
                               Stage(B_DS,
-                                    (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X)(
-                                        (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_Y)(
+                                    (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_Y)(
+                                        (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_X)(
                                             (Reduce(k_dim, one_val))(
                                                 (*mm_sp)(A_DS, B_DS, C_DS))))))))),
             {}, smem_size, TrivialManager(smem_size)),
