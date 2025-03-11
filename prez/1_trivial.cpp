@@ -8,5 +8,10 @@ int main() {
 
     gern::annot::add_1 add_1;
 
-    // TODO
+    Composable program = {
+        // TODO
+        add_1(a, b),
+    };
+
+    compile_program(program);
 }

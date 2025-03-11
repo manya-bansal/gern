@@ -6,11 +6,13 @@ int main() {
     // ***** PROGRAM DEFINITION *****
     auto input = mk_matrix("input");
     auto output = mk_matrix("output");
+    auto temp = mk_matrix("temp");
 
     annot::MatrixAddCPU add_1;
 
     Composable program({
-        add_1(input, output),
+        add_1(input, temp),
+        add_1(temp, output),
     });
 
     // ***** PROGRAM EVALUATION *****
@@ -27,7 +29,7 @@ int main() {
     // ***** SANITY CHECK *****
     for (int i = 0; i < a.col; i++) {
         for (int j = 0; j < a.row; j++) {
-            assert(a(i, j) + 1 == b(i, j));
+            assert(a(i, j) + 2 == b(i, j));
         }
     }
 }

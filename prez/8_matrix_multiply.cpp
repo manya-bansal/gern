@@ -20,8 +20,7 @@ int main() {
     Composable program({
         Tile(C["col"], tc.bind(5))(
             Tile(C["row"], tr.bind(5))(
-                Reduce(k_dim, tk.bind(1))(
-                    matrix_multiply(A, B, C, k_dim)))),
+                matrix_multiply(A, B, C, k_dim))),
 
     });
 

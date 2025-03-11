@@ -3,9 +3,9 @@
 #include <iostream>
 
 int main() {
-    gern::impl::ArrayCPU a(10);
+    library::impl::ArrayCPU a(10);
     a.ascending();
-    gern::impl::ArrayCPU b(10);
+    library::impl::ArrayCPU b(10);
 
     function_3(a, b);
 

@@ -277,7 +277,7 @@ public:
         };
     }
 
-private:
+protected:
     AbstractDataTypePtr A;
     AbstractDataTypePtr B;
     AbstractDataTypePtr C;

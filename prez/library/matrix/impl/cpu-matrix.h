@@ -191,17 +191,17 @@ inline void divide_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
     }
 }
 
-inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dummy) {
+inline void matrix_multiply(MatrixCPU A, MatrixCPU B, MatrixCPU C, int64_t k_dim) {
     float *a_data;
     float *b_data;
     float *c_data;
-    for (int64_t i = 0; i < c.row; i++) {
-        c_data = c.data + (i * c.lda);
-        a_data = a.data + (i * a.lda);
-        for (int64_t j = 0; j < c.col; j++) {
+    for (int64_t i = 0; i < C.row; i++) {
+        c_data = C.data + (i * C.lda);
+        a_data = A.data + (i * A.lda);
+        for (int64_t j = 0; j < C.col; j++) {
             float sum = 0.0f;
-            for (int64_t k = 0; k < k_dummy; k++) {
-                b_data = b.data + (k * b.lda) + j;
+            for (int64_t k = 0; k < k_dim; k++) {
+                b_data = B.data + (k * B.lda) + j;
                 sum += a_data[k] * b_data[0];
             }
             c_data[j] += sum;
@@ -210,4 +210,4 @@ inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dum
 }
 
 }  // namespace impl
-}  // namespace gern
+}  // namespace library
