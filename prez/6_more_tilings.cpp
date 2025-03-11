@@ -35,7 +35,7 @@ int main() {
             {"output", &b},
             {"input", &a},
             {"t", &t_val},
-            {"t2", &t2_val},
+            // {"t2", &t2_val},
 
         });
 

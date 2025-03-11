@@ -23,8 +23,8 @@ public:
         Variable tk("tk", Datatype::Int64);
 
         // return annotate(
-        //     For(i = Expr(0), C["row"], ti,
-        //         For(j = Expr(0), C["col"], tj,
+        //     Tileable(i = Expr(0), C["row"], ti,
+        //         Tileable(j = Expr(0), C["col"], tj,
         //             Produces::Subset(C, /* TODO */),
         //             Consumes::Subsets(
         //                 SubsetObjMany({

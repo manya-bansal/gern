@@ -80,10 +80,10 @@ public:
         Variable row("row");
         Variable col("col");
 
-        return annotate(For(x = Expr(0), output["row"], l_x,
-                            For(y = Expr(0), output["col"], l_y,
-                                Produces::Subset(output, {x, y, l_x, l_y}),
-                                Consumes::Subset(input, {x, y, l_x, l_y}))));
+        return annotate(Tileable(x = Expr(0), output["row"], l_x,
+                                 Tileable(y = Expr(0), output["col"], l_y,
+                                          Produces::Subset(output, {x, y, l_x, l_y}),
+                                          Consumes::Subset(input, {x, y, l_x, l_y}))));
     }
 
     std::vector<std::string> getHeader() override {
@@ -122,9 +122,9 @@ public:
         Variable row("row");
         Variable col("col");
 
-        return annotate(For(x = Expr(0), output["size"], l_x,
-                            Produces::Subset(output, {x, l_x}),
-                            Consumes::Subset(input, {x, 0, l_x, col})));
+        return annotate(Tileable(x = Expr(0), output["size"], l_x,
+                                 Produces::Subset(output, {x, l_x}),
+                                 Consumes::Subset(input, {x, 0, l_x, col})));
     }
 
     std::vector<std::string> getHeader() override {
@@ -192,14 +192,14 @@ public:
         Variable row("row");
         Variable col("col");
 
-        return annotate(For(x = Expr(0), output["row"], l_x,
-                            For(y = Expr(0), output["row"], l_y,
-                                Produces::Subset(output, {x, y, l_x, l_y}),
-                                Consumes::Subsets(
-                                    SubsetObjMany({
-                                        SubsetObj(input, {x, y, l_x, l_y}),
-                                        SubsetObj(vec, {x, l_x}),
-                                    })))));
+        return annotate(Tileable(x = Expr(0), output["row"], l_x,
+                                 Tileable(y = Expr(0), output["row"], l_y,
+                                          Produces::Subset(output, {x, y, l_x, l_y}),
+                                          Consumes::Subsets(
+                                              SubsetObjMany({
+                                                  SubsetObj(input, {x, y, l_x, l_y}),
+                                                  SubsetObj(vec, {x, l_x}),
+                                              })))));
     }
 
     virtual FunctionSignature getFunction() override {
@@ -253,15 +253,15 @@ public:
         Variable tj("tj", Datatype::Int64);
         Variable tk("tk", Datatype::Int64);
 
-        return annotate(For(i = Expr(0), ADTMember(C, "row", false), ti,
-                            For(j = Expr(0), ADTMember(C, "col", false), tj,
-                                Produces::Subset(C, {i, j, ti, tj}),
-                                Consumes::Subsets(
-                                    Reduce(k = Expr(0), k_dim, tk,
-                                           SubsetObjMany({
-                                               SubsetObj(A, {i, k, ti, tk}),
-                                               SubsetObj(B, {k, j, tk, tj}),
-                                           }))))));
+        return annotate(Tileable(i = Expr(0), ADTMember(C, "row", false), ti,
+                                 Tileable(j = Expr(0), ADTMember(C, "col", false), tj,
+                                          Produces::Subset(C, {i, j, ti, tj}),
+                                          Consumes::Subsets(
+                                              Reduceable(k = Expr(0), k_dim, tk,
+                                                     SubsetObjMany({
+                                                         SubsetObj(A, {i, k, ti, tk}),
+                                                         SubsetObj(B, {k, j, tk, tj}),
+                                                     }))))));
     }
 
     FunctionSignature getFunction() override {
