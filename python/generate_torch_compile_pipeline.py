@@ -123,14 +123,14 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
 
                 generated_runner = Runner(program)
 
-                print("RUNNER COMPILE")
+                # print("RUNNER COMPILE")
                 generated_runner.compile(cpuRunner(["matrix"]))
 
                 l_x_val = Int.init(tile_rows)
                 l_y_val = Int.init(out_size[1])
 
-                print("L_X_VAL", tile_rows)
-                print("L_Y_VAL", out_size[1])
+                # print("L_X_VAL", tile_rows)
+                # print("L_Y_VAL", out_size[1])
 
                 variables.append((l_x, l_x_val))
                 variables.append((l_y, l_y_val))
@@ -154,7 +154,7 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
                         MatrixCPU.init(out_tensor.data_ptr(), *out_tensor.size(), out_tensor.stride()[0])
                     )
                 }
-                print("RUNNER EVALUATE")
+                # print("RUNNER EVALUATE")
                 generated_runner.evaluate(gern_args)
 
                 return (out_tensor,)

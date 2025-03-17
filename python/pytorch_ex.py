@@ -90,6 +90,55 @@ def benchmark_runtimes(rows, cols, tiling):
     compare.print()
 
     return results
+
+def benchmark_module(M, label, row_tilings, *args):
+    results = []
+        
+    for row_tiling in row_tilings:
+        torch.compiler.reset()
+        opt_M = gen(M, torch_to_gern, tile_rows=row_tiling)
+    
+        gern = benchmark.Timer(
+                setup=f'opt_M({','.join(arg_name for arg_name, _ in args)})',
+                stmt=f'opt_M({','.join(arg_name for arg_name, _ in args)})',
+                globals={'opt_M': opt_M} | { arg_name : arg_val for arg_name, arg_val in args },
+                label=label,
+                description=label,
+                sub_label=f"gern, row tiling {row_tiling}"
+            )
+
+        results.append(gern.blocked_autorange(min_run_time=2))
+    
+    m = M()
+    
+    unoptimized = benchmark.Timer(
+        stmt=f'm({','.join(arg_name for arg_name, _ in args)})',
+        globals={'m': m} | { arg_name : arg_val for arg_name, arg_val in args },
+        label=label,
+        description=label,
+        sub_label="unoptimized"
+    )
+
+    torch.compiler.reset()
+    default_tc_m = torch.compile(M())
+
+    default_compiled = benchmark.Timer(
+        setup=f'default_tc_m({','.join(arg_name for arg_name, _ in args)})',
+        stmt=f'default_tc_m({','.join(arg_name for arg_name, _ in args)})',
+        globals={'default_tc_m': default_tc_m} | { arg_name : arg_val for arg_name, arg_val in args },
+        label=label,
+        description=label,
+        sub_label="default torch.compile"
+    )
+
+    results.append(unoptimized.blocked_autorange(min_run_time=2))
+    results.append(default_compiled.blocked_autorange(min_run_time=2))
+
+    compare = benchmark.Compare(results)
+    compare.print()
+
+    return results
+
     
 
 def benchmark_compile_times():
@@ -119,6 +168,16 @@ def benchmark_compile_times():
 
     # compare = benchmark.Compare(results)
     # compare.print()
+
+def check_module(M, row_tilings, *args):
+    m = M()
+    reference = m(*args)
+
+    for row_tiling in row_tilings:
+        torch.compiler.reset()
+        opt_M = gen(M, torch_to_gern, tile_rows=row_tiling)
+        gern_output = opt_M(*args)
+        assert(torch.allclose(reference, gern_output, atol=1e-6))
 
 def verify_correctness():
     q = torch.randn((1024, 64))
@@ -152,18 +211,51 @@ def verify_correctness():
     ref = m(q2, k2, v2)
     print(torch.allclose(ref, output, atol=1e-6))
 
-if __name__ == "__main__":
+def individual_benchmarks():
     all_results = []
-    row_vals = [512, 1024, 1536, 2048]
-    row_tilings = [[32, 64, 128, 256, 512], [32, 64, 128, 256, 512, 1024], [128, 256, 512, 1536], [512, 1024, 2048]]
-    col_vals = [32, 64, 96, 128]
-    for rows, row_tiling in zip(row_vals, row_tilings):
-        for cols in col_vals:
-            results = benchmark_runtimes(rows, cols, row_tiling)
-            all_results.append(benchmark.Compare(results))
+    class Softmax(torch.nn.Module):
+        def forward(self, arr):
+            return torch.nn.functional.softmax(arr)
+    row_tilings = [32, 64, 128, 256, 512, 1024]
+    
+    arr = torch.randn((1024, 1024))
+    all_results.extend(benchmark_module(Softmax, "softmax (1024, 1024)", row_tilings, ("arr", arr)))
+    check_module(Softmax, row_tilings, arr)
 
-    for res in all_results:
-        res.print()
+    class MatMul(torch.nn.Module):
+        def forward(self, a, b):
+            return a @ b
+    
+    a = torch.randn((1024, 64))
+    b = torch.randn((64, 1024))
+    all_results.extend(benchmark_module(MatMul, "matmul (1024, 64) x (64, 1024)", row_tilings, ("a", a), ("b", b)))
+    check_module(MatMul, row_tilings, a, b)
+
+    a = torch.randn((1024, 1024))
+    b = torch.randn((1024, 64))
+    all_results.extend(benchmark_module(MatMul, "matmul (1024, 1024) x (1024, 64)", row_tilings, ("a", a), ("b", b)))
+    check_module(MatMul, row_tilings, a, b)
+
+    compare = benchmark.Compare(all_results)
+    compare.print()    
+
+if __name__ == "__main__":
+    individual_benchmarks() 
+
+    # all_results = []
+    # # row_vals = [512, 1024, 1536, 2048]
+    # # row_tilings = [[32, 64, 128, 256, 512], [32, 64, 128, 256, 512, 1024], [128, 256, 512, 1536], [512, 1024, 2048]]
+    # # col_vals = [32, 64, 96, 128]
+    # row_vals = [512]
+    # row_tilings=[[32, 64, 128, 256, 512]]
+    # col_vals = [64]
+    # for rows, row_tiling in zip(row_vals, row_tilings):
+    #     for cols in col_vals:
+    #         results = benchmark_runtimes(rows, cols, row_tiling)
+    #         all_results.append(benchmark.Compare(results))
+
+    # for res in all_results:
+    #     res.print()
 
     # q_32 = torch.randn((1024, 32))
     # k_32 = torch.randn((1024, 32))
