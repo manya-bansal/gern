@@ -103,6 +103,9 @@ public:
     }
 };
 
+bool same_parameters(const std::vector<Parameter> &pars1, const std::vector<Parameter> &pars2);
+std::vector<std::string> get_parameter_names(const std::vector<Parameter> &pars);
+
 std::ostream &operator<<(std::ostream &os, const Argument &);
 /*
 To add arguments to the vector of arguments in the

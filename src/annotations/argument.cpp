@@ -66,4 +66,39 @@ std::string ExprArg::getType() const {
     return "auto";
 }
 
+bool same_parameters(const std::vector<Parameter> &pars1, const std::vector<Parameter> &pars2) {
+    std::multiset<std::string> vars1, vars2;
+    std::multiset<AbstractDataTypePtr> adt1, adt2;
+
+    for (const auto &u : pars1) {
+        if (isa<VarArg>(u)) {
+            vars1.insert(to<VarArg>(u)->getVar().getName());
+        } else {
+            adt1.insert(to<DSArg>(u)->getADTPtr());
+        }
+    }
+
+    for (const auto &u : pars2) {
+        if (isa<VarArg>(u)) {
+            vars2.insert(to<VarArg>(u)->getVar().getName());
+        } else {
+            adt2.insert(to<DSArg>(u)->getADTPtr());
+        }
+    }
+
+    return adt1 == adt2 && vars1 == vars2;
+}
+
+std::vector<std::string> get_parameter_names(const std::vector<Parameter> &pars) {
+    std::vector<std::string> names;
+    for (const auto &u : pars) {
+        if (isa<VarArg>(u)) {
+            names.push_back(to<VarArg>(u)->getVar().getName());
+        } else {
+            names.push_back(to<DSArg>(u)->getADTPtr().getName());
+        }
+    }
+    return names;
+}
+
 }  // namespace gern

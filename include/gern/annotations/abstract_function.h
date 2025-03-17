@@ -81,7 +81,7 @@ private:
 
 class FunctionPtr : public AbstractFunction {
 public:
-    FunctionPtr(Composable function, Runner::Options options);
+    FunctionPtr(Composable function, Runner::Options options, std::optional<std::vector<Parameter>> ordered_parameters = std::nullopt);
     Annotation getAnnotation() override;
     std::vector<std::string> getHeader() override;
     FunctionSignature getFunction() override;

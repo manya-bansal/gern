@@ -137,10 +137,10 @@ void AbstractFunction::bindVariables(const std::map<std::string, Variable> &repl
     bindings.insert(replacements.begin(), replacements.end());
 }
 
-FunctionPtr::FunctionPtr(Composable function, Runner::Options options)
+FunctionPtr::FunctionPtr(Composable function, Runner::Options options, std::optional<std::vector<Parameter>> ordered_parameters)
     : function(function), options(options) {
     // Let's lower the function to get the signature.
-    Runner runner(function);
+    Runner runner(function, std::move(ordered_parameters));
     runner.compile(options);
     signature = runner.getSignature();
 }
