@@ -397,8 +397,10 @@ void ComposableLower::visit(const StageNode *node) {
     lowered.push_back(declare_computes(node->getAnnotation().getPattern()));
     lowered.push_back(declare_consumes(node->getAnnotation().getPattern()));
     // Now, stage the input or output.
+    bool check_free = false;
     if (!current_ds.contains_in_current_scope(node->adt)) {
         std::cout << "Data-structure is in current scope, not staging..." << std::endl;
+        check_free = true;
         lowered.push_back(constructQueryNode(node->adt, node->staged_subset.getFields()));
     }
     // Track all the relationships.
@@ -410,8 +412,8 @@ void ComposableLower::visit(const StageNode *node) {
     this->visit(node->body);
     lowered.push_back(lowerIR);
     // do we need to free?
-    if (node->adt.freeQuery()) {
-        lowered.push_back(new const FreeNode(node->adt));
+    if (check_free && node->adt.freeQuery()) {
+        lowered.push_back(new const FreeNode(getCurrent(node->adt)));
     }
     // finally wrap it all up.
     lowerIR = new const BlockNode(lowered);
@@ -425,7 +427,6 @@ AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
 }
 
 const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> args) {
-
     AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + ds.getName()), "auto", ds);
     FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds, ds.getFields(), args);
     auto cur_scope_ds = getCurrent(ds);
@@ -539,8 +540,6 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     f_new.template_args = template_args;
     f_new.grid = LaunchArguments();
     f_new.block = LaunchArguments();
-
-    std::cout << "f_new: " << f_new << std::endl;
 
     return f_new;
 }

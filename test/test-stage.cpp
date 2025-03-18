@@ -216,9 +216,6 @@ TEST(Stage, StageReduction) {
 
     // Useless stage, but should work.
     Composable call =
-        // Stage(outputDS,
-        // Tile(outputDS["size"], v)(
-        //     Stage(outputDS,
         Tile(outputDS["size"], v)(
             Stage(outputDS,
                   Reduce(v1, v)(
