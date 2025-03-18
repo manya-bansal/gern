@@ -205,3 +205,48 @@ TEST(Stage, DoubleStage) {
     a.destroy();
     b.destroy();
 }
+
+TEST(Stage, StageReduction) {
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+
+    annot::reduction reduction;
+    Variable v("v");
+    Variable v1("v1");
+
+    // Useless stage, but should work.
+    Composable call =
+        // Stage(outputDS,
+        // Tile(outputDS["size"], v)(
+        //     Stage(outputDS,
+        Tile(outputDS["size"], v)(
+            Stage(outputDS,
+                  Reduce(v1, v)(
+                      Stage(inputDS,
+                            Stage(outputDS,
+                                  reduction(inputDS, outputDS, v1))))));
+
+    Runner run(call);
+    run.compile(test::cpuRunner("array"));
+
+    impl::ArrayCPU a(16);
+    a.ascending();
+    impl::ArrayCPU b(16);
+    b.vvals(0.0f);
+    int64_t v_val = 2;
+    int64_t v1_val = 16;
+
+    run.evaluate({
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+        {"v", &v_val},
+        {"v1", &v1_val},
+    });
+
+    for (int i = 0; i < 16; i++) {
+        ASSERT_TRUE(b.data[i] == 8 * 15);
+    }
+
+    a.destroy();
+    b.destroy();
+}

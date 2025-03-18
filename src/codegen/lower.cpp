@@ -144,6 +144,7 @@ void ComposableLower::lower(const TiledComputation *node) {
 
     AbstractDataTypePtr output = node->getAnnotation().getPattern().getOutput().getDS();
     current_ds.scope();
+
     if (node->reduce) {
         current_ds.insert(output, getCurrent(output));
     }
@@ -396,7 +397,10 @@ void ComposableLower::visit(const StageNode *node) {
     lowered.push_back(declare_computes(node->getAnnotation().getPattern()));
     lowered.push_back(declare_consumes(node->getAnnotation().getPattern()));
     // Now, stage the input or output.
-    lowered.push_back(constructQueryNode(node->adt, node->staged_subset.getFields()));
+    if (!current_ds.contains_in_current_scope(node->adt)) {
+        std::cout << "Data-structure is in current scope, not staging..." << std::endl;
+        lowered.push_back(constructQueryNode(node->adt, node->staged_subset.getFields()));
+    }
     // Track all the relationships.
     for (const auto &var : node->old_to_new) {
         all_relationships.insert(var.first, var.second);
@@ -535,6 +539,8 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     f_new.template_args = template_args;
     f_new.grid = LaunchArguments();
     f_new.block = LaunchArguments();
+
+    std::cout << "f_new: " << f_new << std::endl;
 
     return f_new;
 }
