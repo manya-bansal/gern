@@ -18,8 +18,9 @@ int main() {
     Composable program({
         // More tiling!
         Tile(output["size"], t)(
-            add_1(input, temp),
-            add_1(temp, output)),
+            Tile(output["size"], t2)(
+                add_1(input, temp),
+                add_1(temp, output))),
     });
 
     // ***** PROGRAM EVALUATION *****
@@ -35,7 +36,7 @@ int main() {
             {"output", &b},
             {"input", &a},
             {"t", &t_val},
-            // {"t2", &t2_val},
+            {"t2", &t2_val},
 
         });
 

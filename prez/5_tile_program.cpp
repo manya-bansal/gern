@@ -16,6 +16,9 @@ int main() {
 
     Composable program({
         // TODO: A program with tiling!
+        Tile(output["size"], t)(
+            add_1(input, temp),
+            add_1(temp, output)),
     });
 
     // ***** PROGRAM EVALUATION *****

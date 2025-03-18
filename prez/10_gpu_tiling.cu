@@ -16,8 +16,8 @@ int main() {
 
     Composable program({
         Global(
-            (Tile(b["size"], tile.bind(5)))(
-                (Tile(b["size"], tile2.bind(1)))(
+            (Tile(b["size"], tile.bind(5)) || Grid::BLOCK_X)(
+                (Tile(b["size"], tile2.bind(1)) || Grid::THREAD_X)(
                     add_1(a, b)))),
     });
 

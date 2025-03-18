@@ -13,6 +13,8 @@ int main() {
 
     Composable program({
         // TODO
+        add_1(input, temp),
+        add_1(temp, output),
     });
 
     // ***** PROGRAM EVALUATION *****

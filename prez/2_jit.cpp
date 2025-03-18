@@ -21,8 +21,8 @@ int main() {
     library::impl::ArrayCPU b(10);
 
     runner.evaluate({
-        {"input", &a},
         {"output", &b},
+        {"input", &a},
     });
 
     for (int i = 0; i < 10; i++) {
