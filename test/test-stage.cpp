@@ -220,8 +220,9 @@ TEST(Stage, StageReduction) {
             Stage(outputDS,
                   Reduce(v1, v)(
                       Stage(inputDS,
-                            Stage(outputDS,
-                                  reduction(inputDS, outputDS, v1))))));
+                            Stage(inputDS,
+                                  Stage(outputDS,
+                                        reduction(inputDS, outputDS, v1)))))));
 
     Runner run(call);
     run.compile(test::cpuRunner("array"));
