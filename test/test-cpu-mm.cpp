@@ -249,16 +249,16 @@ TEST(LoweringCPU, EgeMM) {
         {k_dim.getName(), &k_dim_val},
     });
 
-    // impl::MatrixCPU ref_c(num_row, num_col, num_col);
-    // ref_c.vvals(0.0f);
-    // impl::matrix_multiply(a, b, ref_c, a.col);
+    impl::MatrixCPU ref_c(num_row, num_col, num_col);
+    ref_c.vvals(0.0f);
+    impl::matrix_multiply(a, b, ref_c, a.col);
 
-    // for (int i = 0; i < num_row * num_col; i++) {
-    //     ASSERT_TRUE(c.data[i] == ref_c.data[i]);
-    // }
+    for (int i = 0; i < num_row * num_col; i++) {
+        ASSERT_TRUE(c.data[i] == ref_c.data[i]);
+    }
 
-    // a.destroy();
-    // b.destroy();
-    // c.destroy();
-    // ref_c.destroy();
+    a.destroy();
+    b.destroy();
+    c.destroy();
+    ref_c.destroy();
 }
