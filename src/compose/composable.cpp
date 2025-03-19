@@ -284,6 +284,10 @@ Composable Stage(AbstractDataTypePtr adt, Composable body) {
     auto annotation = body.getAnnotation();
     auto inputs = annotation.getPattern().getInputs();
 
+    if (isa<ComputeFunctionCall>(body.ptr)) {
+        body = new const Computation({body});
+    }
+
     for (const auto &input : inputs) {
         if (input.getDS() == adt) {
             return new const StageNode(adt, body);
