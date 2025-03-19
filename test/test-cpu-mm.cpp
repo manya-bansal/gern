@@ -185,3 +185,79 @@ TEST(LoweringCPU, MatchGPU) {
     c.destroy();
     ref_c.destroy();
 }
+
+TEST(LoweringCPU, EgeMM) {
+    auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
+    auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
+    auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
+
+    annot::MatrixMultiplyCPU matrix_multiply;
+    Variable ti("ti");
+    Variable ti_g("ti_g");
+    Variable ti_2("ti_2");
+    Variable tj("tj");
+    Variable tj_g("tj_g");
+    Variable tj_2("tj_2");
+    Variable tk("tk");
+    Variable inner_k("inner_k");
+
+    Variable k_2("k_2");
+    Variable k_dim("k_dim");
+    // Just bind all, dont want to deal with args rn.
+
+    Composable program_in{
+        Tile(C_DS["row"], ti.bind(2))(
+            Tile(C_DS["col"], tj.bind(2))(
+                matrix_multiply(A_DS, B_DS, C_DS, inner_k)))};
+
+    Runner::Options options = test::cpuRunner("matrix");
+    options.filename = "inner_mm.cpp";
+    FunctionPtr inner_mm_ptr(program_in, options);
+
+    // Bind the inner one.
+
+    FunctionPtr func_in_pre{program_in, options};
+    auto func_in = &func_in_pre[{{"ti", ti.bind(8)}, {"tj", tj.bind(16)}}];
+
+    constexpr int64_t outer_tile = 4;
+    Composable program_out{
+        Tile(C_DS["row"], ti_g.bind(outer_tile))(
+            Reduce(k_dim, tk.bind(outer_tile))(
+                Tile(C_DS["col"], tj_g.bind(outer_tile))(
+                    (*func_in)(A_DS, B_DS, C_DS, k_dim))))};
+
+    Runner run(program_out);
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+
+    // int64_t num_row = 8;
+    // int64_t num_col = 8;
+
+    // impl::MatrixCPU a(num_row, num_col, num_col);
+    // a.ascending();
+    // impl::MatrixCPU b(num_row, num_col, num_col);
+    // b.ascending();
+
+    // impl::MatrixCPU c(num_row, num_col, num_col);
+    // c.vvals(0.0f);
+
+    // int64_t k_dim_val = a.col;
+    // run.evaluate({
+    //     {A_DS.getName(), &a},
+    //     {B_DS.getName(), &b},
+    //     {C_DS.getName(), &c},
+    //     {k_dim.getName(), &k_dim_val},
+    // });
+
+    // impl::MatrixCPU ref_c(num_row, num_col, num_col);
+    // ref_c.vvals(0.0f);
+    // impl::matrix_multiply(a, b, ref_c, a.col);
+
+    // for (int i = 0; i < num_row * num_col; i++) {
+    //     ASSERT_TRUE(c.data[i] == ref_c.data[i]);
+    // }
+
+    // a.destroy();
+    // b.destroy();
+    // c.destroy();
+    // ref_c.destroy();
+}

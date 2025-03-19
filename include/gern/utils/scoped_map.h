@@ -84,6 +84,14 @@ public:
         return os;
     }
 
+    std::map<Key, Value> get_all() const {
+        std::map<Key, Value> all;
+        for (auto &scope : scopes) {
+            all.insert(scope.begin(), scope.end());
+        }
+        return all;
+    }
+
 private:
     std::list<std::map<Key, Value>> scopes;
 };

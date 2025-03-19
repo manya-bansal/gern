@@ -433,7 +433,12 @@ const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std
     f.name = cur_scope_ds.getName() + "." + f.name;
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
-    staged_ds.insert(ds, args);
+    std::vector<Expr> staged_args(args.begin(), args.end());
+    // for (const auto &tv : tiled_vars.get_all()) {
+    //     staged_args.push_back(tv.second);
+    //     staged_args.push_back(tv.first);
+    // }
+    staged_ds.insert(ds, staged_args);
     return new const QueryNode(ds, f);
 }
 
@@ -464,6 +469,9 @@ static Expr getValue(const util::ScopedMap<T1, T1> &rel,
     Expr e;
     while (rel.contains(entry)) {  // While we have the entry, go find it.
         if (map.contains(entry)) {
+            if (stop_at.contains(entry)) {
+                return 0;
+            }
             e = map.at(entry);  // Just set up the first value.
             entry = rel.at(entry);
             break;
