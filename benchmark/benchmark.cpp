@@ -31,188 +31,16 @@ static void open_blas_mm(T &a, T &b, T &c) {
         1,
         c.data, M);
 }
-static std::function<void(impl::MatrixViewBasic &, impl::MatrixViewBasic &, impl::MatrixViewBasic &)> get_gern_double_tiling() {
-
-    auto A_DS = AbstractDataTypePtr(new const annot::MatrixViewBasic("A"));
-    auto B_DS = AbstractDataTypePtr(new const annot::MatrixViewBasic("B"));
-    auto C_DS = AbstractDataTypePtr(new const annot::MatrixViewBasic("C"));
-
-    annot::MatrixMultiplyGeneric<annot::MatrixViewBasic, annot::MatrixViewBasic, annot::MatrixViewBasic> matrix_multiply;
-    Variable ti("ti");
-    Variable ti_2("ti_2");
-    Variable tj("tj");
-    Variable tj_2("tj_2");
-    Variable k("k");
-    Variable k_2("k_2");
-    Variable k_dim("k_dim");
-
-    constexpr int64_t tile_size = 128;
-    constexpr int64_t tile_size_2 = 16;
-
-    Composable program = {
-        Reduce(k_dim, k.bind(tile_size))(
-            Tile(C_DS["row"], ti.bind(tile_size))(
-                Tile(C_DS["col"], tj.bind(tile_size))(
-                    Reduce(k_dim, k_2.bind(tile_size_2))(
-                        Tile(C_DS["row"], ti_2.bind(tile_size_2))(
-                            Tile(C_DS["col"], tj_2.bind(tile_size_2))(
-                                matrix_multiply(A_DS, B_DS, C_DS, k_dim)))))))};
-
-    Runner run(program);
-    run.compile(benchmark::cpuRunner());
-
-    return [run,
-            A_name = A_DS.getName(),
-            B_name = B_DS.getName(),
-            C_name = C_DS.getName(),
-            k_dim_name = k_dim.getName()](impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c) mutable {
-        int64_t K = a.col;
-
-        run.evaluate({
-            {A_name, &a},
-            {B_name, &b},
-            {C_name, &c},
-            {k_dim_name, &K},
-        });
-    };
-}
-static std::function<void(impl::MatrixViewPackOnQuery &, impl::MatrixViewPackOnQuery &, impl::MatrixViewBasic &)> get_gern_packed() {
-    auto A_DS = AbstractDataTypePtr(new const annot::MatrixViewPackOnQuery("A"));
-    auto B_DS = AbstractDataTypePtr(new const annot::MatrixViewPackOnQuery("B"));
-    auto C_DS = AbstractDataTypePtr(new const annot::MatrixViewBasic("C"));
-
-    constexpr int64_t tile_size = 128;
-
-    annot::MatrixMultiplyTemplated<tile_size, tile_size, tile_size, annot::MatrixViewBasic> matrix_multiply;
-
-    Variable ti("ti");
-    Variable tj("tj");
-    Variable k("k");
-    Variable k_dim("k_dim");
-
-    Composable program = {
-        Tile(C_DS["row"], ti.bind(tile_size))(
-            Reduce(k_dim, k.bind(tile_size))(
-                Tile(C_DS["col"], tj.bind(tile_size))(
-                    matrix_multiply(A_DS, B_DS, C_DS, k_dim))))};
-
-    Runner run(program);
-    run.compile(benchmark::cpuRunner());
-
-    return [run,
-            A_name = A_DS.getName(),
-            B_name = B_DS.getName(),
-            C_name = C_DS.getName(),
-            k_dim_name = k_dim.getName()](impl::MatrixViewPackOnQuery &a, impl::MatrixViewPackOnQuery &b, impl::MatrixViewBasic &c) mutable {
-        int64_t K = a.col;
-
-        run.evaluate({
-            {A_name, &a},
-            {B_name, &b},
-            {C_name, &c},
-            {k_dim_name, &K},
-        });
-    };
-}
-void pack(impl::MatrixViewBasic a, float *res) {
-    for (int64_t i = 0; i < a.row; ++i) {
-        std::copy(&a.get(i, 0), &a.get(i, a.col), res);
-        res += a.col;
-    }
-}
-void tiled_packed_mult(impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c) {
-    constexpr int64_t tile_size = 128;
-
-    assert(a.row % tile_size == 0 && a.col % tile_size == 0 && c.col % tile_size == 0);
-
-    float a_packed[tile_size][tile_size];
-    float b_packed[tile_size][tile_size];
-
-    for (int64_t i_out = 0; i_out < a.row; i_out += tile_size)
-        for (int64_t k_out = 0; k_out < a.col; k_out += tile_size) {
-            pack(a.query(i_out, k_out, tile_size, tile_size), a_packed[0]);
-
-            for (int64_t j_out = 0; j_out < b.col; j_out += tile_size) {
-                pack(b.query(k_out, j_out, tile_size, tile_size), b_packed[0]);
-
-                for (int64_t i = 0; i < tile_size; ++i)
-                    for (int64_t k = 0; k < tile_size; ++k)
-                        for (int64_t j = 0; j < tile_size; ++j)
-                            c.get(i_out + i, j_out + j) += a_packed[i][k] * b_packed[k][j];
-            }
-        }
-}
-void inner_kernel_handwritten(impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c) {
-    int64_t N = c.row, M = c.col, K = a.col;
-
-    constexpr int64_t tile_size = 128;
-
-    for (int64_t i_out = 0; i_out < N; i_out += tile_size)
-        for (int64_t k = 0; k < K; k += tile_size)
-            for (int64_t j_out = 0; j_out < M; j_out += tile_size)
-                for (int64_t i = i_out; i < i_out + tile_size; i += 8)
-                    for (int64_t j = j_out; j < j_out + tile_size; j += 16) {
-
-                        impl::MatrixViewBasic a_tmp = a.query(i, k, 8, tile_size);
-                        impl::MatrixViewBasic b_tmp = b.query(k, j, tile_size, 16);
-                        impl::MatrixViewBasic c_tmp = c.query(i, j, 8, 16);
-
-                        impl::inner_kernel(a_tmp, b_tmp, c_tmp, 0);
-                    }
-}
-std::function<void(impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c)> get_inner_kernel_gern() {
-
-    auto A = AbstractDataTypePtr(new const annot::MatrixViewBasic("A"));
-    auto B = AbstractDataTypePtr(new const annot::MatrixViewBasic("B"));
-    auto C = AbstractDataTypePtr(new const annot::MatrixViewBasic("C"));
-
-    annot::MatrixMultiplyKernel matrix_multiply;
-
-    Variable ti_in("ti_in");
-    Variable tj_in("tj_in");
-    Variable kdim_in("kdim_in");
-
-    Variable ti_out("ti_out");
-    Variable tj_out("tj_out");
-    Variable tk_out("tk_out");
-    Variable kdim("kdim");
-
-    int64_t tile_size = 256;
-
-    Composable program{
-        Tile(C["row"], ti_out.bind(tile_size))(
-            Reduce(kdim, tk_out.bind(tile_size))(
-                Tile(C["col"], tj_out.bind(tile_size))(
-                    Tile(C["row"], ti_in.bind(8))(
-                        Tile(C["col"], tj_in.bind(16))(
-                            matrix_multiply(A, B, C, kdim))))))};
-
-    Runner run(program);
-    run.compile(benchmark::cpuRunner());
-
-    return [run,
-            A_name = A.getName(),
-            B_name = B.getName(),
-            C_name = C.getName(),
-            kdim_name = kdim.getName()](impl::MatrixViewBasic &a, impl::MatrixViewBasic &b, impl::MatrixViewBasic &c) mutable {
-        int64_t K = a.col;
-
-        run.evaluate({
-            {A_name, &a},
-            {B_name, &b},
-            {C_name, &c},
-            {kdim_name, &K},
-        });
-    };
-}
 std::function<void(impl::MatrixViewPackOnQuery &a, impl::MatrixViewPackOnQuery &b, impl::MatrixViewBasic &c)> get_inner_kernel_gern_packed() {
     constexpr int64_t outer_tile = 256;
 
-    auto A_in = AbstractDataTypePtr(new const annot::MatrixTemplated<outer_tile, outer_tile>("A"));
-    auto B_in = AbstractDataTypePtr(new const annot::MatrixTemplated<outer_tile, outer_tile>("B"));
-    auto C_in = AbstractDataTypePtr(new const annot::MatrixViewBasic("C"));
+    const std::string templated_matrix = "MatrixTemplated<" + std::to_string(outer_tile) + ", " + std::to_string(outer_tile) + ">";
 
-    annot::MatrixMultiplyKernel matrix_multiply;
+    auto A_in = AbstractDataTypePtr(new const annot::Matrix(templated_matrix, false, "A"));
+    auto B_in = AbstractDataTypePtr(new const annot::Matrix(templated_matrix, false, "B"));
+    auto C_in = AbstractDataTypePtr(new const annot::Matrix("MatrixViewBasic", false, "C"));
+
+    annot::MatrixMultiply matrix_multiply("inner_kernel", A_in, B_in, C_in);
 
     Variable ti_in("ti_in");
     Variable tj_in("tj_in");
@@ -229,9 +57,9 @@ std::function<void(impl::MatrixViewPackOnQuery &a, impl::MatrixViewPackOnQuery &
     FunctionPtr func_in_pre{program_in, options_in};
     auto func_in = &func_in_pre[{{"ti_in", ti_in.bind(8)}, {"tj_in", tj_in.bind(16)}}];
 
-    auto A_out = AbstractDataTypePtr(new const annot::MatrixViewPackOnQuery("A_out"));
-    auto B_out = AbstractDataTypePtr(new const annot::MatrixViewPackOnQuery("B_out"));
-    auto C_out = AbstractDataTypePtr(new const annot::MatrixViewBasic("C_out"));
+    auto A_out = AbstractDataTypePtr(new const annot::Matrix("MatrixViewPackOnQuery", true, "A_out"));
+    auto B_out = AbstractDataTypePtr(new const annot::Matrix("MatrixViewPackOnQuery", true, "B_out"));
+    auto C_out = AbstractDataTypePtr(new const annot::Matrix("MatrixViewBasic", false, "C"));
 
     Variable ti_out("ti_out");
     Variable tj_out("tj_out");
@@ -312,26 +140,8 @@ int main() {
     random_fill(b);
     std::copy(b.data, b.data + k * m, b_pack.data);
 
-    // run_function(basic_mm<impl::MatrixViewBasic>, "basic_mm", false, 1, 1, a, b, res, false, c);
-
     run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
         open_blas_mm<impl::MatrixViewBasic>, "open_blas", false, 1, 1, a, b, res, false, c);
-    // run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
-    //     tiled_packed_mult, "hand_packed", false, 1, 1, a, b, c, true, res);
-
-    // // run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
-    // //     get_gern_double_tiling(), "gern_double_tiled", false, 1, 1, a, b, c, true, res);
-
-    // run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
-    //     get_gern_packed(), "gern_packed", false, 1, 1, a_pack, b_pack, c, true, res);
-
-    // run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
-    //     inner_kernel_handwritten, "inner_kernel_handwritten", false, 1, 1, a, b, c, true, res
-    // );
-
-    // run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
-    //     get_inner_kernel_gern(), "inner_kernel_gern", false, 1, 1, a, b, c, true, res
-    // );
 
     run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
         get_inner_kernel_gern_packed(), "inner_kernel_gern_packed", false, 1, 1, a_pack, b_pack, c, true, res);

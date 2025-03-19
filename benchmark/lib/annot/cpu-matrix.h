@@ -6,21 +6,22 @@
 namespace gern {
 namespace annot {
 
-class MatrixBase : public AbstractDataType {
-protected:
+class Matrix : public AbstractDataType {
+private:
+    std::string implementation;
+    bool is_query_templated;
+
     std::string name;
     Variable x{"x"};
     Variable y{"y"};
     Variable l_x{"l_x"};
     Variable l_y{"l_y"};
-public:
 
-    MatrixBase(const std::string &name)
-        : name(name) {
+public:
+    Matrix(const std::string &implementation, bool is_query_templated, const std::string &name)
+        : implementation(implementation), is_query_templated(is_query_templated), name(name) {
     }
-    MatrixBase()
-        : MatrixBase("test") {
-    }
+
     virtual std::string getName() const override {
         return name;
     }
@@ -29,7 +30,7 @@ public:
     }
     virtual FunctionSignature getAllocateFunction() const override {
         return FunctionSignature{
-            .name = "gern::impl::MatrixCPU::allocate",
+            .name = "gern::impl::" + implementation + "::allocate",
             .args = {x, y, l_x, l_y},
         };
     }
@@ -39,91 +40,32 @@ public:
             .args = {},
         };
     }
+
+    virtual FunctionSignature getQueryFunction() const override {
+        return is_query_templated ?
+                   FunctionSignature{
+                       .name = "query",
+                       .args = {x, y},
+                       .template_args = {l_x, l_y}} :
+                   FunctionSignature{
+                       .name = "query",
+                       .args = {x, y, l_x, l_y}};
+    }
+
+    virtual std::string getType() const override {
+        return "gern::impl::" + implementation;
+    }
     virtual FunctionSignature getInsertFunction() const override {
         return FunctionSignature{
             .name = "insert",
-            .args = {x, y, l_x, l_y},
-        };
-    }
-    virtual FunctionSignature getQueryFunction() const override {
-        return FunctionSignature{
-            .name = "query",
-            .args = {x, y, l_x, l_y},
-        };
-    }
-
-    virtual std::string getType() const = 0;
-};
-
-class MatrixViewBasic : public MatrixBase {
-public:
-    MatrixViewBasic(const std::string &name)
-        : MatrixBase(name) {
-    }
-    MatrixViewBasic()
-        : MatrixBase("test") {
-    }
-    std::string getType() const override {
-        return "gern::impl::MatrixViewBasic";
+            .args = {x, y, l_x, l_y}};
     }
 };
 
-class MatrixViewPackOnQuery : public MatrixBase {
+class MatrixMultiply : public AbstractFunction {
 public:
-    MatrixViewPackOnQuery(const std::string &name)
-        : MatrixBase(name) {
-    }
-    MatrixViewPackOnQuery()
-        : MatrixBase("test") {
-    }
-    std::string getType() const override {
-        return "gern::impl::MatrixViewPackOnQuery";
-    }
-    virtual FunctionSignature getQueryFunction() const override {
-        return FunctionSignature{
-            .name = "query",
-            .args = {x, y},
-            .template_args = {l_x, l_y}
-        };
-    }
-    bool insertQuery() const override {
-        return true;
-    }
-};
-
-template <int64_t L_X, int64_t L_Y>
-class MatrixTemplated : public MatrixBase {
-public:
-    MatrixTemplated(const std::string &name)
-        : MatrixBase(name) {
-    }
-    MatrixTemplated()
-        : MatrixBase("test") {
-    }
-    std::string getType() const override {
-        return "gern::impl::MatrixTemplated<" + std::to_string(L_X) + ", " + std::to_string(L_Y) + ">";
-    }
-    virtual FunctionSignature getQueryFunction() const override {
-        return FunctionSignature{
-            .name = "query",
-            .args = {x, y, l_x, l_y}
-        };
-    }
-
-    
-    bool freeAlloc() const override {
-        return false;
-    }
-};
-
-
-template <typename T1, typename T2, typename T3>
-class MatrixMultiplyGeneric : public AbstractFunction {
-public:
-    MatrixMultiplyGeneric()
-        : A(new const T1("A")),
-          B(new const T2("B")),
-          C(new const T3("C")) {
+    MatrixMultiply(const std::string function_name, AbstractDataTypePtr A, AbstractDataTypePtr B, AbstractDataTypePtr C)
+        : function_name(function_name), A(A), B(B), C(C) {
     }
 
     Annotation getAnnotation() override {
@@ -148,7 +90,7 @@ public:
 
     FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::matrix_multiply_generic";
+        f.name = "gern::impl::" + function_name;
         f.args = {Parameter(A), Parameter(B), Parameter(C), k_dim};
         return f;
     }
@@ -160,39 +102,12 @@ public:
     }
 
 protected:
+    std::string function_name;
     AbstractDataTypePtr A;
     AbstractDataTypePtr B;
     AbstractDataTypePtr C;
     Variable k_dim{"k_dim", Datatype::Int64};
-
-    MatrixMultiplyGeneric(AbstractDataTypePtr A, AbstractDataTypePtr B, AbstractDataTypePtr C)
-        : A(A), B(B), C(C) {}
 };
-
-template <int64_t N, int64_t M, int64_t K, typename T>
-class MatrixMultiplyTemplated : public MatrixMultiplyGeneric<MatrixTemplated<N, M>, MatrixTemplated<M, K>, T> {
-public:
-    MatrixMultiplyTemplated() : MatrixMultiplyGeneric<MatrixTemplated<N, M>, MatrixTemplated<M, K>, T>() {}
-
-    FunctionSignature getFunction() override {
-        FunctionSignature f;
-        f.name = "gern::impl::matrix_multiply_templated";
-        f.args = {Parameter(this->A), Parameter(this->B), Parameter(this->C), this->k_dim};
-        return f;
-    }
-};
-
-class MatrixMultiplyKernel : public MatrixMultiplyGeneric<MatrixViewBasic, MatrixViewBasic, MatrixViewBasic> {
-public:
-    MatrixMultiplyKernel() : MatrixMultiplyGeneric<MatrixViewBasic, MatrixViewBasic, MatrixViewBasic>() {}
-    FunctionSignature getFunction() override {
-        FunctionSignature f;
-        f.name = "gern::impl::inner_kernel";
-        f.args = {Parameter(this->A), Parameter(this->B), Parameter(this->C), this->k_dim};
-        return f;
-    }
-};
-
 
 }  // namespace annot
 }  // namespace gern
