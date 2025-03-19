@@ -206,8 +206,8 @@ TEST(LoweringCPU, EgeMM) {
     // Just bind all, dont want to deal with args rn.
 
     Composable program_in{
-        Tile(C_DS["row"], ti.bind(2))(
-            Tile(C_DS["col"], tj.bind(2))(
+        Tile(C_DS["row"], ti.bind(8))(
+            Tile(C_DS["col"], tj.bind(16))(
                 matrix_multiply(A_DS, B_DS, C_DS, inner_k)))};
 
     Runner::Options options = test::cpuRunner("matrix");
@@ -219,7 +219,7 @@ TEST(LoweringCPU, EgeMM) {
     FunctionPtr func_in_pre{program_in, options};
     auto func_in = &func_in_pre[{{"ti", ti.bind(8)}, {"tj", tj.bind(16)}}];
 
-    constexpr int64_t outer_tile = 4;
+    constexpr int64_t outer_tile = 128;
     Composable program_out{
         Tile(C_DS["row"], ti_g.bind(outer_tile))(
             Reduce(k_dim, tk.bind(outer_tile))(
@@ -229,24 +229,25 @@ TEST(LoweringCPU, EgeMM) {
     Runner run(program_out);
     run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
 
-    // int64_t num_row = 8;
-    // int64_t num_col = 8;
+    int64_t num_row = 256;
+    int64_t num_col = 256;
 
-    // impl::MatrixCPU a(num_row, num_col, num_col);
-    // a.ascending();
-    // impl::MatrixCPU b(num_row, num_col, num_col);
-    // b.ascending();
+    impl::MatrixCPU a(num_row, num_col, num_col);
+    a.ascending();
+    impl::MatrixCPU b(num_row, num_col, num_col);
+    b.ascending();
 
-    // impl::MatrixCPU c(num_row, num_col, num_col);
-    // c.vvals(0.0f);
+    impl::MatrixCPU c(num_row, num_col, num_col);
+    c.vvals(0.0f);
 
-    // int64_t k_dim_val = a.col;
-    // run.evaluate({
-    //     {A_DS.getName(), &a},
-    //     {B_DS.getName(), &b},
-    //     {C_DS.getName(), &c},
-    //     {k_dim.getName(), &k_dim_val},
-    // });
+    int64_t k_dim_val = a.col;
+
+    run.evaluate({
+        {A_DS.getName(), &a},
+        {B_DS.getName(), &b},
+        {C_DS.getName(), &c},
+        {k_dim.getName(), &k_dim_val},
+    });
 
     // impl::MatrixCPU ref_c(num_row, num_col, num_col);
     // ref_c.vvals(0.0f);
