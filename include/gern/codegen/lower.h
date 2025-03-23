@@ -82,6 +82,8 @@ private:
     LowerIR declare_consumes(Pattern annotation) const;
     LowerIR constructADTForCurrentScope(AbstractDataTypePtr d, std::vector<Expr> fields);
 
+    std::vector<Expr> getCurrentFields(AbstractDataTypePtr ds,
+                                       std::vector<Expr> true_md_fields) const;
     // Helper methods to generate calls.
     FunctionCall constructFunctionCall(FunctionSignature f,
                                        AbstractDataTypePtr ds,
@@ -96,6 +98,7 @@ private:
 
     util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_ds;
     util::ScopedMap<AbstractDataTypePtr, std::vector<Expr>> staged_ds;
+    util::ScopedMap<AbstractDataTypePtr, std::vector<Expr>> queried_with;
     util::ScopedMap<Variable, Variable> tiled_vars;
     util::ScopedMap<Expr, Variable> parents;                // Used for splits.
     util::ScopedMap<Variable, Variable> all_relationships;  // Used to track all relationships.
@@ -107,11 +110,12 @@ private:
 
 // IR Node that marks an allocation
 struct AllocateNode : public LowerIRNode {
-    AllocateNode(AbstractDataTypePtr data, FunctionCall f)
-        : data(data), f(f) {
+    AllocateNode(AbstractDataTypePtr data, const std::vector<Expr> &fields, FunctionCall f)
+        : data(data), fields(fields), f(f) {
     }
     void accept(LowerIRVisitor *) const;
     AbstractDataTypePtr data;
+    std::vector<Expr> fields;
     FunctionCall f;
 };
 
@@ -170,12 +174,13 @@ struct SharedMemoryDeclNode : public LowerIRNode {
 // from the parent data-structure corresponding to
 // the subset with meta-data values in fields.
 struct QueryNode : public LowerIRNode {
-    QueryNode(AbstractDataTypePtr parent, AbstractDataTypePtr child, FunctionCall f)
-        : parent(parent), child(child), f(f) {
+    QueryNode(AbstractDataTypePtr parent, AbstractDataTypePtr child, const std::vector<Expr> &fields, FunctionCall f)
+        : parent(parent), child(child), fields(fields), f(f) {
     }
     void accept(LowerIRVisitor *) const;
     AbstractDataTypePtr parent;
     AbstractDataTypePtr child;
+    std::vector<Expr> fields;
     FunctionCall f;
 };
 

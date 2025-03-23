@@ -207,8 +207,6 @@ void ComposableLower::common(const T *node) {
     std::vector<Expr> fields = output_subset.getFields();
 
     AbstractDataTypePtr parent;
-    AbstractDataTypePtr child;
-    std::set<AbstractDataTypePtr> to_free;
     bool to_insert = false;
 
     if (!current_ds.contains_in_current_scope(output)) {
@@ -216,10 +214,6 @@ void ComposableLower::common(const T *node) {
         parent = getCurrent(output);       // Get the current parent before query over-writes it.
         to_insert = parent.insertQuery();  // Do we need to insert out query?
         lowered.push_back(constructQueryNode(output, output_subset.getFields()));
-        child = getCurrent(output);
-        if (child.freeQuery()) {
-            to_free.insert(child);
-        }
     }
 
     // Now that the output has been declared, visit the node.
@@ -227,13 +221,10 @@ void ComposableLower::common(const T *node) {
     lowered.push_back(lowerIR);
     // Free the actual node.
     // Step 4: Insert the final output.
+    AbstractDataTypePtr child = getCurrent(output);
     if (to_insert) {
-        lowered.push_back(constructInsertNode(parent, child, fields));
+        lowered.push_back(constructInsertNode(parent, child, queried_with.at(parent)));
     }
-
-    // for (const auto &ds : to_free) {
-    //     lowered.push_back(new const FreeNode(ds));
-    // }
 
     lowerIR = new const BlockNode(lowered);
 }
@@ -241,7 +232,6 @@ void ComposableLower::common(const T *node) {
 void ComposableLower::lower(const Computation *node) {
 
     std::vector<LowerIR> lowered;
-    std::set<AbstractDataTypePtr> to_free;
 
     std::vector<Composable> composed = node->composed;
     // Now, we are ready to lower the composable objects that make up the body.
@@ -252,18 +242,10 @@ void ComposableLower::lower(const Computation *node) {
         AbstractDataTypePtr temp = temp_subset.getDS();
         if (!current_ds.contains(temp)) {
             lowered.push_back(constructAllocNode(temp, temp_subset.getFields()));
-            // Track whether allocs need to be freed.
-            if (temp.freeAlloc()) {
-                to_free.insert(temp);
-            }
         }
         this->visit(function);
         lowered.push_back(lowerIR);
     }
-
-    // for (const auto &ds : to_free) {
-    //     lowered.push_back(new const FreeNode(ds));
-    // }
 
     lowerIR = new const BlockNode(lowered);
 }
@@ -309,7 +291,6 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
     // Generate the constraints now.
     lowered.push_back(generate_constraints(node->getAnnotation().getConstraints()));
 
-    std::set<AbstractDataTypePtr> to_free;  // Track all the data-structures that need to be freed.
     Pattern pattern = node->getAnnotation().getPattern();
     std::vector<SubsetObj> inputs = pattern.getInputs();
     // Query the inputs if they are not an intermediate of the current pipeline.
@@ -324,9 +305,6 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
                 lowered.push_back(constructQueryNode(input_ds,
                                                      input.getFields()));
                 AbstractDataTypePtr queried = getCurrent(input_ds);
-                if (queried.freeQuery()) {
-                    to_free.insert(queried);
-                }
             } else {
                 throw error::InternalError("How did we get here?");
             }
@@ -368,10 +346,6 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
     new_call.template_args = new_template_args;
 
     lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
-    // Free any the queried subsets.
-    // for (const auto &ds : to_free) {
-    //     lowered.push_back(new const FreeNode(ds));
-    // }
 
     lowerIR = new const BlockNode(lowered);
 }
@@ -396,11 +370,9 @@ void ComposableLower::visit(const StageNode *node) {
     // declare the computes for the body.
     lowered.push_back(declare_computes(node->getAnnotation().getPattern()));
     lowered.push_back(declare_consumes(node->getAnnotation().getPattern()));
+
     // Now, stage the input or output.
-    bool check_free = false;
     if (!current_ds.contains_in_current_scope(node->adt)) {
-        std::cout << "Data-structure is in current scope, not staging..." << std::endl;
-        check_free = true;
         lowered.push_back(constructQueryNode(node->adt, node->staged_subset.getFields()));
     }
     // Track all the relationships.
@@ -411,11 +383,7 @@ void ComposableLower::visit(const StageNode *node) {
     // lower the body.
     this->visit(node->body);
     lowered.push_back(lowerIR);
-    // do we need to free?
-    // if (check_free && node->adt.freeQuery()) {
-    //     lowered.push_back(new const FreeNode(getCurrent(node->adt)));
-    // }
-    // finally wrap it all up.
+
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -428,13 +396,15 @@ AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
 
 const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> args) {
     AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + ds.getName()), "auto", ds);
-    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds, ds.getFields(), args);
+    auto fields = getCurrentFields(ds, args);
+    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds, ds.getFields(), fields);
     auto cur_scope_ds = getCurrent(ds);
     f.name = cur_scope_ds.getName() + "." + f.name;
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
     staged_ds.insert(ds, args);
-    return new const QueryNode(ds, queried, f);
+    queried_with.insert(ds, fields);
+    return new const QueryNode(ds, queried, fields, f);
 }
 
 const InsertNode *ComposableLower::constructInsertNode(AbstractDataTypePtr parent,
@@ -450,10 +420,13 @@ const InsertNode *ComposableLower::constructInsertNode(AbstractDataTypePtr paren
 }
 
 const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
-    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds, ds.getFields(), alloc_args);
+    auto fields = getCurrentFields(ds, alloc_args);
+    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds,
+                                                    ds.getFields(),
+                                                    fields);
     alloc_func.output = Parameter(ds);
     current_ds.insert(ds, ds);
-    return new const AllocateNode(ds, alloc_func);
+    return new const AllocateNode(ds, fields, alloc_func);
 }
 
 template<typename T1>
@@ -464,6 +437,9 @@ static Expr getValue(const util::ScopedMap<T1, T1> &rel,
     Expr e;
     while (rel.contains(entry)) {  // While we have the entry, go find it.
         if (map.contains(entry)) {
+            if (stop_at.contains(entry)) {
+                return 0;
+            }
             e = map.at(entry);  // Just set up the first value.
             entry = rel.at(entry);
             break;
@@ -481,14 +457,8 @@ static Expr getValue(const util::ScopedMap<T1, T1> &rel,
     return e;
 }
 
-FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
-                                                    AbstractDataTypePtr ds,
-                                                    std::vector<Variable> ref_md_fields,
+std::vector<Expr> ComposableLower::getCurrentFields(AbstractDataTypePtr ds,
                                                     std::vector<Expr> true_md_fields) const {
-
-    if (ref_md_fields.size() != true_md_fields.size()) {
-        throw error::InternalError("Incorrect number of fields passed!");
-    }
 
     std::vector<Expr> new_true_md_fields = true_md_fields;
 
@@ -497,6 +467,7 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
         std::set<Variable> staged_at;
 
         auto staged_with = staged_ds.at(ds);  // Get the variables at which level the data-structure was staged.
+
         for (const auto &staged : staged_with) {
             auto vars = getVariables(staged);
             for (const auto &v : vars) {
@@ -505,6 +476,7 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
         }
 
         assert(staged_with.size() == true_md_fields.size());
+
         for (size_t i = 0; i < staged_with.size(); i++) {
             auto vars = getVariables(true_md_fields[i]);
             for (const auto &v : vars) {
@@ -518,11 +490,22 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
             new_true_md_fields[i] = replaceVariables(true_md_fields[i], offset_by);  // Replace the variables with their offset values.
         }
     }
+    return new_true_md_fields;
+}
+
+FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
+                                                    AbstractDataTypePtr ds,
+                                                    std::vector<Variable> ref_md_fields,
+                                                    std::vector<Expr> true_md_fields) const {
+
+    if (ref_md_fields.size() != true_md_fields.size()) {
+        throw error::InternalError("Incorrect number of fields passed!");
+    }
 
     // Put all the fields in a map.
     std::map<Variable, Expr> mappings;
     for (size_t i = 0; i < ref_md_fields.size(); i++) {
-        mappings[ref_md_fields[i]] = new_true_md_fields[i];
+        mappings[ref_md_fields[i]] = true_md_fields[i];
     }
     // Now, set up the args.
     std::vector<Argument> new_args;

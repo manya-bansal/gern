@@ -19,12 +19,12 @@ LowerIR Finalizer::finalize() {
 }
 
 void Finalizer::visit(const AllocateNode *node) {
-    std::cout << "Visiting allocate node" << std::endl;
     if (node->data.freeAlloc()) {
-        std::cout << "Adding allocate node" << std::endl;
         to_free.insert(node->data);
     }
-    final_ir = new const AllocateNode(node->data, node->f);
+    final_ir = new const AllocateNode(node->data,
+                                      node->fields,
+                                      node->f);
 }
 
 void Finalizer::visit(const FreeNode *node) {
@@ -37,10 +37,9 @@ void Finalizer::visit(const InsertNode *node) {
 
 void Finalizer::visit(const QueryNode *node) {
     if (node->child.freeQuery()) {
-        std::cout << "Adding query node" << std::endl;
         to_free.insert(node->child);
     }
-    final_ir = new const QueryNode(node->parent, node->child, node->f);
+    final_ir = new const QueryNode(node->parent, node->child, node->fields, node->f);
 }
 
 void Finalizer::visit(const ComputeNode *node) {
@@ -48,8 +47,6 @@ void Finalizer::visit(const ComputeNode *node) {
 }
 
 void Finalizer::visit(const IntervalNode *node) {
-    std::cout << "Freeing interval node" << std::endl;
-
     std::vector<LowerIR> new_body;
     to_free.scope();
 
@@ -81,7 +78,6 @@ void Finalizer::visit(const AssertNode *node) {
 }
 
 void Finalizer::visit(const BlockNode *node) {
-    std::cout << "Finalizing block node" << std::endl;
     std::vector<LowerIR> new_ir;
 
     for (const auto &ir : node->ir_nodes) {
