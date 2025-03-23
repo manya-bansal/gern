@@ -6,6 +6,7 @@
 #include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
 #include "codegen/lower.h"
+#include "codegen/optimizer.h"
 #include "utils/debug.h"
 #include "utils/error.h"
 
@@ -17,7 +18,11 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     ComposableLower lower(c);
     // Generate code the after lowering.
     bool is_device_call = c.isDeviceLaunch();
-    top_level_codegen(lower.lower(), is_device_call);
+    auto ir = lower.lower();
+    Finalizer finalizer(ir);
+    auto final_ir = finalizer.finalize();
+
+    top_level_codegen(final_ir, is_device_call);
 
     // Generate the hook.
     std::vector<CGStmt> hook_body;
@@ -230,14 +235,14 @@ void CodeGenerator::visit(const BlockNode *op) {
     code = Block::make(block);
 }
 
-void CodeGenerator::visit(const FunctionBoundary *op) {
-    CodeGenerator cg;
-    bool is_device = false;
-    // Push this back, so that we can declare it.
-    children.push_back(cg.top_level_codegen(op->nodes, is_device));
-    // Call the generated compute function.
-    code = gen(cg.getComputeFunctionSignature().constructCall());
-}
+// void CodeGenerator::visit(const FunctionBoundary *op) {
+//     CodeGenerator cg;
+//     bool is_device = false;
+//     // Push this back, so that we can declare it.
+//     children.push_back(cg.top_level_codegen(op->nodes, is_device));
+//     // Call the generated compute function.
+//     code = gen(cg.getComputeFunctionSignature().constructCall());
+// }
 
 Expr CodeGenerator::getExpr(const Grid::Dim &p) const {
     switch (p) {

@@ -29,7 +29,7 @@ public:
     void visit(const DefNode *);
     void visit(const AssertNode *);
     void visit(const BlockNode *);
-    void visit(const FunctionBoundary *);
+    // void visit(const FunctionBoundary *);
     void visit(const GridDeclNode *);
     void visit(const SharedMemoryDeclNode *);
     void visit(const OpaqueCall *);

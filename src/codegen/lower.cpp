@@ -73,9 +73,9 @@ void BlankNode::accept(LowerIRVisitor *v) const {
     v->visit(this);
 }
 
-void FunctionBoundary::accept(LowerIRVisitor *v) const {
-    v->visit(this);
-}
+// void FunctionBoundary::accept(LowerIRVisitor *v) const {
+//     v->visit(this);
+// }
 
 void OpaqueCall::accept(LowerIRVisitor *v) const {
     v->visit(this);
@@ -231,9 +231,9 @@ void ComposableLower::common(const T *node) {
         lowered.push_back(constructInsertNode(parent, child, fields));
     }
 
-    for (const auto &ds : to_free) {
-        lowered.push_back(new const FreeNode(ds));
-    }
+    // for (const auto &ds : to_free) {
+    //     lowered.push_back(new const FreeNode(ds));
+    // }
 
     lowerIR = new const BlockNode(lowered);
 }
@@ -261,9 +261,9 @@ void ComposableLower::lower(const Computation *node) {
         lowered.push_back(lowerIR);
     }
 
-    for (const auto &ds : to_free) {
-        lowered.push_back(new const FreeNode(ds));
-    }
+    // for (const auto &ds : to_free) {
+    //     lowered.push_back(new const FreeNode(ds));
+    // }
 
     lowerIR = new const BlockNode(lowered);
 }
@@ -369,9 +369,9 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
 
     lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
     // Free any the queried subsets.
-    for (const auto &ds : to_free) {
-        lowered.push_back(new const FreeNode(ds));
-    }
+    // for (const auto &ds : to_free) {
+    //     lowered.push_back(new const FreeNode(ds));
+    // }
 
     lowerIR = new const BlockNode(lowered);
 }
@@ -412,9 +412,9 @@ void ComposableLower::visit(const StageNode *node) {
     this->visit(node->body);
     lowered.push_back(lowerIR);
     // do we need to free?
-    if (check_free && node->adt.freeQuery()) {
-        lowered.push_back(new const FreeNode(getCurrent(node->adt)));
-    }
+    // if (check_free && node->adt.freeQuery()) {
+    //     lowered.push_back(new const FreeNode(getCurrent(node->adt)));
+    // }
     // finally wrap it all up.
     lowerIR = new const BlockNode(lowered);
 }
@@ -434,7 +434,7 @@ const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
     staged_ds.insert(ds, args);
-    return new const QueryNode(ds, f);
+    return new const QueryNode(ds, queried, f);
 }
 
 const InsertNode *ComposableLower::constructInsertNode(AbstractDataTypePtr parent,
@@ -453,7 +453,7 @@ const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, 
     FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds, ds.getFields(), alloc_args);
     alloc_func.output = Parameter(ds);
     current_ds.insert(ds, ds);
-    return new const AllocateNode(alloc_func);
+    return new const AllocateNode(ds, alloc_func);
 }
 
 template<typename T1>

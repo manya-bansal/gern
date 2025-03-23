@@ -107,10 +107,11 @@ private:
 
 // IR Node that marks an allocation
 struct AllocateNode : public LowerIRNode {
-    AllocateNode(FunctionCall f)
-        : f(f) {
+    AllocateNode(AbstractDataTypePtr data, FunctionCall f)
+        : data(data), f(f) {
     }
     void accept(LowerIRVisitor *) const;
+    AbstractDataTypePtr data;
     FunctionCall f;
 };
 
@@ -169,11 +170,12 @@ struct SharedMemoryDeclNode : public LowerIRNode {
 // from the parent data-structure corresponding to
 // the subset with meta-data values in fields.
 struct QueryNode : public LowerIRNode {
-    QueryNode(AbstractDataTypePtr parent, FunctionCall f)
-        : parent(parent), f(f) {
+    QueryNode(AbstractDataTypePtr parent, AbstractDataTypePtr child, FunctionCall f)
+        : parent(parent), child(child), f(f) {
     }
     void accept(LowerIRVisitor *) const;
     AbstractDataTypePtr parent;
+    AbstractDataTypePtr child;
     FunctionCall f;
 };
 
@@ -254,14 +256,14 @@ struct BlankNode : public LowerIRNode {
 // Function boundary indicates that the corresponding
 // lowered nodes are called in a separate function body.
 // These may, or may not be, fused with the rest of the code.
-struct FunctionBoundary : public LowerIRNode {
-    FunctionBoundary(LowerIR nodes)
-        : nodes(nodes) {
-    }
-    void accept(LowerIRVisitor *) const;
-    std::map<AbstractDataTypePtr, AbstractDataTypePtr> queried_names;
-    LowerIR nodes;
-};
+// struct FunctionBoundary : public LowerIRNode {
+//     FunctionBoundary(LowerIR nodes)
+//         : nodes(nodes) {
+//     }
+//     void accept(LowerIRVisitor *) const;
+//     std::map<AbstractDataTypePtr, AbstractDataTypePtr> queried_names;
+//     LowerIR nodes;
+// };
 
 struct OpaqueCall : public LowerIRNode {
     OpaqueCall(FunctionCall f,
