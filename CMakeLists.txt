@@ -42,7 +42,7 @@ target_sources(
         src/codegen/lower.cpp
         src/codegen/lower_visitor.cpp
         src/codegen/runner.cpp
-        src/codegen/optimizer.cpp
+        src/codegen/finalizer.cpp
         # src/resolve_constraints/resolve_constraints.cpp
         src/utils/name_generator.cpp
     PUBLIC
@@ -79,7 +79,7 @@ target_sources(
         include/gern/codegen/codegen_printer.h
         include/gern/codegen/lower.h
         include/gern/codegen/lower_visitor.h
-        include/gern/codegen/optimizer.h
+        include/gern/codegen/finalizer.h
         include/gern/utils/debug.h
         include/gern/utils/error.h
         include/gern/utils/name_generator.h

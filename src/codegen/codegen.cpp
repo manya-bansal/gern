@@ -5,8 +5,8 @@
 #include "annotations/lang_nodes.h"
 #include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
+#include "codegen/finalizer.h"
 #include "codegen/lower.h"
-#include "codegen/optimizer.h"
 #include "utils/debug.h"
 #include "utils/error.h"
 

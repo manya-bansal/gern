@@ -1,4 +1,4 @@
-#include "codegen/optimizer.h"
+#include "codegen/finalizer.h"
 
 namespace gern {
 
