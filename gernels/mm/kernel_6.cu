@@ -65,7 +65,6 @@ int main() {
                               Stage(B_DS,
                                     (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_Y)(
                                         (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_X)(
-                                            // (Reduce(k_dim, one_val))(
                                             (*mm_sp)(A_DS, B_DS, C_DS)))))))),
             {}, smem_size, TrivialManager(smem_size)),
     };
