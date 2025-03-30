@@ -2,8 +2,11 @@
 #include <pybind11/stl.h>
 #include "compose/composable.h"
 #include "library/matrix/annot/cpu-matrix.h"
+#include "library/matrix/annot/cpu-matrix-template.h"
 #include "library/matrix/impl/cpu-matrix.h"
+#include "library/matrix/impl/cpu-matrix-template.h"
 #include "test-utils.h"
+#include "annotations/argument.h"
 
 namespace py = pybind11;
 using namespace gern;
@@ -35,6 +38,9 @@ PYBIND11_MODULE(gern_py, m) {
 			for (auto arg : args) {
 				to_compose.push_back(arg.cast<Composable>());
 			}
+			if (to_compose.size() == 1) {
+				return t.operator()(to_compose[0]);
+			}
 			return t.operator()(Composable(new const Computation(to_compose)));
 		});
 
@@ -63,7 +69,10 @@ PYBIND11_MODULE(gern_py, m) {
 			py::arg("type") = Datatype(Datatype::Int64),
 			py::arg("const_expr") = false)
 		.def("getName", &Variable::getName)
-		.def("bind", &Variable::bind);
+		.def("bind", &Variable::bind)
+		.def("__repr__", [](const Variable &self){
+			return self.getName();
+		});
 
 	py::class_<AbstractDataType>(m, "AbstractDataType");
 
@@ -71,12 +80,21 @@ PYBIND11_MODULE(gern_py, m) {
 		.def("init", [](std::string &name){
 			return new const annot::MatrixCPU(name);
 		}, py::return_value_policy::reference);
+	
+	py::class_<annot::MatrixCPUTemplate, AbstractDataType>(m, "AnnotMatrixCPUTemplate")
+		.def("init", [](std::string &name){
+			return new const annot::MatrixCPUTemplate(name);
+		}, py::return_value_policy::reference);
+
 	py::class_<AbstractDataTypePtr>(m, "AbstractDataTypePtr")
 		.def(py::init<const AbstractDataType *>())
 		.def("__getitem__", [](const AbstractDataTypePtr &self, std::string member) {
 			return self[member];
 		}, py::is_operator())
-		.def("getName", &AbstractDataTypePtr::getName);
+		.def("getName", &AbstractDataTypePtr::getName)
+		.def("__repr__", [](const AbstractDataTypePtr &self) {
+			return self.str();
+		});
 		
 
 	m.def("Tile", &Tile);
@@ -91,45 +109,77 @@ PYBIND11_MODULE(gern_py, m) {
 	m.def("cpuRunner", py::overload_cast<const std::vector<std::string> &>(&test::cpuRunner));
 
 	/// ANNOTATIONS
-	m.def("MatrixAddCPU", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
-		annot::MatrixAddCPU add;
-		if (!replacements.empty()) {
-			add[replacements];
-		}
-		return add(in, out);
-	}, py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+	py::class_<AbstractFunction>(m, "AbstractFunction")
+		.def("__call__", [](AbstractFunction &self, py::args args) {
+			std::vector<Argument> arguments;
+			for (auto arg : args) {
+				if (py::isinstance<AbstractDataTypePtr>(arg)) {
+					self.addArg<AbstractDataTypePtr>(arguments, arg.cast<AbstractDataTypePtr>());
+				} else if (py::isinstance<Variable>(arg)) {
+					self.addArg<Variable>(arguments, arg.cast<Variable>());
+				}
+			}
+			return self.constructComposable(arguments);
+		})
+		.def("setBindings", &AbstractFunction::operator[]);
+	
+	py::class_<annot::MatrixAddStaticStore, AbstractFunction>(m, "MatrixAddStaticStore")
+		.def(py::init<>());
 
-	m.def("MatrixSoftmax", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
-		annot::MatrixSoftmax softmax;
-		if (!replacements.empty()) {
-			softmax[replacements];
-		}
-		return softmax(in, out);
-	}, py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+	py::class_<annot::MatrixAddCPU, AbstractFunction>(m, "MatrixAddCPU")
+		.def(py::init<>());
 
-	m.def("MatrixTranspose", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
-		annot::MatrixTranspose transpose;
-		if (!replacements.empty()) {
-			transpose[replacements];
-		}
-		return transpose(in, out);
-	}, py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+	py::class_<annot::MatrixSoftmax, AbstractFunction>(m, "MatrixSoftmax")
+		.def(py::init<>());
 
-	m.def("MatrixMultiply", [](AbstractDataTypePtr a, AbstractDataTypePtr b, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
-		annot::MatrixMultiply matmul;
-		if (!replacements.empty()) {
-			matmul[replacements];
-		}
-		return matmul(a, b, out);
-	}, py::arg(), py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+	py::class_<annot::MatrixTranspose, AbstractFunction>(m, "MatrixTranspose")
+		.def(py::init<>());
+	
+	py::class_<annot::MatrixMultiply, AbstractFunction>(m, "MatrixMultiply")
+		.def(py::init<>());
+	
+	py::class_<annot::MatrixDivn, AbstractFunction>(m, "MatrixDivn")
+		.def(py::init<>());
 
-	m.def("MatrixDivn", [](AbstractDataTypePtr in, Variable n, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
-		annot::MatrixDivn divn;
-		if (!replacements.empty()) {
-			divn[replacements];
-		}
-		return divn(in, n, out);
-	}, py::arg(), py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+	// m.def("MatrixAddCPU", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
+	// 	annot::MatrixAddCPU add;
+	// 	if (!replacements.empty()) {
+	// 		add[replacements];
+	// 	}
+	// 	return add(in, out);
+	// }, py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+
+	// m.def("MatrixSoftmax", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
+	// 	annot::MatrixSoftmax softmax;
+	// 	if (!replacements.empty()) {
+	// 		softmax[replacements];
+	// 	}
+	// 	return softmax(in, out);
+	// }, py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+
+	// m.def("MatrixTranspose", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
+	// 	annot::MatrixTranspose transpose;
+	// 	if (!replacements.empty()) {
+	// 		transpose[replacements];
+	// 	}
+	// 	return transpose(in, out);
+	// }, py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+
+	// m.def("MatrixMultiply", [](AbstractDataTypePtr a, AbstractDataTypePtr b, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
+	// 	annot::MatrixMultiply matmul;
+	// 	if (!replacements.empty()) {
+	// 		matmul[replacements];
+	// 	}
+	// 	return matmul(a, b, out);
+	// }, py::arg(), py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
+
+	// m.def("MatrixDivn", [](AbstractDataTypePtr in, Variable n, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
+	// 	annot::MatrixDivn divn;
+	// 	if (!replacements.empty()) {
+	// 		divn[replacements];
+	// 	}
+	// 	return divn(in, n, out);
+	// }, py::arg(), py::arg(), py::arg(), py::arg("replacements") = std::map<std::string, Variable>{});
 
 	py::class_<impl::MatrixCPU>(m, "MatrixCPU")
 		.def("init", [](uintptr_t ptr, int64_t row, int64_t col, int64_t lda){

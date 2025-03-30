@@ -42,6 +42,15 @@ public:
         return constructComposableObject(arguments);
     }
 
+	template<typename T>
+    void addArg(std::vector<Argument> &arguments, T argument) {
+        addArguments(arguments, argument);
+    }
+
+    Composable constructComposable(std::vector<Argument> arguments) {
+        return constructComposableObject(arguments);
+    }
+
     template<typename FirstT, typename... Next>
     Composable operator()(FirstT first, Next... remaining) {
         std::vector<Argument> arguments;

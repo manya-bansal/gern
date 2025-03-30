@@ -203,6 +203,8 @@ def verify_correctness():
     ref = m(q1, k1, v1)
     print(torch.allclose(ref, output, atol=1e-6))
 
+    torch.compiler.reset()
+
     q2 = torch.randn((1024, 32))
     k2 = torch.randn((1024, 32))
     v2 = torch.randn((1024, 32))
@@ -212,35 +214,41 @@ def verify_correctness():
     print(torch.allclose(ref, output, atol=1e-6))
 
 def individual_benchmarks():
-    all_results = []
-    class Softmax(torch.nn.Module):
-        def forward(self, arr):
-            return torch.nn.functional.softmax(arr)
-    row_tilings = [32, 64, 128, 256, 512, 1024]
-    
-    arr = torch.randn((1024, 1024))
-    all_results.extend(benchmark_module(Softmax, "softmax (1024, 1024)", row_tilings, ("arr", arr)))
-    check_module(Softmax, row_tilings, arr)
-
-    class MatMul(torch.nn.Module):
+    class SoftmaxMatmul(torch.nn.Module):
         def forward(self, a, b):
-            return a @ b
+            return torch.nn.functional.softmax(a) @ b
+    benchmark_module(SoftmaxMatmul, "softmax (1024, 1024) @ (1024, 64)", [1024], ("a", torch.randn((1024, 1024))), ("b", torch.randn((1024, 64))))
+
+    # all_results = []
+    # class Softmax(torch.nn.Module):
+    #     def forward(self, arr):
+    #         return torch.nn.functional.softmax(arr)
+    # row_tilings = [32, 64, 128, 256, 512, 1024]
     
-    a = torch.randn((1024, 64))
-    b = torch.randn((64, 1024))
-    all_results.extend(benchmark_module(MatMul, "matmul (1024, 64) x (64, 1024)", row_tilings, ("a", a), ("b", b)))
-    check_module(MatMul, row_tilings, a, b)
+    # arr = torch.randn((1024, 1024))
+    # all_results.extend(benchmark_module(Softmax, "softmax (1024, 1024)", row_tilings, ("arr", arr)))
+    # check_module(Softmax, row_tilings, arr)
 
-    a = torch.randn((1024, 1024))
-    b = torch.randn((1024, 64))
-    all_results.extend(benchmark_module(MatMul, "matmul (1024, 1024) x (1024, 64)", row_tilings, ("a", a), ("b", b)))
-    check_module(MatMul, row_tilings, a, b)
+    # class MatMul(torch.nn.Module):
+    #     def forward(self, a, b):
+    #         return a @ b
+    
+    # a = torch.randn((1024, 64))
+    # b = torch.randn((64, 1024))
+    # all_results.extend(benchmark_module(MatMul, "matmul (1024, 64) x (64, 1024)", row_tilings, ("a", a), ("b", b)))
+    # check_module(MatMul, row_tilings, a, b)
 
-    compare = benchmark.Compare(all_results)
-    compare.print()    
+    # a = torch.randn((1024, 1024))
+    # b = torch.randn((1024, 64))
+    # all_results.extend(benchmark_module(MatMul, "matmul (1024, 1024) x (1024, 64)", row_tilings, ("a", a), ("b", b)))
+    # check_module(MatMul, row_tilings, a, b)
+
+    # compare = benchmark.Compare(all_results)
+    # compare.print()    
 
 if __name__ == "__main__":
-    individual_benchmarks() 
+    verify_correctness()
+    # individual_benchmarks() 
 
     # all_results = []
     # # row_vals = [512, 1024, 1536, 2048]

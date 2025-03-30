@@ -11,8 +11,10 @@ set(LIB_HEADERS
     library/array/impl/cpu-array-template.h
     
     library/matrix/annot/cpu-matrix.h
+    library/matrix/annot/cpu-matrix-template.h
     library/matrix/annot/gpu-matrix.h
     library/matrix/impl/cpu-matrix.h
+    library/matrix/impl/cpu-matrix-template.h
      
     library/scalar/annot/cpu-scalar.h
     library/scalar/impl/cpu-scalar.h

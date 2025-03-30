@@ -26,12 +26,20 @@ tile_vars = {
     "col": l_y
 }
 
+transpose = MatrixTranspose()
+matmul1 = MatrixMultiply()
+matmul1.setBindings({"shared_len": q_width})
+divn = MatrixDivn()
+softmax = MatrixSoftmax()
+matmul2 = MatrixMultiply()
+matmul2.setBindings({"shared_len": q_height})
+
 untiled_program = Composable([
-    MatrixTranspose(k, kt),
-    MatrixMultiply(q, kt, q_kt, {"shared_len": q_width}),
-    MatrixDivn(q_kt, sqrt_dk, sm_in),
-    MatrixSoftmax(sm_in, sm_out),
-    MatrixMultiply(sm_out, v, output, {"shared_len": q_height})
+    transpose(k, kt),
+    matmul1(q, kt, q_kt),
+    divn(q_kt, sqrt_dk, sm_in),
+    softmax(sm_in, sm_out),
+    matmul2(sm_out, v, output)
 ])
 
 annotation = untiled_program.getAnnotation()

@@ -5,6 +5,9 @@ torch.set_printoptions(precision=6)
 sm_in = AbstractDataTypePtr(AnnotMatrixCPU.init("sm_in"))
 sm_out = AbstractDataTypePtr(AnnotMatrixCPU.init("sm_out"))
 
+softmax = MatrixSoftmax()
+
+
 row_val = 10
 col_val = 20
 
@@ -14,10 +17,9 @@ y = Variable.init("y")
 
 program = Composable([
     Tile(sm_out["row"], l_x)(
-        MatrixSoftmax(sm_in, sm_out, {
-            "y": y.bind(0),
-            "l_y": l_y.bind(col_val)
-        })
+        Tile(sm_out["col"], l_y)(
+            softmax(sm_in, sm_out)
+        )
     )
 ])
 
@@ -32,11 +34,13 @@ a = MatrixCPU.init(a_tensor.data_ptr(), row_val, col_val, a_tensor.stride()[0])
 b = MatrixCPU.init(b_tensor.data_ptr(), row_val, col_val, b_tensor.stride()[0])
 
 l_x_val = Int.init(5)
+l_y_val = Int.init(col_val)
 
 run.evaluate({
     sm_in.getName(): getAddress(a),
     sm_out.getName(): getAddress(b),
-    l_x.getName(): getAddress(l_x_val)
+    l_x.getName(): getAddress(l_x_val),
+    l_y.getName(): getAddress(l_y_val)
 })
 
 ref = a_tensor.softmax(dim=1)

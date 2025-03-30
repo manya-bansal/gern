@@ -186,16 +186,39 @@ TEST(LoweringCPU, SoftmaxEnd) {
     auto matmul1_specialize = &matmul1[{
         {"shared_len", q_width}
     }];
-    Composable program = {
-        Tile(output["row"], l_x)(
-			Tile(output["col"], l_y)(
-				transpose(k, kt),
-				matmul1(q, kt, q_kt),
-				divn(q_kt, sqrt_dk, sm_in),
-				softmax(sm_in, output)
-			)
-        )
-    };
+
+	Composable untiled_program = {{
+		transpose(k, kt),
+		matmul1(q, kt, q_kt),
+		divn(q_kt, sqrt_dk, sm_in),
+		softmax(sm_in, output)
+	}};
+
+	Annotation annotation = untiled_program.getAnnotation();
+	std::vector<Constraint> constraints = annotation.getConstraints();
+	gern::Pattern pattern = annotation.getPattern();
+	std::cout << "TILEABLE FIELDS" << std::endl;
+	auto tileableFields = pattern.getTileableFields();
+
+	Composable tiled = untiled_program;
+	
+	for (auto [key, val] : tileableFields) {
+		Variable var = key.getMember() == "col" ? l_y : l_x;
+		tiled = Tile(key, var)(tiled);
+		std::cout << key.getMember() << " ";
+		std::cout << key << " " << get<0>(val) << " " << get<1>(val) << " " << get<2>(val) << std::endl;
+	}
+	
+
+    // Composable program = {
+    //     Tile(output["row"], l_x)(
+	// 		Tile(output["col"], l_y)(
+	// 			untiled_program
+	// 		)
+    //     )
+    // };
+
+	Composable program = {{ tiled }};
 
     Runner run(program);
 
@@ -314,14 +337,12 @@ TEST(LoweringCPU, Softmax) {
     Variable y("y");
 
     annot::MatrixSoftmax softmax;
-    auto softmax_specialize = &softmax[{
-        {"y", y.bind(0)},
-        {"l_y", l_y.bind(col_val)}
-    }];
 
     Composable program = {
         Tile(sm_out["row"], l_x)(
-            softmax(sm_in, sm_out)
+			Tile(sm_out["col"], l_y)(
+            	softmax(sm_in, sm_out)
+			)
         )
     };
 
@@ -343,6 +364,7 @@ TEST(LoweringCPU, Softmax) {
         {sm_in.getName(), &a},
         {sm_out.getName(), &b},
         {l_x.getName(), &l_x_val},
+		{l_y.getName(), &col_val}
     }));
 
     for (int i = 0; i < row_val * col_val; i++) {
