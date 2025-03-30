@@ -74,17 +74,17 @@ void LowerPrinter::visit(const AssertNode *op) {
        << op->constraint;
 }
 
-void LowerPrinter::visit(const FunctionBoundary *node) {
-    util::printIdent(os, ident);
-    os << "Function {"
-       << "\n";
-    ident++;
-    this->visit(node->nodes);
-    ident--;
-    util::printIdent(os, ident);
-    os << "}"
-       << "\n";
-}
+// void LowerPrinter::visit(const FunctionBoundary *node) {
+//     util::printIdent(os, ident);
+//     os << "Function {"
+//        << "\n";
+//     ident++;
+//     this->visit(node->nodes);
+//     ident--;
+//     util::printIdent(os, ident);
+//     os << "}"
+//        << "\n";
+// }
 
 void LowerPrinter::visit(const BlockNode *node) {
     for (const auto &ir : node->ir_nodes) {
