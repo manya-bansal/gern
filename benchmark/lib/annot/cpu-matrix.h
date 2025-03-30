@@ -9,7 +9,7 @@ namespace annot {
 class Matrix : public AbstractDataType {
 private:
     std::string implementation;
-    bool is_query_templated;
+    bool has_static_mem_query;
 
     std::string name;
     Variable x{"x"};
@@ -18,8 +18,8 @@ private:
     Variable l_y{"l_y"};
 
 public:
-    Matrix(const std::string &implementation, bool is_query_templated, const std::string &name)
-        : implementation(implementation), is_query_templated(is_query_templated), name(name) {
+    Matrix(const std::string &implementation, bool has_static_mem_query, const std::string &name)
+        : implementation(implementation), has_static_mem_query(has_static_mem_query), name(name) {
     }
 
     virtual std::string getName() const override {
@@ -42,7 +42,7 @@ public:
     }
 
     virtual FunctionSignature getQueryFunction() const override {
-        return is_query_templated ?
+        return has_static_mem_query ?
                    FunctionSignature{
                        .name = "query",
                        .args = {x, y},
@@ -59,6 +59,10 @@ public:
         return FunctionSignature{
             .name = "insert",
             .args = {x, y, l_x, l_y}};
+    }
+    virtual bool insertQuery() const override {
+        return false;
+        return has_static_mem_query;
     }
 };
 

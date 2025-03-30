@@ -31,6 +31,7 @@ static void open_blas_mm(T &a, T &b, T &c) {
         1,
         c.data, M);
 }
+
 std::function<void(impl::MatrixViewPackOnQuery &a, impl::MatrixViewPackOnQuery &b, impl::MatrixViewBasic &c)> get_inner_kernel_gern_packed() {
     constexpr int64_t outer_tile = 256;
 
@@ -90,6 +91,68 @@ std::function<void(impl::MatrixViewPackOnQuery &a, impl::MatrixViewPackOnQuery &
         });
     };
 }
+
+std::function<void(impl::A3 &a, impl::B3 &b, impl::C3 &c)> get_blis() {
+    constexpr int64_t outer_tile = 192 * 2;
+
+    const std::string templated_matrix_a = "A2<" + std::to_string(outer_tile) + ", " + std::to_string(outer_tile) + ">";
+    const std::string templated_matrix_b = "B2<" + std::to_string(outer_tile) + ", " + std::to_string(outer_tile) + ">";
+    const std::string templated_matrix_c = "C2<" + std::to_string(outer_tile) + ", " + std::to_string(outer_tile) + ">";
+
+    auto A_in = AbstractDataTypePtr(new const annot::Matrix(templated_matrix_a, false, "A"));
+    auto B_in = AbstractDataTypePtr(new const annot::Matrix(templated_matrix_b, false, "B"));
+    auto C_in = AbstractDataTypePtr(new const annot::Matrix(templated_matrix_c, false, "C"));
+
+    annot::MatrixMultiply matrix_multiply("blis_kernel", A_in, B_in, C_in);
+
+    Variable ti_in("ti_in");
+    Variable tj_in("tj_in");
+    Variable kdim_in("kdim_in");
+
+    Composable program_in{
+        Tile(C_in["col"], tj_in.bind(impl::internal::kernel_cols))(
+            Tile(C_in["row"], ti_in.bind(impl::internal::kernel_rows))(
+                matrix_multiply(A_in, B_in, C_in, kdim_in)))};
+
+    auto options_in = benchmark::cpuRunner();
+    options_in.filename = "benchmark_in.cpp";
+
+    FunctionPtr func_in_pre{program_in, options_in};
+    auto func_in = &func_in_pre[{{"ti_in", ti_in.bind(impl::internal::kernel_rows)}, {"tj_in", tj_in.bind(impl::internal::kernel_cols)}}];
+
+    auto A_out = AbstractDataTypePtr(new const annot::Matrix("A3", true, "A_out"));
+    auto B_out = AbstractDataTypePtr(new const annot::Matrix("B3", true, "B_out"));
+    auto C_out = AbstractDataTypePtr(new const annot::Matrix("C3", true, "C_out"));
+
+    Variable ti_out("ti_out");
+    Variable tj_out("tj_out");
+    Variable tk_out("tk_out");
+    Variable kdim_out("kdim_out");
+
+    Composable program_out{
+        Tile(C_out["col"], tj_out.bind(outer_tile))(
+            Reduce(kdim_out, tk_out.bind(outer_tile))(
+                Tile(C_out["row"], ti_out.bind(outer_tile))(
+                    (*func_in)(C_out, B_out, A_out, kdim_out))))};
+
+    Runner run(program_out);
+    run.compile(benchmark::cpuRunner());
+
+    return [run,
+            A_name = A_out.getName(),
+            B_name = B_out.getName(),
+            C_name = C_out.getName(),
+            kdim_out_name = kdim_out.getName()](impl::A3 &a, impl::B3 &b, impl::C3 &c) mutable {
+        int64_t K = a.col;
+        run.evaluate({
+            {A_name, &a},
+            {B_name, &b},
+            {C_name, &c},
+            {kdim_out_name, &K},
+        });
+    };
+}
+
 template<typename T1, typename T2, typename T3, typename T4>
 static void run_function(std::function<void(T1 &, T2 &, T3 &)> func, std::string func_name, bool warmup, int64_t samples, int64_t iterations,
                          T1 &a, T2 &b, T3 &c, bool check_res, T4 &res) {
@@ -124,7 +187,7 @@ static void run_function(std::function<void(T1 &, T2 &, T3 &)> func, std::string
 int main() {
     openblas_set_num_threads(1);
 
-    int64_t n = 6 * 1024, m = 6 * 1024, k = 6 * 1024;
+    int64_t n = 3 * 768, m = 3 * 768, k = 3 * 768;
 
     impl::MatrixViewBasic a = impl::MatrixViewBasic::allocate(0, 0, n, k);
     impl::MatrixViewBasic b = impl::MatrixViewBasic::allocate(0, 0, k, m);
@@ -133,16 +196,26 @@ int main() {
     impl::MatrixViewPackOnQuery a_pack = impl::MatrixViewPackOnQuery::allocate(0, 0, n, k);
     impl::MatrixViewPackOnQuery b_pack = impl::MatrixViewPackOnQuery::allocate(0, 0, k, m);
 
+    impl::A3 a3 = impl::A3::allocate(0, 0, n, k);
+    impl::B3 b3 = impl::B3::allocate(0, 0, k, m);
+    impl::C3 c3 = impl::C3::allocate(0, 0, n, m);
+
     impl::MatrixViewBasic res = impl::MatrixViewBasic::allocate(0, 0, n, m);
 
     random_fill(a);
-    std::copy(a.data, a.data + n * k, a_pack.data);
+    impl::copy_data(a, a_pack);
+    impl::copy_data(a, a3);
+
     random_fill(b);
-    std::copy(b.data, b.data + k * m, b_pack.data);
+    impl::copy_data(b, b_pack);
+    impl::copy_data(b, b3);
 
     run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
         open_blas_mm<impl::MatrixViewBasic>, "open_blas", false, 1, 1, a, b, res, false, c);
 
     run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
         get_inner_kernel_gern_packed(), "inner_kernel_gern_packed", false, 1, 1, a_pack, b_pack, c, true, res);
+
+    run_function<impl::A3, impl::B3, impl::C3>(
+        get_blis(), "blis", false, 1, 1, a3, b3, c3, true, res);
 }
