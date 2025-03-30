@@ -13,8 +13,8 @@ using GernGenFuncPtr = void (*)(void **);
 
 class Runner {
 public:
-    Runner(Composable c, std::optional<std::vector<Parameter>> ordared_parameters = std::nullopt)
-        : c(c), ordared_parameters(ordared_parameters) {
+    Runner(Composable c, std::optional<std::vector<Parameter>> ordered_parameters = std::nullopt)
+        : c(c), ordered_parameters(ordered_parameters) {
     }
     struct Options {
         std::string filename;
@@ -40,7 +40,7 @@ private:
     GernGenFuncPtr fp;
     std::vector<std::string> argument_order;
     bool compiled = false;
-    std::optional<std::vector<Parameter>> ordared_parameters;
+    std::optional<std::vector<Parameter>> ordered_parameters;
 };
 
 }  // namespace gern
