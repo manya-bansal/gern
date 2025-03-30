@@ -82,6 +82,12 @@ std::ostream &operator<<(std::ostream &os, const FunctionCall &f) {
     return os;
 }
 
+std::ostream &operator<<(std::ostream &os, const MethodCall &m) {
+    os << m.data << ".";
+    os << m.call;
+    return os;
+}
+
 ComputeFunctionCallPtr ComputeFunctionCall::refreshVariable() const {
     std::set<Variable> arg_variables;
     for (const auto &arg : call.args) {

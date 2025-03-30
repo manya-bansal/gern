@@ -148,21 +148,20 @@ void CodeGenerator::visit(const AllocateNode *op) {
 
 void CodeGenerator::visit(const FreeNode *op) {
 
-    if (!declared_adt.contains(op->data)) {
+    if (!declared_adt.contains(op->call.data)) {
         throw error::InternalError("Freeing a data-structure that hasn't been allocated??");
     }
 
-    std::string method_call = op->data.getName() + ".destroy";
-    code = VoidCall::make(Call::make(method_call, {}));
+    code = gen(op->call);
 }
 
 void CodeGenerator::visit(const InsertNode *op) {
-    code = gen(op->f);
-    used_adt.insert(op->parent);
+    code = gen(op->call);
+    used_adt.insert(op->call.data);
 }
 
 void CodeGenerator::visit(const QueryNode *op) {
-    code = gen(op->f);
+    code = gen(op->call);
     used_adt.insert(op->parent);
 }
 
@@ -490,6 +489,12 @@ CGExpr CodeGenerator::gen(Argument a) {
     GenArgument generate(this);
     generate.visit(a);
     return generate.gen_expr;
+}
+
+CGStmt CodeGenerator::gen(MethodCall call) {
+    FunctionCall f = call.call;
+    f.name = call.data.getName() + "." + f.name;
+    return gen(f);
 }
 
 CGStmt CodeGenerator::gen(FunctionCall f) {

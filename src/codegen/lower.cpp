@@ -345,7 +345,8 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
     new_call.args = new_args;
     new_call.template_args = new_template_args;
 
-    lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
+    lowered.push_back(new const ComputeNode(new_call, node->getHeader(),
+                                            current_ds.at(node->getAnnotation().getPattern().getOutput().getDS())));
 
     lowerIR = new const BlockNode(lowered);
 }
@@ -397,36 +398,35 @@ AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
 const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> args) {
     AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + ds.getName()), "auto", ds);
     auto fields = getCurrentFields(ds, args);
-    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds, ds.getFields(), fields);
+    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds.getFields(), fields);
     auto cur_scope_ds = getCurrent(ds);
-    f.name = cur_scope_ds.getName() + "." + f.name;
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
     staged_ds.insert(ds, args);
     queried_with.insert(ds, fields);
-    return new const QueryNode(ds, queried, fields, f);
+    MethodCall call = MethodCall(cur_scope_ds, f);
+    return new const QueryNode(ds, queried, fields, call);
 }
 
 const InsertNode *ComposableLower::constructInsertNode(AbstractDataTypePtr parent,
                                                        AbstractDataTypePtr child,
                                                        std::vector<Expr> insert_args) const {
     FunctionCall f = constructFunctionCall(parent.getInsertFunction(),
-                                           parent,
                                            parent.getFields(),
                                            insert_args);
-    f.name = parent.getName() + "." + f.name;
     f.args.push_back(child);
-    return new const InsertNode(parent, f);
+    MethodCall call = MethodCall(parent, f);
+    return new const InsertNode(call);
 }
 
 const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
     auto fields = getCurrentFields(ds, alloc_args);
-    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds,
+    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(),
                                                     ds.getFields(),
                                                     fields);
     alloc_func.output = Parameter(ds);
     current_ds.insert(ds, ds);
-    return new const AllocateNode(ds, fields, alloc_func);
+    return new const AllocateNode(alloc_func);
 }
 
 template<typename T1>
@@ -494,7 +494,6 @@ std::vector<Expr> ComposableLower::getCurrentFields(AbstractDataTypePtr ds,
 }
 
 FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
-                                                    AbstractDataTypePtr ds,
                                                     std::vector<Variable> ref_md_fields,
                                                     std::vector<Expr> true_md_fields) const {
 

@@ -548,6 +548,13 @@ FunctionSignature AbstractDataTypePtr::getInsertFunction() const {
     return ptr->getInsertFunction();
 }
 
+FunctionSignature AbstractDataTypePtr::getFreeFunction() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getFreeFunction();
+}
+
 std::vector<Variable> AbstractDataTypePtr::getFields() const {
     if (!defined()) {
         throw error::InternalError("Deref null!");

@@ -38,6 +38,7 @@ public:
     CGExpr gen(Constraint);
     CGExpr gen(AbstractDataTypePtr);
     CGStmt gen(FunctionCall f);
+    CGStmt gen(MethodCall call);
     CGStmt gen(FunctionSignature f, CGStmt body);
     CGExpr gen(const Grid::Dim &p);
     Expr getExpr(const Grid::Dim &p) const;

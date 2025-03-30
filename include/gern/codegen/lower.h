@@ -86,7 +86,6 @@ private:
                                        std::vector<Expr> true_md_fields) const;
     // Helper methods to generate calls.
     FunctionCall constructFunctionCall(FunctionSignature f,
-                                       AbstractDataTypePtr ds,
                                        std::vector<Variable> ref_md_fields,
                                        std::vector<Expr> true_md_fields) const;                                // Constructs a call with the true meta data fields mapped in the correct place.
     const QueryNode *constructQueryNode(AbstractDataTypePtr, std::vector<Expr>);                               // Constructs a query node for a data-structure, and tracks this relationship.
@@ -110,22 +109,20 @@ private:
 
 // IR Node that marks an allocation
 struct AllocateNode : public LowerIRNode {
-    AllocateNode(AbstractDataTypePtr data, const std::vector<Expr> &fields, FunctionCall f)
-        : data(data), fields(fields), f(f) {
+    AllocateNode(FunctionCall f)
+        : f(f) {
     }
     void accept(LowerIRVisitor *) const;
-    AbstractDataTypePtr data;
-    std::vector<Expr> fields;
     FunctionCall f;
 };
 
 // IR Node that marks an free
 struct FreeNode : public LowerIRNode {
-    FreeNode(AbstractDataTypePtr data)
-        : data(data) {
+    FreeNode(MethodCall call)
+        : call(call) {
     }
     void accept(LowerIRVisitor *) const;
-    AbstractDataTypePtr data;
+    MethodCall call;
 };
 
 // IR Node that marks an insertion
@@ -133,12 +130,11 @@ struct FreeNode : public LowerIRNode {
 // into the parent data-structure as the
 // subset with meta-data values in fields.
 struct InsertNode : public LowerIRNode {
-    InsertNode(AbstractDataTypePtr parent, FunctionCall f)
-        : parent(parent), f(f) {
+    InsertNode(MethodCall call)
+        : call(call) {
     }
     void accept(LowerIRVisitor *) const;
-    AbstractDataTypePtr parent;
-    FunctionCall f;
+    MethodCall call;
 };
 
 struct GridDeclNode : public LowerIRNode {
@@ -174,25 +170,27 @@ struct SharedMemoryDeclNode : public LowerIRNode {
 // from the parent data-structure corresponding to
 // the subset with meta-data values in fields.
 struct QueryNode : public LowerIRNode {
-    QueryNode(AbstractDataTypePtr parent, AbstractDataTypePtr child, const std::vector<Expr> &fields, FunctionCall f)
-        : parent(parent), child(child), fields(fields), f(f) {
+    QueryNode(AbstractDataTypePtr parent, AbstractDataTypePtr child, const std::vector<Expr> &fields, MethodCall call)
+        : parent(parent), child(child), fields(fields), call(call) {
     }
     void accept(LowerIRVisitor *) const;
     AbstractDataTypePtr parent;
     AbstractDataTypePtr child;
     std::vector<Expr> fields;
-    FunctionCall f;
+    MethodCall call;
 };
 
 // IR Node marks a FunctionSignature call.
 struct ComputeNode : public LowerIRNode {
     ComputeNode(FunctionCall f,
-                std::vector<std::string> headers)
-        : f(f), headers(headers) {
+                std::vector<std::string> headers,
+                AbstractDataTypePtr adt)
+        : f(f), headers(headers), adt(adt) {
     }
     void accept(LowerIRVisitor *) const;
     FunctionCall f;
     std::vector<std::string> headers;
+    AbstractDataTypePtr adt;
 };
 
 // Block Nodes can hold a list of IR nodes.

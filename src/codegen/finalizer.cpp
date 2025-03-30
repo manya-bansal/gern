@@ -1,6 +1,21 @@
 #include "codegen/finalizer.h"
+#include "annotations/rewriter.h"
+#include "math.h"
 
 namespace gern {
+
+static MethodCall makeFreeCall(AbstractDataTypePtr ds) {
+    FunctionCall free{
+        .name = ds.getFreeFunction().name,
+        .args = {},
+        .template_args = {},
+        .grid = LaunchArguments(),
+        .block = LaunchArguments(),
+        .access = Access::HOST,
+        .smem_size = Expr(),
+    };
+    return MethodCall(ds, free);
+}
 
 LowerIR Finalizer::finalize() {
     to_free.scope();
@@ -12,38 +27,39 @@ LowerIR Finalizer::finalize() {
 
     auto free_ds = to_free.pop();
     for (auto ds : free_ds) {
-        new_ir.push_back(new const FreeNode(ds));
+        new_ir.push_back(new const FreeNode(makeFreeCall(ds)));
     }
 
     return new const BlockNode(new_ir);
 }
 
 void Finalizer::visit(const AllocateNode *node) {
-    if (node->data.freeAlloc()) {
-        to_free.insert(node->data);
+    auto output = node->f.output;
+    assert(isa<DSArg>(output));
+    auto adt = to<DSArg>(output)->getADTPtr();
+    if (adt.freeAlloc()) {
+        to_free.insert(adt);
     }
-    final_ir = new const AllocateNode(node->data,
-                                      node->fields,
-                                      node->f);
+    final_ir = new const AllocateNode(node->f);
 }
 
 void Finalizer::visit(const FreeNode *node) {
-    final_ir = new const FreeNode(node->data);
+    final_ir = new const FreeNode(node->call);
 }
 
 void Finalizer::visit(const InsertNode *node) {
-    final_ir = new const InsertNode(node->parent, node->f);
+    final_ir = new const InsertNode(node->call);
 }
 
 void Finalizer::visit(const QueryNode *node) {
     if (node->child.freeQuery()) {
         to_free.insert(node->child);
     }
-    final_ir = new const QueryNode(node->parent, node->child, node->fields, node->f);
+    final_ir = new const QueryNode(node->parent, node->child, node->fields, node->call);
 }
 
 void Finalizer::visit(const ComputeNode *node) {
-    final_ir = new const ComputeNode(node->f, node->headers);
+    final_ir = new const ComputeNode(node->f, node->headers, node->adt);
 }
 
 void Finalizer::visit(const IntervalNode *node) {
@@ -55,7 +71,7 @@ void Finalizer::visit(const IntervalNode *node) {
 
     auto free_ds = to_free.pop();
     for (auto ds : free_ds) {
-        new_body.push_back(new const FreeNode(ds));
+        new_body.push_back(new const FreeNode(makeFreeCall(ds)));
     }
 
     final_ir = new const IntervalNode(node->start,
@@ -102,6 +118,114 @@ void Finalizer::visit(const OpaqueCall *node) {
 
 util::ScopedSet<AbstractDataTypePtr> Finalizer::getToFree() const {
     return to_free;
+}
+
+void Scoper::construct() {
+    visit(ir);
+}
+
+int32_t Scoper::get_scope(Expr e) const {
+    int32_t scope = 0;
+    match(e, std::function<void(const VariableNode *)>(
+                 [&](const VariableNode *op) {
+                     // Get the most nested scope.
+                     scope = std::max(scope, get_scope_var(op));
+                 }));
+    return scope;
+}
+
+int32_t Scoper::get_scope(std::vector<Argument> args) const {
+    int32_t scope = 0;
+    for (const auto &arg : args) {
+        if (isa<DSArg>(arg)) {
+            auto adt = to<DSArg>(arg)->getADTPtr();
+            scope = std::max(scope, adt_scope.at(adt));
+        }
+        if (isa<VarArg>(arg)) {
+            scope = std::max(scope, get_scope_var(to<VarArg>(arg)->getVar()));
+        }
+        if (isa<ExprArg>(arg)) {
+            scope = std::max(scope, get_scope(to<ExprArg>(arg)->getExpr()));
+        } else {
+            throw error::InternalError("Unknown argument type: " + arg.str());
+        }
+    }
+    return scope;
+}
+
+void Scoper::visit(const AllocateNode *node) {
+    // Loop through the arguments and get the scope.
+    adt_scope[to<DSArg>(node->f.output)->getADTPtr()] = get_scope(node->f.args);
+}
+
+void Scoper::visit(const FreeNode *node) {
+}
+
+void Scoper::visit(const InsertNode *node) {
+    adt_scope[node->call.data] = get_scope(node->call.call.args);
+}
+
+void Scoper::visit(const QueryNode *node) {
+    std::vector<Argument> scoped_by;
+    scoped_by.push_back(node->parent);
+    adt_scope[node->child] = get_scope(scoped_by);
+}
+
+void Scoper::visit(const ComputeNode *node) {
+    adt_scope[node->adt] = get_scope(node->f.args);
+}
+
+void Scoper::visit(const IntervalNode *node) {
+    cur_scope++;
+    var_scope[node->getIntervalVariable()] = cur_scope;
+    var_stack.push_back(node->getIntervalVariable());
+    visit(node->body);
+    cur_scope--;
+}
+
+void Scoper::visit(const BlankNode *) {
+}
+
+int32_t Scoper::get_scope_var(Variable v) const {
+    if (!var_scope.contains(v)) {
+        return 0;
+    }
+    return var_scope.at(v);
+}
+
+void Scoper::visit(const DefNode *node) {
+    int32_t scope = 0;
+    match(node->assign.getB(), std::function<void(const VariableNode *)>(
+                                   [&](const VariableNode *op) {
+                                       // Get the most nested scope.
+                                       scope = std::max(scope, get_scope(op));
+                                   }));
+    var_scope[to<Variable>(node->assign.getA())] = scope;
+}
+
+void Scoper::visit(const AssertNode *) {
+    // int32_t scope = 0;
+    // match(node->constraint.getB(), std::function<void(const VariableNode *)>(
+    //                                    [&](const VariableNode *op) {
+    //                                        // Get the minimum scope.
+    //                                        scope = std::min(scope, get_scope(op));
+    //                                    }));
+    // var_scope[to<Variable>(node->constraint.getA())] = scope;
+}
+
+void Scoper::visit(const BlockNode *node) {
+    for (const auto &ir : node->ir_nodes) {
+        visit(ir);
+    }
+}
+
+void Scoper::visit(const GridDeclNode *) {
+}
+
+void Scoper::visit(const SharedMemoryDeclNode *) {
+}
+
+void Scoper::visit(const OpaqueCall *) {
 }
 
 }  // namespace gern
