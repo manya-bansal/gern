@@ -148,26 +148,21 @@ int32_t Scoper::get_scope(std::vector<Argument> args) const {
         if (isa<DSArg>(arg)) {
             auto adt = to<DSArg>(arg)->getADTPtr();
             scope = std::max(scope, adt_scope.contains(adt) ? adt_scope.at(adt) : 0);
-        }
-        if (isa<VarArg>(arg)) {
+        } else if (isa<VarArg>(arg)) {
             scope = std::max(scope, get_scope_var(to<VarArg>(arg)->getVar()));
-        }
-        if (isa<ExprArg>(arg)) {
+        } else if (isa<ExprArg>(arg)) {
             scope = std::max(scope, get_scope(to<ExprArg>(arg)->getExpr()));
+        } else {
+            throw error::InternalError("Unknown argument type: " + arg.str());
         }
-        // } else {
-
-        //     throw error::InternalError("Unknown argument type: " + arg.str());
-        // }
     }
     return scope;
 }
 
 void Scoper::visit(const AllocateNode *node) {
-    // Loop through the arguments and get the scope.
+    // Scope is the maximum scope of the arguments.
     adt_scope[to<DSArg>(node->f.output)->getADTPtr()] = get_scope(node->f.args);
     new_statements[adt_scope[to<DSArg>(node->f.output)->getADTPtr()]].push_back(node);
-    std::cout << "AllocateNode: " << node->f.output.str() << " " << adt_scope[to<DSArg>(node->f.output)->getADTPtr()] << std::endl;
 }
 
 void Scoper::visit(const FreeNode *) {
