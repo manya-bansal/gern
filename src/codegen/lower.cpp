@@ -434,10 +434,15 @@ static Expr getValue(const util::ScopedMap<T1, T1> &rel,
                      const util::ScopedMap<T1, T1> &map,
                      T1 entry,
                      std::set<Variable> stop_at = {}) {
+
     Expr e;
+    bool encountered_stop_at = false;
     while (rel.contains(entry)) {  // While we have the entry, go find it.
+        if (stop_at.contains(entry)) {
+            encountered_stop_at = true;
+        }
         if (map.contains(entry)) {
-            if (stop_at.contains(entry)) {
+            if (encountered_stop_at) {
                 return 0;
             }
             e = map.at(entry);  // Just set up the first value.
