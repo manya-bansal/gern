@@ -55,6 +55,7 @@ public:
 
     void accept(ExprVisitorStrict *v) const;
     std::string str() const;
+    Datatype getType() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Expr &);
@@ -67,6 +68,9 @@ public:
     Constraint(const ConstraintNode *n)
         : util::IntrusivePtr<const ConstraintNode>(n) {
     }
+
+    virtual Expr getA() const;
+    virtual Expr getB() const;
 
     std::string str() const;
     void accept(ConstraintVisitorStrict *v) const;
@@ -207,6 +211,7 @@ public:
     FunctionSignature getAllocateFunction() const;
     FunctionSignature getQueryFunction() const;
     FunctionSignature getInsertFunction() const;
+    FunctionSignature getFreeFunction() const;
     std::vector<Variable> getFields() const;
     bool freeQuery() const;
     bool insertQuery() const;

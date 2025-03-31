@@ -57,9 +57,9 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
             abstract_to_concrete_adt[abstract_ds->getADTPtr()] = concrete_ds->getADTPtr();
         }
 
-        if (isa<VarArg>(abstract_arg)) {
-            auto abstract_ds = to<VarArg>(abstract_arg.get());
-            auto concrete_ds = to<VarArg>(conc_arg.get());
+        if (isa<ExprArg>(abstract_arg)) {
+            auto abstract_ds = to<ExprArg>(abstract_arg.get());
+            auto concrete_ds = to<ExprArg>(conc_arg.get());
             fresh_names[abstract_ds->getVar()] = concrete_ds->getVar();
         }
     }

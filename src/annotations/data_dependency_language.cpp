@@ -39,6 +39,14 @@ void Expr::accept(ExprVisitorStrict *v) const {
     ptr->accept(v);
 }
 
+Datatype Expr::getType() const {
+    Datatype type;
+    match(*this, std::function<void(const VariableNode *)>([&](const VariableNode *op) {
+        type = op->type;
+    }));
+    return type;
+}
+
 std::string Expr::str() const {
     std::stringstream ss;
     ss << *this;
@@ -56,6 +64,14 @@ void Constraint::accept(ConstraintVisitorStrict *v) const {
         return;
     }
     ptr->accept(v);
+}
+
+Expr Constraint::getA() const {
+    return Expr();
+}
+
+Expr Constraint::getB() const {
+    return Expr();
 }
 
 void Stmt::accept(StmtVisitorStrict *v) const {
@@ -546,6 +562,13 @@ FunctionSignature AbstractDataTypePtr::getInsertFunction() const {
         throw error::InternalError("Deref null!");
     }
     return ptr->getInsertFunction();
+}
+
+FunctionSignature AbstractDataTypePtr::getFreeFunction() const {
+    if (!defined()) {
+        throw error::InternalError("Deref null!");
+    }
+    return ptr->getFreeFunction();
 }
 
 std::vector<Variable> AbstractDataTypePtr::getFields() const {

@@ -22,23 +22,23 @@ static void vector_printer(std::ostream &os, std::vector<T> v) {
 
 void LowerPrinter::visit(const AllocateNode *op) {
     util::printIdent(os, ident);
-    os << "Allocate " << op->f.output << " with ";
+    os << "Allocate " << op->f << " with ";
     vector_printer(os, op->f.args);
 }
 void LowerPrinter::visit(const FreeNode *op) {
     util::printIdent(os, ident);
-    os << "Free " << op->data;
+    os << "Free " << op->call;
 }
 void LowerPrinter::visit(const InsertNode *op) {
     util::printIdent(os, ident);
-    os << op->f;
+    os << op->call.call;
 }
 void LowerPrinter::visit(const QueryNode *op) {
     util::printIdent(os, ident);
-    os << "Query " << op->f.output
+    os << "Query " << op->call.call.output
        << " from " << op->parent
        << " with ";
-    vector_printer(os, op->f.args);
+    vector_printer(os, op->call.call.args);
 }
 void LowerPrinter::visit(const ComputeNode *op) {
     util::printIdent(os, ident);

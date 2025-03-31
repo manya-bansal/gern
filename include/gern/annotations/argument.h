@@ -35,21 +35,6 @@ private:
     AbstractDataTypePtr dataStruct;
 };
 
-class VarArg : public ArgumentNode {
-public:
-    VarArg(Variable v)
-        : v(v) {
-    }
-    Variable getVar() const {
-        return v;
-    }
-    virtual void accept(ArgumentVisitorStrict *) const;
-    virtual std::string getType() const;
-
-private:
-    Variable v;
-};
-
 class ExprArg : public ArgumentNode {
 public:
     ExprArg(Expr e)
@@ -58,6 +43,12 @@ public:
     Expr getExpr() const {
         return e;
     }
+
+    Variable getVar() const {
+        assert(isa<Variable>(e));
+        return to<Variable>(e);
+    }
+
     virtual void accept(ArgumentVisitorStrict *) const;
     virtual std::string getType() const;
 
@@ -76,11 +67,8 @@ public:
     Argument(AbstractDataTypePtr dataStuct)
         : Argument(new const DSArg(dataStuct)) {
     }
-    explicit Argument(Expr e)
+    Argument(Expr e)
         : Argument(new const ExprArg(e)) {
-    }
-    Argument(Variable v)
-        : Argument(new const VarArg(v)) {
     }
     std::string str() const;
     bool isSameTypeAs(Argument) const;
