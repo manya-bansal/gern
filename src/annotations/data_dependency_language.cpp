@@ -39,6 +39,14 @@ void Expr::accept(ExprVisitorStrict *v) const {
     ptr->accept(v);
 }
 
+Datatype Expr::getType() const {
+    Datatype type;
+    match(*this, std::function<void(const VariableNode *)>([&](const VariableNode *op) {
+        type = op->type;
+    }));
+    return type;
+}
+
 std::string Expr::str() const {
     std::stringstream ss;
     ss << *this;

@@ -12,7 +12,7 @@ TEST(Arguments, isSameType) {
     Variable x("x");
     Variable y("y");
 
-    ASSERT_FALSE(Argument(x + y).isSameTypeAs(x));
+    ASSERT_TRUE(Argument(x + y).isSameTypeAs(x));
     ASSERT_TRUE(Argument(x + y).isSameTypeAs(Argument(x + y)));
 }
 

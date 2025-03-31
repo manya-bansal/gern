@@ -257,8 +257,30 @@ TEST(LoweringCPU, EgeMM) {
         ASSERT_TRUE(c.data[i] == ref_c.data[i]);
     }
 
+    std::cout << "C: " << c << std::endl;
+    std::cout << "Ref C: " << ref_c << std::endl;
+
     a.destroy();
     b.destroy();
     c.destroy();
     ref_c.destroy();
+}
+
+TEST(LoweringCPU, DoubleMM) {
+    auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
+    auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
+    auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPU("C"));
+    auto D_DS = AbstractDataTypePtr(new const annot::MatrixCPU("D"));
+
+    annot::MatrixMultiplyCPU matrix_multiply;
+    Variable k1("k1");
+    Variable k2("k2");
+
+    Composable program({
+        matrix_multiply(A_DS, B_DS, C_DS, k1),
+        matrix_multiply(C_DS, D_DS, C_DS, k2),
+    });
+
+    Runner run(program);
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
 }

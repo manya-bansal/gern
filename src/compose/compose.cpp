@@ -91,8 +91,8 @@ std::ostream &operator<<(std::ostream &os, const MethodCall &m) {
 ComputeFunctionCallPtr ComputeFunctionCall::refreshVariable() const {
     std::set<Variable> arg_variables;
     for (const auto &arg : call.args) {
-        if (isa<VarArg>(arg)) {
-            arg_variables.insert(to<VarArg>(arg)->getVar());
+        if (isa<ExprArg>(arg)) {
+            arg_variables.insert(to<ExprArg>(arg)->getVar());
         }
     }
     for (const auto &arg : call.template_args) {

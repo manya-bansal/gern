@@ -443,12 +443,9 @@ CGExpr CodeGenerator::declParameter(Parameter a,
         void visit(const DSArg *ds) {
             gen_expr = cg->declADT(ds->getADTPtr(), track, properties);
         }
-        void visit(const VarArg *v) {
-            gen_expr = cg->declVar(v->getVar(), properties.is_const, track);
-        }
 
-        void visit(const ExprArg *) {
-            throw error::InternalError("unreachable");
+        void visit(const ExprArg *e) {
+            gen_expr = cg->declVar(e->getVar(), properties.is_const, track);
         }
 
         CodeGenerator *cg;
@@ -472,10 +469,6 @@ CGExpr CodeGenerator::gen(Argument a) {
         void visit(const DSArg *ds) {
             cg->used_adt.insert(ds->getADTPtr());
             gen_expr = cg->gen(ds->getADTPtr());
-        }
-
-        void visit(const VarArg *v) {
-            gen_expr = cg->gen(v->getVar());
         }
 
         void visit(const ExprArg *v) {

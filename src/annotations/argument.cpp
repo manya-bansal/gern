@@ -13,9 +13,6 @@ bool Argument::isSameTypeAs(Argument arg) const {
     if (isa<DSArg>(*this) && isa<DSArg>(arg)) {
         return true;
     }
-    if (isa<VarArg>(*this) && isa<VarArg>(arg)) {
-        return true;
-    }
     if (isa<ExprArg>(*this) && isa<ExprArg>(arg)) {
         return true;
     }
@@ -50,20 +47,12 @@ std::string DSArg::getType() const {
     return getADTPtr().getType();
 }
 
-void VarArg::accept(ArgumentVisitorStrict *v) const {
-    v->visit(this);
-}
-
-std::string VarArg::getType() const {
-    return getVar().getType().str();
-}
-
 void ExprArg::accept(ArgumentVisitorStrict *v) const {
     v->visit(this);
 }
 
 std::string ExprArg::getType() const {
-    return "auto";
+    return getExpr().getType().str();
 }
 
 }  // namespace gern

@@ -55,6 +55,7 @@ public:
 
     void accept(ExprVisitorStrict *v) const;
     std::string str() const;
+    Datatype getType() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Expr &);

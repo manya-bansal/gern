@@ -147,8 +147,6 @@ int32_t Scoper::get_scope(std::vector<Argument> args) const {
         if (isa<DSArg>(arg)) {
             auto adt = to<DSArg>(arg)->getADTPtr();
             scope = std::max(scope, adt_scope.contains(adt) ? adt_scope.at(adt) : 0);
-        } else if (isa<VarArg>(arg)) {
-            scope = std::max(scope, get_scope_var(to<VarArg>(arg)->getVar()));
         } else if (isa<ExprArg>(arg)) {
             scope = std::max(scope, get_scope(to<ExprArg>(arg)->getExpr()));
         } else {

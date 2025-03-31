@@ -319,12 +319,12 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         if (isa<DSArg>(arg) &&
             current_ds.contains(to<DSArg>(arg)->getADTPtr())) {
             new_args.push_back(Argument(current_ds.at(to<DSArg>(arg)->getADTPtr())));
-        } else if (isa<VarArg>(arg)) {
+        } else if (isa<ExprArg>(arg)) {
             // Do we have a value floating around?
-            if (tiled_dimensions.contains(to<VarArg>(arg)->getVar())) {
-                new_args.push_back(Argument(tiled_dimensions.at(to<VarArg>(arg)->getVar())));
+            if (tiled_dimensions.contains(to<ExprArg>(arg)->getVar())) {
+                new_args.push_back(Argument(tiled_dimensions.at(to<ExprArg>(arg)->getVar())));
             } else {
-                new_args.push_back(Argument(to<VarArg>(arg)->getVar()));
+                new_args.push_back(Argument(to<ExprArg>(arg)->getVar()));
             }
         } else {
             throw error::InternalError("Unknown argument type: " + arg.str());
@@ -514,7 +514,7 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     // Now, set up the args.
     std::vector<Argument> new_args;
     for (auto const &a : f.args) {
-        new_args.push_back(Argument(mappings.at(to<VarArg>(a)->getVar())));
+        new_args.push_back(Argument(mappings.at(to<ExprArg>(a)->getVar())));
     }
     // set up the templated args.
     std::vector<Expr> template_args;
