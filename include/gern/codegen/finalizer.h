@@ -59,20 +59,17 @@ public:
     void visit(const OpaqueCall *);
 
 private:
-    LowerIR ir;
-
-    int32_t cur_scope = 0;
-    int32_t min_scope(int32_t a, int32_t b) const;
-    int32_t get_scope_var(Variable v) const;
-
     int32_t get_scope(Expr e) const;
     int32_t get_scope(std::vector<Argument> args) const;
 
+    LowerIR ir;
+    int32_t cur_scope = 0;
+    // The scope an ADT is at.
     std::map<AbstractDataTypePtr, int32_t> adt_scope;
+    // The scope a variable is at.
     std::map<Variable, int32_t> var_scope;
+    // Maps scope to statements to that are at that scope.
     std::map<int32_t, std::vector<LowerIR>> new_statements;
-
-    std::vector<Variable> var_stack;
 };
 
 }  // namespace gern

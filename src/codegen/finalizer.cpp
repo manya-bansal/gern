@@ -133,11 +133,15 @@ LowerIR Scoper::construct() {
 
 int32_t Scoper::get_scope(Expr e) const {
     int32_t scope = 0;
-    match(e, std::function<void(const VariableNode *)>(
-                 [&](const VariableNode *op) {
-                     // Get the most nested scope.
-                     scope = std::max(scope, get_scope_var(op));
-                 }));
+    match(e,
+          std::function<void(const VariableNode *)>(
+              [&](const VariableNode *op) {
+                  scope = std::max(scope, var_scope.contains(op) ? var_scope.at(op) : 0);
+              }),
+          std::function<void(const ADTMemberNode *)>(
+              [&](const ADTMemberNode *op) {
+                  scope = std::max(scope, adt_scope.contains(op->ds) ? adt_scope.at(op->ds) : 0);
+              }));
     return scope;
 }
 
@@ -186,7 +190,6 @@ void Scoper::visit(const ComputeNode *node) {
 void Scoper::visit(const IntervalNode *node) {
     cur_scope++;
     var_scope[node->getIntervalVariable()] = cur_scope;
-    var_stack.push_back(node->getIntervalVariable());
     visit(node->body);
 
     // Generate the new body!
@@ -202,20 +205,8 @@ void Scoper::visit(const IntervalNode *node) {
                                                                node->p));
 }
 
-int32_t Scoper::get_scope_var(Variable v) const {
-    if (!var_scope.contains(v)) {
-        return 0;
-    }
-    return var_scope.at(v);
-}
-
 void Scoper::visit(const DefNode *node) {
-    int32_t scope = 0;
-    match(node->assign.getB(), std::function<void(const VariableNode *)>(
-                                   [&](const VariableNode *op) {
-                                       // Get the most nested scope.
-                                       scope = std::max(scope, get_scope(op));
-                                   }));
+    int32_t scope = get_scope(node->assign.getB());
     var_scope[to<Variable>(node->assign.getA())] = scope;
     new_statements[scope].push_back(node);
 }
