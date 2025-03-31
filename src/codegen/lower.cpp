@@ -544,8 +544,8 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                                   lowered.push_back(
                                       generate_definitions(op->step = step_val));
                               } else {
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = op->parameter));
+                                  lowered.push_back(
+                                      generate_definitions(op->step = op->parameter));
                               }
                           }));
     return new const BlockNode(lowered);
