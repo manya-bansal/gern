@@ -58,6 +58,14 @@ void Constraint::accept(ConstraintVisitorStrict *v) const {
     ptr->accept(v);
 }
 
+Expr Constraint::getA() const {
+    return Expr();
+}
+
+Expr Constraint::getB() const {
+    return Expr();
+}
+
 void Stmt::accept(StmtVisitorStrict *v) const {
     if (!defined()) {
         return;

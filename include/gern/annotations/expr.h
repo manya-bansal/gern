@@ -68,6 +68,9 @@ public:
         : util::IntrusivePtr<const ConstraintNode>(n) {
     }
 
+    virtual Expr getA() const;
+    virtual Expr getB() const;
+
     std::string str() const;
     void accept(ConstraintVisitorStrict *v) const;
 };

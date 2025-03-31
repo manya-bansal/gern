@@ -128,7 +128,6 @@ LowerIR Scoper::construct() {
     visit(ir);
     std::vector<LowerIR> new_body = new_statements[cur_scope];
     LowerIR final_ir = new const BlockNode(new_body);
-    std::cout << "FinalIR: " << final_ir << std::endl;
     return final_ir;
 }
 
@@ -171,7 +170,6 @@ void Scoper::visit(const FreeNode *) {
 
 void Scoper::visit(const InsertNode *node) {
     adt_scope[node->call.data] = get_scope(node->call.call.args);
-    std::cout << "InsertNode: " << node->call.data.str() << " " << adt_scope[node->call.data] << std::endl;
     new_statements[adt_scope[node->call.data]].push_back(node);
 }
 
@@ -180,13 +178,11 @@ void Scoper::visit(const QueryNode *node) {
     scoped_by.push_back(Argument(node->parent));
     adt_scope[node->child] = get_scope(scoped_by);
     new_statements[adt_scope[node->child]].push_back(node);
-    std::cout << "QueryNode: " << node->child.str() << " " << adt_scope[node->child] << std::endl;
 }
 
 void Scoper::visit(const ComputeNode *node) {
     adt_scope[node->adt] = get_scope(node->f.args);
     new_statements[adt_scope[node->adt]].push_back(node);
-    std::cout << "ComputeNode: " << node->adt.str() << " " << adt_scope[node->adt] << std::endl;
 }
 
 void Scoper::visit(const IntervalNode *node) {
@@ -200,7 +196,7 @@ void Scoper::visit(const IntervalNode *node) {
     new_statements.erase(cur_scope);
     cur_scope--;
 
-    // Insert the new interval node!.
+    // Insert the new interval node with the new body at the previous scope.
     new_statements[cur_scope].push_back(new const IntervalNode(node->start,
                                                                node->end,
                                                                node->step,
@@ -224,11 +220,12 @@ void Scoper::visit(const DefNode *node) {
                                    }));
     var_scope[to<Variable>(node->assign.getA())] = scope;
     new_statements[scope].push_back(node);
-    std::cout << "DefNode: " << node->assign.getA().str() << " " << scope << std::endl;
 }
 
 void Scoper::visit(const AssertNode *node) {
-    new_statements[cur_scope].push_back(node);
+    int32_t scope = get_scope(node->constraint.getA());
+    int32_t scope_b = get_scope(node->constraint.getB());
+    new_statements[std::max(scope, scope_b)].push_back(node);
 }
 
 void Scoper::visit(const BlockNode *node) {
