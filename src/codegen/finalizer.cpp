@@ -18,9 +18,13 @@ static MethodCall makeFreeCall(AbstractDataTypePtr ds) {
 }
 
 LowerIR Finalizer::finalize() {
+
+    Scoper scoper(ir);
+    LowerIR hoisted_ir = scoper.construct();
+
     to_free.scope();
 
-    visit(ir);
+    visit(hoisted_ir);
 
     std::vector<LowerIR> new_ir;
     new_ir.push_back(final_ir);
@@ -120,8 +124,12 @@ util::ScopedSet<AbstractDataTypePtr> Finalizer::getToFree() const {
     return to_free;
 }
 
-void Scoper::construct() {
+LowerIR Scoper::construct() {
     visit(ir);
+    std::vector<LowerIR> new_body = new_statements[cur_scope];
+    LowerIR final_ir = new const BlockNode(new_body);
+    std::cout << "FinalIR: " << final_ir << std::endl;
+    return final_ir;
 }
 
 int32_t Scoper::get_scope(Expr e) const {
@@ -139,16 +147,18 @@ int32_t Scoper::get_scope(std::vector<Argument> args) const {
     for (const auto &arg : args) {
         if (isa<DSArg>(arg)) {
             auto adt = to<DSArg>(arg)->getADTPtr();
-            scope = std::max(scope, adt_scope.at(adt));
+            scope = std::max(scope, adt_scope.contains(adt) ? adt_scope.at(adt) : 0);
         }
         if (isa<VarArg>(arg)) {
             scope = std::max(scope, get_scope_var(to<VarArg>(arg)->getVar()));
         }
         if (isa<ExprArg>(arg)) {
             scope = std::max(scope, get_scope(to<ExprArg>(arg)->getExpr()));
-        } else {
-            throw error::InternalError("Unknown argument type: " + arg.str());
         }
+        // } else {
+
+        //     throw error::InternalError("Unknown argument type: " + arg.str());
+        // }
     }
     return scope;
 }
@@ -156,23 +166,32 @@ int32_t Scoper::get_scope(std::vector<Argument> args) const {
 void Scoper::visit(const AllocateNode *node) {
     // Loop through the arguments and get the scope.
     adt_scope[to<DSArg>(node->f.output)->getADTPtr()] = get_scope(node->f.args);
+    new_statements[adt_scope[to<DSArg>(node->f.output)->getADTPtr()]].push_back(node);
+    std::cout << "AllocateNode: " << node->f.output.str() << " " << adt_scope[to<DSArg>(node->f.output)->getADTPtr()] << std::endl;
 }
 
-void Scoper::visit(const FreeNode *node) {
+void Scoper::visit(const FreeNode *) {
+    throw error::InternalError("No Frees at this point!");
 }
 
 void Scoper::visit(const InsertNode *node) {
     adt_scope[node->call.data] = get_scope(node->call.call.args);
+    std::cout << "InsertNode: " << node->call.data.str() << " " << adt_scope[node->call.data] << std::endl;
+    new_statements[adt_scope[node->call.data]].push_back(node);
 }
 
 void Scoper::visit(const QueryNode *node) {
-    std::vector<Argument> scoped_by;
-    scoped_by.push_back(node->parent);
+    std::vector<Argument> scoped_by = node->call.call.args;
+    scoped_by.push_back(Argument(node->parent));
     adt_scope[node->child] = get_scope(scoped_by);
+    new_statements[adt_scope[node->child]].push_back(node);
+    std::cout << "QueryNode: " << node->child.str() << " " << adt_scope[node->child] << std::endl;
 }
 
 void Scoper::visit(const ComputeNode *node) {
     adt_scope[node->adt] = get_scope(node->f.args);
+    new_statements[adt_scope[node->adt]].push_back(node);
+    std::cout << "ComputeNode: " << node->adt.str() << " " << adt_scope[node->adt] << std::endl;
 }
 
 void Scoper::visit(const IntervalNode *node) {
@@ -180,10 +199,18 @@ void Scoper::visit(const IntervalNode *node) {
     var_scope[node->getIntervalVariable()] = cur_scope;
     var_stack.push_back(node->getIntervalVariable());
     visit(node->body);
-    cur_scope--;
-}
 
-void Scoper::visit(const BlankNode *) {
+    // Generate the new body!
+    std::vector<LowerIR> new_body = new_statements[cur_scope];
+    new_statements.erase(cur_scope);
+    cur_scope--;
+
+    // Insert the new interval node!.
+    new_statements[cur_scope].push_back(new const IntervalNode(node->start,
+                                                               node->end,
+                                                               node->step,
+                                                               new const BlockNode(new_body),
+                                                               node->p));
 }
 
 int32_t Scoper::get_scope_var(Variable v) const {
@@ -201,16 +228,12 @@ void Scoper::visit(const DefNode *node) {
                                        scope = std::max(scope, get_scope(op));
                                    }));
     var_scope[to<Variable>(node->assign.getA())] = scope;
+    new_statements[scope].push_back(node);
+    std::cout << "DefNode: " << node->assign.getA().str() << " " << scope << std::endl;
 }
 
-void Scoper::visit(const AssertNode *) {
-    // int32_t scope = 0;
-    // match(node->constraint.getB(), std::function<void(const VariableNode *)>(
-    //                                    [&](const VariableNode *op) {
-    //                                        // Get the minimum scope.
-    //                                        scope = std::min(scope, get_scope(op));
-    //                                    }));
-    // var_scope[to<Variable>(node->constraint.getA())] = scope;
+void Scoper::visit(const AssertNode *node) {
+    new_statements[cur_scope].push_back(node);
 }
 
 void Scoper::visit(const BlockNode *node) {
@@ -219,13 +242,19 @@ void Scoper::visit(const BlockNode *node) {
     }
 }
 
-void Scoper::visit(const GridDeclNode *) {
+void Scoper::visit(const GridDeclNode *node) {
+    new_statements[cur_scope].push_back(node);
 }
 
-void Scoper::visit(const SharedMemoryDeclNode *) {
+void Scoper::visit(const SharedMemoryDeclNode *node) {
+    new_statements[cur_scope].push_back(node);
 }
 
-void Scoper::visit(const OpaqueCall *) {
+void Scoper::visit(const OpaqueCall *node) {
+    new_statements[cur_scope].push_back(node);
+}
+
+void Scoper::visit(const BlankNode *) {
 }
 
 }  // namespace gern

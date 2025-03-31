@@ -40,7 +40,7 @@ public:
         : ir(ir) {
     }
 
-    void construct();
+    LowerIR construct();
 
     using LowerIRVisitor::visit;
 
@@ -70,6 +70,7 @@ private:
 
     std::map<AbstractDataTypePtr, int32_t> adt_scope;
     std::map<Variable, int32_t> var_scope;
+    std::map<int32_t, std::vector<LowerIR>> new_statements;
 
     std::vector<Variable> var_stack;
 };
