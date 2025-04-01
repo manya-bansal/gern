@@ -10,7 +10,7 @@ namespace gern {
 
 void Runner::compile(Options config) {
 
-    codegen::CodeGenerator cg;
+    codegen::CodeGenerator cg(this->ordered_parameters);
     codegen::CGStmt code = cg.generate_code(c);
     signature = cg.getComputeFunctionSignature();
 

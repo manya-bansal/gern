@@ -36,6 +36,7 @@ set(TEST_SOURCES
     # test-resolve-constraints.cpp
     test-runner.cpp
     test-stage.cpp
+    test-ordered-parameters.cpp
 )
 
 

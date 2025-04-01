@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 
 #include "codegen/codegen_ir.h"
 #include "codegen/lower_visitor.h"
@@ -9,9 +10,10 @@ namespace codegen {
 
 class CodeGenerator : public LowerIRVisitor {
 public:
-    CodeGenerator(std::string name = getUniqueName("function"),
+    CodeGenerator(std::optional<std::vector<Parameter>> ordered_parameters = std::nullopt,
+                  std::string name = getUniqueName("function"),
                   std::string hook_prefix = "hook_")
-        : name(name), hook_name(hook_prefix + name) {
+        : ordered_parameters(ordered_parameters), name(name), hook_name(hook_prefix + name) {
     }
 
     CGStmt generate_code(Composable);
@@ -84,6 +86,8 @@ public:
     FunctionSignature getComputeFunctionSignature() const;
 
 private:
+    std::optional<std::vector<Parameter>> ordered_parameters;
+
     CGStmt setGrid(const IntervalNode *op);
     std::vector<CGStmt> children;  // code generated for children.
 
