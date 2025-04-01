@@ -165,17 +165,11 @@ void ComposableLower::lower(const TiledComputation *node) {
 
     tiled_vars.insert(captured, loop_index);
 
-    std::cout << "Captured: " << captured << " Loop index: " << loop_index << std::endl;
-
     cur_tiled_vars.insert(loop_index);
 
     this->visit(node->tiled);  // Visit the actual object.
 
-    for (const auto &v : cur_tiled_vars) {
-        std::cout << "Cur tiled vars: " << v << std::endl;
-    }
-
-    cur_tiled_vars.extract(loop_index);
+    cur_tiled_vars.erase(loop_index);
 
     current_ds.unscope();
     all_relationships.unscope();
