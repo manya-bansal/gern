@@ -1,8 +1,11 @@
 #pragma once
 
+#include "annotations/argument.h"
 #include "compose/composable.h"
 #include "compose/compose.h"
+#include <optional>
 #include <string>
+#include <vector>
 
 namespace gern {
 
@@ -10,8 +13,8 @@ using GernGenFuncPtr = void (*)(void **);
 
 class Runner {
 public:
-    Runner(Composable c)
-        : c(c) {
+    Runner(Composable c, std::optional<std::vector<Parameter>> ordered_parameters = std::nullopt)
+        : c(c), ordered_parameters(ordered_parameters) {
     }
     struct Options {
         std::string filename;
@@ -37,6 +40,7 @@ private:
     GernGenFuncPtr fp;
     std::vector<std::string> argument_order;
     bool compiled = false;
+    std::optional<std::vector<Parameter>> ordered_parameters;
 };
 
 }  // namespace gern
