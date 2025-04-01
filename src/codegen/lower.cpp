@@ -165,7 +165,18 @@ void ComposableLower::lower(const TiledComputation *node) {
 
     tiled_vars.insert(captured, loop_index);
 
+    std::cout << "Captured: " << captured << " Loop index: " << loop_index << std::endl;
+
+    cur_tiled_vars.insert(loop_index);
+
     this->visit(node->tiled);  // Visit the actual object.
+
+    for (const auto &v : cur_tiled_vars) {
+        std::cout << "Cur tiled vars: " << v << std::endl;
+    }
+
+    cur_tiled_vars.extract(loop_index);
+
     current_ds.unscope();
     all_relationships.unscope();
     parents.unscope();
@@ -402,7 +413,9 @@ const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std
     auto cur_scope_ds = getCurrent(ds);
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
-    staged_ds.insert(ds, args);
+    std::vector<Expr> staged_vars{cur_tiled_vars.begin(), cur_tiled_vars.end()};
+    staged_vars.insert(staged_vars.end(), args.begin(), args.end());
+    staged_ds.insert(ds, staged_vars);
     queried_with.insert(ds, fields);
     MethodCall call = MethodCall(cur_scope_ds, f);
     return new const QueryNode(ds, queried, fields, call);
@@ -426,6 +439,9 @@ const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, 
                                                     fields);
     alloc_func.output = Parameter(ds);
     current_ds.insert(ds, ds);
+    std::vector<Expr> staged_vars{cur_tiled_vars.begin(), cur_tiled_vars.end()};
+    staged_vars.insert(staged_vars.end(), alloc_args.begin(), alloc_args.end());
+    staged_ds.insert(ds, staged_vars);
     return new const AllocateNode(alloc_func);
 }
 
@@ -480,9 +496,7 @@ std::vector<Expr> ComposableLower::getCurrentFields(AbstractDataTypePtr ds,
             }
         }
 
-        assert(staged_with.size() == true_md_fields.size());
-
-        for (size_t i = 0; i < staged_with.size(); i++) {
+        for (size_t i = 0; i < true_md_fields.size(); i++) {
             auto vars = getVariables(true_md_fields[i]);
             for (const auto &v : vars) {
                 if (!offset_by.contains(v)) {
