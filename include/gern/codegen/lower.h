@@ -102,6 +102,7 @@ private:
     util::ScopedMap<Expr, Variable> parents;                // Used for splits.
     util::ScopedMap<Variable, Variable> all_relationships;  // Used to track all relationships.
     util::ScopedMap<Expr, Variable> tiled_dimensions;
+    std::set<Variable> cur_tiled_vars;
 
     LowerIR lowerIR;
     Composable composable;
