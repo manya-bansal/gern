@@ -153,8 +153,7 @@ public:
     typedef VariableNode Node;
 };
 
-class AbstractDataType : public util::Manageable<AbstractDataType>,
-                         public util::Uncopyable {
+class AbstractDataType : public util::Manageable<AbstractDataType> {
 public:
     AbstractDataType() = default;
     virtual ~AbstractDataType() = default;
@@ -202,8 +201,19 @@ public:
     AbstractDataTypePtr()
         : util::IntrusivePtr<const AbstractDataType>(nullptr) {
     }
-    explicit AbstractDataTypePtr(const AbstractDataType *n)
-        : util::IntrusivePtr<const AbstractDataType>(n) {
+
+    explicit AbstractDataTypePtr(const AbstractDataType *ptr)
+        : util::IntrusivePtr<const AbstractDataType>(ptr) {
+    }
+
+    template<typename T, std::enable_if_t<std::is_base_of_v<AbstractDataType, T>, int> = 0>
+    AbstractDataTypePtr(const T &obj)
+        : util::IntrusivePtr<const AbstractDataType>(new T(obj)) {  // Copy construct on heap
+    }
+
+    template<typename T, std::enable_if_t<std::is_base_of_v<AbstractDataType, T>, int> = 0>
+    AbstractDataTypePtr(T &&obj)
+        : util::IntrusivePtr<const AbstractDataType>(new T(obj)) {  // Move construct on heap
     }
 
     std::string getName() const;

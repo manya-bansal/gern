@@ -30,6 +30,7 @@ set(TEST_SOURCES
     test-function-ptr.cpp
     test-grid-constraints.cpp
     test-map-grid.cpp
+    test-new-interface.cpp
     test-nodes.cpp
     test-pipeline.cpp
     test-set-unit.cpp
