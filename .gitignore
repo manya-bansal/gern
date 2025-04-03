@@ -2,7 +2,7 @@
 .local/
 .vscode/
 _local/
-*build*/
+*/*build*/
 */*.bin
 cmake-build*/
 vcpkg_installed/

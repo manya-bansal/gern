@@ -114,9 +114,6 @@ TEST(ComposableTest, FusionSameScope) {
                       },
              test::cpuRunner("array"));
 
-    std::cout << b << std::endl;
-    std::cout << a << std::endl;
-
     //  Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
         ASSERT_TRUE(b.data[i] == (a.data[i] + 2));
