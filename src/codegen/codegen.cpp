@@ -91,7 +91,6 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
                         std::back_inserter(to_declare_adts));
 
     for (const auto &ds : to_declare_adts) {
-        argument_order.push_back(ds.getName());
         parameters.push_back(Parameter(ds));
     }
 
@@ -117,14 +116,19 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
             template_arguments.push_back(v);
             continue;
         }
-        argument_order.push_back(v.getName());
         parameters.push_back(Parameter(v));
     }
 
     // The return type is always void, the output
     // is modified by reference.
     compute_func.name = name;
-    compute_func.args = parameters;
+
+    if (this->ordered_parameters.has_value() && !same_parameters(this->ordered_parameters.value(), parameters)) {
+        throw error::UserError("provided ordered arguments dont match the parameters needed for the function");
+    }
+    compute_func.args = this->ordered_parameters.value_or(parameters);
+    this->argument_order = get_parameter_names(compute_func.args);
+
     compute_func.template_args = template_arguments;
     compute_func.device = is_device_launch;
     compute_func.block = block_dim;
@@ -148,21 +152,20 @@ void CodeGenerator::visit(const AllocateNode *op) {
 
 void CodeGenerator::visit(const FreeNode *op) {
 
-    if (!declared_adt.contains(op->data)) {
+    if (!declared_adt.contains(op->call.data)) {
         throw error::InternalError("Freeing a data-structure that hasn't been allocated??");
     }
 
-    std::string method_call = op->data.getName() + "." + op->data.getFreeFunction().name;
-    code = VoidCall::make(Call::make(method_call, {}));
+    code = gen(op->call);
 }
 
 void CodeGenerator::visit(const InsertNode *op) {
-    code = gen(op->f);
-    used_adt.insert(op->parent);
+    code = gen(op->call);
+    used_adt.insert(op->call.data);
 }
 
 void CodeGenerator::visit(const QueryNode *op) {
-    code = gen(op->f);
+    code = gen(op->call);
     used_adt.insert(op->parent);
 }
 
@@ -444,12 +447,9 @@ CGExpr CodeGenerator::declParameter(Parameter a,
         void visit(const DSArg *ds) {
             gen_expr = cg->declADT(ds->getADTPtr(), track, properties);
         }
-        void visit(const VarArg *v) {
-            gen_expr = cg->declVar(v->getVar(), properties.is_const, track);
-        }
 
-        void visit(const ExprArg *) {
-            throw error::InternalError("unreachable");
+        void visit(const ExprArg *e) {
+            gen_expr = cg->declVar(e->getVar(), properties.is_const, track);
         }
 
         CodeGenerator *cg;
@@ -475,10 +475,6 @@ CGExpr CodeGenerator::gen(Argument a) {
             gen_expr = cg->gen(ds->getADTPtr());
         }
 
-        void visit(const VarArg *v) {
-            gen_expr = cg->gen(v->getVar());
-        }
-
         void visit(const ExprArg *v) {
             gen_expr = cg->gen(v->getExpr());
         }
@@ -490,6 +486,12 @@ CGExpr CodeGenerator::gen(Argument a) {
     GenArgument generate(this);
     generate.visit(a);
     return generate.gen_expr;
+}
+
+CGStmt CodeGenerator::gen(MethodCall call) {
+    FunctionCall f = call.call;
+    f.name = call.data.getName() + "." + f.name;
+    return gen(f);
 }
 
 CGStmt CodeGenerator::gen(FunctionCall f) {

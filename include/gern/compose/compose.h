@@ -44,6 +44,13 @@ struct FunctionCall {
     FunctionCall replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
 };
 
+struct MethodCall {
+    // Data structure to call the method on.
+    AbstractDataTypePtr data;
+    // The function call to call.
+    FunctionCall call;
+};
+
 struct LaunchParameters {
     Variable x = Variable();
     Variable y = Variable();
@@ -76,6 +83,7 @@ struct FunctionSignature {
 
 std::ostream &operator<<(std::ostream &os, const FunctionSignature &f);
 std::ostream &operator<<(std::ostream &os, const FunctionCall &f);
+std::ostream &operator<<(std::ostream &os, const MethodCall &m);
 
 class ComputeFunctionCall : public ComposableNode {
 public:

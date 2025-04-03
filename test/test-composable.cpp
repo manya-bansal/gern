@@ -10,10 +10,9 @@
 using namespace gern;
 
 TEST(ComposableTest, NoFusion) {
-
-    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
-    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
-    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
+    AbstractDataTypePtr inputDS = annot::ArrayCPU("input_con");
+    AbstractDataTypePtr outputDS = annot::ArrayCPU("output_con");
+    AbstractDataTypePtr tempDS = annot::ArrayCPU("temp");
 
     annot::add_1 add_1;
     Variable v("v");
@@ -30,13 +29,11 @@ TEST(ComposableTest, NoFusion) {
     impl::ArrayCPU b(10);
     b.vvals(0.0f);
 
-    Runner run(call);
-
-    run.compile(test::cpuRunner("array"));
-    run.evaluate({
-        {inputDS.getName(), &a},
-        {outputDS.getName(), &b},
-    });
+    evaluate(call, {
+                       {inputDS.getName(), &a},
+                       {outputDS.getName(), &b},
+                   },
+             test::cpuRunner("array"));
 
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
@@ -48,9 +45,9 @@ TEST(ComposableTest, NoFusion) {
 }
 
 TEST(ComposableTest, NestedFusion) {
-    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
-    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
-    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
+    AbstractDataTypePtr inputDS = annot::ArrayCPU("input_con");
+    AbstractDataTypePtr outputDS = annot::ArrayCPU("output_con");
+    AbstractDataTypePtr tempDS = annot::ArrayCPU("temp");
 
     annot::add_1 add_1;
     Variable v("x");
@@ -69,14 +66,13 @@ TEST(ComposableTest, NestedFusion) {
     int64_t step_1 = 5;
     int64_t step_2 = 1;
 
-    Runner run(program);
-    run.compile(test::cpuRunner("array"));
-    run.evaluate({
-        {inputDS.getName(), &a},
-        {outputDS.getName(), &b},
-        {v.getName(), &step_1},
-        {v1.getName(), &step_2},
-    });
+    evaluate(program, {
+                          {inputDS.getName(), &a},
+                          {outputDS.getName(), &b},
+                          {v.getName(), &step_1},
+                          {v1.getName(), &step_2},
+                      },
+             test::cpuRunner("array"));
 
     // Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {
@@ -88,9 +84,9 @@ TEST(ComposableTest, NestedFusion) {
 }
 
 TEST(ComposableTest, FusionSameScope) {
-    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
-    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
-    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
+    AbstractDataTypePtr inputDS = annot::ArrayCPU("input_con");
+    AbstractDataTypePtr outputDS = annot::ArrayCPU("output_con");
+    AbstractDataTypePtr tempDS = annot::ArrayCPU("temp");
 
     annot::add_1 add_1;
     Variable v("v");
@@ -110,15 +106,16 @@ TEST(ComposableTest, FusionSameScope) {
     int64_t step_1 = 5;
     int64_t step_2 = 1;
 
-    Runner run(program);
-    run.compile(test::cpuRunner("array"));
+    evaluate(program, {
+                          {inputDS.getName(), &a},
+                          {outputDS.getName(), &b},
+                          {v.getName(), &step_1},
+                          {v1.getName(), &step_2},
+                      },
+             test::cpuRunner("array"));
 
-    run.evaluate({
-        {inputDS.getName(), &a},
-        {outputDS.getName(), &b},
-        {v.getName(), &step_1},
-        {v1.getName(), &step_2},
-    });
+    std::cout << b << std::endl;
+    std::cout << a << std::endl;
 
     //  Make sure we got the correct answer.
     for (int i = 0; i < 10; i++) {

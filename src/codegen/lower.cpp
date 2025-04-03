@@ -165,7 +165,12 @@ void ComposableLower::lower(const TiledComputation *node) {
 
     tiled_vars.insert(captured, loop_index);
 
+    cur_tiled_vars.insert(loop_index);
+
     this->visit(node->tiled);  // Visit the actual object.
+
+    cur_tiled_vars.erase(loop_index);
+
     current_ds.unscope();
     all_relationships.unscope();
     parents.unscope();
@@ -319,12 +324,12 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         if (isa<DSArg>(arg) &&
             current_ds.contains(to<DSArg>(arg)->getADTPtr())) {
             new_args.push_back(Argument(current_ds.at(to<DSArg>(arg)->getADTPtr())));
-        } else if (isa<VarArg>(arg)) {
+        } else if (isa<ExprArg>(arg)) {
             // Do we have a value floating around?
-            if (tiled_dimensions.contains(to<VarArg>(arg)->getVar())) {
-                new_args.push_back(Argument(tiled_dimensions.at(to<VarArg>(arg)->getVar())));
+            if (tiled_dimensions.contains(to<ExprArg>(arg)->getVar())) {
+                new_args.push_back(Argument(tiled_dimensions.at(to<ExprArg>(arg)->getVar())));
             } else {
-                new_args.push_back(Argument(to<VarArg>(arg)->getVar()));
+                new_args.push_back(Argument(to<ExprArg>(arg)->getVar()));
             }
         } else {
             throw error::InternalError("Unknown argument type: " + arg.str());
@@ -345,7 +350,8 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
     new_call.args = new_args;
     new_call.template_args = new_template_args;
 
-    lowered.push_back(new const ComputeNode(new_call, node->getHeader()));
+    lowered.push_back(new const ComputeNode(new_call, node->getHeader(),
+                                            current_ds.at(node->getAnnotation().getPattern().getOutput().getDS())));
 
     lowerIR = new const BlockNode(lowered);
 }
@@ -396,36 +402,40 @@ AbstractDataTypePtr ComposableLower::getCurrent(AbstractDataTypePtr ds) const {
 const QueryNode *ComposableLower::constructQueryNode(AbstractDataTypePtr ds, std::vector<Expr> args) {
     AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + ds.getName()), "auto", ds);
     auto fields = getCurrentFields(ds, args);
-    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds, ds.getFields(), fields);
+    FunctionCall f = constructFunctionCall(ds.getQueryFunction(), ds.getFields(), fields);
     auto cur_scope_ds = getCurrent(ds);
-    f.name = cur_scope_ds.getName() + "." + f.name;
     f.output = Parameter(queried);
     current_ds.insert(ds, queried);
-    staged_ds.insert(ds, args);
+    std::vector<Expr> staged_vars{cur_tiled_vars.begin(), cur_tiled_vars.end()};
+    staged_vars.insert(staged_vars.end(), args.begin(), args.end());
+    staged_ds.insert(ds, staged_vars);
     queried_with.insert(ds, fields);
-    return new const QueryNode(ds, queried, fields, f);
+    MethodCall call = MethodCall(cur_scope_ds, f);
+    return new const QueryNode(ds, queried, fields, call);
 }
 
 const InsertNode *ComposableLower::constructInsertNode(AbstractDataTypePtr parent,
                                                        AbstractDataTypePtr child,
                                                        std::vector<Expr> insert_args) const {
     FunctionCall f = constructFunctionCall(parent.getInsertFunction(),
-                                           parent,
                                            parent.getFields(),
                                            insert_args);
-    f.name = parent.getName() + "." + f.name;
     f.args.push_back(child);
-    return new const InsertNode(parent, f);
+    MethodCall call = MethodCall(parent, f);
+    return new const InsertNode(call);
 }
 
 const AllocateNode *ComposableLower::constructAllocNode(AbstractDataTypePtr ds, std::vector<Expr> alloc_args) {
     auto fields = getCurrentFields(ds, alloc_args);
-    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(), ds,
+    FunctionCall alloc_func = constructFunctionCall(ds.getAllocateFunction(),
                                                     ds.getFields(),
                                                     fields);
     alloc_func.output = Parameter(ds);
     current_ds.insert(ds, ds);
-    return new const AllocateNode(ds, fields, alloc_func);
+    std::vector<Expr> staged_vars{cur_tiled_vars.begin(), cur_tiled_vars.end()};
+    staged_vars.insert(staged_vars.end(), alloc_args.begin(), alloc_args.end());
+    staged_ds.insert(ds, staged_vars);
+    return new const AllocateNode(alloc_func);
 }
 
 template<typename T1>
@@ -479,9 +489,7 @@ std::vector<Expr> ComposableLower::getCurrentFields(AbstractDataTypePtr ds,
             }
         }
 
-        assert(staged_with.size() == true_md_fields.size());
-
-        for (size_t i = 0; i < staged_with.size(); i++) {
+        for (size_t i = 0; i < true_md_fields.size(); i++) {
             auto vars = getVariables(true_md_fields[i]);
             for (const auto &v : vars) {
                 if (!offset_by.contains(v)) {
@@ -502,7 +510,6 @@ std::vector<Expr> ComposableLower::getCurrentFields(AbstractDataTypePtr ds,
 }
 
 FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
-                                                    AbstractDataTypePtr ds,
                                                     std::vector<Variable> ref_md_fields,
                                                     std::vector<Expr> true_md_fields) const {
 
@@ -518,7 +525,7 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
     // Now, set up the args.
     std::vector<Argument> new_args;
     for (auto const &a : f.args) {
-        new_args.push_back(Argument(mappings.at(to<VarArg>(a)->getVar())));
+        new_args.push_back(Argument(mappings.at(to<ExprArg>(a)->getVar())));
     }
     // set up the templated args.
     std::vector<Expr> template_args;
@@ -553,8 +560,8 @@ LowerIR ComposableLower::declare_computes(Pattern annotation) const {
                                   lowered.push_back(
                                       generate_definitions(op->step = step_val));
                               } else {
-                                  lowered.insert(lowered.begin(),
-                                                 generate_definitions(op->step = op->parameter));
+                                  lowered.push_back(
+                                      generate_definitions(op->step = op->parameter));
                               }
                           }));
     return new const BlockNode(lowered);
