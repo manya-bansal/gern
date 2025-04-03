@@ -497,10 +497,6 @@ std::vector<Expr> ComposableLower::getCurrentFields(AbstractDataTypePtr ds,
                     if (e.defined()) {
                         offset_by[v] = e;
                     }
-                    // it was the first one, return
-                    if (isa<Variable>(e) && staged_at.contains(to<Variable>(e))) {
-                        offset_by[v] = 0;
-                    }
                 }
             }
             new_true_md_fields[i] = replaceVariables(true_md_fields[i], offset_by);  // Replace the variables with their offset values.
