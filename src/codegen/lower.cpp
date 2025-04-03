@@ -385,7 +385,6 @@ void ComposableLower::visit(const StageNode *node) {
     for (const auto &var : node->old_to_new) {
         all_relationships.insert(var.first, var.second);
     }
-
     // lower the body.
     this->visit(node->body);
     lowered.push_back(lowerIR);

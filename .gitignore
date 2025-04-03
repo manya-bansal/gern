@@ -3,6 +3,8 @@
 .vscode/
 _local/
 *build*/
+/apps/blur/build_halide/
+*/*.bin
 cmake-build*/
 vcpkg_installed/
 Testing*/

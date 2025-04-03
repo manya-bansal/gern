@@ -3,7 +3,7 @@ impls=(
 )
 
 > gern
-> halide
+# > halide
 
 for impl in ${impls[@]}; do
     echo "Benchmarking $impl"

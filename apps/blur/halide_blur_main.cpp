@@ -14,6 +14,15 @@
 #define SAMPLES 10
 #define ITERATIONS 10
 
+// void pthread_cond_bug() {
+//     pthread_cond_signal((pthread_cond_t *)nullptr);
+//     pthread_cond_init((pthread_cond_t *)nullptr,
+//                       (const pthread_condattr_t *)nullptr);
+//     pthread_cond_destroy((pthread_cond_t *)nullptr);
+//     pthread_cond_timedwait((pthread_cond_t *)nullptr, (pthread_mutex_t *)nullptr, (const struct timespec *)nullptr);
+//     pthread_cond_wait((pthread_cond_t *)nullptr, (pthread_mutex_t *)nullptr);
+// }
+
 int main(int argc, char **argv) {
     // for (int num_elem = SLIDING_START_DIM; num_elem <= SLIDING_END_DIM; num_elem += SLIDING_STEP_DIM) {
     int num_elem = size_matrix + 2;
