@@ -1,5 +1,5 @@
-#ifndef HALIDE_____halide_build___halide_blur_h
-#define HALIDE_____halide_build___halide_blur_h
+#ifndef HALIDE_____build_halide___halide_blur_h
+#define HALIDE_____build_halide___halide_blur_h
 #include <stdint.h>
 
 // Forward declarations of the types used in the interface

@@ -1,6 +1,6 @@
 # Makefile for Halide build.
 HALIDE_PATH=/home/manya/halide_local
-HALIDE_BUILD=halide_build
+HALIDE_BUILD=build_halide
 
 CXX=g++-10
 CXX_FLAGS=-std=c++17 -O3
