@@ -3,6 +3,7 @@
 .vscode/
 _local/
 */build*/
+*/halide_build/
 */*.bin
 cmake-build*/
 vcpkg_installed/
