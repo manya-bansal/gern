@@ -43,4 +43,6 @@ private:
     std::optional<std::vector<Parameter>> ordered_parameters;
 };
 
+void evaluate(Composable c, std::map<std::string, void *> args, Runner::Options config);
+
 }  // namespace gern

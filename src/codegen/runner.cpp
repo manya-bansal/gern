@@ -83,4 +83,10 @@ FunctionSignature Runner::getSignature() const {
     return signature;
 }
 
+void evaluate(Composable c, std::map<std::string, void *> args, Runner::Options config) {
+    Runner runner(c);
+    runner.compile(config);
+    runner.evaluate(args);
+}
+
 }  // namespace gern
