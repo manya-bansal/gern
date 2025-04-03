@@ -1,5 +1,0 @@
-if(EXISTS "/home/manya/gern/build/dev/test/gern_test[1]_tests.cmake")
-  include("/home/manya/gern/build/dev/test/gern_test[1]_tests.cmake")
-else()
-  add_test(gern_test_NOT_BUILT gern_test_NOT_BUILT)
-endif()
