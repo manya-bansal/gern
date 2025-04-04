@@ -1,5 +1,7 @@
 ## GERN: Lightweight Fusion for GPUs
 
+🚧 **Under Construction!** 🚧
+
 To build gern, install [vcpkg] and make sure `VCPKG_ROOT` is set in your
 environment. Then run:
 
