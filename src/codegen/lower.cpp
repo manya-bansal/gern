@@ -91,7 +91,7 @@ LowerIR ComposableLower::lower() {
     // these will come directly from the user.
 
     Concretize concretize(composable);
-    concretize.concretize();
+    return concretize.concretize();
 
     auto pattern = composable.getAnnotation().getPattern();
     AbstractDataTypePtr output = pattern.getOutput().getDS();
@@ -196,7 +196,7 @@ void ComposableLower::lower(const TiledComputation *node) {
 LowerIR ComposableLower::constructADTForCurrentScope(AbstractDataTypePtr d, std::vector<Expr> fields) {
     LowerIR ir = new const BlankNode();
     // If the data-stucture is in the current scope, skip.
-    if (current_ds.contains_at_current_scope(d)) {
+    if (current_ds.contains_in_current_scope(d)) {
         return ir;
     }
     // If the adt is in the outer scope, generate a query.
@@ -219,7 +219,7 @@ void ComposableLower::common(const T *node) {
     AbstractDataTypePtr parent;
     bool to_insert = false;
 
-    if (!current_ds.contains_at_current_scope(output)) {
+    if (!current_ds.contains_in_current_scope(output)) {
         assert(current_ds.contains(output));
         parent = getCurrent(output);       // Get the current parent before query over-writes it.
         to_insert = parent.insertQuery();  // Do we need to insert out query?
@@ -279,7 +279,7 @@ void ComposableLower::visit(const TiledComputation *node) {
         Pattern pattern = node->getAnnotation().getPattern();
         SubsetObj output_subset = pattern.getOutput();
         AbstractDataTypePtr output = output_subset.getDS();
-        if (!current_ds.contains_at_current_scope(output)) {
+        if (!current_ds.contains_in_current_scope(output)) {
             lowered.push_back(declare_computes(pattern));  // Declare anything that's necessary for the queries.
         }
         common(node);
@@ -309,7 +309,7 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         // (at this point we are already declared
         // all the intermediates), generate a query.
         AbstractDataTypePtr input_ds = input.getDS();
-        if (!current_ds.contains_at_current_scope(input_ds)) {
+        if (!current_ds.contains_in_current_scope(input_ds)) {
             if (current_ds.contains(input_ds)) {
                 // Generate a query.
                 lowered.push_back(constructQueryNode(input_ds,
@@ -383,7 +383,7 @@ void ComposableLower::visit(const StageNode *node) {
     lowered.push_back(declare_consumes(node->getAnnotation().getPattern()));
 
     // Now, stage the input or output.
-    if (!current_ds.contains_at_current_scope(node->adt)) {
+    if (!current_ds.contains_in_current_scope(node->adt)) {
         lowered.push_back(constructQueryNode(node->adt, node->staged_subset.getFields()));
     }
     // Track all the relationships.

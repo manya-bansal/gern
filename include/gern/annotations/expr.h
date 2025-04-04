@@ -13,6 +13,7 @@
 
 namespace gern {
 
+struct LiteralNode;
 struct VariableNode;
 struct ADTMemberNode;
 struct AddNode;
@@ -77,6 +78,12 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &os, const Constraint &);
+
+class Literal : public Expr {
+public:
+    Literal(const LiteralNode *);
+    typedef LiteralNode Node;
+};
 
 #define DEFINE_BINARY_CLASS(NAME, NODE)    \
     class NAME : public NODE {             \

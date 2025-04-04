@@ -271,7 +271,7 @@ TEST(LoweringCPU, DoubleMM) {
     auto E_DS = AbstractDataTypePtr(new const annot::MatrixCPU("E"));
 
     annot::MatrixMultiplyCPU matrix_multiply;
-    Variable k1("k1");
+    // Variable k1("k1");
     Variable k2("k2");
     Variable ti("ti");
     Variable tj("tj");
@@ -280,8 +280,8 @@ TEST(LoweringCPU, DoubleMM) {
     Composable program({
         Tile(E_DS["row"], ti)(
             Tile(E_DS["col"], tj)(
-                Reduce(k1, tk)(
-                    matrix_multiply(A_DS, B_DS, C_DS, k1)),
+                Reduce(k2, tk)(
+                    matrix_multiply(A_DS, B_DS, C_DS, k2)),
                 Reduce(k2, tk)(
                     matrix_multiply(C_DS, D_DS, E_DS, k2)))),
     });
@@ -311,7 +311,7 @@ TEST(LoweringCPU, DoubleMM) {
         {B_DS.getName(), &b},
         {D_DS.getName(), &d},
         {E_DS.getName(), &e},
-        {k1.getName(), &num_col},
+        // {k1.getName(), &num_col},
         {k2.getName(), &num_col},
         {ti.getName(), &ti_val},
         {tj.getName(), &tj_val},
