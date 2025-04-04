@@ -36,6 +36,7 @@ target_sources(
         src/compose/compose.cpp
         src/compose/composable.cpp
         src/compose/composable_visitor.cpp
+        src/codegen/concretize.cpp
         src/codegen/codegen.cpp
         src/codegen/codegen_ir.cpp
         src/codegen/codegen_printer.cpp
@@ -73,6 +74,7 @@ target_sources(
         include/gern/compose/composable_visitor.h
         include/gern/compose/composable_node.h
         include/gern/compose/runner.h
+        include/gern/codegen/concretize.h
         include/gern/codegen/codegen.h
         include/gern/codegen/codegen_ir.h
         include/gern/codegen/codegen_visitor.h

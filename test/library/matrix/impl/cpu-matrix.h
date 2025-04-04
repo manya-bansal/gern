@@ -32,6 +32,12 @@ public:
         return MatrixCPU(l_x, l_y, l_y);
     }
 
+    static MatrixCPU allocate_zero(int64_t, int64_t, int64_t l_x, int64_t l_y) {
+        MatrixCPU m(l_x, l_y, l_y);
+        m.vvals(0.0f);
+        return m;
+    }
+
     MatrixCPU query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
         return MatrixCPU(data + (x * lda + y), l_x, l_y, lda);
     }
@@ -188,6 +194,8 @@ inline void divide_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
 }
 
 inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dummy) {
+    std::cout << a << std::endl;
+    std::cout << b << std::endl;
     float *a_data;
     float *b_data;
     float *c_data;
@@ -203,6 +211,8 @@ inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dum
             c_data[j] += sum;
         }
     }
+    std::cout << c << std::endl;
+    std::cout << "--------------------------------" << std::endl;
 }
 
 }  // namespace impl

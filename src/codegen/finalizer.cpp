@@ -24,7 +24,7 @@ LowerIR Finalizer::finalize() {
 
     to_free.scope();
 
-    visit(hoisted_ir);
+    visit(ir);
 
     std::vector<LowerIR> new_ir;
     new_ir.push_back(final_ir);
