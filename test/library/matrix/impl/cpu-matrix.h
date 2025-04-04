@@ -194,8 +194,6 @@ inline void divide_vec(ArrayCPU b, MatrixCPU a, MatrixCPU out) {
 }
 
 inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dummy) {
-    std::cout << a << std::endl;
-    std::cout << b << std::endl;
     float *a_data;
     float *b_data;
     float *c_data;
@@ -211,8 +209,6 @@ inline void matrix_multiply(MatrixCPU a, MatrixCPU b, MatrixCPU c, int64_t k_dum
             c_data[j] += sum;
         }
     }
-    std::cout << c << std::endl;
-    std::cout << "--------------------------------" << std::endl;
 }
 
 }  // namespace impl
