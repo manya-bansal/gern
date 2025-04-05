@@ -42,6 +42,10 @@ Expr Concretize::get_base_expr(Expr e,
         }
 
         Expr locate() {
+            // std::cout << "All relationships: " << all_relationships << std::endl;
+            for (const auto &rel : all_relationships) {
+                std::cout << rel.first.str() << " -> " << rel.second.str() << std::endl;
+            }
             child.accept(this);
             return parent;
         }
@@ -60,7 +64,7 @@ Expr Concretize::get_base_expr(Expr e,
         DEFINE_BINARY_VISIT(ModNode, %)
 
         void visit(const VariableNode *v) {
-            std::cout << "Visiting variable: " << defined << std::endl;
+            // std::cout << "Visiting variable: " << v->name << std::endl;
             if (all_relationships.contains(v) && !stop_at.contains(v)) {
                 if (iteration_variables.contains(v)) {
                     parent = v + locate_parent(all_relationships.at(v), all_relationships, stop_at, iteration_variables, defined).locate();
@@ -201,12 +205,14 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
     return ir;
 }
 
-LowerIR Concretize::generate_definition(Assign assign, bool check_const_expr) {
-    Variable var = to<Variable>(assign.getA());
-    all_relationships[var] = assign.getB();
+void Concretize::define_variable(Variable var, Expr expr) {
+    if (defined.contains(var) || var.isBound()) {
+        throw error::UserError("Variable " + var.str() + " already defined.");
+    }
+    all_relationships[var] = expr;
 
-    defined.insert(var);
-    return LowerIR(new DefNode(assign, check_const_expr && isConstExpr(assign.getB())));
+    // defined.insert(var);
+    // return LowerIR(new DefNode(assign, check_const_expr && isConstExpr(assign.getB())));
 }
 
 LowerIR Concretize::declare_intervals(Variable i, Expr start, Expr end, Variable step) {
@@ -224,10 +230,10 @@ LowerIR Concretize::declare_intervals(Variable i, Expr start, Expr end, Variable
     auto step_expr = get_base_expr(step, all_relationships, {});
 
     if (isa<Literal>(step_expr)) {
-        all_relationships[step] = end;
+        define_variable(step, end);
         // lowered.push_back(generate_definition(step = end, true));
     } else {
-        all_relationships[step] = step_expr;
+        define_variable(step, step_expr);
         // lowered.push_back(generate_definition(step = step_expr, true));
     }
 
@@ -251,7 +257,7 @@ void Concretize::visit(const Computation *node) {
         lowered.push_back(declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second)));
     }
     for (const auto &c : node->declarations) {
-        all_relationships[to<Variable>(c.getA())] = c.getB();
+        define_variable(to<Variable>(c.getA()), c.getB());
     }
 
     SubsetObj parent;
@@ -286,10 +292,10 @@ void Concretize::visit(const TiledComputation *node) {
     // all_relationships.scope();
     std::vector<LowerIR> lowered;
     for (const auto &rel : node->old_to_new) {
-        all_relationships[rel.first] = rel.second;
+        define_variable(rel.first, rel.second);
     }
 
-    all_relationships[node->step] = node->v;
+    define_variable(node->step, node->v);
     defined.insert(node->v);
 
     auto tileable_fileds = node->getAnnotation().getPattern().getTileableFields();
@@ -421,7 +427,7 @@ void Concretize::visit(const GlobalNode *node) {
 void Concretize::visit(const StageNode *node) {
     std::vector<LowerIR> lowered;
     for (const auto &rel : node->old_to_new) {
-        all_relationships[rel.first] = rel.second;
+        define_variable(rel.first, rel.second);
     }
     auto tileable_fileds = node->getAnnotation().getPattern().getTileableFields();
     for (const auto &field : tileable_fileds) {

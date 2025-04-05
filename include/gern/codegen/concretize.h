@@ -31,6 +31,8 @@ private:
     void visit(const GlobalNode *);
     void visit(const StageNode *);
 
+    void define_variable(Variable var, Expr expr);
+
     std::map<Variable, Expr> all_relationships;
     util::ScopedSet<Variable> defined;
     std::set<Variable> iteration_variables;
