@@ -361,16 +361,14 @@ void Concretize::visit(const ComputeFunctionCall *node) {
             if (tiled_dimensions.contains(to<ExprArg>(arg)->getVar())) {
                 new_args.push_back(Argument(tiled_dimensions.at(to<ExprArg>(arg)->getVar())));
             } else {
-                new_args.push_back(Argument(to<ExprArg>(arg)->getVar()));
+                new_args.push_back(Argument(get_base_expr(to<ExprArg>(arg)->getExpr(), all_relationships, {})));
+                // new_args.push_back(Argument(to<ExprArg>(arg)->getVar()));
             }
         } else {
             throw error::InternalError("Unknown argument type: " + arg.str());
         }
     }
     // std::cout << "Relationships: " << all_relationships << std::endl;
-    for (const auto &rel : all_relationships) {
-        std::cout << rel.first.str() << " -> " << rel.second.str() << std::endl;
-    }
 
     std::vector<Expr> new_template_args;
     auto template_args = call.template_args;
@@ -379,8 +377,6 @@ void Concretize::visit(const ComputeFunctionCall *node) {
             new_template_args.push_back(tiled_dimensions.at(arg));
         } else {
             new_template_args.push_back(get_base_expr(arg, all_relationships, {}));
-            std::cout << "Template arg: " << arg << get_base_expr(arg, all_relationships, {}) << std::endl;
-            // new_template_args.push_back(arg);
         }
     }
 
