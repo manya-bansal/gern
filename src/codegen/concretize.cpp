@@ -14,11 +14,11 @@ LowerIR Concretize::concretize() {
     // passed by the user.
     auto pattern = program.getAnnotation().getPattern();
     adt_in_scope.insert(pattern.getOutput().getDS(), {});
-    current_adt.insert(pattern.getOutput().getDS(), pattern.getOutput().getDS());
+    current_adt.insert(pattern.getOutput().getDS(), SubsetObj(pattern.getOutput().getDS(), {}));
 
     for (const auto &input : pattern.getInputs()) {
         adt_in_scope.insert(input.getDS(), {});
-        current_adt.insert(input.getDS(), input.getDS());
+        current_adt.insert(input.getDS(), SubsetObj(input.getDS(), {}));
     }
 
     this->visit(program);
@@ -172,14 +172,14 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
             // Insert for current iteration variables.
             adt_in_scope.insert(adt, iteration_variables);
 
-            AbstractDataTypePtr parent = current_adt.at(adt);
+            AbstractDataTypePtr parent = current_adt.at(adt).getDS();
             std::cout << "Current ADT: " << current_adt << std::endl;
             auto call = constructFunctionCall(parent.getQueryFunction(), parent.getFields(), fields_expr);
 
             AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + adt.getName()), "auto", adt);
             call.output = Parameter(queried);
             MethodCall method_call = MethodCall(parent, call);
-            current_adt.insert(adt, queried);
+            current_adt.insert(adt, SubsetObj(queried, fields_expr));
             ir = LowerIR(new const QueryNode(adt, queried, fields_expr, method_call));
 
         } else {
@@ -193,7 +193,7 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
 
             auto call = constructFunctionCall(adt.getAllocateFunction(), adt.getFields(), fields_expr);
             call.output = Parameter(adt);
-            current_adt.insert(adt, adt);
+            current_adt.insert(adt, SubsetObj(adt, fields_expr));
             ir = LowerIR(new const AllocateNode(call));
         }
     }
@@ -252,7 +252,11 @@ void Concretize::visit(const Computation *node) {
     }
     for (const auto &c : node->declarations) {
         all_relationships[to<Variable>(c.getA())] = c.getB();
-        // lowered.push_back(generate_definition(c));
+    }
+
+    SubsetObj parent;
+    if (current_adt.contains(node->getAnnotation().getPattern().getOutput().getDS())) {
+        parent = current_adt.at(node->getAnnotation().getPattern().getOutput().getDS());
     }
     // Stage the output.
     lowered.push_back(prepare_for_current_scope(node->getAnnotation().getPattern().getOutput()));
@@ -262,6 +266,16 @@ void Concretize::visit(const Computation *node) {
         lowered.push_back(prepare_for_current_scope(c.getAnnotation().getPattern().getOutput()));
         this->visit(c);
         lowered.push_back(lowerIR);
+    }
+
+    auto output_subset = current_adt.at(node->getAnnotation().getPattern().getOutput().getDS());
+
+    if (parent.defined() && parent.getDS().insertQuery()) {
+        auto call = constructFunctionCall(parent.getDS().getInsertFunction(),
+                                          parent.getDS().getFields(), output_subset.getFields());
+        call.args.push_back(output_subset.getDS());
+        MethodCall method_call = MethodCall(parent.getDS(), call);
+        lowered.push_back(LowerIR(new const InsertNode(method_call)));
     }
 
     lowerIR = new const BlockNode(lowered);
@@ -355,20 +369,19 @@ void Concretize::visit(const ComputeFunctionCall *node) {
     for (const auto &arg : args) {
         if (isa<DSArg>(arg) &&
             current_adt.contains(to<DSArg>(arg)->getADTPtr())) {
-            new_args.push_back(Argument(current_adt.at(to<DSArg>(arg)->getADTPtr())));
+            new_args.push_back(Argument(current_adt.at(to<DSArg>(arg)->getADTPtr()).getDS()));
         } else if (isa<ExprArg>(arg)) {
             // Do we have a value floating around?
             if (tiled_dimensions.contains(to<ExprArg>(arg)->getVar())) {
                 new_args.push_back(Argument(tiled_dimensions.at(to<ExprArg>(arg)->getVar())));
             } else {
-                new_args.push_back(Argument(get_base_expr(to<ExprArg>(arg)->getExpr(), all_relationships, {})));
-                // new_args.push_back(Argument(to<ExprArg>(arg)->getVar()));
+                // new_args.push_back(Argument(get_base_expr(to<ExprArg>(arg)->getExpr(), all_relationships, {})));
+                new_args.push_back(Argument(to<ExprArg>(arg)->getVar()));
             }
         } else {
             throw error::InternalError("Unknown argument type: " + arg.str());
         }
     }
-    // std::cout << "Relationships: " << all_relationships << std::endl;
 
     std::vector<Expr> new_template_args;
     auto template_args = call.template_args;
@@ -385,7 +398,7 @@ void Concretize::visit(const ComputeFunctionCall *node) {
     new_call.template_args = new_template_args;
 
     lowered.push_back(new const ComputeNode(new_call, node->getHeader(),
-                                            current_adt.at(node->getAnnotation().getPattern().getOutput().getDS())));
+                                            current_adt.at(node->getAnnotation().getPattern().getOutput().getDS()).getDS()));
 
     lowerIR = new const BlockNode(lowered);
 }

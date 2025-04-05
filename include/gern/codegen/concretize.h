@@ -34,7 +34,7 @@ private:
     std::map<Variable, Expr> all_relationships;
     util::ScopedSet<Variable> defined;
     std::set<Variable> iteration_variables;
-    util::ScopedMap<AbstractDataTypePtr, AbstractDataTypePtr> current_adt;
+    util::ScopedMap<AbstractDataTypePtr, SubsetObj> current_adt;
     util::ScopedMap<Expr, Variable> tiled_dimensions;
 
     LowerIR declare_intervals(Variable i, Expr start, Expr end, Variable step);
