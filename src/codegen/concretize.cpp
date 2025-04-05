@@ -177,7 +177,6 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
             adt_in_scope.insert(adt, iteration_variables);
 
             AbstractDataTypePtr parent = current_adt.at(adt).getDS();
-            std::cout << "Current ADT: " << current_adt << std::endl;
             auto call = constructFunctionCall(parent.getQueryFunction(), parent.getFields(), fields_expr);
 
             AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + adt.getName()), "auto", adt);
@@ -185,6 +184,8 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
             MethodCall method_call = MethodCall(parent, call);
             current_adt.insert(adt, SubsetObj(queried, fields_expr));
             ir = LowerIR(new const QueryNode(adt, queried, fields_expr, method_call));
+
+            std::cout << ir << std::endl;
 
         } else {
 
@@ -206,41 +207,31 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
 }
 
 void Concretize::define_variable(Variable var, Expr expr) {
-    if (defined.contains(var) || var.isBound()) {
-        throw error::UserError("Variable " + var.str() + " already defined.");
+    if (var.isBound()) {
+        // throw error::UserError("Variable " + var.str() + " already defined.");
+        return;
+    }
+    if (defined.contains(var)) {
+        return;
     }
     all_relationships[var] = expr;
-
-    // defined.insert(var);
-    // return LowerIR(new DefNode(assign, check_const_expr && isConstExpr(assign.getB())));
 }
 
 LowerIR Concretize::declare_intervals(Variable i, Expr start, Expr end, Variable step) {
     // TODO: Implement this.
     std::vector<LowerIR> lowered;
-    auto expr = get_base_expr(i, all_relationships, {});
-    if (isa<Literal>(expr)) {
-        // all_relationships[i] = start;
-        // lowered.push_back(generate_definition(i = start, false));
-    } else {
-        // all_relationships[i] = expr;
-        // lowered.push_back(generate_definition(i = expr, false));
-    }
 
     auto step_expr = get_base_expr(step, all_relationships, {});
-
     if (isa<Literal>(step_expr)) {
         define_variable(step, end);
-        // lowered.push_back(generate_definition(step = end, true));
     } else {
         define_variable(step, step_expr);
-        // lowered.push_back(generate_definition(step = step_expr, true));
     }
 
     if (isa<Variable>(end)) {
-        // This must be declared.
         defined.insert(to<Variable>(end));
     }
+
     return LowerIR(new const BlockNode(lowered));
 }
 
@@ -261,7 +252,7 @@ void Concretize::visit(const Computation *node) {
     }
 
     SubsetObj parent;
-    if (current_adt.contains(node->getAnnotation().getPattern().getOutput().getDS())) {
+    if (!current_adt.contains_in_current_scope(node->getAnnotation().getPattern().getOutput().getDS())) {
         parent = current_adt.at(node->getAnnotation().getPattern().getOutput().getDS());
     }
     // Stage the output.
@@ -314,8 +305,13 @@ void Concretize::visit(const TiledComputation *node) {
         lowered.push_back(declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second)));
     }
 
+    SubsetObj parent;
     if (node->reduce) {
+        std::cout << current_adt << std::endl;
         // If we are reducing, then we stage the output, and then proceed.
+        if (current_adt.contains(node->getAnnotation().getPattern().getOutput().getDS())) {
+            parent = current_adt.at(node->getAnnotation().getPattern().getOutput().getDS());
+        }
         lowered.push_back(prepare_for_current_scope(node->tiled.getAnnotation().getPattern().getOutput()));
     }
 
@@ -337,7 +333,7 @@ void Concretize::visit(const TiledComputation *node) {
     }
 
     this->visit(node->tiled);
-    lowered.push_back(lowerIR);
+    // lowered.push_back(lowerIR);
 
     adt_in_scope.unscope();
     iteration_variables.erase(node->loop_index);
@@ -345,7 +341,7 @@ void Concretize::visit(const TiledComputation *node) {
     tiled_dimensions.unscope();
     current_adt.unscope();
 
-    lowerIR = new const BlockNode(lowered);
+    // lowerIR = new const BlockNode(lowered);
 
     auto expr = get_base_expr(node->step, all_relationships, {});
     bool has_parent = tiled_dimensions.contains(node->parameter);
@@ -356,6 +352,21 @@ void Concretize::visit(const TiledComputation *node) {
         node->v,
         lowerIR,
         node->unit);
+
+    // lowered ;
+    lowered.push_back(lowerIR);
+
+    auto output_subset = current_adt.at(node->getAnnotation().getPattern().getOutput().getDS());
+
+    if (parent.defined() && parent.getDS().insertQuery()) {
+        auto call = constructFunctionCall(parent.getDS().getInsertFunction(),
+                                          parent.getDS().getFields(), output_subset.getFields());
+        call.args.push_back(output_subset.getDS());
+        MethodCall method_call = MethodCall(parent.getDS(), call);
+        lowered.push_back(LowerIR(new const InsertNode(method_call)));
+    }
+
+    lowerIR = new const BlockNode(lowered);
 }
 
 void Concretize::visit(const ComputeFunctionCall *node) {
@@ -381,7 +392,6 @@ void Concretize::visit(const ComputeFunctionCall *node) {
             if (tiled_dimensions.contains(to<ExprArg>(arg)->getVar())) {
                 new_args.push_back(Argument(tiled_dimensions.at(to<ExprArg>(arg)->getVar())));
             } else {
-                // new_args.push_back(Argument(get_base_expr(to<ExprArg>(arg)->getExpr(), all_relationships, {})));
                 new_args.push_back(Argument(to<ExprArg>(arg)->getVar()));
             }
         } else {
