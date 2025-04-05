@@ -60,10 +60,7 @@ Expr Concretize::get_base_expr(Expr e,
         DEFINE_BINARY_VISIT(ModNode, %)
 
         void visit(const VariableNode *v) {
-            // std::cout << "Visiting variable: " << v->name << std::endl;
-            // for (const auto &rel : all_relationships) {
-            //     std::cout << rel.first.str() << " -> " << rel.second.str() << std::endl;
-            // }
+            std::cout << "Visiting variable: " << defined << std::endl;
             if (all_relationships.contains(v) && !stop_at.contains(v)) {
                 if (iteration_variables.contains(v)) {
                     parent = v + locate_parent(all_relationships.at(v), all_relationships, stop_at, iteration_variables, defined).locate();
@@ -71,10 +68,14 @@ Expr Concretize::get_base_expr(Expr e,
                     parent = locate_parent(all_relationships.at(v), all_relationships, stop_at, iteration_variables, defined).locate();
                 }
             } else {
-                if (stop_at.contains(v) || (!defined.contains(v) && !iteration_variables.contains(v))) {
+                if (stop_at.contains(v)) {
                     parent = 0;  // stop, nowhere to go.
                 } else {         // we must be at the base.
-                    parent = v;
+                    if (!defined.contains(v) && !iteration_variables.contains(v) && !v->bound) {
+                        parent = 0;
+                    } else {
+                        parent = v;
+                    }
                 }
             }
         }
@@ -366,6 +367,10 @@ void Concretize::visit(const ComputeFunctionCall *node) {
             throw error::InternalError("Unknown argument type: " + arg.str());
         }
     }
+    // std::cout << "Relationships: " << all_relationships << std::endl;
+    for (const auto &rel : all_relationships) {
+        std::cout << rel.first.str() << " -> " << rel.second.str() << std::endl;
+    }
 
     std::vector<Expr> new_template_args;
     auto template_args = call.template_args;
@@ -373,7 +378,9 @@ void Concretize::visit(const ComputeFunctionCall *node) {
         if (tiled_dimensions.contains(arg)) {
             new_template_args.push_back(tiled_dimensions.at(arg));
         } else {
-            new_template_args.push_back(arg);
+            new_template_args.push_back(get_base_expr(arg, all_relationships, {}));
+            std::cout << "Template arg: " << arg << get_base_expr(arg, all_relationships, {}) << std::endl;
+            // new_template_args.push_back(arg);
         }
     }
 
