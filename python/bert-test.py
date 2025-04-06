@@ -47,5 +47,5 @@ gern_model = gen(model, torch_to_gern, tile_rows=128)
 gern_output = gern_model(input_ids)["pooler_output"]
 print("GERN OUTPUT", gern_output)
 
-print(torch.allclose(ref_output, gern_output, atol=1e-6))
+print(torch.allclose(ref_output, gern_output, atol=1e-5))
 

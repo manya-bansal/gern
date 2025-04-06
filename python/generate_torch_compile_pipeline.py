@@ -18,7 +18,8 @@ class FnInterface:
         self.extra_args = extra_args
 
 
-def function_call_fn(runner, inp, output_adt_ptr, out_size, input_adt_ptrs, orig_arg, *args):
+def function_call_fn(runner, inp, output_adt_ptr, out_size, input_adt_ptrs, *args):
+    args = [torch.Tensor.contiguous(arg) if isinstance(arg, torch.Tensor) else arg for arg in args]
     # print("CALLING EVALUATE")
     # print("INPUT ADT PTRS", input_adt_ptrs)
 
@@ -32,9 +33,11 @@ def function_call_fn(runner, inp, output_adt_ptr, out_size, input_adt_ptrs, orig
     for idx in itertools.product(*[range(s) for s in out_size[:-2]]):
         input_args = {
             input_adt_ptr.getName(): getAddress(
-                MatrixCPU.init(input_tensor[idx].data_ptr(), *input_tensor[idx].size(), input_tensor[idx].stride()[0])
+                MatrixCPU.init(input_val[idx].data_ptr(), *input_val[idx].size(), input_val[idx].stride()[0])
+                if isinstance(input_val, torch.Tensor)
+                else Float.init(input_val)
             )
-            for input_adt_ptr, input_tensor in zip(input_adt_ptrs, args)
+            for input_adt_ptr, input_val in zip(input_adt_ptrs, args)
         }
 
         out_tensor = final_out[idx]
@@ -44,9 +47,9 @@ def function_call_fn(runner, inp, output_adt_ptr, out_size, input_adt_ptrs, orig
                                                 MatrixCPU.init(out_tensor.data_ptr(), *out_tensor.size(), out_tensor.stride()[0])
                                             )
                                         }
+        for arg in evaluate_args:
+            print("ARG NAME", arg)
         runner.evaluate(evaluate_args)
-    
-    print("FINAL ACTUAL MATCH", torch.allclose(final_out, orig_arg, atol=1e-6))
     return final_out
 
 def gen(M, torch_to_gern, *args, tile_rows=512):
@@ -63,7 +66,8 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
             nonlocal generated_runner
             if generated_runner is None:
 
-                env = {}
+                # a dict of node names to AbstractDataTypePtrs
+                adt_pointers = {}
                 fn_calls = []
 
                 # for i, node in enumerate(gm.graph.find_nodes(op="placeholder")):
@@ -85,44 +89,43 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
                     if node.target in torch_to_gern:
                         fn_interface = torch_to_gern[node.target]
 
-                        evaled_args = []
+                        abstract_args = []
                         arg_nodes = []
                         print("NODE TARGET", node.target)
-                        for i, arg in enumerate(node.args):
+                        for arg in node.args:
                             if isinstance(arg, torch.fx.Node):
-                                env[arg.name] = AbstractDataTypePtr(AnnotMatrixCPU.init(arg.name))
-                                evaled_args.append(env[arg.name])
+                                if arg.name not in adt_pointers:
+                                    adt_pointers[arg.name] = AbstractDataTypePtr(AnnotMatrixCPU.init(arg.name))
+                                    print("ASSIGNING ADT POINTER", arg.name)
+                                abstract_args.append(adt_pointers[arg.name])
                             else:
-                                var_name = node.name + "_" + str(i)
-                                var = Variable.init(var_name, DatatypeClass(Datatype.Float32))
+                                var = Variable.init(node.name + "_variable_arg", DatatypeClass(Datatype.Float32))
                                 variables.append((var, Float.init(arg)))
-                                evaled_args.append(var)
+                                abstract_args.append(var)
                             arg_nodes.append(arg)
 
                         result_arg = AbstractDataTypePtr(AnnotMatrixCPU.init(node.name))
-                        env[node.name] = result_arg
+                        print("ASSIGNING ADT POINTER", node.name)
+                        adt_pointers[node.name] = result_arg
 
                         specialize_dict = {}
                         extra_vars = []
-                        for specialize_arg in fn_interface.extra_args:
-                            var_name = node.name + "_" + specialize_arg
+                        for specialize_arg_name, specialize_arg_val_fn in fn_interface.extra_args.items():
+                            var_name = node.name + "_" + specialize_arg_name
                             var = Variable.init(var_name)
-                            variables.append((var, Int.init(fn_interface.extra_args[specialize_arg](node.args))))
+                            variables.append((var, Int.init(specialize_arg_val_fn(node.args))))
                             extra_vars.append(var)
-                            specialize_dict[specialize_arg] = var
+                            specialize_dict[specialize_arg_name] = var
 
                         fn_instance = fn_interface.fn()
                         fn_instance.setBindings(specialize_dict)
-                        fn_calls.append((fn_instance(*evaled_args, result_arg), evaled_args, arg_nodes, result_arg, extra_vars))
+                        fn_calls.append((fn_instance(*abstract_args, result_arg), abstract_args, arg_nodes, result_arg, extra_vars))
                     else:
                         # need to split pipeline 
-                        evaled_args_idx = []
                         print(node.meta)
                         for arg in node.args:
                             if not isinstance(arg, torch.fx.node.Node):
                                 continue
-                            print("SPLIT PIPELINE ARG", arg)
-                            print(type(arg))
                             
                             output_node = arg
                             out_size = output_node.meta['example_value'].size()
@@ -130,18 +133,20 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
                             print("TWO DIM OUT SIZE", two_dim_out_size)
                             # out_tensor = torch.empty(list(map(int, out_size)))
 
-                            if output_node.name not in env:
-                                env[output_node.name] = AbstractDataTypePtr(AnnotMatrixCPU.init(output_node.name))
-                            output_adt_ptr = env[output_node.name]
+                            if output_node.name not in adt_pointers:
+                                print("ASSIGNING ADT POINTER", output_node.name)
+                                adt_pointers[output_node.name] = AbstractDataTypePtr(AnnotMatrixCPU.init(output_node.name))
+                            output_adt_ptr = adt_pointers[output_node.name]
 
                             l_x = Variable.init("l_x")
                             l_y = Variable.init("l_y")
 
                             relevant_outputs = [output_adt_ptr]
-                            relevant_output_names = {output_adt_ptr.getName()}
                             relevant_fn_calls = set()
                             out_list_changed = True
                             relevant_output_nodes = [output_node]
+                            intermediates = []
+                            intermediate_nodes = []
 
                             print(fn_calls)
                             while out_list_changed:
@@ -150,25 +155,32 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
                                 for fn_call, inputs, input_nodes, result, extra_vars in fn_calls:
                                     if fn_call in relevant_fn_calls:
                                         continue
+                                    print("fn call", fn_call, "result", result, "relevant outputs", relevant_outputs, result in relevant_outputs)
                                     if result in relevant_outputs:
+                                        print("HERE")
+                                        intermediates.append(result)
                                         for inp, inp_node in zip(inputs, input_nodes):
                                             print("ADD INP", inp)
                                             relevant_outputs.append(inp)
-                                            relevant_output_names.add(inp.getName())
                                             relevant_output_nodes.append(inp_node)
                                         relevant_fn_calls.add(fn_call)
                                 if len(relevant_fn_calls) > orig_fn_call_sz:
                                     out_list_changed = True
 
-                            
-
                             if len(relevant_fn_calls) == 0:
                                 continue
+
+                            relevant_inputs = []
+                            relevant_input_nodes = []
+
+                            for arg_adt_ptr, arg_node in zip(relevant_outputs, relevant_output_nodes):
+                                if arg_adt_ptr not in intermediates:
+                                    relevant_inputs.append(arg_adt_ptr)
+                                    relevant_input_nodes.append(arg_node)
 
                             print("ARG TARGET", arg.target)
                             print("ARG ARGS", arg.args)
                             print("ARG KWARGS", arg.kwargs)
-                            kwarg = arg.kwargs['attn_mask']
                         
                             print("RELEVANT OUTPUTS", relevant_outputs)
                             print("RELEVANT FN CALLS", relevant_fn_calls)
@@ -182,9 +194,7 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
                                         filtered_variable_names.append(var)
 
                             filtered_variables = [(var, var_val) for var, var_val in variables if var in filtered_variable_names]
-                            # filtered_inputs = {key: val for key, val in input_name_to_arg_idx.items() if key in relevant_output_names}
                             print("FILTERED VARIABLES", filtered_variables)
-                            # print(filtered_inputs)
 
                             program = Composable([
                                 Tile(output_adt_ptr["row"], l_x)(
@@ -226,7 +236,7 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
                                 setattr(gm, arg.name + '_gern_args', gern_args)
                                 setattr(gm, arg.name + '_output_adt_ptr', output_adt_ptr)
                                 setattr(gm, arg.name + "_out_size", output_node.meta['example_value'].size())
-                                setattr(gm, arg.name + '_inputs', relevant_outputs[1:])
+                                setattr(gm, arg.name + '_inputs', relevant_inputs)
                                 # setattr(gm, arg.name + '_filtered_variables', filtered_variables)
 
                                 runner_node = gm.graph.create_node('get_attr', arg.name + '_generated_runner')
@@ -235,17 +245,17 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
                                 out_size_node = gm.graph.create_node('get_attr', arg.name + '_out_size')
                                 input_node = gm.graph.create_node('get_attr', arg.name + '_inputs')
                                 # filtered_variables_node = gm.graph.create_node('get_attr', arg.name + '_filtered_variables')
-                                gm.recompile()
                                 print("PRINTING GM GRAPH" , gm.graph)
 
                             print("RELEVANT OUTPUT NODES", len(relevant_output_nodes), relevant_output_nodes)
                             with gm.graph.inserting_after(arg):
-                                new_arg = gm.graph.create_node("call_function", function_call_fn, args=(runner_node, capsules_node, output_adt_ptr_node, out_size_node, input_node, arg, *relevant_output_nodes[1:]), name="replaced_" + arg.name)
+                                new_arg = gm.graph.create_node("call_function", function_call_fn, args=(runner_node, capsules_node, output_adt_ptr_node, out_size_node, input_node, *relevant_input_nodes), name="replaced_" + arg.name)
                                 arg.replace_all_uses_with(new_arg)
-                                new_arg.replace_input_with(new_arg, arg)
-                                print(gm.graph)
+                                gm.graph.erase_node(arg)
 
+                gm.graph.eliminate_dead_code()
                 print("PRINTING FINAL GM GRAPH" , gm.graph)
+                gm.recompile()
                 return gm.forward(*args)
 
             else:

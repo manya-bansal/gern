@@ -14,14 +14,18 @@ class M(torch.nn.Module):
     def forward(self, a, b):
         return torch.nn.functional.softmax(a.T / 2) + torch.t(b)
 
+class N(torch.nn.Module):
+    def forward(self, a, b):
+        return torch.nn.functional.softmax(a.T / 2) + torch.t(b)
+
 a = torch.randn((10, 10))
 b = torch.randn((10, 10))
 
-opt_M = gen(M, torch_to_gern, tile_rows=5)
-m = M()
-opt_m = opt_M()
-opt_output = opt_m(a, b)
+m = N()
+opt_m = gen(M(), torch_to_gern, tile_rows=5)
+
 ref = m(a, b)
+opt_output = opt_m(a, b)
 
 print("OPT OUTPUT", opt_output)
 print("REF OUTPUT", ref)
