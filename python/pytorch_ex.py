@@ -18,6 +18,10 @@ class M(torch.nn.Module):
     def forward(self, q, k, v):
         return torch.nn.functional.softmax((q @ torch.t(k)) / math.sqrt(q.size(dim=1))) @ v
 
+class N(torch.nn.Module):
+    def forward(self, q, k, v):
+        return torch.nn.functional.softmax((q @ torch.t(k)) / math.sqrt(q.size(dim=1))) @ v
+
 def benchmark_runtimes(rows, cols, tiling):
     q = torch.randn((rows, cols))
     k = torch.randn((rows, cols))
@@ -184,7 +188,7 @@ def verify_correctness():
     k = torch.randn((1024, 64))
     v = torch.randn((1024, 64))
 
-    m = M()
+    m = N()
     opt_M = gen(M, torch_to_gern)()
 
     output = opt_M(q, k, v)
