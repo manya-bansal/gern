@@ -5,6 +5,7 @@ from torch.fx.passes.shape_prop import ShapeProp
 from gern_py import *
 
 from typing import List
+import itertools
 import time
 import math
 import subprocess
@@ -16,82 +17,43 @@ class FnInterface:
         self.fn = fn
         self.extra_args = extra_args
 
-variables = []
 
 def function_call_fn(runner, inp, output_adt_ptr, out_size, input_adt_ptrs, orig_arg, *args):
-    print("CALLING EVALUATE")
-    print("INPUT ADT PTRS", input_adt_ptrs)
-    print(variables)
-    for var, var_val in variables:
-        print("VAR GETNAME", var.getName())
-        print("GETADDRESS", getAddress(var_val))
-    print("ARGS", args)
+    # print("CALLING EVALUATE")
+    # print("INPUT ADT PTRS", input_adt_ptrs)
 
-    for arg in args:
-        print(arg.data_ptr())
+    # print("ARGS", args)
+
+    # for arg in args:
+    #     print(arg.data_ptr())
     
     final_out = torch.zeros(list(map(int, out_size)))
-    if len(out_size) == 4:
-        for i in range(out_size[0]):
-            for j in range(out_size[1]):
-                print("HERE 1")
-                input_args = {input_adt_ptr.getName(): getAddress(
-                    MatrixCPU.init(input_tensor[i][j].data_ptr(), *input_tensor[i][j].size(), input_tensor[i][j].stride()[0])
-                ) for input_adt_ptr, input_tensor in zip(input_adt_ptrs, args)}
-                print("HERE 2")
 
-                print(out_size)
-                # out_tensor = torch.zeros(5, 5)
-                out_tensor = final_out[i, j, :, :]
-                # print(out_tensor.size())
-                # print("OUT TENSOR DATA PTR", out_tensor.data_ptr())
-                # print("OUT TENSOR STRIDE", out_tensor.stride())
-                # print("OUT TENSOR VALUES", out_tensor)
-                print("HERE 3")
+    for idx in itertools.product(*[range(s) for s in out_size[:-2]]):
+        input_args = {
+            input_adt_ptr.getName(): getAddress(
+                MatrixCPU.init(input_tensor[idx].data_ptr(), *input_tensor[idx].size(), input_tensor[idx].stride()[0])
+            )
+            for input_adt_ptr, input_tensor in zip(input_adt_ptrs, args)
+        }
 
-                evaluate_args = inp | input_args | {
+        out_tensor = final_out[idx]
+
+        evaluate_args = inp | input_args | {
                                             output_adt_ptr.getName(): getAddress(
                                                 MatrixCPU.init(out_tensor.data_ptr(), *out_tensor.size(), out_tensor.stride()[0])
                                             )
                                         }
-                print("HERE 4")
-
-                print("EVALUATE ARGS", evaluate_args)
-                runner.evaluate(evaluate_args)
-                # print("OUT TENSOR VALS", out_tensor)
-        # print("FINAL OUTPUT SIZE", final_out.size())
-        # print("FINAL OUT VALS", final_out)
-        # print("ACTUAL VAL", orig_arg)
-        print("FINAL ACTUAL MATCH", torch.allclose(final_out, orig_arg, atol=1e-6))
-        return final_out
-    else:
-        input_args = {input_adt_ptr.getName(): getAddress(
-                    MatrixCPU.init(input_tensor.data_ptr(), *input_tensor.size(), input_tensor.stride()[0])
-                ) for input_adt_ptr, input_tensor in zip(input_adt_ptrs, args)}
-        evaluate_args = inp | input_args | {
-                                        output_adt_ptr.getName(): getAddress(
-                                            MatrixCPU.init(final_out.data_ptr(), *final_out.size(), final_out.stride()[0])
-                                        )
-                                    }
         runner.evaluate(evaluate_args)
-        print("FINAL OUT VALS", final_out)
-        print("ACTUAL VAL", orig_arg)
-        print("FINAL ACTUAL MATCH", torch.allclose(final_out, orig_arg, atol=1e-6))
-        return final_out
+    
+    print("FINAL ACTUAL MATCH", torch.allclose(final_out, orig_arg, atol=1e-6))
+    return final_out
 
 def gen(M, torch_to_gern, *args, tile_rows=512):
     def custom_backend(gm: torch.fx.GraphModule, example_inputs: List[torch.Tensor]):
         generated_runner = None
-        variables.clear()
+        variables = []
 
-        input_name_to_arg_idx = {}
-        input_adt_ptr_to_arg_idx = {}
-
-        out_size = None
-        output_adt_ptr = None
-
-        pipeline_sections = []
-        python_computations = []
         # print("custom backend called with FX graph:")
         # print(example_inputs)
         # gm.graph.print_tabular()
@@ -100,18 +62,8 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
             # print("EXAMPLE INPUTS", example_inputs)
             nonlocal generated_runner
             if generated_runner is None:
-                # print("COMPILING RUNNER")
-                # ShapeProp(gm).propagate(*args)
-                # out = None
-                # out = gm.forward(*args)
 
                 env = {}
-
-                dummy_var_idx = {}
-
-                input_vals = {}
-
-
                 fn_calls = []
 
                 # for i, node in enumerate(gm.graph.find_nodes(op="placeholder")):
@@ -255,12 +207,6 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
                             filtered_variables.append((l_x, l_x_val))
                             filtered_variables.append((l_y, l_y_val))
 
-                            # input_adt_ptr_to_arg_idx = {
-                            #     env[input_arg_name]: input_arg_idx
-                            #     for input_arg_name, input_arg_idx in filtered_inputs.items()
-                            # }
-
-                            # print("OUT TENSOR SIZE", out_tensor.size())
                             print("FILTERED VARIABLES")
                             for var, var_val in filtered_variables:
                                 print(var.getName(), var_val)
@@ -274,20 +220,6 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
                                 print("Var", var)
                                 print("Val", var_val)
                             
-                            # | {
-                            #     output_adt_ptr.getName(): getAddress(
-                            #         MatrixCPU.init(out_tensor.data_ptr(), *out_tensor.size(), out_tensor.stride()[0])
-                            #     )
-                            # }
-
-                            '''
-                            | {
-                                input_adt_ptr.getName(): getAddress(
-                                    MatrixCPU.init(args[i].data_ptr(), *args[i].size(), args[i].stride()[0])
-                                )
-                                for input_adt_ptr, i in input_adt_ptr_to_arg_idx.items()
-                            } 
-                            '''
                             with gm.graph.inserting_before(None):
                                 print("PRINTING GM GRAPH" , gm.graph)
                                 setattr(gm, arg.name + '_generated_runner', generated_runner)
@@ -313,133 +245,11 @@ def gen(M, torch_to_gern, *args, tile_rows=512):
                                 new_arg.replace_input_with(new_arg, arg)
                                 print(gm.graph)
 
-                            # pipeline_sections.append((generated_runner, gern_args, out_tensor))
-                            # pipeline_idx = len(pipeline_sections) - 1
-                            # evaled_args_idx.append(pipeline_idx)
-
-                        #     print(python_computations)
-                        #     print(pipeline_sections)
-                        # python_computations.append((node.target, evaled_args_idx))
-
-                        # evaled_val = node.target(*evaled_args)
-                        # var = Variable.init(node.name, DatatypeClass(Datatype.Float32))
-                        # variables.append((var, Float.init(evaled_val)))
-                        # env[node.name] = var
-
-                ## SPLIT PIPELINES
-                # print(python_computations)
-                # print(pipeline_sections)
-                # out = None
-
-                # out_tensors = []
-                # for generated_runner, gern_args, out_tensor in pipeline_sections:
-                #     print("GERN ARGS", gern_args)
-                #     generated_runner.evaluate(gern_args)
-                #     out_tensors.append(out_tensor)
-
-                # for comp_fn, args in python_computations:
-                #     out = comp_fn(*[out_tensors[idx] for idx in args])
-
-                # print(out)
-                # return (out, )
-                ## SPLIT PIPELINES
                 print("PRINTING FINAL GM GRAPH" , gm.graph)
-
-
                 return gm.forward(*args)
 
-                # output_node = gm.graph.find_nodes(op="output")[0].args[0][0]
-
-                # nonlocal out_size
-                # out_size = output_node.meta['example_value'].size()
-
-                # out_tensor = torch.empty(list(map(int, out_size)))
-
-                # # out_tensor = torch.empty(size=output_node.meta['example_value'].size())
-
-                # l_x = Variable.init("l_x")
-                # l_y = Variable.init("l_y")
-
-                # nonlocal output_adt_ptr
-                # output_adt_ptr = env[output_node.name]
-
-                # program = Composable([
-                #     Tile(output_adt_ptr["row"], l_x)(
-                #         Tile(output_adt_ptr["col"], l_y)(
-                #             *fn_calls
-                #         )
-                #     )
-                # ])
-
-                # generated_runner = Runner(program)
-
-                # generated_runner.compile(cpuRunner(["matrix"]))
-
-                # l_x_val = Int.init(tile_rows)
-                # l_y_val = Int.init(out_size[1])
-
-
-                # variables.append((l_x, l_x_val))
-                # variables.append((l_y, l_y_val))
-
-                # nonlocal input_adt_ptr_to_arg_idx
-                # input_adt_ptr_to_arg_idx = {
-                #     env[input_arg_name]: input_arg_idx
-                #     for input_arg_name, input_arg_idx in input_name_to_arg_idx.items()
-                # }
-
-                # gern_args = {
-                #     var.getName(): getAddress(var_val)
-                #     for var, var_val in variables
-                # } | {
-                #     input_adt_ptr.getName(): getAddress(
-                #         MatrixCPU.init(args[i].data_ptr(), *args[i].size(), args[i].stride()[0])
-                #     )
-                #     for input_adt_ptr, i in input_adt_ptr_to_arg_idx.items()
-                # } | {
-                #     output_adt_ptr.getName(): getAddress(
-                #         MatrixCPU.init(out_tensor.data_ptr(), *out_tensor.size(), out_tensor.stride()[0])
-                #     )
-                # }
-                # # print("RUNNER EVALUATE")
-                # generated_runner.evaluate(gern_args)
-
-                # return (out_tensor,)
-                # return gm.forward(*args)
             else:
                 print("REUSING GENERATED RUNNER")
-
-                # out_tensor = torch.empty(list(map(int, out_size)))
-
-                # gern_args = {
-                #     var.getName(): getAddress(var_val)
-                #     for var, var_val in variables
-                # } | {
-                #     input_adt_ptr.getName(): getAddress(
-                #         MatrixCPU.init(args[i].data_ptr(), *args[i].size(), args[i].stride()[0])
-                #     )
-                #     for input_adt_ptr, i in input_adt_ptr_to_arg_idx.items()
-                # } | {
-                #     output_adt_ptr.getName(): getAddress(
-                #         MatrixCPU.init(out_tensor.data_ptr(), *out_tensor.size(), out_tensor.stride()[0])
-                #     )
-                # }
-
-                # generated_runner.evaluate(gern_args)
-
-                ## SPLIT PIPELINE
-                # out = None
-
-                # out_tensors = []
-                # for generated_runner, gern_args, out_tensor in pipeline_sections:
-                #     generated_runner.evaluate(gern_args)
-                #     out_tensors.append(out_tensor)
-
-                # for comp_fn, args in python_computations:
-                #     out = comp_fn(*[out_tensors[idx] for idx in args])
-
-                # return (out,)
-                ## SPLIT PIPELINE
 
                 return gm.forward(*args)
         return custom_callable
