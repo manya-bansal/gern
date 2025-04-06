@@ -140,6 +140,9 @@ PYBIND11_MODULE(gern_py, m) {
 	
 	py::class_<annot::MatrixDivn, AbstractFunction>(m, "MatrixDivn")
 		.def(py::init<>());
+	
+	py::class_<annot::MatrixAttention, AbstractFunction>(m, "MatrixAttention")
+		.def(py::init<>());
 
 	// m.def("MatrixAddCPU", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
 	// 	annot::MatrixAddCPU add;
@@ -202,10 +205,20 @@ PYBIND11_MODULE(gern_py, m) {
 	// helper classes to create variable values in c++
 	// and give c++ ownership (to get pointers later)
 	py::class_<MyInt>(m, "Int")
-		.def("init", [](int64_t val){ return new MyInt(val); }, py::return_value_policy::reference);
+		.def("init", [](int64_t val){ return new MyInt(val); }, py::return_value_policy::reference)
+		.def("__repr__", [](const MyInt &obj) {
+			std::ostringstream oss;
+			oss << *obj.val;
+			return oss.str();
+		});
 
 	py::class_<MyFloat>(m, "Float")
-		.def("init", [](float val){ return new MyFloat(val); }, py::return_value_policy::reference);
+		.def("init", [](float val){ return new MyFloat(val); }, py::return_value_policy::reference)
+		.def("__repr__", [](const MyFloat &obj) {
+			std::ostringstream oss;
+			oss << *obj.val;
+			return oss.str();
+		});
 	
 	m.def("getAddress", [](impl::MatrixCPU* mat){
 		return static_cast<void*>(mat);

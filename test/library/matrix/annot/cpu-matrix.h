@@ -108,6 +108,63 @@ protected:
     Variable end{"end"};
 };
 
+class MatrixAttention : public AbstractFunction {
+	public:
+		MatrixAttention()
+			: q(new const MatrixCPU("q")),
+		      k(new const MatrixCPU("k")),
+		      v(new const MatrixCPU("v")),
+			  output(new const MatrixCPU("output")) {
+		}
+		std::string getName() {
+			return "gern::impl::attention";
+		}
+	
+		Annotation getAnnotation() override {
+	
+			Variable x("x");
+			Variable y("y");
+			Variable l_x("l_x");
+			Variable l_y("l_y");
+	
+			Variable row("row");
+			Variable col("col");
+
+			Variable height("height");
+			Variable width("width");
+	
+			return annotate(For(x = Expr(0), output["row"], l_x,
+								For(y = Expr(0), output["col"], l_y,
+									Produces::Subset(output, {x, y, l_x, l_y}),
+									Consumes::Subsets(
+										SubsetObjMany({
+											SubsetObj(q, {x, 0, l_x, width}),
+											SubsetObj(k, {0, 0, height, width}),
+											SubsetObj(v, {0, y, height, l_y}),
+										})))));
+		}
+	
+		std::vector<std::string> getHeader() override {
+			return {
+				"cpu-matrix.h",
+			};
+		}
+	
+		virtual FunctionSignature getFunction() override {
+			FunctionSignature f;
+			f.name = "gern::impl::attention";
+			f.args = {Parameter(q), Parameter(k), Parameter(v), Parameter(output)};
+			return f;
+		}
+	
+	protected:
+		AbstractDataTypePtr q;
+		AbstractDataTypePtr k;
+		AbstractDataTypePtr v;
+		AbstractDataTypePtr output;
+		Variable end{"end"};
+	};
+
 class MatrixDivn : public AbstractFunction {
 public:
     MatrixDivn()

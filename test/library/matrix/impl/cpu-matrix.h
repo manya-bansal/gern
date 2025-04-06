@@ -118,6 +118,7 @@ inline void add(MatrixCPU a, MatrixCPU b) {
     }
 }
 
+
 inline void divn(MatrixCPU a, float n, MatrixCPU b) {
 	float *a_data;
     float *b_data;
@@ -165,6 +166,20 @@ inline void mmul(MatrixCPU a, MatrixCPU b, MatrixCPU out) {
 	cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, a.row, b.col, a.col, 1, a.data, a.lda, b.data, b.lda, 0, out.data, out.lda);
 }
 
+inline void attention(MatrixCPU q, MatrixCPU k, MatrixCPU v, MatrixCPU out) {
+	MatrixCPU kt(k.col, k.row, k.row);
+	transpose(k, kt);
+	MatrixCPU q_kt(q.row, k.row, k.row);
+	mmul(q, kt, q_kt);
+	float sqrt_dk = sqrt(q.col);
+	MatrixCPU sm_in(q.row, k.row, k.row);
+	divn(q_kt, sqrt_dk, sm_in);
+	MatrixCPU sm_out(q.row, k.row, k.row);
+	softmax(sm_in, sm_out);
+	mmul(sm_out, v, out);
+}
+
+
 inline void exp_matrix(MatrixCPU a, MatrixCPU b) {
 	float *a_data;
     float *b_data;
@@ -187,6 +202,7 @@ inline void sum_row(MatrixCPU a, ArrayCPU b) {
         b.data[i] = sum;
     }
 }
+
 
 inline void max_row(MatrixCPU a, ArrayCPU b) {
     float *a_data;

@@ -185,7 +185,7 @@ def verify_correctness():
     v = torch.randn((1024, 64))
 
     m = M()
-    opt_M = gen(M, torch_to_gern)
+    opt_M = gen(M, torch_to_gern)()
 
     output = opt_M(q, k, v)
     ref = m(q, k, v)
