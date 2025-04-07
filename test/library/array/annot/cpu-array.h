@@ -80,9 +80,9 @@ public:
     Annotation getAnnotation() override {
         Variable x("x");
 
-        return annotate(For(x = Expr(0), output["size"], step,
-                            Produces::Subset(output, {x, step}),
-                            Consumes::Subset(input, {x, step})));
+        return annotate(Tileable(x = Expr(0), output["size"], step,
+                                 Produces::Subset(output, {x, step}),
+                                 Consumes::Subset(input, {x, step})));
     }
 
     virtual FunctionSignature getFunction() override {
@@ -172,13 +172,13 @@ public:
         Variable reduce{"reduce"};
         // Variable reduce("reduce");
 
-        return annotate(For(x = Expr(0), output["size"], step,
-                            Computes(
-                                Produces::Subset(output, {x, step}),
-                                Consumes::Subsets(
-                                    Reduce(r = Expr(0), k, reduce,
-                                           SubsetObjMany{
-                                               SubsetObj(input, {r, reduce})})))));
+        return annotate(Tileable(x = Expr(0), output["size"], step,
+                                 Computes(
+                                     Produces::Subset(output, {x, step}),
+                                     Consumes::Subsets(
+                                         Reducible(r = Expr(0), k, reduce,
+                                                   SubsetObjMany{
+                                                       SubsetObj(input, {r, reduce})})))));
     }
 
     std::vector<std::string> getHeader() override {
