@@ -18,7 +18,6 @@ static MethodCall makeFreeCall(AbstractDataTypePtr ds) {
 }
 
 LowerIR Finalizer::finalize() {
-
     Scoper scoper(ir);
     ir = scoper.construct();
 
@@ -157,7 +156,7 @@ int32_t Scoper::get_scope(std::vector<Argument> args) const {
             throw error::InternalError("Unknown argument type: " + arg.str());
         }
     }
-    return scope;
+    return std::min(scope, cur_scope);
 }
 
 void Scoper::visit(const AllocateNode *node) {

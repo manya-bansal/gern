@@ -54,6 +54,10 @@ public:
         };
     }
 
+    bool insertQuery() const override {
+        return true;
+    }
+
 protected:
     std::string name;
     Variable x{"x"};

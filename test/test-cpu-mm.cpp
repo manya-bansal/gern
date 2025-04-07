@@ -222,8 +222,8 @@ TEST(LoweringCPU, EgeMM) {
     constexpr int64_t outer_tile = 2;
     Composable program_out{
         Tile(C_DS["row"], ti_g.bind(outer_tile))(
-            Reduce(k_dim, tk.bind(outer_tile))(
-                Tile(C_DS["col"], tj_g.bind(outer_tile))(
+            Tile(C_DS["col"], tj_g.bind(outer_tile))(
+                Reduce(k_dim, tk.bind(outer_tile))(
                     (*func_in)(A_DS, B_DS, C_DS, k_dim))))};
 
     Runner run(program_out);

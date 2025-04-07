@@ -40,7 +40,7 @@ private:
 
     void declare_intervals(Expr end, Variable step);
     LowerIR generate_definition(Assign assign, bool check_const_expr = true);
-    LowerIR prepare_for_current_scope(SubsetObj subset);
+    std::tuple<LowerIR, LowerIR> prepare_for_current_scope(SubsetObj subset);
 
     Argument get_argument(Expr e);
     std::vector<Argument> constuct_arguments(std::vector<Argument> args);

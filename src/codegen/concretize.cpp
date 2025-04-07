@@ -47,35 +47,20 @@ void Concretize::visit(const Computation *node) {
 
     std::vector<LowerIR> lowered;
     SubsetObj output_subset = node->getAnnotation().getPattern().getOutput();
-
-    // Do we have a parent adt for the output?
-    SubsetObj parent;
-    bool insert_query = false;
-    if (!current_adt.contains_in_current_scope(output_subset.getDS())) {
-        parent = current_adt.at(output_subset.getDS());
-        insert_query = parent.getDS().insertQuery();
-    }
-
     // Now, prepare the output subset.
-    lowered.push_back(prepare_for_current_scope(output_subset));
+    auto [ir, ir_insert] = prepare_for_current_scope(output_subset);
+    lowered.push_back(ir);
 
     // Now visit each composition.
     for (const auto &c : node->composed) {
-        lowered.push_back(prepare_for_current_scope(c.getAnnotation().getPattern().getOutput()));
+        auto [ir, ir_insert] = prepare_for_current_scope(c.getAnnotation().getPattern().getOutput());
+        lowered.push_back(ir);
         this->visit(c);
         lowered.push_back(lowerIR);
+        lowered.push_back(ir_insert);
     }
 
-    if (insert_query) {
-        // Get the output subset for our output and insert the query if needed.
-        auto child_adt = current_adt.at(output_subset.getDS());
-        auto call = constructFunctionCall(parent.getDS().getInsertFunction(),
-                                          parent.getDS().getFields(), child_adt.getFields());
-        call.args.push_back(child_adt.getDS());
-        MethodCall method_call = MethodCall(parent.getDS(), call);
-        lowered.push_back(LowerIR(new const InsertNode(method_call)));
-    }
-
+    lowered.push_back(ir_insert);
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -106,17 +91,13 @@ void Concretize::visit(const TiledComputation *node) {
         declare_intervals(field.first, get<2>(field.second));
     }
 
-    SubsetObj parent;
     SubsetObj output_subset = node->getAnnotation().getPattern().getOutput();
-    bool insert_query = false;
-    // If it's a reduce, stage the output before lowerint the tiled computation.
+    LowerIR accum_insert = LowerIR(new const BlankNode());
+    // If it's a reduce, stage the output before lowering the tiled computation.
     if (node->reduce) {
-        // If we are reducing, then we stage the output, and then proceed.
-        if (current_adt.contains(output_subset.getDS())) {
-            parent = current_adt.at(output_subset.getDS());
-            insert_query = parent.getDS().insertQuery();
-        }
-        lowered.push_back(prepare_for_current_scope(output_subset));
+        auto [ir, ir_insert] = prepare_for_current_scope(output_subset);
+        lowered.push_back(ir);
+        accum_insert = ir_insert;
     }
 
     adt_in_scope.scope();
@@ -135,9 +116,8 @@ void Concretize::visit(const TiledComputation *node) {
     if (node->reduce) {
         // If we are reducing, then the output must be in scope, since we previously
         // staged it.
-        auto output = node->tiled.getAnnotation().getPattern().getOutput().getDS();
-        auto output_fields = adt_in_scope.at(output);
-        adt_in_scope.insert(output, output_fields);
+        auto output = output_subset.getDS();
+        adt_in_scope.insert(output, adt_in_scope.at(output));
         current_adt.insert(output, current_adt.at(output));
     }
 
@@ -161,15 +141,7 @@ void Concretize::visit(const TiledComputation *node) {
     lowered.push_back(lowerIR);
 
     // Insert the current output if needed.
-    auto child_adt = current_adt.at(output_subset.getDS());
-    if (insert_query) {
-        auto call = constructFunctionCall(parent.getDS().getInsertFunction(),
-                                          parent.getDS().getFields(), child_adt.getFields());
-        call.args.push_back(child_adt.getDS());
-        MethodCall method_call = MethodCall(parent.getDS(), call);
-        lowered.push_back(LowerIR(new const InsertNode(method_call)));
-    }
-
+    lowered.push_back(accum_insert);
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -184,9 +156,11 @@ void Concretize::visit(const ComputeFunctionCall *node) {
     // For each input and the output, first prepare it and then proceed.
     auto pattern = annotation.getPattern();
     for (const auto &input : pattern.getInputs()) {
-        lowered.push_back(prepare_for_current_scope(input));
+        auto [ir, _] = prepare_for_current_scope(input);
+        lowered.push_back(ir);
     }
-    lowered.push_back(prepare_for_current_scope(pattern.getOutput()));
+    auto [ir, ir_insert] = prepare_for_current_scope(pattern.getOutput());
+    lowered.push_back(ir);
 
     // Now, generate the function call.
     FunctionCall new_call = node->getCall();
@@ -196,6 +170,7 @@ void Concretize::visit(const ComputeFunctionCall *node) {
     lowered.push_back(new const ComputeNode(new_call, node->getHeader(),
                                             current_adt.at(pattern.getOutput().getDS()).getDS()));
 
+    lowered.push_back(ir_insert);
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -234,10 +209,16 @@ void Concretize::visit(const StageNode *node) {
 
     // Now, stage the subset.
     std::vector<LowerIR> lowered;
-    lowered.push_back(prepare_for_current_scope(node->staged_subset));
+    auto [ir, ir_insert] = prepare_for_current_scope(node->staged_subset);
+    lowered.push_back(ir);
     // Visit the body it was staged for.
     this->visit(node->body);
     lowered.push_back(lowerIR);
+
+    // If the output of the body is the same as the staged subset, then we need to insert.
+    if (node->staged_subset.getDS() == node->body.getAnnotation().getPattern().getOutput().getDS()) {
+        lowered.push_back(ir_insert);
+    }
     lowerIR = new const BlockNode(lowered);
 }
 
@@ -405,9 +386,10 @@ FunctionCall Concretize::constructFunctionCall(FunctionSignature f,
     return f_new;
 }
 
-LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
+std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj subset) {
 
     LowerIR ir = LowerIR(new const BlankNode());
+    LowerIR ir_insert = LowerIR(new const BlankNode());
 
     auto adt = subset.getDS();
 
@@ -433,6 +415,12 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
             MethodCall method_call = MethodCall(parent, call);
             current_adt.insert(adt, SubsetObj(queried, fields_expr));
             ir = LowerIR(new const QueryNode(adt, queried, fields_expr, method_call));
+            // Do we need to insert?
+            if (parent.insertQuery()) {
+                auto insert_call = constructFunctionCall(parent.getInsertFunction(), parent.getFields(), fields_expr);
+                insert_call.args.push_back(queried);
+                ir_insert = LowerIR(new const InsertNode(MethodCall(parent, insert_call)));
+            }
         } else {
             std::vector<Expr> fields_expr;
             for (const auto &field : subset.getFields()) {
@@ -450,7 +438,7 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
         }
     }
 
-    return ir;
+    return std::make_tuple(ir, ir_insert);
 }
 
 Constraint Concretize::get_base_constraint(Constraint c,
