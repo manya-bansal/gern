@@ -264,7 +264,9 @@ TEST(Stage, StageInterface) {
             Stage(outputDS, stageDS.newStageFunction(), stageDS.getNewInsertFunction(),
                   Tile(outputDS["size"], v)(
                       Tile(outputDS["size"], v)(
-                          add_1(inputDS, outputDS)))));
+                          Stage(inputDS, stageDS.newStageFunction(),
+                                Stage(outputDS, stageDS.newStageFunction(), stageDS.getNewInsertFunction(),
+                                      add_1(inputDS, outputDS)))))));
 
     Runner run(call);
     run.compile(test::cpuRunner("array"));
