@@ -42,10 +42,6 @@ Expr Concretize::get_base_expr(Expr e,
         }
 
         Expr locate() {
-            // std::cout << "All relationships: " << all_relationships << std::endl;
-            for (const auto &rel : all_relationships) {
-                std::cout << rel.first.str() << " -> " << rel.second.str() << std::endl;
-            }
             child.accept(this);
             return parent;
         }
@@ -185,8 +181,6 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
             current_adt.insert(adt, SubsetObj(queried, fields_expr));
             ir = LowerIR(new const QueryNode(adt, queried, fields_expr, method_call));
 
-            std::cout << ir << std::endl;
-
         } else {
 
             std::vector<Expr> fields_expr;
@@ -207,32 +201,28 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
 }
 
 void Concretize::define_variable(Variable var, Expr expr) {
-    if (var.isBound()) {
-        // throw error::UserError("Variable " + var.str() + " already defined.");
+    if (var.isBound() || defined.contains(var)) {
         return;
     }
-    if (defined.contains(var)) {
-        return;
-    }
+
     all_relationships[var] = expr;
 }
 
-LowerIR Concretize::declare_intervals(Variable i, Expr start, Expr end, Variable step) {
-    // TODO: Implement this.
+void Concretize::declare_intervals(Variable i, Expr start, Expr end, Variable step) {
     std::vector<LowerIR> lowered;
 
     auto step_expr = get_base_expr(step, all_relationships, {});
+
     if (isa<Literal>(step_expr)) {
         define_variable(step, end);
     } else {
         define_variable(step, step_expr);
     }
 
+    // If it's a variable, then it muts be user provided.
     if (isa<Variable>(end)) {
         defined.insert(to<Variable>(end));
     }
-
-    return LowerIR(new const BlockNode(lowered));
 }
 
 void Concretize::visit(const Computation *node) {
@@ -240,12 +230,12 @@ void Concretize::visit(const Computation *node) {
 
     auto tileable_fileds = node->getAnnotation().getPattern().getTileableFields();
     for (const auto &field : tileable_fileds) {
-        lowered.push_back(declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second)));
+        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
     }
 
     auto reducable_fields = node->getAnnotation().getPattern().getReducableFields();
     for (const auto &field : reducable_fields) {
-        lowered.push_back(declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second)));
+        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
     }
     for (const auto &c : node->declarations) {
         define_variable(to<Variable>(c.getA()), c.getB());
@@ -294,7 +284,7 @@ void Concretize::visit(const TiledComputation *node) {
         if (get<0>(field.second).ptr == (node->loop_index).ptr) {
             continue;
         }
-        lowered.push_back(declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second)));
+        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
     }
 
     auto reducable_fields = node->getAnnotation().getPattern().getReducableFields();
@@ -302,12 +292,11 @@ void Concretize::visit(const TiledComputation *node) {
         if (get<0>(field.second).ptr == (node->loop_index).ptr) {
             continue;
         }
-        lowered.push_back(declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second)));
+        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
     }
 
     SubsetObj parent;
     if (node->reduce) {
-        std::cout << current_adt << std::endl;
         // If we are reducing, then we stage the output, and then proceed.
         if (current_adt.contains(node->getAnnotation().getPattern().getOutput().getDS())) {
             parent = current_adt.at(node->getAnnotation().getPattern().getOutput().getDS());
@@ -322,6 +311,12 @@ void Concretize::visit(const TiledComputation *node) {
 
     iteration_variables.insert(node->loop_index);
     tiled_dimensions.insert(node->parameter, node->v);
+
+    if (isa<Variable>(node->parameter)) {
+        // It must be defined, because the user passed it in.
+        defined.insert(to<Variable>(node->parameter));
+        all_relationships[to<Variable>(node->parameter)] = node->v;
+    }
 
     if (node->reduce) {
         // If we are reducing, then the output must be in scope, since we previously
@@ -369,6 +364,15 @@ void Concretize::visit(const TiledComputation *node) {
     lowerIR = new const BlockNode(lowered);
 }
 
+Argument Concretize::get_argument(Expr e) {
+    auto vars = getVariables(e);
+    // All these variables must be defined passed in by the user.
+    for (const auto &var : vars) {
+        defined.insert(var);
+    }
+    return Argument(get_base_expr(e, all_relationships, {}));
+}
+
 void Concretize::visit(const ComputeFunctionCall *node) {
     // For each input and output, first stage it and then proceed.
     auto pattern = node->getAnnotation().getPattern();
@@ -388,12 +392,18 @@ void Concretize::visit(const ComputeFunctionCall *node) {
             current_adt.contains(to<DSArg>(arg)->getADTPtr())) {
             new_args.push_back(Argument(current_adt.at(to<DSArg>(arg)->getADTPtr()).getDS()));
         } else if (isa<ExprArg>(arg)) {
-            // Do we have a value floating around?
-            if (tiled_dimensions.contains(to<ExprArg>(arg)->getVar())) {
-                new_args.push_back(Argument(tiled_dimensions.at(to<ExprArg>(arg)->getVar())));
-            } else {
-                new_args.push_back(Argument(to<ExprArg>(arg)->getVar()));
-            }
+            // // Do we have a value floating around?
+            // if (tiled_dimensions.contains(to<ExprArg>(arg)->getVar())) {
+            //     new_args.push_back(Argument(tiled_dimensions.at(to<ExprArg>(arg)->getVar())));
+            // } else {
+            //     auto expr = to<ExprArg>(arg)->getExpr();
+            //     auto vars = getVariables(expr);
+            //     for (const auto &var : vars) {
+            //         defined.insert(var);
+            //     }
+            //     new_args.push_back(Argument(get_base_expr(expr, all_relationships, {})));
+            // }
+            new_args.push_back(get_argument(to<ExprArg>(arg)->getExpr()));
         } else {
             throw error::InternalError("Unknown argument type: " + arg.str());
         }
@@ -407,6 +417,7 @@ void Concretize::visit(const ComputeFunctionCall *node) {
         } else {
             new_template_args.push_back(get_base_expr(arg, all_relationships, {}));
         }
+        // new_template_args.push_back(get_argument(arg));
     }
 
     FunctionCall new_call = call;
@@ -414,7 +425,7 @@ void Concretize::visit(const ComputeFunctionCall *node) {
     new_call.template_args = new_template_args;
 
     lowered.push_back(new const ComputeNode(new_call, node->getHeader(),
-                                            current_adt.at(node->getAnnotation().getPattern().getOutput().getDS()).getDS()));
+                                            current_adt.at(pattern.getOutput().getDS()).getDS()));
 
     lowerIR = new const BlockNode(lowered);
 }
@@ -425,6 +436,7 @@ void Concretize::visit(const GlobalNode *node) {
         lowered.push_back(new const GridDeclNode(def.first, def.second));
     }
     lowered.push_back(new const SharedMemoryDeclNode(node->smem_size));
+
     if (node->smem_manager.isInitialized()) {
         lowered.push_back(new const OpaqueCall(node->smem_manager.getInit(),
                                                node->smem_manager.getHeaders()));
@@ -436,20 +448,26 @@ void Concretize::visit(const GlobalNode *node) {
 
 void Concretize::visit(const StageNode *node) {
     std::vector<LowerIR> lowered;
+
+    // Track all the definitions.
     for (const auto &rel : node->old_to_new) {
         define_variable(rel.first, rel.second);
     }
+
+    // Track all the tileable and reducable fields.
     auto tileable_fileds = node->getAnnotation().getPattern().getTileableFields();
     for (const auto &field : tileable_fileds) {
-        lowered.push_back(declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second)));
+        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
     }
 
     auto reducable_fields = node->getAnnotation().getPattern().getReducableFields();
     for (const auto &field : reducable_fields) {
-        lowered.push_back(declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second)));
+        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
     }
 
+    // Now, stage the subset.
     lowered.push_back(prepare_for_current_scope(node->staged_subset));
+    // Visit the body it was staged for.
     this->visit(node->body);
     lowered.push_back(lowerIR);
     lowerIR = new const BlockNode(lowered);

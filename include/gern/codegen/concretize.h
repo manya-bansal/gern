@@ -39,10 +39,12 @@ private:
     util::ScopedMap<AbstractDataTypePtr, SubsetObj> current_adt;
     util::ScopedMap<Expr, Variable> tiled_dimensions;
 
-    LowerIR declare_intervals(Variable i, Expr start, Expr end, Variable step);
+    void declare_intervals(Variable i, Expr start, Expr end, Variable step);
     LowerIR generate_definition(Assign assign, bool check_const_expr = true);
-
     LowerIR prepare_for_current_scope(SubsetObj subset);
+
+    Argument get_argument(Expr e);
+
     Expr get_base_expr(Expr e,
                        std::map<Variable, Expr> &all_relationships,
                        std::set<Variable> stop_at);
