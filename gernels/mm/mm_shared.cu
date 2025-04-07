@@ -84,11 +84,7 @@ int main() {
     auto A_cpu = A.get();
     auto B_cpu = B.get();
 
-    // std::cout << "A_cpu: " << A_cpu << std::endl;
-    // std::cout << "B_cpu: " << B_cpu << std::endl;
-
     matrix_multiply_cpu(A_cpu, B_cpu, C_cpu_ref);
-    // std::cout << "C_cpu_ref: " << C_cpu_ref << std::endl;
 
     for (int64_t i = 0; i < m; i++) {
         for (int64_t j = 0; j < n; j++) {

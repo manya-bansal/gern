@@ -43,7 +43,7 @@ FunctionCall FunctionSignature::constructCall() const {
     FunctionCall f_call{
         .name = name,
         .args = std::vector<Argument>(args.begin(), args.end()),
-        .template_args = std::vector<Expr>(template_args.begin(), template_args.end()),
+        .template_args = std::vector<Argument>(template_args.begin(), template_args.end()),
         .output = output,
         .grid = grid,
         .block = block,
@@ -89,17 +89,20 @@ std::ostream &operator<<(std::ostream &os, const MethodCall &m) {
 }
 
 ComputeFunctionCallPtr ComputeFunctionCall::refreshVariable() const {
+
+    // Do not rewrite any argument variables.
     std::set<Variable> arg_variables;
-    for (const auto &arg : call.args) {
+    std::vector<Argument> all_args = call.getAllArguments();
+    for (const auto &arg : all_args) {
         if (isa<ExprArg>(arg)) {
-            arg_variables.insert(to<ExprArg>(arg)->getVar());
+            auto expr = to<ExprArg>(arg)->getExpr();
+            auto all_vars = getVariables(expr);
+            for (const auto &v : all_vars) {
+                arg_variables.insert(v);
+            }
         }
     }
-    for (const auto &arg : call.template_args) {
-        if (isa<Variable>(arg)) {
-            arg_variables.insert(to<Variable>(arg));
-        }
-    }
+
     std::set<Variable> old_vars = getVariables(annotation);
     // Generate fresh names for all old variables, except the
     // variables that are being used as arguments.

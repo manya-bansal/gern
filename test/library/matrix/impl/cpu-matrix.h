@@ -32,6 +32,12 @@ public:
         return MatrixCPU(l_x, l_y, l_y);
     }
 
+    static MatrixCPU allocate_zero(int64_t, int64_t, int64_t l_x, int64_t l_y) {
+        MatrixCPU m(l_x, l_y, l_y);
+        m.vvals(0.0f);
+        return m;
+    }
+
     MatrixCPU query(int64_t x, int64_t y, int64_t l_x, int64_t l_y) {
         return MatrixCPU(data + (x * lda + y), l_x, l_y, lda);
     }

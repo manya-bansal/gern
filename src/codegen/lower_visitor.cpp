@@ -35,16 +35,11 @@ void LowerPrinter::visit(const InsertNode *op) {
 }
 void LowerPrinter::visit(const QueryNode *op) {
     util::printIdent(os, ident);
-    os << "Query " << op->call.call.output
-       << " from " << op->parent
-       << " with ";
-    vector_printer(os, op->call.call.args);
+    os << "Query " << op->call.call;
 }
 void LowerPrinter::visit(const ComputeNode *op) {
     util::printIdent(os, ident);
-    os << "Compute " << op->f.name
-       << " by passing in ";
-    vector_printer(os, op->f.args);
+    os << "Compute " << op->f;
 }
 
 void LowerPrinter::visit(const IntervalNode *op) {
