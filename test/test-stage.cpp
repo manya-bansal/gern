@@ -248,3 +248,43 @@ TEST(Stage, StageReduction) {
     a.destroy();
     b.destroy();
 }
+
+TEST(Stage, StageInterface) {
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+    auto stageDS = annot::ArrayCPU("stage_con");
+
+    annot::add_1 add_1;
+    Variable v("v");
+    Variable v1("v1");
+
+    // Useless stage, but should work.
+    Composable call =
+        Tile(outputDS["size"], v)(
+            Stage(outputDS, stageDS.newStageFunction(), stageDS.getNewInsertFunction(),
+                  Tile(outputDS["size"], v)(
+                      Tile(outputDS["size"], v)(
+                          add_1(inputDS, outputDS)))));
+
+    Runner run(call);
+    run.compile(test::cpuRunner("array"));
+
+    impl::ArrayCPU a(8);
+    a.ascending();
+    impl::ArrayCPU b(8);
+    b.vvals(0.0f);
+    int64_t v_val = 2;
+
+    run.evaluate({
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+        {"v", &v_val},
+    });
+
+    for (int i = 0; i < 8; i++) {
+        ASSERT_TRUE(b.data[i] == (a.data[i] + 1));
+    }
+
+    a.destroy();
+    b.destroy();
+}

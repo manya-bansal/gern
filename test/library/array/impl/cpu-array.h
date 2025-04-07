@@ -28,8 +28,14 @@ public:
     ArrayCPU query(int64_t start, int64_t len) {
         return ArrayCPU(data + start, len);
     }
+    ArrayCPU new_stage(int64_t start, int64_t len) {
+        return query(start, len);
+    }
     void insert(int64_t start, int64_t len, ArrayCPU to_insert) {
         std::memcpy(data + start, to_insert.data, len);
+    }
+    void new_insert(int64_t start, int64_t len, ArrayCPU to_insert) {
+        insert(start, len, to_insert);
     }
 
     void destroy() {
