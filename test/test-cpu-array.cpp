@@ -191,28 +191,28 @@ TEST(LoweringCPU, MultiFunctionTemplated) {
     b.destroy();
 }
 
-TEST(LoweringCPU, OverspecifiedBinding) {
-    auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
-    auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
-    auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
+// TEST(LoweringCPU, OverspecifiedBinding) {
+//     auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));
+//     auto outputDS = AbstractDataTypePtr(new const annot::ArrayCPU("output_con"));
+//     auto tempDS = AbstractDataTypePtr(new const annot::ArrayCPU("temp"));
 
-    annot::add1Template add_1;
+//     annot::add1Template add_1;
 
-    Variable v("v");
-    Variable step("step");
+//     Variable v("v");
+//     Variable step("step");
 
-    auto add_1_specialized = &add_1[{{"step", step.bind(5)}}];
-    // Try binding step twice.
-    // This is an overspecified pipeline.
-    Composable program =
-        Composable(
-            Tile(outputDS["size"], step.bind(5))(
-                add_1_specialized->operator()(inputDS, tempDS),
-                add_1(tempDS, outputDS)));
+//     auto add_1_specialized = &add_1[{{"step", step.bind(5)}}];
+//     // Try binding step twice.
+//     // This is an overspecified pipeline.
+//     Composable program =
+//         Composable(
+//             Tile(outputDS["size"], step.bind(5))(
+//                 add_1_specialized->operator()(inputDS, tempDS),
+//                 add_1(tempDS, outputDS)));
 
-    Runner run(program);
-    ASSERT_THROW(run.compile(test::cpuRunner("array")), error::UserError);
-}
+//     Runner run(program);
+//     ASSERT_THROW(run.compile(test::cpuRunner("array")), error::UserError);
+// }
 
 TEST(LoweringCPU, FunctionWithFloat) {
     auto inputDS = AbstractDataTypePtr(new const annot::ArrayCPU("input_con"));

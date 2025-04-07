@@ -18,13 +18,12 @@ static MethodCall makeFreeCall(AbstractDataTypePtr ds) {
 }
 
 LowerIR Finalizer::finalize() {
-
     Scoper scoper(ir);
-    LowerIR hoisted_ir = scoper.construct();
+    ir = scoper.construct();
 
     to_free.scope();
 
-    visit(hoisted_ir);
+    visit(ir);
 
     std::vector<LowerIR> new_ir;
     new_ir.push_back(final_ir);
@@ -157,7 +156,7 @@ int32_t Scoper::get_scope(std::vector<Argument> args) const {
             throw error::InternalError("Unknown argument type: " + arg.str());
         }
     }
-    return scope;
+    return std::min(scope, cur_scope);
 }
 
 void Scoper::visit(const AllocateNode *node) {

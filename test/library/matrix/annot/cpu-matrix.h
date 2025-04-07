@@ -54,12 +54,30 @@ public:
         };
     }
 
-private:
+    bool insertQuery() const override {
+        return true;
+    }
+
+protected:
     std::string name;
     Variable x{"x"};
     Variable y{"y"};
     Variable l_x{"l_x"};
     Variable l_y{"l_y"};
+};
+
+class MatrixCPUZero : public MatrixCPU {
+public:
+    MatrixCPUZero(const std::string &name)
+        : MatrixCPU(name) {
+    }
+
+    FunctionSignature getAllocateFunction() const override {
+        return FunctionSignature{
+            .name = "gern::impl::MatrixCPU::allocate_zero",
+            .args = {x, y, l_x, l_y},
+        };
+    }
 };
 
 class MatrixAddCPU : public AbstractFunction {

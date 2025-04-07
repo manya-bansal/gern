@@ -222,8 +222,8 @@ TEST(LoweringCPU, EgeMM) {
     constexpr int64_t outer_tile = 2;
     Composable program_out{
         Tile(C_DS["row"], ti_g.bind(outer_tile))(
-            Reduce(k_dim, tk.bind(outer_tile))(
-                Tile(C_DS["col"], tj_g.bind(outer_tile))(
+            Tile(C_DS["col"], tj_g.bind(outer_tile))(
+                Reduce(k_dim, tk.bind(outer_tile))(
                     (*func_in)(A_DS, B_DS, C_DS, k_dim))))};
 
     Runner run(program_out);
@@ -261,4 +261,148 @@ TEST(LoweringCPU, EgeMM) {
     b.destroy();
     c.destroy();
     ref_c.destroy();
+}
+
+TEST(LoweringCPU, NoHoistDoubleMM) {
+    auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
+    auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
+    auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPUZero("C"));
+    auto D_DS = AbstractDataTypePtr(new const annot::MatrixCPU("D"));
+    auto E_DS = AbstractDataTypePtr(new const annot::MatrixCPU("E"));
+
+    annot::MatrixMultiplyCPU matrix_multiply;
+    // Variable k1("k1");
+    Variable k2("k2");
+    Variable ti("ti");
+    Variable tj("tj");
+    Variable tk("tk");
+
+    Composable program({
+        Tile(E_DS["row"], ti)(
+            Tile(E_DS["col"], tj)(
+                matrix_multiply(A_DS, B_DS, C_DS, k2),
+                Reduce(k2, tk)(
+                    matrix_multiply(C_DS, D_DS, E_DS, k2)))),
+    });
+
+    Runner run(program);
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+
+    int64_t num_row = 4;
+    int64_t num_col = 4;
+
+    impl::MatrixCPU a(num_row, num_col, num_col);
+    a.ascending();
+    impl::MatrixCPU b(num_row, num_col, num_col);
+    b.ascending();
+    impl::MatrixCPU c(num_row, num_col, num_col);
+    c.vvals(0.0f);
+    impl::MatrixCPU d(num_row, num_col, num_col);
+    d.ascending();
+    impl::MatrixCPU e(num_row, num_col, num_col);
+    e.vvals(0.0f);
+
+    int64_t ti_val = 2;
+    int64_t tj_val = 2;
+
+    run.evaluate({
+        {A_DS.getName(), &a},
+        {B_DS.getName(), &b},
+        {D_DS.getName(), &d},
+        {E_DS.getName(), &e},
+        {k2.getName(), &num_col},
+        {ti.getName(), &ti_val},
+        {tj.getName(), &tj_val},
+        {tk.getName(), &num_col},
+    });
+
+    impl::MatrixCPU ref_e(num_row, num_col, num_col);
+    ref_e.vvals(0.0f);
+    c.vvals(0.0f);
+
+    impl::matrix_multiply(a, b, c, num_col);
+    impl::matrix_multiply(c, d, ref_e, num_col);
+
+    for (int i = 0; i < num_row * num_col; i++) {
+        ASSERT_TRUE(e.data[i] == ref_e.data[i]);
+    }
+
+    a.destroy();
+    b.destroy();
+    c.destroy();
+    d.destroy();
+    e.destroy();
+    ref_e.destroy();
+}
+
+TEST(LoweringCPU, HoistDoubleMM) {
+    auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
+    auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
+    auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPUZero("C"));
+    auto D_DS = AbstractDataTypePtr(new const annot::MatrixCPU("D"));
+    auto E_DS = AbstractDataTypePtr(new const annot::MatrixCPU("E"));
+
+    annot::MatrixMultiplyCPU matrix_multiply;
+    // Variable k1("k1");
+    Variable k2("k2");
+    Variable ti("ti");
+    Variable tj("tj");
+    Variable tk("tk");
+
+    Composable program({
+        Tile(E_DS["row"], ti)(
+            matrix_multiply(A_DS, B_DS, C_DS, k2),
+            Tile(E_DS["col"], tj)(
+                Reduce(k2, tk)(
+                    matrix_multiply(C_DS, D_DS, E_DS, k2)))),
+    });
+
+    Runner run(program);
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+
+    int64_t num_row = 4;
+    int64_t num_col = 4;
+
+    impl::MatrixCPU a(num_row, num_col, num_col);
+    a.ascending();
+    impl::MatrixCPU b(num_row, num_col, num_col);
+    b.ascending();
+    impl::MatrixCPU c(num_row, num_col, num_col);
+    c.vvals(0.0f);
+    impl::MatrixCPU d(num_row, num_col, num_col);
+    d.ascending();
+    impl::MatrixCPU e(num_row, num_col, num_col);
+    e.vvals(0.0f);
+
+    int64_t ti_val = 2;
+    int64_t tj_val = 2;
+
+    run.evaluate({
+        {A_DS.getName(), &a},
+        {B_DS.getName(), &b},
+        {D_DS.getName(), &d},
+        {E_DS.getName(), &e},
+        {k2.getName(), &num_col},
+        {ti.getName(), &ti_val},
+        {tj.getName(), &tj_val},
+        {tk.getName(), &num_col},
+    });
+
+    impl::MatrixCPU ref_e(num_row, num_col, num_col);
+    ref_e.vvals(0.0f);
+    c.vvals(0.0f);
+
+    impl::matrix_multiply(a, b, c, num_col);
+    impl::matrix_multiply(c, d, ref_e, num_col);
+
+    for (int i = 0; i < num_row * num_col; i++) {
+        ASSERT_TRUE(e.data[i] == ref_e.data[i]);
+    }
+
+    a.destroy();
+    b.destroy();
+    c.destroy();
+    d.destroy();
+    e.destroy();
+    ref_e.destroy();
 }

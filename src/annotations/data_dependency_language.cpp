@@ -182,6 +182,10 @@ std::ostream &operator<<(std::ostream &os, const Constraint &c) {
     return os;
 }
 
+Literal::Literal(const LiteralNode *n)
+    : Expr(n) {
+}
+
 #define DEFINE_BINARY_OPERATOR(CLASS_NAME, OPERATOR, NODE)       \
     CLASS_NAME operator OPERATOR(const Expr &a, const Expr &b) { \
         return CLASS_NAME(a, b);                                 \

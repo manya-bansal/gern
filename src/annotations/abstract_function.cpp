@@ -33,6 +33,13 @@ FunctionCall FunctionCall::replaceAllDS(std::map<AbstractDataTypePtr, AbstractDa
     return new_call;
 }
 
+std::vector<Argument> FunctionCall::getAllArguments() const {
+    std::vector<Argument> all_args;
+    all_args.insert(all_args.end(), args.begin(), args.end());
+    all_args.insert(all_args.end(), template_args.begin(), template_args.end());
+    return all_args;
+}
+
 Composable AbstractFunction::constructComposableObject(std::vector<Argument> concrete_arguments) {
     FunctionSignature f = getFunction();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> abstract_to_concrete_adt;
@@ -97,9 +104,9 @@ Composable AbstractFunction::constructComposableObject(std::vector<Argument> con
     // The binding is only valid for one use, erase it now.
     bindings = {};
 
-    std::vector<Expr> template_args;
+    std::vector<Argument> template_args;
     for (const auto &v : f.template_args) {
-        template_args.push_back(fresh_names.at(v));
+        template_args.push_back(Argument(fresh_names.at(v)));
     }
 
     Annotation rw_annotation = replaceVariables(            // Replace all variables with concrete vars.

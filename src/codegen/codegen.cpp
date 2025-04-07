@@ -5,6 +5,7 @@
 #include "annotations/lang_nodes.h"
 #include "annotations/rewriter_helpers.h"
 #include "annotations/visitor.h"
+#include "codegen/concretize.h"
 #include "codegen/finalizer.h"
 #include "codegen/lower.h"
 #include "utils/debug.h"
@@ -15,10 +16,10 @@ namespace codegen {
 
 CGStmt CodeGenerator::generate_code(Composable c) {
     // Lower each IR node one by one.
-    ComposableLower lower(c);
+    Concretize concretizer(c);
     // Generate code the after lowering.
     bool is_device_call = c.isDeviceLaunch();
-    auto ir = lower.lower();
+    auto ir = concretizer.concretize();
     Finalizer finalizer(ir);
     auto final_ir = finalizer.finalize();
 
