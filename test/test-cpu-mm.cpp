@@ -263,7 +263,7 @@ TEST(LoweringCPU, EgeMM) {
     ref_c.destroy();
 }
 
-TEST(LoweringCPU, DoubleMM) {
+TEST(LoweringCPU, NoHoistDoubleMM) {
     auto A_DS = AbstractDataTypePtr(new const annot::MatrixCPU("A"));
     auto B_DS = AbstractDataTypePtr(new const annot::MatrixCPU("B"));
     auto C_DS = AbstractDataTypePtr(new const annot::MatrixCPUZero("C"));
@@ -280,7 +280,6 @@ TEST(LoweringCPU, DoubleMM) {
     Composable program({
         Tile(E_DS["row"], ti)(
             Tile(E_DS["col"], tj)(
-                // Reduce(k2, tk)(
                 matrix_multiply(A_DS, B_DS, C_DS, k2),
                 Reduce(k2, tk)(
                     matrix_multiply(C_DS, D_DS, E_DS, k2)))),
@@ -311,7 +310,6 @@ TEST(LoweringCPU, DoubleMM) {
         {B_DS.getName(), &b},
         {D_DS.getName(), &d},
         {E_DS.getName(), &e},
-        // {k1.getName(), &num_col},
         {k2.getName(), &num_col},
         {ti.getName(), &ti_val},
         {tj.getName(), &tj_val},
@@ -384,7 +382,6 @@ TEST(LoweringCPU, HoistDoubleMM) {
         {B_DS.getName(), &b},
         {D_DS.getName(), &d},
         {E_DS.getName(), &e},
-        // {k1.getName(), &num_col},
         {k2.getName(), &num_col},
         {ti.getName(), &ti_val},
         {tj.getName(), &tj_val},
@@ -398,10 +395,6 @@ TEST(LoweringCPU, HoistDoubleMM) {
     impl::matrix_multiply(a, b, c, num_col);
     impl::matrix_multiply(c, d, ref_e, num_col);
 
-    std::cout << e << std::endl;
-    std::cout << "--------------------------------" << std::endl;
-    std::cout << ref_e << std::endl;
-    std::cout << "--------------------------------" << std::endl;
     for (int i = 0; i < num_row * num_col; i++) {
         ASSERT_TRUE(e.data[i] == ref_e.data[i]);
     }

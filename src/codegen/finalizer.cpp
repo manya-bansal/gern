@@ -20,7 +20,7 @@ static MethodCall makeFreeCall(AbstractDataTypePtr ds) {
 LowerIR Finalizer::finalize() {
 
     Scoper scoper(ir);
-    LowerIR hoisted_ir = scoper.construct();
+    ir = scoper.construct();
 
     to_free.scope();
 
