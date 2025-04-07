@@ -14,7 +14,6 @@ namespace gern {
 class Concretize : public ComposableVisitorStrict {
 public:
     Concretize(Composable program);
-
     LowerIR concretize();
 
 private:
@@ -44,9 +43,9 @@ private:
     LowerIR prepare_for_current_scope(SubsetObj subset);
 
     Argument get_argument(Expr e);
+    std::vector<Argument> constuct_arguments(std::vector<Argument> args);
 
     Expr get_base_expr(Expr e,
-                       std::map<Variable, Expr> &all_relationships,
                        std::set<Variable> stop_at);
     FunctionCall constructFunctionCall(FunctionSignature f,
                                        std::vector<Variable> ref_md_fields,

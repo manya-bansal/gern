@@ -89,7 +89,6 @@ void BlockNode::accept(LowerIRVisitor *v) const {
 LowerIR ComposableLower::lower() {
     // Add the inputs and output to the current scope.
     // these will come directly from the user.
-
     Concretize concretize(composable);
     return concretize.concretize();
 
@@ -341,14 +340,17 @@ void ComposableLower::visit(const ComputeFunctionCall *node) {
         }
     }
 
-    std::vector<Expr> new_template_args;
+    std::vector<Argument> new_template_args;
     auto template_args = call.template_args;
     for (const auto &arg : template_args) {
-        if (tiled_dimensions.contains(arg)) {
-            new_template_args.push_back(tiled_dimensions.at(arg));
+        auto var = to<ExprArg>(arg)->getVar();
+        if (tiled_dimensions.contains(var)) {
+            new_template_args.push_back(tiled_dimensions.at(var));
         } else {
             new_template_args.push_back(arg);
         }
+        // auto expr = to<ExprArg>(arg)->getExpr();
+        // new_template_args.push_back(get_argument(expr));
     }
 
     FunctionCall new_call = call;
@@ -529,7 +531,7 @@ FunctionCall ComposableLower::constructFunctionCall(FunctionSignature f,
         new_args.push_back(Argument(mappings.at(to<ExprArg>(a)->getVar())));
     }
     // set up the templated args.
-    std::vector<Expr> template_args;
+    std::vector<Argument> template_args;
     for (auto const &a : f.template_args) {
         template_args.push_back(mappings.at(a));
     }

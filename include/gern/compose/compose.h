@@ -28,7 +28,7 @@ struct LaunchArguments {
 struct FunctionCall {
     std::string name;
     std::vector<Argument> args;
-    std::vector<Expr> template_args;
+    std::vector<Argument> template_args;
     Parameter output = Parameter();
     LaunchArguments grid;
     LaunchArguments block;
@@ -42,6 +42,7 @@ struct FunctionCall {
      * @return * Function
      */
     FunctionCall replaceAllDS(std::map<AbstractDataTypePtr, AbstractDataTypePtr> replacement) const;
+    std::vector<Argument> getAllArguments() const;
 };
 
 struct MethodCall {
