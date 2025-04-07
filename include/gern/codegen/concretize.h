@@ -40,6 +40,11 @@ private:
 
     void declare_intervals(Expr end, Variable step);
     LowerIR generate_definition(Assign assign, bool check_const_expr = true);
+    std::tuple<LowerIR, LowerIR> prepare_for_current_scope(SubsetObj subset,
+                                                           FunctionSignature f,
+                                                           FunctionSignature dual_f,
+                                                           bool construct_dual);
+
     std::tuple<LowerIR, LowerIR> prepare_for_current_scope(SubsetObj subset);
 
     Argument get_argument(Expr e);

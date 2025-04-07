@@ -33,6 +33,12 @@ public:
             .args = {x, len},
         };
     }
+    FunctionSignature newStageFunction() const {
+        return FunctionSignature{
+            .name = "new_stage",
+            .args = {x, len},
+        };
+    }
     FunctionSignature getFreeFunction() const override {
         return FunctionSignature{
             .name = "destroy",
@@ -42,6 +48,12 @@ public:
     FunctionSignature getInsertFunction() const override {
         return FunctionSignature{
             .name = "insert",
+            .args = {x, len},
+        };
+    }
+    FunctionSignature getNewInsertFunction() const {
+        return FunctionSignature{
+            .name = "new_insert",
             .args = {x, len},
         };
     }

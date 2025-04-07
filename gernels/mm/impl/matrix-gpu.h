@@ -161,13 +161,13 @@ public:
         // sh_free(data);
     }
     template<int64_t q_height, int64_t q_width>
-    __device__ MatrixGPUShared<q_height, q_width, LDA> stage_into_smem(int64_t x, int64_t y) {
+    __device__ MatrixGPUShared<q_height, q_width, LDA> get_view(int64_t x, int64_t y) {
 
         return MatrixGPUShared<q_height, q_width, LDA>(data + (x * lda + y));
     }
 
     template<int64_t q_height, int64_t q_width>
-    __device__ MatrixGPUShared<q_height, q_width, LDA> stage_into_smem_vec(int64_t x, int64_t y) {
+    __device__ MatrixGPUShared<q_height, q_width, LDA> get_view_vec(int64_t x, int64_t y) {
 
         return MatrixGPUShared<q_height, q_width, LDA>(data + (x * lda + y));
     }

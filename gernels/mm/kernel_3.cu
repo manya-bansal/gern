@@ -30,6 +30,8 @@ int main() {
     auto B_DS = AbstractDataTypePtr(new const BType("B", false));
     auto C_DS = AbstractDataTypePtr(new const CType("C", false));
 
+    auto obj = AType("A_vec", false);
+
     Variable k_dim("k_dim");
     Variable k_tiled("k_tiled");
 
@@ -66,7 +68,9 @@ int main() {
                                     (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_Y)(
                                         (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_X)(
                                             (Reduce(k_dim, one_val))(
-                                                (*mm_sp)(A_DS, B_DS, C_DS))))))))),
+                                                Stage(A_DS, obj.getView(),
+                                                      Stage(B_DS, obj.getView(),
+                                                            (*mm_sp)(A_DS, B_DS, C_DS))))))))))),
             {}, smem_size, TrivialManager(smem_size)),
     };
 
