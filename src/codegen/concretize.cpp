@@ -33,11 +33,11 @@ void Concretize::visit(const Computation *node) {
     // Track all the tileable and reducable fields.
     auto tileable_fileds = node->getAnnotation().getPattern().getTileableFields();
     for (const auto &field : tileable_fileds) {
-        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
+        declare_intervals(field.first, get<2>(field.second));
     }
     auto reducable_fields = node->getAnnotation().getPattern().getReducableFields();
     for (const auto &field : reducable_fields) {
-        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
+        declare_intervals(field.first, get<2>(field.second));
     }
 
     // Track all the definitions that arise as a consequence of chainig the functions.
@@ -96,14 +96,14 @@ void Concretize::visit(const TiledComputation *node) {
         if (get<0>(field.second).ptr == (node->loop_index).ptr) {  // Skip if this the loop we are materializing.
             continue;
         }
-        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
+        declare_intervals(field.first, get<2>(field.second));
     }
     auto reducable_fields = node->getAnnotation().getPattern().getReducableFields();
     for (const auto &field : reducable_fields) {
         if (get<0>(field.second).ptr == (node->loop_index).ptr) {
             continue;
         }
-        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
+        declare_intervals(field.first, get<2>(field.second));
     }
 
     SubsetObj parent;
@@ -174,9 +174,15 @@ void Concretize::visit(const TiledComputation *node) {
 }
 
 void Concretize::visit(const ComputeFunctionCall *node) {
-    // For each input and the output, first prepare it and then proceed.
-    auto pattern = node->getAnnotation().getPattern();
     std::vector<LowerIR> lowered;
+    auto annotation = node->getAnnotation();
+    // Emit any asserts that we need.
+    for (const auto &constraint : annotation.getConstraints()) {
+        lowered.push_back(new const AssertNode(get_base_constraint(constraint, {})));
+    }
+
+    // For each input and the output, first prepare it and then proceed.
+    auto pattern = annotation.getPattern();
     for (const auto &input : pattern.getInputs()) {
         lowered.push_back(prepare_for_current_scope(input));
     }
@@ -218,12 +224,12 @@ void Concretize::visit(const StageNode *node) {
     // Track all the tileable and reducable fields.
     auto tileable_fileds = node->getAnnotation().getPattern().getTileableFields();
     for (const auto &field : tileable_fileds) {
-        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
+        declare_intervals(field.first, get<2>(field.second));
     }
 
     auto reducable_fields = node->getAnnotation().getPattern().getReducableFields();
     for (const auto &field : reducable_fields) {
-        declare_intervals(get<0>(field.second), get<1>(field.second), field.first, get<2>(field.second));
+        declare_intervals(field.first, get<2>(field.second));
     }
 
     // Now, stage the subset.
@@ -266,7 +272,7 @@ std::vector<Argument> Concretize::constuct_arguments(std::vector<Argument> args)
     return new_args;
 }
 
-void Concretize::declare_intervals(Variable i, Expr start, Expr end, Variable step) {
+void Concretize::declare_intervals(Expr end, Variable step) {
     auto step_expr = get_base_expr(step, {});
 
     if (isa<Literal>(step_expr)) {
@@ -445,6 +451,31 @@ LowerIR Concretize::prepare_for_current_scope(SubsetObj subset) {
     }
 
     return ir;
+}
+
+Constraint Concretize::get_base_constraint(Constraint c,
+                                           std::set<Variable> stop_at) {
+    Constraint c_new = c;
+    match(c,
+          std::function<void(const EqNode *op)>([&](const EqNode *op) {
+              c_new = Eq(get_base_expr(op->a, stop_at), get_base_expr(op->b, stop_at));
+          }),
+          std::function<void(const NeqNode *op)>([&](const NeqNode *op) {
+              c_new = Neq(get_base_expr(op->a, stop_at), get_base_expr(op->b, stop_at));
+          }),
+          std::function<void(const LessNode *op)>([&](const LessNode *op) {
+              c_new = Less(get_base_expr(op->a, stop_at), get_base_expr(op->b, stop_at));
+          }),
+          std::function<void(const GreaterNode *op)>([&](const GreaterNode *op) {
+              c_new = Greater(get_base_expr(op->a, stop_at), get_base_expr(op->b, stop_at));
+          }),
+          std::function<void(const LeqNode *op)>([&](const LeqNode *op) {
+              c_new = Leq(get_base_expr(op->a, stop_at), get_base_expr(op->b, stop_at));
+          }),
+          std::function<void(const GeqNode *op)>([&](const GeqNode *op) {
+              c_new = Geq(get_base_expr(op->a, stop_at), get_base_expr(op->b, stop_at));
+          }));
+    return c_new;
 }
 
 }  // namespace gern
