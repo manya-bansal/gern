@@ -262,8 +262,11 @@ Composable TileDummy::operator()(Composable c) {
 }
 
 StageNode::StageNode(AbstractDataTypePtr adt,
-                     Composable body)
-    : adt(adt), body(body) {
+                     FunctionSignature query_f,
+                     FunctionSignature insert_f,
+                     Composable body,
+                     bool insert)
+    : adt(adt), query_f(query_f), insert_f(insert_f), body(body), insert(insert) {
     init_annotation();
 }
 
@@ -280,25 +283,53 @@ void StageNode::accept(ComposableVisitorStrict *v) const {
     v->visit(this);
 }
 
-Composable Stage(AbstractDataTypePtr adt, Composable body) {
-    auto annotation = body.getAnnotation();
-    auto inputs = annotation.getPattern().getInputs();
+Composable Stage(AbstractDataTypePtr adt,
+                 FunctionSignature query_f,
+                 FunctionSignature insert_f,
+                 Composable body,
+                 bool insert) {
 
     if (isa<ComputeFunctionCall>(body.ptr)) {
         body = new const Computation({body});
     }
 
-    for (const auto &input : inputs) {
-        if (input.getDS() == adt) {
-            return new const StageNode(adt, body);
+    auto annotation = body.getAnnotation();
+    // get all the adts in scope.
+    auto adts = annotation.getPattern().getAllADTs();
+    // Only stage if the adt is in scope.
+    for (const auto &in_scope : adts) {
+        if (in_scope.getDS() == adt) {
+            return new const StageNode(adt, query_f, insert_f, body, insert);
         }
     }
 
-    if (annotation.getPattern().getOutput().getDS() == adt) {
-        return new const StageNode(adt, body);
-    }
     // Cannot stage at this scope.
     throw error::UserError("Stage must have " + adt.getName() + " as an input or output of the body in scope.");
+}
+
+Composable Stage(AbstractDataTypePtr adt,
+                 FunctionSignature query_f,
+                 FunctionSignature insert_f,
+                 Composable body) {
+    return Stage(adt, query_f, insert_f, body, true);
+}
+
+Composable Stage(AbstractDataTypePtr adt,
+                 FunctionSignature query_f,
+                 Composable body) {
+    return Stage(adt,
+                 query_f,
+                 adt.getInsertFunction(),  // a placeholder
+                 body,
+                 false);  // No insert
+}
+
+Composable Stage(AbstractDataTypePtr adt, Composable body) {
+    return Stage(adt,
+                 adt.getQueryFunction(),
+                 adt.getInsertFunction(),
+                 body,
+                 adt.insertQuery());
 }
 
 }  // namespace gern

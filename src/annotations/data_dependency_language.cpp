@@ -426,6 +426,11 @@ std::vector<SubsetObj> Pattern::getInputs() const {
     return subset;
 }
 
+std::vector<SubsetObj> Pattern::getAllADTs() const {
+    std::vector<SubsetObj> subsets = getInputs();
+    subsets.push_back(getOutput());
+    return subsets;
+}
 std::vector<Variable> Pattern::getProducesField() const {
     std::vector<Variable> fields;
     match(*this, std::function<void(const ProducesNode *)>(

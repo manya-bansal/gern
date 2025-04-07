@@ -106,20 +106,41 @@ public:
 class StageNode : public ComposableNode {
 public:
     StageNode(AbstractDataTypePtr adt,
-              Composable body);
+              FunctionSignature query_f,
+              FunctionSignature insert_f,
+              Composable body,
+              bool insert);
+
     Annotation getAnnotation() const override;
     void init_annotation();
     void accept(ComposableVisitorStrict *) const override;
 
     Annotation _annotation;
     AbstractDataTypePtr adt;
+    FunctionSignature query_f;
+    FunctionSignature insert_f;
     Composable body;
+    bool insert;
     SubsetObj staged_subset;
     std::map<Variable, Variable> old_to_new;
 };
 
-Composable Stage(AbstractDataTypePtr adt, Composable body);
+Composable Stage(AbstractDataTypePtr adt,
+                 FunctionSignature query_f,
+                 FunctionSignature insert_f,
+                 Composable body,
+                 bool insert);
 
+Composable Stage(AbstractDataTypePtr adt,
+                 FunctionSignature query_f,
+                 FunctionSignature insert_f,
+                 Composable body);
+
+Composable Stage(AbstractDataTypePtr adt,
+                 FunctionSignature query_f,
+                 Composable body);
+
+Composable Stage(AbstractDataTypePtr adt, Composable body);
 // This class only exists for the overload.
 struct TileDummy {
     TileDummy(Expr to_tile, Variable v,

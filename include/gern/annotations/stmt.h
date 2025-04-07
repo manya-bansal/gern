@@ -171,6 +171,7 @@ public:
     }
 
     std::vector<SubsetObj> getInputs() const;
+    std::vector<SubsetObj> getAllADTs() const;
     std::vector<Variable> getProducesField() const;
     std::vector<Expr> getRequirement(AbstractDataTypePtr) const;
     SubsetObj getOutput() const;

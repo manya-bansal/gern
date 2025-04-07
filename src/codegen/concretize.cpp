@@ -207,9 +207,20 @@ void Concretize::visit(const StageNode *node) {
         declare_intervals(field.first, get<2>(field.second));
     }
 
+    if (!adt_in_scope.contains(node->adt)) {
+        throw error::UserError("Cannot stage " + node->adt.getName() + " because it is not in scope.");
+    }
+
+    if (adt_in_scope.contains_in_current_scope(node->adt)) {
+        throw error::UserError("Cannot stage " + node->adt.getName() + " because it is already in the current scope.");
+    }
+
     // Now, stage the subset.
     std::vector<LowerIR> lowered;
-    auto [ir, ir_insert] = prepare_for_current_scope(node->staged_subset);
+    auto [ir, ir_insert] = prepare_for_current_scope(node->staged_subset,
+                                                     node->query_f,
+                                                     node->insert_f,
+                                                     node->insert);
     lowered.push_back(ir);
     // Visit the body it was staged for.
     this->visit(node->body);
@@ -387,6 +398,14 @@ FunctionCall Concretize::constructFunctionCall(FunctionSignature f,
 }
 
 std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj subset) {
+    auto adt = subset.getDS();
+    return prepare_for_current_scope(subset, adt.getQueryFunction(), adt.getInsertFunction(), adt.insertQuery());
+}
+
+std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj subset,
+                                                                   FunctionSignature f,
+                                                                   FunctionSignature dual_f,
+                                                                   bool construct_dual) {
 
     LowerIR ir = LowerIR(new const BlankNode());
     LowerIR ir_insert = LowerIR(new const BlankNode());
@@ -407,7 +426,7 @@ std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj sub
 
             // Construct the query call from the parent adt.
             AbstractDataTypePtr parent = current_adt.at(adt).getDS();
-            auto call = constructFunctionCall(parent.getQueryFunction(), parent.getFields(), fields_expr);
+            auto call = constructFunctionCall(f, parent.getFields(), fields_expr);
 
             // Construct the new adt that we are querying.
             AbstractDataTypePtr queried = DummyDS::make(getUniqueName("_query_" + adt.getName()), "auto", adt);
@@ -416,8 +435,8 @@ std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj sub
             current_adt.insert(adt, SubsetObj(queried, fields_expr));
             ir = LowerIR(new const QueryNode(adt, queried, fields_expr, method_call));
             // Do we need to insert?
-            if (parent.insertQuery()) {
-                auto insert_call = constructFunctionCall(parent.getInsertFunction(), parent.getFields(), fields_expr);
+            if (construct_dual) {
+                auto insert_call = constructFunctionCall(dual_f, parent.getFields(), fields_expr);
                 insert_call.args.push_back(queried);
                 ir_insert = LowerIR(new const InsertNode(MethodCall(parent, insert_call)));
             }
