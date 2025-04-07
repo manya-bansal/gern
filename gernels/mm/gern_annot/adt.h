@@ -171,6 +171,14 @@ public:
         };
     }
 
+    FunctionSignature getView() const {
+        return FunctionSignature{
+            .name = "template get_view",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+
     bool insertQuery() const override {
         return true;  // Just a view, no insert.
     }
@@ -193,6 +201,13 @@ public:
     FunctionSignature getQueryFunction() const {
         return FunctionSignature{
             .name = "template stage_into_smem_vec",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+    FunctionSignature getViewVec() const {
+        return FunctionSignature{
+            .name = "template get_view_vec",
             .args = {this->x, this->y},
             .template_args = {this->row, this->col},
         };
