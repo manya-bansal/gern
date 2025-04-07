@@ -437,7 +437,7 @@ Consumes mimicConsumes(Pattern p, std::vector<SubsetObj> input_subsets) {
     match(p, std::function<void(const ConsumesForNode *, Matcher *)>(
                  [&](const ConsumesForNode *op, Matcher *ctx) {
                      ctx->match(op->body);
-                     consumes = Reduce(op->start, op->parameter, op->step, consumes);
+                     consumes = Reducible(op->start, op->parameter, op->step, consumes);
                  }));
     return consumes;
 }
@@ -447,7 +447,7 @@ Pattern mimicComputes(Pattern p, Computes computes) {
     match(p, std::function<void(const ComputesForNode *, Matcher *)>(
                  [&](const ComputesForNode *op, Matcher *ctx) {
                      ctx->match(op->body);
-                     pattern = For(op->start, op->parameter, op->step, pattern);
+                     pattern = Tileable(op->start, op->parameter, op->step, pattern);
                  }));
     return pattern;
 }

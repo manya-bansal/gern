@@ -373,20 +373,20 @@ Consumes Consumes::Subsets(ConsumeMany many) {
     return Consumes(getNode(many));
 }
 
-ConsumeMany Reduce(Assign start, Expr parameter, Variable step, ConsumeMany body,
-                   bool parallel) {
+ConsumeMany Reducible(Assign start, Expr parameter, Variable step, ConsumeMany body,
+                      bool parallel) {
     return ConsumeMany(
         new const ConsumesForNode(start, parameter, step, body, parallel));
 }
 
-ConsumeMany Reduce(Assign start, Expr parameter, Variable step, std::vector<SubsetObj> body,
-                   bool parallel) {
-    return Reduce(start, parameter, step, SubsetObjMany(body), parallel);
+ConsumeMany Reducible(Assign start, Expr parameter, Variable step, std::vector<SubsetObj> body,
+                      bool parallel) {
+    return Reducible(start, parameter, step, SubsetObjMany(body), parallel);
 }
 
-ConsumeMany Reduce(Assign start, Expr parameter, Variable step, SubsetObj body,
-                   bool parallel) {
-    return Reduce(start, parameter, step, std::vector<SubsetObj>{body}, parallel);
+ConsumeMany Reducible(Assign start, Expr parameter, Variable step, SubsetObj body,
+                      bool parallel) {
+    return Reducible(start, parameter, step, std::vector<SubsetObj>{body}, parallel);
 }
 
 Allocates::Allocates(const AllocatesNode *n)
@@ -526,16 +526,16 @@ Annotation resetUnit(Annotation annot, std::set<Grid::Unit> occupied) {
     return Annotation(annot.getPattern(), occupied, annot.getConstraints());
 }
 
-Pattern For(Assign start, Expr parameter, Variable step, Pattern body,
-            bool parallel) {
+Pattern Tileable(Assign start, Expr parameter, Variable step, Pattern body,
+                 bool parallel) {
     return Pattern(
         new const ComputesForNode(start, parameter, step, body, parallel));
 }
 
-Pattern For(Assign start, Expr parameter, Variable step,
-            Produces produces, Consumes consumes,
-            bool parallel) {
-    return For(start, parameter, step, Computes(produces, consumes), parallel);
+Pattern Tileable(Assign start, Expr parameter, Variable step,
+                 Produces produces, Consumes consumes,
+                 bool parallel) {
+    return Tileable(start, parameter, step, Computes(produces, consumes), parallel);
 }
 
 std::string AbstractDataTypePtr::getName() const {

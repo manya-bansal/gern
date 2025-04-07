@@ -21,10 +21,10 @@ public:
         Variable l_x("l_x", Datatype::Int64, true);
         Variable l_y("l_y", Datatype::Int64, true);
 
-        return For(x = Expr(0), ADTMember(output, "row", true), l_x,
-                   For(y = Expr(0), ADTMember(output, "col", true), l_y,
-                       Produces::Subset(output, {x, y, l_x, l_y}),
-                       Consumes::Subset(input, {x, y, l_x, l_y})))
+        return Tileable(x = Expr(0), ADTMember(output, "row", true), l_x,
+                        Tileable(y = Expr(0), ADTMember(output, "col", true), l_y,
+                                 Produces::Subset(output, {x, y, l_x, l_y}),
+                                 Consumes::Subset(input, {x, y, l_x, l_y})))
             .occupies({Grid::Unit::SCALAR_UNIT});
     }
 
@@ -63,15 +63,15 @@ public:
         Variable l_y("l_y", Datatype::Int64, true);
         Variable col{"col", Datatype::Int64, true};
 
-        return For(x = Expr(0), ADTMember(output, "size", true), l_x,
-                   Produces::Subset(output, {x, l_x}),
-                   Consumes::Subsets(
-                       Reduce(y = Expr(0), ADTMember(input, "col", true), l_y,
-                              SubsetObjMany({
-                                  SubsetObj(input, {x, y, l_x, col}),
-                              })
+        return Tileable(x = Expr(0), ADTMember(output, "size", true), l_x,
+                        Produces::Subset(output, {x, l_x}),
+                        Consumes::Subsets(
+                            Reducible(y = Expr(0), ADTMember(input, "col", true), l_y,
+                                      SubsetObjMany({
+                                          SubsetObj(input, {x, y, l_x, col}),
+                                      })
 
-                                  )))
+                                          )))
             .occupies({Grid::Unit::SCALAR_UNIT});
     }
 
@@ -127,14 +127,14 @@ public:
         Variable l_x("l_x", Datatype::Int64, true);
         Variable l_y("l_y", Datatype::Int64, true);
 
-        return annotate(For(x = Expr(0), ADTMember(output, "row", true), l_x,
-                            For(y = Expr(0), ADTMember(output, "col", true), l_y,
-                                Produces::Subset(output, {x, y, l_x, l_y}),
-                                Consumes::Subsets(
-                                    SubsetObjMany({
-                                        SubsetObj(input, {x, y, l_x, l_y}),
-                                        SubsetObj(vec, {x, l_x}),
-                                    })))));
+        return annotate(Tileable(x = Expr(0), ADTMember(output, "row", true), l_x,
+                                 Tileable(y = Expr(0), ADTMember(output, "col", true), l_y,
+                                          Produces::Subset(output, {x, y, l_x, l_y}),
+                                          Consumes::Subsets(
+                                              SubsetObjMany({
+                                                  SubsetObj(input, {x, y, l_x, l_y}),
+                                                  SubsetObj(vec, {x, l_x}),
+                                              })))));
     }
 
     virtual FunctionSignature getFunction() override {
@@ -183,11 +183,11 @@ public:
         Variable l_x("l_x", Datatype::Int64, true);
         Variable l_y("l_y", Datatype::Int64, true);
 
-        return For(x = Expr(0), ADTMember(output, "row", true), l_x,
-                   For(y = Expr(0), ADTMember(output, "col", true), l_y,
-                       Produces::Subset(output, {x, y, l_x, l_y}),
-                       Consumes::Subset(
-                           input, {x, y, l_x, l_y + stride - 1})))
+        return Tileable(x = Expr(0), ADTMember(output, "row", true), l_x,
+                        Tileable(y = Expr(0), ADTMember(output, "col", true), l_y,
+                                 Produces::Subset(output, {x, y, l_x, l_y}),
+                                 Consumes::Subset(
+                                     input, {x, y, l_x, l_y + stride - 1})))
             .occupies({Grid::Unit::SCALAR_UNIT});
     }
     virtual FunctionSignature getFunction() override {
@@ -221,11 +221,11 @@ public:
         Variable l_x("l_x", Datatype::Int64, true);
         Variable l_y("l_y", Datatype::Int64, true);
 
-        return For(x = Expr(0), ADTMember(output, "row", true), l_x,
-                   For(y = Expr(0), ADTMember(output, "col", true), l_y,
-                       Produces::Subset(output, {x, y, l_x, l_y}),
-                       Consumes::Subset(
-                           input, {x, y, l_x + stride - 1, l_y})))
+        return Tileable(x = Expr(0), ADTMember(output, "row", true), l_x,
+                        Tileable(y = Expr(0), ADTMember(output, "col", true), l_y,
+                                 Produces::Subset(output, {x, y, l_x, l_y}),
+                                 Consumes::Subset(
+                                     input, {x, y, l_x + stride - 1, l_y})))
             .occupies({Grid::Unit::SCALAR_UNIT});
     }
     virtual FunctionSignature getFunction() override {

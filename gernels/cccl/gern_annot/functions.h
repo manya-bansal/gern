@@ -27,8 +27,8 @@ public:
         Variable i{"i"};
         return Computes(
                    Produces::Subset(output, {}),
-                   Reduce(i = Expr(0), k, block_size,
-                          SubsetObj(input, {i, block_size})))
+                   Reducible(i = Expr(0), k, block_size,
+                             SubsetObj(input, {i, block_size})))
             .occupies({Grid::Unit::THREAD_X})
             .assumes({Grid::Dim::BLOCK_DIM_X == block_size});
     }
@@ -64,10 +64,10 @@ public:
     Annotation getAnnotation() override {
         Variable i{"i"};
         Variable lx{"lx"};
-        return For(i = Expr(0), output["size"], lx,
-                   Produces::Subset(output, {i, lx}),
-                   Consumes::Subset(input, {i * block_size * lx,
-                                            block_size * lx}))
+        return Tileable(i = Expr(0), output["size"], lx,
+                        Produces::Subset(output, {i, lx}),
+                        Consumes::Subset(input, {i * block_size * lx,
+                                                 block_size * lx}))
             .occupies({Grid::Unit::THREAD_X})
             .assumes({Grid::Dim::BLOCK_DIM_X == block_size});
     }
@@ -104,8 +104,8 @@ public:
         Variable tk{"tk", Datatype::Int64, true};
         return annotate(Computes(
             Produces::Subset(output, {}),
-            Reduce(i = Expr(0), k, tk,
-                   SubsetObj(input, {i, tk}))));
+            Reducible(i = Expr(0), k, tk,
+                      SubsetObj(input, {i, tk}))));
     }
 
     std::vector<std::string> getHeader() override {
