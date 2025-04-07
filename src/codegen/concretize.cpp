@@ -207,8 +207,12 @@ void Concretize::visit(const StageNode *node) {
         declare_intervals(field.first, get<2>(field.second));
     }
 
-    if (!current_adt.contains(node->adt)) {
+    if (!adt_in_scope.contains(node->adt)) {
         throw error::UserError("Cannot stage " + node->adt.getName() + " because it is not in scope.");
+    }
+
+    if (adt_in_scope.contains_in_current_scope(node->adt)) {
+        throw error::UserError("Cannot stage " + node->adt.getName() + " because it is already in the current scope.");
     }
 
     // Now, stage the subset.
