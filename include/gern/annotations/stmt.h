@@ -103,12 +103,12 @@ public:
 // This ensures that a consumes node will only ever contain a for loop
 // or a list of subsets. In this way, we can leverage the cpp type checker to
 // ensures that only legal patterns are written down.
-ConsumeMany Reduce(Assign start, Expr parameter, Variable step, ConsumeMany body,
-                   bool parallel = false);
-ConsumeMany Reduce(Assign start, Expr parameter, Variable step, std::vector<SubsetObj> body,
-                   bool parallel = false);
-ConsumeMany Reduce(Assign start, Expr parameter, Variable step, SubsetObj body,
-                   bool parallel = false);
+ConsumeMany Reducible(Assign start, Expr parameter, Variable step, ConsumeMany body,
+                      bool parallel = false);
+ConsumeMany Reducible(Assign start, Expr parameter, Variable step, std::vector<SubsetObj> body,
+                      bool parallel = false);
+ConsumeMany Reducible(Assign start, Expr parameter, Variable step, SubsetObj body,
+                      bool parallel = false);
 
 class Allocates : public Stmt {
 public:
@@ -191,10 +191,10 @@ Annotation resetUnit(Annotation, std::set<Grid::Unit>);
 // This ensures that a computes node will only ever contain a for loop
 // or a (Produces, Consumes) node. In this way, we can leverage the cpp type
 // checker to ensures that only legal patterns are written down.
-Pattern For(Assign start, Expr parameter, Variable step, Pattern body,
-            bool parallel = false);
+Pattern Tileable(Assign start, Expr parameter, Variable step, Pattern body,
+                 bool parallel = false);
 // FunctionSignature so that users do need an explicit compute initialization.
-Pattern For(Assign start, Expr parameter, Variable step,
-            Produces produces, Consumes consumes,
-            bool parallel = false);
+Pattern Tileable(Assign start, Expr parameter, Variable step,
+                 Produces produces, Consumes consumes,
+                 bool parallel = false);
 }  // namespace gern

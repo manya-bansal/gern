@@ -19,29 +19,29 @@ TEST(GridConstraints, ConstrainDimension) {
 
     // Try to constrain a dimension that does not belong to this
     // function.
-    ASSERT_THROW(For(v = Expr(0), TestDSCPU["dummy"], v,
-                     Computes(
-                         Produces::Subset(TestDSCPU, {v, v}),
-                         Consumes(SubsetObjMany(s))))
+    ASSERT_THROW(Tileable(v = Expr(0), TestDSCPU["dummy"], v,
+                          Computes(
+                              Produces::Subset(TestDSCPU, {v, v}),
+                              Consumes(SubsetObjMany(s))))
                      .assumes(Grid::Dim::BLOCK_DIM_X == v),
                  error::UserError);
 
     // Catch if we try to constrain a dimension at the same level.
     // Try to constrain a dimension that does belong to this
     // function.
-    ASSERT_THROW(For(v = Expr(0), TestDSCPU["dummy"], v,
-                     Computes(
-                         Produces::Subset(TestDSCPU, {v, v}),
-                         Consumes(SubsetObjMany(s))))
+    ASSERT_THROW(Tileable(v = Expr(0), TestDSCPU["dummy"], v,
+                          Computes(
+                              Produces::Subset(TestDSCPU, {v, v}),
+                              Consumes(SubsetObjMany(s))))
                      .occupies({Grid::Unit::THREAD_X})
                      .assumes(Grid::Dim::BLOCK_DIM_Y == v),
                  error::UserError);
 
     // Complain if annotation tries to constrain a parent.
-    ASSERT_THROW(For(v = Expr(0), TestDSCPU["dummy"], v,
-                     Computes(
-                         Produces::Subset(TestDSCPU, {v, v}),
-                         Consumes(SubsetObjMany(s))))
+    ASSERT_THROW(Tileable(v = Expr(0), TestDSCPU["dummy"], v,
+                          Computes(
+                              Produces::Subset(TestDSCPU, {v, v}),
+                              Consumes(SubsetObjMany(s))))
                      .occupies({Grid::Unit::THREAD_X,
                                 Grid::Unit::THREAD_Y})
                      .assumes(Grid::Dim::GRID_DIM_X == v),
@@ -49,28 +49,28 @@ TEST(GridConstraints, ConstrainDimension) {
 
     // Try to constrain a dimension that does belong to this
     // function.
-    ASSERT_NO_THROW(For(v = Expr(0), TestDSCPU["dummy"], v,
-                        Computes(
-                            Produces::Subset(TestDSCPU, {v, v}),
-                            Consumes(SubsetObjMany(s))))
+    ASSERT_NO_THROW(Tileable(v = Expr(0), TestDSCPU["dummy"], v,
+                             Computes(
+                                 Produces::Subset(TestDSCPU, {v, v}),
+                                 Consumes(SubsetObjMany(s))))
                         .occupies({Grid::Unit::THREAD_X})
                         .assumes(Grid::Dim::BLOCK_DIM_X == v));
 
     // Ok now too.
-    ASSERT_NO_THROW(For(v = Expr(0), TestDSCPU["dummy"], v,
-                        Computes(
-                            Produces::Subset(TestDSCPU, {v, v}),
-                            Consumes(SubsetObjMany(s))))
+    ASSERT_NO_THROW(Tileable(v = Expr(0), TestDSCPU["dummy"], v,
+                             Computes(
+                                 Produces::Subset(TestDSCPU, {v, v}),
+                                 Consumes(SubsetObjMany(s))))
                         .occupies({Grid::Unit::THREAD_X,
                                    Grid::Unit::THREAD_Y})
                         .assumes(Grid::Dim::BLOCK_DIM_Y == v));
 
     // Constrain a child, ok too
     // Ok now too.
-    ASSERT_NO_THROW(For(v = Expr(0), TestDSCPU["dummy"], v,
-                        Computes(
-                            Produces::Subset(TestDSCPU, {v, v}),
-                            Consumes(SubsetObjMany(s))))
+    ASSERT_NO_THROW(Tileable(v = Expr(0), TestDSCPU["dummy"], v,
+                             Computes(
+                                 Produces::Subset(TestDSCPU, {v, v}),
+                                 Consumes(SubsetObjMany(s))))
                         .occupies({Grid::Unit::BLOCK_X,
                                    Grid::Unit::THREAD_Y})
                         .assumes(Grid::Dim::BLOCK_DIM_Y == v));

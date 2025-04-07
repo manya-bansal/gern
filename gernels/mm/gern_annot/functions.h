@@ -21,17 +21,17 @@ public:
         Variable tj("tj", Datatype::Int64, true);
         Variable tk("tk", Datatype::Int64, true);
 
-        return For(i = Expr(0), ADTMember(C, "row", true), ti,
-                   For(j = Expr(0), ADTMember(C, "col", true), tj,
-                       Produces::Subset(C, {i, j, ti, tj}),
-                       Consumes::Subsets(
-                           Reduce(k = Expr(0), k_dim, tk,
-                                  SubsetObjMany({
-                                      SubsetObj(A, {i, k, ti, tk}),
-                                      SubsetObj(B, {k, j, tk, tj}),
-                                  })
+        return Tileable(i = Expr(0), ADTMember(C, "row", true), ti,
+                        Tileable(j = Expr(0), ADTMember(C, "col", true), tj,
+                                 Produces::Subset(C, {i, j, ti, tj}),
+                                 Consumes::Subsets(
+                                     Reducible(k = Expr(0), k_dim, tk,
+                                               SubsetObjMany({
+                                                   SubsetObj(A, {i, k, ti, tk}),
+                                                   SubsetObj(B, {k, j, tk, tj}),
+                                               })
 
-                                      ))))
+                                                   ))))
             .occupies({Grid::Unit::SCALAR_UNIT});
     }
     virtual FunctionSignature getFunction() override {
