@@ -261,11 +261,13 @@ void CodeGenerator::visit(const AssertNode *op) {
 
     std::map<Grid::Dim, Expr> dims_defined_copy;
     for (auto &dim : dims_defined) {
+        if (dim.second.front().size() == 0) {
+            throw error::InternalError("Expected one value for grid dim " + std::to_string(dim.first));
+        }
         dims_defined_copy[dim.first] = *dim.second.front().begin();
     }
 
     Constraint rw_constraint = replaceDim(op->constraint, dims_defined_copy);
-    // Constraint rw_constraint = gen(op->constraint);
     std::string name = (isConstExpr(rw_constraint)) ?
                            "static_assert" :  // If both A and B are const exprs, generate a static assert.
                            "assert";          // Otherwise generate a normal assert.
@@ -705,6 +707,8 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     Expr dividend = op->end - op->start.getB();
     Expr ceil = (divisor + dividend - 1) / divisor;
 
+    Expr exp = *dims_defined[getDim(op->p)].front().begin();
+
     dims_defined[getDim(op->p)].scope();
     updateGrid(getDim(unit), ceil);
 
@@ -714,7 +718,7 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     return VarAssign::make(
         declVar(interval_var, false),
         // Add any shift factor specified in the interval.
-        (genProp(unit) * gen(op->step)) + gen(op->start.getB()));
+        (((genProp(unit) / gen(exp)) % gen(ceil)) * gen(op->step)) + gen(op->start.getB()));
 }
 
 void CodeGenerator::unsetGrid(const IntervalNode *op) {
