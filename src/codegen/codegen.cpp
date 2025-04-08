@@ -275,13 +275,13 @@ CGExpr CodeGenerator::gen(const Grid::Dim &p) {
 CGStmt CodeGenerator::declDim(const Grid::Dim &p, Expr val) {
     if (dims_defined.contains(p)) {
         auto temp = code;
-        Expr cur_val = dims_defined.at(p);
+        Expr cur_val = dims_defined.at(p).top();
         visit(new const AssertNode(cur_val == val));  // Generate an assert.
         auto lowered = code;
         code = temp;  // Restore.
         return lowered;
     } else {
-        dims_defined[p] = val;
+        dims_defined[p].push(val);
         switch (p) {
         case Grid::Dim::BLOCK_DIM_X:
             block_dim.x = val;
@@ -645,6 +645,8 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     Variable interval_var = op->getIntervalVariable();
     Grid::Unit unit = op->p;
 
+    dims_defined[getDim(unit)].push(op->step);
+
     // This only works for ceiling.
     Expr divisor = op->step;
     Expr dividend = op->end - op->start.getB();
@@ -657,6 +659,14 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
         declVar(interval_var, false),
         // Add any shift factor specified in the interval.
         (genProp(unit) * gen(op->step)) + gen(op->start.getB()));
+}
+
+void CodeGenerator::unsetGrid(const IntervalNode *op) {
+    if (!op->isMappedToGrid()) {
+        return;
+    }
+
+    dims_defined[getDim(op->p)].pop();
 }
 
 }  // namespace codegen

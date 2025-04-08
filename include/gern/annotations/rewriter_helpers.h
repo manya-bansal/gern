@@ -3,8 +3,11 @@
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/rewriter.h"
+#include "codegen/codegen.h"
+
 #include <map>
 #include <set>
+#include <stack>
 
 namespace gern {
 
@@ -104,21 +107,26 @@ inline Annotation refreshVariables(Annotation annot, std::map<Variable, Variable
 }
 
 template<typename T>
-inline T replaceDim(T annot, const std::map<Grid::Dim, Expr> &rw_dims) {
+inline T replaceDim(T annot, const std::map<Grid::Dim, codegen::iterable_stack<Expr>> &rw_dims) {
     struct rewriteDS : public Rewriter {
-        rewriteDS(const std::map<Grid::Dim, Expr> &rw_dims)
+        rewriteDS(const std::map<Grid::Dim, codegen::iterable_stack<Expr>> &rw_dims)
             : rw_dims(rw_dims) {
         }
         using Rewriter::rewrite;
 
         void visit(const GridDimNode *op) {
             if (rw_dims.contains(op->dim)) {
-                expr = rw_dims.at(op->dim);
+                auto &stack = rw_dims.at(op->dim);
+                expr = 1;
+                for (const auto &dim : stack) {
+                    expr = expr * dim;
+                }
+                // expr = rw_dims.at(op->dim);
             } else {
                 expr = op;
             }
         }
-        const std::map<Grid::Dim, Expr> &rw_dims;
+        const std::map<Grid::Dim, codegen::iterable_stack<Expr>> &rw_dims;
     };
     rewriteDS rw{rw_dims};
     return to<T>(rw.rewrite(annot));

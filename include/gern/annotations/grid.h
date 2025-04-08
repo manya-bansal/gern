@@ -11,9 +11,15 @@ enum Unit {
 
     SCALAR_UNIT,
 
+    THREAD_X_IN_WRAPS,
+    THREAD_Y_IN_WRAPS,
+    THREAD_Z_IN_WRAPS,
+
     THREAD_X,
     THREAD_Y,
     THREAD_Z,
+
+    WARP,
 
     BLOCK_X,
     BLOCK_Y,
@@ -28,6 +34,11 @@ enum Dim {
     BLOCK_DIM_X,
     BLOCK_DIM_Y,
     BLOCK_DIM_Z,
+
+    WARP_DIM,
+    WARP_DIM_X,
+    WARP_DIM_Y,
+    WARP_DIM_Z,
 
     NULL_DIM,
 };

@@ -4,9 +4,34 @@
 #include "codegen/codegen_ir.h"
 #include "codegen/lower_visitor.h"
 #include "utils/name_generator.h"
+#include "utils/scoped_map.h"
+
+#include <stack>
 
 namespace gern {
 namespace codegen {
+
+template<typename T, typename Container = std::deque<T>>
+class iterable_stack
+    : public std::stack<T, Container> {
+    using std::stack<T, Container>::c;
+
+public:
+    // expose just the iterators of the underlying container
+    auto begin() {
+        return std::begin(c);
+    }
+    auto end() {
+        return std::end(c);
+    }
+
+    auto begin() const {
+        return std::begin(c);
+    }
+    auto end() const {
+        return std::end(c);
+    }
+};
 
 class CodeGenerator : public LowerIRVisitor {
 public:
@@ -89,6 +114,8 @@ private:
     std::optional<std::vector<Parameter>> ordered_parameters;
 
     CGStmt setGrid(const IntervalNode *op);
+    void unsetGrid(const IntervalNode *op);
+
     std::vector<CGStmt> children;  // code generated for children.
 
     std::string name;
@@ -105,7 +132,7 @@ private:
     std::set<std::string> includes;
     std::set<std::string> libs;
     std::vector<std::string> argument_order;
-    std::map<Grid::Dim, Expr> dims_defined;
+    std::map<Grid::Dim, iterable_stack<Expr>> dims_defined;
 
     LaunchArguments grid_dim;
     LaunchArguments block_dim;
