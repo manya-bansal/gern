@@ -103,7 +103,6 @@ public:
     CGExpr declParameter(Parameter a,
                          bool track = true,
                          DeclProperties = DeclProperties());
-    CGStmt declDim(const Grid::Dim &p, Expr val);
 
     std::string getName() const;
     std::string getHookName() const;
@@ -116,7 +115,9 @@ private:
     CGStmt setGrid(const IntervalNode *op);
     void unsetGrid(const IntervalNode *op);
     void updateGrid(Grid::Dim dim, Expr expr);
-    void prepare(LaunchArguments);
+    CGStmt assertGrid(const Grid::Dim &dim);
+
+    Expr getCurrentVal(const Grid::Dim &dim);
 
     std::vector<CGStmt> children;  // code generated for children.
 
@@ -136,8 +137,6 @@ private:
     std::vector<std::string> argument_order;
     std::map<Grid::Dim, util::ScopedSet<Expr>> dims_defined;
 
-    LaunchArguments grid_dim;
-    LaunchArguments block_dim;
     Variable smem_size;
 };
 
