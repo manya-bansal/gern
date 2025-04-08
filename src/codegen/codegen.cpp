@@ -210,6 +210,28 @@ void CodeGenerator::visit(const ComputeNode *op) {
     headers.insert(func_header.begin(), func_header.end());
 }
 
+static CGExpr genProp(const Grid::Unit &p) {
+    switch (p) {
+
+    case Grid::Unit::BLOCK_X:
+        return EscapeCGExpr::make("blockIdx.x");
+    case Grid::Unit::BLOCK_Y:
+        return EscapeCGExpr::make("blockIdx.y");
+    case Grid::Unit::BLOCK_Z:
+        return EscapeCGExpr::make("blockIdx.z");
+
+    case Grid::Unit::THREAD_X:
+        return EscapeCGExpr::make("threadIdx.x");
+    case Grid::Unit::THREAD_Y:
+        return EscapeCGExpr::make("threadIdx.y");
+    case Grid::Unit::THREAD_Z:
+        return EscapeCGExpr::make("threadIdx.z");
+
+    default:
+        throw error::InternalError("Undefined Grid unit Passed!");
+    }
+}
+
 void CodeGenerator::visit(const IntervalNode *op) {
 
     // First, lower the body of the interval node.
@@ -217,11 +239,36 @@ void CodeGenerator::visit(const IntervalNode *op) {
     // In the case that the interval is mapped to a grid
     // variable, set it up.
     // Continue lowering the body now.
+    if (op->isMappedToGrid()) {
+        dims_defined[getDim(op->p)].scope();
+    }
+
     this->visit(op->body);
     CGStmt body_code = code;
 
-    setGrid(op);
-    body.push_back(unsetGrid(op));
+    if (op->isMappedToGrid()) {
+        Expr first = 1;
+        auto dims = dims_defined[getDim(op->p)].pop();
+        if (dims.size() > 0) {
+            // set this to the puter dimension.
+            first = *dims.begin();
+        }
+        Expr divisor = op->step;
+        Expr dividend = op->end - op->start.getB();
+        Expr ceil = (divisor + dividend - 1) / divisor;
+        Variable interval_var = op->getIntervalVariable();
+        // Now add our own to dims.
+        for (const auto &d : dims) {
+            dims_defined[getDim(op->p)].insert(d * ceil);
+        }
+        body.push_back(VarAssign::make(
+            declVar(interval_var, false),
+            // Add any shift factor specified in the interval.
+            (((genProp(op->p) / gen(first)) % gen(ceil)) * gen(op->step)) + gen(op->start.getB())));
+    }
+
+    // setGrid(op);
+    // body.push_back(unsetGrid(op));
     body.push_back(body_code);
     code = Block::make(body);
 
@@ -334,28 +381,6 @@ CGExpr CodeGenerator::gen(Expr e) {
     ConvertToCode cg(this);
     cg.visit(e);
     return cg.cg_e;
-}
-
-static CGExpr genProp(const Grid::Unit &p) {
-    switch (p) {
-
-    case Grid::Unit::BLOCK_X:
-        return EscapeCGExpr::make("blockIdx.x");
-    case Grid::Unit::BLOCK_Y:
-        return EscapeCGExpr::make("blockIdx.y");
-    case Grid::Unit::BLOCK_Z:
-        return EscapeCGExpr::make("blockIdx.z");
-
-    case Grid::Unit::THREAD_X:
-        return EscapeCGExpr::make("threadIdx.x");
-    case Grid::Unit::THREAD_Y:
-        return EscapeCGExpr::make("threadIdx.y");
-    case Grid::Unit::THREAD_Z:
-        return EscapeCGExpr::make("threadIdx.z");
-
-    default:
-        throw error::InternalError("Undefined Grid unit Passed!");
-    }
 }
 
 #define VISIT_AND_DECLARE_CONSTRAINT(op, name) \
