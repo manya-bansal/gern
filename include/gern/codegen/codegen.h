@@ -112,8 +112,8 @@ public:
 private:
     std::optional<std::vector<Parameter>> ordered_parameters;
 
-    CGStmt setGrid(const IntervalNode *op);
-    void unsetGrid(const IntervalNode *op);
+    void setGrid(const IntervalNode *op);
+    CGStmt unsetGrid(const IntervalNode *op);
     void updateGrid(Grid::Dim dim, Expr expr);
     CGStmt assertGrid(const Grid::Dim &dim);
 

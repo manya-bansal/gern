@@ -118,11 +118,6 @@ bool legalToDistribute(const std::set<Grid::Unit> &units, const Grid::Unit &dist
         return false;
     }
 
-    // Cannot distribute again.
-    if (units.contains(distribute_unit)) {
-        return false;
-    }
-
     if (getLevel(units) > getLevel(distribute_unit)) {
         return false;
     }

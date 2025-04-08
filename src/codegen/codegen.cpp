@@ -216,13 +216,14 @@ void CodeGenerator::visit(const IntervalNode *op) {
     std::vector<CGStmt> body;
     // In the case that the interval is mapped to a grid
     // variable, set it up.
-    body.push_back(setGrid(op));
     // Continue lowering the body now.
     this->visit(op->body);
-    body.push_back(code);
-    code = Block::make(body);
+    CGStmt body_code = code;
 
-    unsetGrid(op);
+    setGrid(op);
+    body.push_back(unsetGrid(op));
+    body.push_back(body_code);
+    code = Block::make(body);
 
     // If the variable is not mapped to the grid, we need to actually
     // wrap it in a for loop.
@@ -627,10 +628,10 @@ Expr CodeGenerator::getCurrentVal(const Grid::Dim &dim) {
     return *dims_defined[dim].front().begin();
 }
 
-CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
+void CodeGenerator::setGrid(const IntervalNode *op) {
     // If not a grid mapping, do nothing.
     if (!op->isMappedToGrid()) {
-        return BlankLine::make();
+        return;
     }
 
     Variable interval_var = op->getIntervalVariable();
@@ -646,23 +647,11 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
 
     dims_defined[dim].scope();
     updateGrid(dim, ceil);
-
-    std::vector<CGStmt> stmts;
-    stmts.push_back(assertGrid(dim));
-
-    // Store the grid dimension that correspond with this mapping.
-    // Actually declare the variable to use the grid.
-    stmts.push_back(VarAssign::make(
-        declVar(interval_var, false),
-        // Add any shift factor specified in the interval.
-        (((genProp(unit) / gen(outer_dim)) % gen(ceil)) * gen(op->step)) + gen(op->start.getB())));
-
-    return Block::make(stmts);
 }
 
-void CodeGenerator::unsetGrid(const IntervalNode *op) {
+CGStmt CodeGenerator::unsetGrid(const IntervalNode *op) {
     if (!op->isMappedToGrid()) {
-        return;
+        return BlankLine::make();
     }
 
     auto dim = getDim(op->p);
@@ -674,6 +663,17 @@ void CodeGenerator::unsetGrid(const IntervalNode *op) {
     for (auto &d : prev_dims) {
         dims_defined[dim].insert(*cur_dims.begin() * d);
     }
+
+    std::vector<CGStmt> stmts;
+    stmts.push_back(assertGrid(dim));
+
+    Variable interval_var = op->getIntervalVariable();
+    stmts.push_back(VarAssign::make(
+        declVar(interval_var, false),
+        // Add any shift factor specified in the interval.
+        (((genProp(op->p) / gen(*prev_dims.begin())) % gen(*cur_dims.begin())) * gen(op->step)) + gen(op->start.getB())));
+
+    return Block::make(stmts);
 }
 
 CGStmt CodeGenerator::assertGrid(const Grid::Dim &dim) {
