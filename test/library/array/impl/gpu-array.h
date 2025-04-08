@@ -40,12 +40,6 @@ public:
         return ArrayGPU(data + start, len);
     }
 
-    __device__ static ArrayGPU allocate(int64_t start, int64_t len) {
-        float *new_data;
-        cudaMalloc(&new_data, len * sizeof(float));
-        return ArrayGPU(new_data, len);
-    }
-
     template<int Size>
     __device__ inline ArrayStaticGPU<Size> query(int start) {
         ArrayStaticGPU<Size> arr;
@@ -82,7 +76,7 @@ public:
         return cpu;
     }
 
-    __device__ __host__ void destroy() {
+    void destroy() {
         cudaFree(data);
     }
 

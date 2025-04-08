@@ -112,11 +112,9 @@ public:
 private:
     std::optional<std::vector<Parameter>> ordered_parameters;
 
-    void setGrid(const IntervalNode *op);
-    CGStmt unsetGrid(const IntervalNode *op);
     void updateGrid(Grid::Dim dim, Expr expr);
-    CGStmt assertGrid(const Grid::Dim &dim);
 
+    CGStmt assertGrid(const Grid::Dim &dim);
     Expr getCurrentVal(const Grid::Dim &dim);
 
     std::vector<CGStmt> children;  // code generated for children.

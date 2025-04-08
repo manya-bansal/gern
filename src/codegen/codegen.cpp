@@ -78,18 +78,23 @@ CGStmt CodeGenerator::generate_code(Composable c) {
 
 CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
 
-    dims_defined[Grid::Dim::BLOCK_DIM_X].scope();
     dims_defined[Grid::Dim::BLOCK_DIM_X].insert(1);
-    dims_defined[Grid::Dim::BLOCK_DIM_Y].scope();
+    dims_defined[Grid::Dim::BLOCK_DIM_X].scope();
+
     dims_defined[Grid::Dim::BLOCK_DIM_Y].insert(1);
-    dims_defined[Grid::Dim::BLOCK_DIM_Z].scope();
+    dims_defined[Grid::Dim::BLOCK_DIM_Y].scope();
+
     dims_defined[Grid::Dim::BLOCK_DIM_Z].insert(1);
-    dims_defined[Grid::Dim::GRID_DIM_X].scope();
+    dims_defined[Grid::Dim::BLOCK_DIM_Z].scope();
+
     dims_defined[Grid::Dim::GRID_DIM_X].insert(1);
-    dims_defined[Grid::Dim::GRID_DIM_Y].scope();
+    dims_defined[Grid::Dim::GRID_DIM_X].scope();
+
     dims_defined[Grid::Dim::GRID_DIM_Y].insert(1);
-    dims_defined[Grid::Dim::GRID_DIM_Z].scope();
+    dims_defined[Grid::Dim::GRID_DIM_Y].scope();
+
     dims_defined[Grid::Dim::GRID_DIM_Z].insert(1);
+    dims_defined[Grid::Dim::GRID_DIM_Z].scope();
 
     this->visit(ir);  // code should contain the lowered IR.
 
@@ -172,9 +177,11 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
     // Make the grid assertions at the top level.
     CGStmt code_temp = code;
     std::vector<CGStmt> stmts;
-    for (const auto &dim : dims_defined) {
-        stmts.push_back(assertGrid(dim.first));
-    }
+
+    // for (const auto &dim : dims_defined) {
+    //     stmts.push_back(assertGrid(dim.first));
+    // }
+
     stmts.push_back(code_temp);
     code = gen(compute_func, Block::make(stmts));
     return code;
@@ -239,6 +246,10 @@ void CodeGenerator::visit(const IntervalNode *op) {
     // In the case that the interval is mapped to a grid
     // variable, set it up.
     // Continue lowering the body now.
+    Expr divisor = op->step;
+    Expr dividend = op->end - op->start.getB();
+    Expr ceil = (divisor + dividend - 1) / divisor;
+
     if (op->isMappedToGrid()) {
         dims_defined[getDim(op->p)].scope();
     }
@@ -247,20 +258,16 @@ void CodeGenerator::visit(const IntervalNode *op) {
     CGStmt body_code = code;
 
     if (op->isMappedToGrid()) {
+
         Expr first = 1;
         auto dims = dims_defined[getDim(op->p)].pop();
         if (dims.size() > 0) {
             // set this to the puter dimension.
             first = *dims.begin();
         }
-        Expr divisor = op->step;
-        Expr dividend = op->end - op->start.getB();
-        Expr ceil = (divisor + dividend - 1) / divisor;
         Variable interval_var = op->getIntervalVariable();
-        // Now add our own to dims.
-        for (const auto &d : dims) {
-            dims_defined[getDim(op->p)].insert(d * ceil);
-        }
+        dims_defined[getDim(op->p)].insert(first * ceil);
+
         body.push_back(VarAssign::make(
             declVar(interval_var, false),
             // Add any shift factor specified in the interval.
@@ -302,9 +309,7 @@ void CodeGenerator::visit(const AssertNode *op) {
 }
 
 void CodeGenerator::visit(const GridDeclNode *op) {
-    // Set the grid dimension to the specified value.
-    dims_defined[op->dim].pop();
-    dims_defined[op->dim].scope();
+    gen(op->v);
     dims_defined[op->dim].insert(op->v);
     code = BlankLine::make();
 }
@@ -648,56 +653,10 @@ void CodeGenerator::updateGrid(Grid::Dim dim, Expr expr) {
 
 Expr CodeGenerator::getCurrentVal(const Grid::Dim &dim) {
     if (dims_defined[dim].front().size() == 0) {
-        throw error::InternalError("Expected one value for grid dim " + std::to_string(dim));
+        return 1;
+        throw error::InternalError("Expected one value for grid dim ");
     }
     return *dims_defined[dim].front().begin();
-}
-
-void CodeGenerator::setGrid(const IntervalNode *op) {
-    // If not a grid mapping, do nothing.
-    if (!op->isMappedToGrid()) {
-        return;
-    }
-
-    Variable interval_var = op->getIntervalVariable();
-    Grid::Unit unit = op->p;
-    Grid::Dim dim = getDim(unit);
-
-    // This only works for ceiling.
-    Expr divisor = op->step;
-    Expr dividend = op->end - op->start.getB();
-    Expr ceil = (divisor + dividend - 1) / divisor;
-    Expr outer_dim = getCurrentVal(dim);
-
-    dims_defined[dim].scope();
-    updateGrid(dim, ceil);
-}
-
-CGStmt CodeGenerator::unsetGrid(const IntervalNode *op) {
-    if (!op->isMappedToGrid()) {
-        return BlankLine::make();
-    }
-
-    auto dim = getDim(op->p);
-    auto cur_dims = dims_defined[dim].pop();
-
-    // Update previous dims to be current times the previous.
-    auto prev_dims = dims_defined[dim].pop();
-    dims_defined[dim].scope();
-    for (auto &d : prev_dims) {
-        dims_defined[dim].insert(*cur_dims.begin() * d);
-    }
-
-    std::vector<CGStmt> stmts;
-    stmts.push_back(assertGrid(dim));
-
-    Variable interval_var = op->getIntervalVariable();
-    stmts.push_back(VarAssign::make(
-        declVar(interval_var, false),
-        // Add any shift factor specified in the interval.
-        (((genProp(op->p) / gen(*prev_dims.begin())) % gen(*cur_dims.begin())) * gen(op->step)) + gen(op->start.getB())));
-
-    return Block::make(stmts);
 }
 
 CGStmt CodeGenerator::assertGrid(const Grid::Dim &dim) {
