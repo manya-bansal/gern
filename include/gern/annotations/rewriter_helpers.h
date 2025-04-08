@@ -3,8 +3,11 @@
 #include "annotations/data_dependency_language.h"
 #include "annotations/lang_nodes.h"
 #include "annotations/rewriter.h"
+#include "codegen/codegen.h"
+
 #include <map>
 #include <set>
+#include <stack>
 
 namespace gern {
 
@@ -122,7 +125,7 @@ inline T replaceDim(T annot, const std::map<Grid::Dim, Expr> &rw_dims) {
     };
     rewriteDS rw{rw_dims};
     return to<T>(rw.rewrite(annot));
-}
+}  // namespace gern
 
 template<typename T>
 inline T replaceSubset(T annot, const std::map<SubsetObj, SubsetObj> &rw_subset) {

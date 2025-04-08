@@ -202,6 +202,7 @@ CGExpr operator+(const CGExpr &, const CGExpr &);
 CGExpr operator-(const CGExpr &, const CGExpr &);
 CGExpr operator*(const CGExpr &, const CGExpr &);
 CGExpr operator/(const CGExpr &, const CGExpr &);
+CGExpr operator%(const CGExpr &, const CGExpr &);
 CGExpr operator==(const CGExpr &, const CGExpr &);
 CGExpr operator!=(const CGExpr &, const CGExpr &);
 CGExpr operator<=(const CGExpr &, const CGExpr &);

@@ -11,9 +11,17 @@ enum Unit {
 
     SCALAR_UNIT,
 
+    THREAD_X_IN_WRAPS,
+    THREAD_Y_IN_WRAPS,
+    THREAD_Z_IN_WRAPS,
+
     THREAD_X,
     THREAD_Y,
     THREAD_Z,
+
+    WARP_X,
+    WARP_Y,
+    WARP_Z,
 
     BLOCK_X,
     BLOCK_Y,
@@ -29,18 +37,22 @@ enum Dim {
     BLOCK_DIM_Y,
     BLOCK_DIM_Z,
 
+    WARP_DIM_X,
+    WARP_DIM_Y,
+    WARP_DIM_Z,
+
     NULL_DIM,
 };
 
 enum Level {
-    NULL_LEVEL,
-
-    SCALAR,
-    THREADS,
-    WARPS,
-    BLOCK,
-    BLOCK_CLUSTER,
-    GRID,
+    NULL_LEVEL = 0,
+    SCALAR = 1,
+    THREADS = 2,
+    THREADS_WARP = 3,
+    WARPS = 4,
+    BLOCK = 5,
+    BLOCK_CLUSTER = 6,
+    GRID = 7,
 };
 
 }  // namespace Grid
