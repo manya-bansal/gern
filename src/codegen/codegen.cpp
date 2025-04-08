@@ -77,6 +77,20 @@ CGStmt CodeGenerator::generate_code(Composable c) {
 }
 
 CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
+
+    dims_defined[Grid::Dim::BLOCK_DIM_X].scope();
+    dims_defined[Grid::Dim::BLOCK_DIM_X].insert(1);
+    dims_defined[Grid::Dim::BLOCK_DIM_Y].scope();
+    dims_defined[Grid::Dim::BLOCK_DIM_Y].insert(1);
+    dims_defined[Grid::Dim::BLOCK_DIM_Z].scope();
+    dims_defined[Grid::Dim::BLOCK_DIM_Z].insert(1);
+    dims_defined[Grid::Dim::GRID_DIM_X].scope();
+    dims_defined[Grid::Dim::GRID_DIM_X].insert(1);
+    dims_defined[Grid::Dim::GRID_DIM_Y].scope();
+    dims_defined[Grid::Dim::GRID_DIM_Y].insert(1);
+    dims_defined[Grid::Dim::GRID_DIM_Z].scope();
+    dims_defined[Grid::Dim::GRID_DIM_Z].insert(1);
+
     this->visit(ir);  // code should contain the lowered IR.
 
     // Once we have visited the pipeline, we need to
@@ -96,12 +110,15 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
     }
 
     // Also (fake gen block and grid params, otherwise they will not be tracked as used).
-    gen(block_dim.x);
-    gen(block_dim.y);
-    gen(block_dim.z);
-    gen(grid_dim.x);
-    gen(grid_dim.y);
-    gen(grid_dim.z);
+    prepare(block_dim);
+    // prepare(grid_dim);
+
+    // gen(block_dim.x);
+    // gen(block_dim.y);
+    // gen(block_dim.z);
+    // gen(grid_dim.x);
+    // gen(grid_dim.y);
+    // gen(grid_dim.z);
     gen(smem_size);
 
     // Declare all the variables that have been used, but have not been defined.
@@ -147,6 +164,40 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
     return code;
 }
 
+void CodeGenerator::prepare(LaunchArguments args) {
+    auto all_dimensions = dims_defined;
+    for (auto &dim : all_dimensions) {
+        switch (dim.first) {
+        case Grid::Dim::BLOCK_DIM_X:
+            block_dim.x = *dim.second.pop().begin();
+            gen(block_dim.x);
+            break;
+        case Grid::Dim::BLOCK_DIM_Y:
+            block_dim.y = *dim.second.pop().begin();
+            gen(block_dim.y);
+            break;
+        case Grid::Dim::BLOCK_DIM_Z:
+            block_dim.z = *dim.second.pop().begin();
+            gen(block_dim.z);
+            break;
+        case Grid::Dim::GRID_DIM_X:
+            grid_dim.x = *dim.second.pop().begin();
+            gen(grid_dim.x);
+            break;
+        case Grid::Dim::GRID_DIM_Y:
+            grid_dim.y = *dim.second.pop().begin();
+            gen(grid_dim.y);
+            break;
+        case Grid::Dim::GRID_DIM_Z:
+            grid_dim.z = *dim.second.pop().begin();
+            gen(grid_dim.z);
+            break;
+        default:
+            throw error::InternalError("Undefined Grid Dim Passed!");
+        }
+    }
+}
+
 void CodeGenerator::visit(const AllocateNode *op) {
     code = gen(op->f);
 }
@@ -189,6 +240,8 @@ void CodeGenerator::visit(const IntervalNode *op) {
     body.push_back(code);
     code = Block::make(body);
 
+    unsetGrid(op);
+
     // If the variable is not mapped to the grid, we need to actually
     // wrap it in a for loop.
     if (!op->isMappedToGrid()) {
@@ -205,7 +258,14 @@ void CodeGenerator::visit(const DefNode *op) {
 }
 
 void CodeGenerator::visit(const AssertNode *op) {
-    Constraint rw_constraint = replaceDim(op->constraint, dims_defined);
+
+    std::map<Grid::Dim, Expr> dims_defined_copy;
+    for (auto &dim : dims_defined) {
+        dims_defined_copy[dim.first] = *dim.second.front().begin();
+    }
+
+    Constraint rw_constraint = replaceDim(op->constraint, dims_defined_copy);
+    // Constraint rw_constraint = gen(op->constraint);
     std::string name = (isConstExpr(rw_constraint)) ?
                            "static_assert" :  // If both A and B are const exprs, generate a static assert.
                            "assert";          // Otherwise generate a normal assert.
@@ -213,7 +273,8 @@ void CodeGenerator::visit(const AssertNode *op) {
 }
 
 void CodeGenerator::visit(const GridDeclNode *op) {
-    code = declDim(op->dim, op->v);
+    updateGrid(op->dim, op->v);
+    code = BlankLine::make();
 }
 
 void CodeGenerator::visit(const SharedMemoryDeclNode *op) {
@@ -273,37 +334,27 @@ CGExpr CodeGenerator::gen(const Grid::Dim &p) {
 }
 
 CGStmt CodeGenerator::declDim(const Grid::Dim &p, Expr val) {
-    if (dims_defined.contains(p)) {
-        auto temp = code;
-        Expr cur_val = dims_defined.at(p).top();
-        visit(new const AssertNode(cur_val == val));  // Generate an assert.
-        auto lowered = code;
-        code = temp;  // Restore.
-        return lowered;
-    } else {
-        dims_defined[p].push(val);
-        switch (p) {
-        case Grid::Dim::BLOCK_DIM_X:
-            block_dim.x = val;
-            break;
-        case Grid::Dim::BLOCK_DIM_Y:
-            block_dim.y = val;
-            break;
-        case Grid::Dim::BLOCK_DIM_Z:
-            block_dim.z = val;
-            break;
-        case Grid::Dim::GRID_DIM_X:
-            grid_dim.x = val;
-            break;
-        case Grid::Dim::GRID_DIM_Y:
-            grid_dim.y = val;
-            break;
-        case Grid::Dim::GRID_DIM_Z:
-            grid_dim.y = val;
-            break;
-        default:
-            throw error::InternalError("Undefined Grid Dim Passed!");
-        }
+    switch (p) {
+    case Grid::Dim::BLOCK_DIM_X:
+        block_dim.x = val;
+        break;
+    case Grid::Dim::BLOCK_DIM_Y:
+        block_dim.y = val;
+        break;
+    case Grid::Dim::BLOCK_DIM_Z:
+        block_dim.z = val;
+        break;
+    case Grid::Dim::GRID_DIM_X:
+        grid_dim.x = val;
+        break;
+    case Grid::Dim::GRID_DIM_Y:
+        grid_dim.y = val;
+        break;
+    case Grid::Dim::GRID_DIM_Z:
+        grid_dim.y = val;
+        break;
+    default:
+        throw error::InternalError("Undefined Grid Dim Passed!");
     }
     return BlankLine::make();
 }
@@ -636,6 +687,10 @@ CGExpr CodeGenerator::declADT(AbstractDataTypePtr ds,
     return decl;
 }
 
+void CodeGenerator::updateGrid(Grid::Dim dim, Expr expr) {
+    dims_defined[dim].insert(expr);
+}
+
 CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     // If not a grid mapping, do nothing.
     if (!op->isMappedToGrid()) {
@@ -645,15 +700,16 @@ CGStmt CodeGenerator::setGrid(const IntervalNode *op) {
     Variable interval_var = op->getIntervalVariable();
     Grid::Unit unit = op->p;
 
-    dims_defined[getDim(unit)].push(op->step);
-
     // This only works for ceiling.
     Expr divisor = op->step;
     Expr dividend = op->end - op->start.getB();
     Expr ceil = (divisor + dividend - 1) / divisor;
 
+    dims_defined[getDim(op->p)].scope();
+    updateGrid(getDim(unit), ceil);
+
     // Store the grid dimension that correspond with this mapping.
-    declDim(getDim(unit), ceil);
+    // declDim(getDim(unit), ceil);
     // Actually declare the variable to use the grid.
     return VarAssign::make(
         declVar(interval_var, false),
@@ -666,7 +722,14 @@ void CodeGenerator::unsetGrid(const IntervalNode *op) {
         return;
     }
 
-    dims_defined[getDim(op->p)].pop();
+    auto dim = getDim(op->p);
+    auto cur_dims = dims_defined[dim].pop();
+    auto prev_dims = dims_defined[dim].pop();
+
+    dims_defined[dim].scope();
+    for (auto &d : prev_dims) {
+        dims_defined[dim].insert(*cur_dims.begin() * d);
+    }
 }
 
 }  // namespace codegen

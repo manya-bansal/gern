@@ -115,6 +115,8 @@ private:
 
     CGStmt setGrid(const IntervalNode *op);
     void unsetGrid(const IntervalNode *op);
+    void updateGrid(Grid::Dim dim, Expr expr);
+    void prepare(LaunchArguments);
 
     std::vector<CGStmt> children;  // code generated for children.
 
@@ -132,7 +134,7 @@ private:
     std::set<std::string> includes;
     std::set<std::string> libs;
     std::vector<std::string> argument_order;
-    std::map<Grid::Dim, iterable_stack<Expr>> dims_defined;
+    std::map<Grid::Dim, util::ScopedSet<Expr>> dims_defined;
 
     LaunchArguments grid_dim;
     LaunchArguments block_dim;
