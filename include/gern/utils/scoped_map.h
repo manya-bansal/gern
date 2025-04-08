@@ -29,6 +29,17 @@ public:
         scopes.pop_front();
     }
 
+    std::map<Key, Value> pop_front() {
+        auto front = scopes.front();
+        unscope();
+        return front;
+    }
+
+    std::map<Key, Value> front() {
+        auto front = scopes.front();
+        return front;
+    }
+
     void insert(const Key &key, const Value &value) {
         scopes.front()[key] = value;
     }

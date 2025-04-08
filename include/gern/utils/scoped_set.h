@@ -30,6 +30,10 @@ public:
         return scope;
     }
 
+    std::set<Key> front() {
+        return scopes.front();
+    }
+
     /// Remove a level of scoping.
     void unscope() {
         scopes.pop_front();

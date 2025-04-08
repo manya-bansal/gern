@@ -140,6 +140,10 @@ int32_t Scoper::get_scope(Expr e) const {
           std::function<void(const ADTMemberNode *)>(
               [&](const ADTMemberNode *op) {
                   scope = std::max(scope, adt_scope.contains(op->ds) ? adt_scope.at(op->ds) : 0);
+              }),
+          std::function<void(const GridDimNode *)>(
+              [&](const GridDimNode *) {
+                  scope = std::max(scope, cur_scope);
               }));
     return scope;
 }

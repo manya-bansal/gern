@@ -4,9 +4,34 @@
 #include "codegen/codegen_ir.h"
 #include "codegen/lower_visitor.h"
 #include "utils/name_generator.h"
+#include "utils/scoped_map.h"
+
+#include <stack>
 
 namespace gern {
 namespace codegen {
+
+template<typename T, typename Container = std::deque<T>>
+class iterable_stack
+    : public std::stack<T, Container> {
+    using std::stack<T, Container>::c;
+
+public:
+    // expose just the iterators of the underlying container
+    auto begin() {
+        return std::begin(c);
+    }
+    auto end() {
+        return std::end(c);
+    }
+
+    auto begin() const {
+        return std::begin(c);
+    }
+    auto end() const {
+        return std::end(c);
+    }
+};
 
 class CodeGenerator : public LowerIRVisitor {
 public:
@@ -78,7 +103,6 @@ public:
     CGExpr declParameter(Parameter a,
                          bool track = true,
                          DeclProperties = DeclProperties());
-    CGStmt declDim(const Grid::Dim &p, Expr val);
 
     std::string getName() const;
     std::string getHookName() const;
@@ -88,7 +112,11 @@ public:
 private:
     std::optional<std::vector<Parameter>> ordered_parameters;
 
-    CGStmt setGrid(const IntervalNode *op);
+    void updateGrid(Grid::Dim dim, Expr expr);
+
+    CGStmt assertGrid(const Grid::Dim &dim);
+    Expr getCurrentVal(const Grid::Dim &dim);
+
     std::vector<CGStmt> children;  // code generated for children.
 
     std::string name;
@@ -105,10 +133,8 @@ private:
     std::set<std::string> includes;
     std::set<std::string> libs;
     std::vector<std::string> argument_order;
-    std::map<Grid::Dim, Expr> dims_defined;
+    std::map<Grid::Dim, util::ScopedSet<Expr>> dims_defined;
 
-    LaunchArguments grid_dim;
-    LaunchArguments block_dim;
     Variable smem_size;
 };
 
