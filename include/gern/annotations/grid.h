@@ -45,14 +45,14 @@ enum Dim {
 };
 
 enum Level {
-    NULL_LEVEL,
-
-    SCALAR,
-    THREADS,
-    WARPS,
-    BLOCK,
-    BLOCK_CLUSTER,
-    GRID,
+    NULL_LEVEL = 0,
+    SCALAR = 1,
+    THREADS = 2,
+    THREADS_WARP = 3,
+    WARPS = 4,
+    BLOCK = 5,
+    BLOCK_CLUSTER = 6,
+    GRID = 7,
 };
 
 }  // namespace Grid
