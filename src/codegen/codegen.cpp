@@ -642,7 +642,6 @@ void CodeGenerator::setGrid(const IntervalNode *op) {
     Expr divisor = op->step;
     Expr dividend = op->end - op->start.getB();
     Expr ceil = (divisor + dividend - 1) / divisor;
-
     Expr outer_dim = getCurrentVal(dim);
 
     dims_defined[dim].scope();
