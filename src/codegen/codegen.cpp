@@ -234,6 +234,20 @@ static CGExpr genProp(const Grid::Unit &p) {
     case Grid::Unit::THREAD_Z:
         return EscapeCGExpr::make("threadIdx.z");
 
+    case Grid::Unit::WARP_X:
+        return EscapeCGExpr::make("(threadIdx.x / 32)");
+    case Grid::Unit::WARP_Y:
+        return EscapeCGExpr::make("(threadIdx.y / 32)");
+    case Grid::Unit::WARP_Z:
+        return EscapeCGExpr::make("(threadIdx.z / 32)");
+
+    case Grid::Unit::THREAD_X_IN_WRAPS:
+        return EscapeCGExpr::make("(threadIdx.x % 32)");
+    case Grid::Unit::THREAD_Y_IN_WRAPS:
+        return EscapeCGExpr::make("(threadIdx.y % 32)");
+    case Grid::Unit::THREAD_Z_IN_WRAPS:
+        return EscapeCGExpr::make("(threadIdx.z % 32)");
+
     default:
         throw error::InternalError("Undefined Grid unit Passed!");
     }
@@ -274,8 +288,6 @@ void CodeGenerator::visit(const IntervalNode *op) {
             (((genProp(op->p) / gen(first)) % gen(ceil)) * gen(op->step)) + gen(op->start.getB())));
     }
 
-    // setGrid(op);
-    // body.push_back(unsetGrid(op));
     body.push_back(body_code);
     code = Block::make(body);
 

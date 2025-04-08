@@ -19,7 +19,9 @@ enum Unit {
     THREAD_Y,
     THREAD_Z,
 
-    WARP,
+    WARP_X,
+    WARP_Y,
+    WARP_Z,
 
     BLOCK_X,
     BLOCK_Y,
@@ -35,7 +37,6 @@ enum Dim {
     BLOCK_DIM_Y,
     BLOCK_DIM_Z,
 
-    WARP_DIM,
     WARP_DIM_X,
     WARP_DIM_Y,
     WARP_DIM_Z,
