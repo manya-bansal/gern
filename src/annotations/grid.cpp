@@ -137,10 +137,11 @@ Grid::Level getLevel(const Grid::Unit &unit) {
     case Grid::Unit::THREAD_X:
     case Grid::Unit::THREAD_Y:
     case Grid::Unit::THREAD_Z:
+        return Grid::Level::THREADS;
     case Grid::Unit::THREAD_X_IN_WRAPS:
     case Grid::Unit::THREAD_Y_IN_WRAPS:
     case Grid::Unit::THREAD_Z_IN_WRAPS:
-        return Grid::Level::THREADS;
+        return Grid::Level::THREADS_WARPS;
     case Grid::Unit::WARP_X:
     case Grid::Unit::WARP_Y:
     case Grid::Unit::WARP_Z:

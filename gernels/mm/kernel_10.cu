@@ -74,7 +74,7 @@ int main() {
 
     int64_t smem_size_val = 32 * 32 * 8 * 4;  // overallocating by a bit
 
-    annot::MatrixMultiplyWarp mm(A_DS, B_DS, C_DS);
+    annot::MatrixMultiply mm(A_DS, B_DS, C_DS);
     auto mm_sp = &mm[{
         {"k_dim", k_dim},
     }];
@@ -87,6 +87,12 @@ int main() {
 
     static_assert((BK * BN) % (BLOCK_DIM_X * BLOCK_DIM_Y) == 0, "BK * BN must be divisible by BLOCK_DIM_X * BLOCK_DIM_Y");
     static_assert((BK * BN) % (BLOCK_DIM_X * BLOCK_DIM_Y) == 0, "BK * BN must be divisible by BLOCK_DIM_X * BLOCK_DIM_Y");
+
+    static_assert((WN / TN) == 32, "WN must be divisible by TN");
+    static_assert((WN % TN) == 0, "WN must be divisible by TN");
+
+    static_assert((WM / TM) == 32, "WM must be divisible by TM");
+    static_assert((WM % TM) == 0, "WM must be divisible by TM");
 
     // GPU specific constraint.
     static_assert((BLOCK_DIM_X * BLOCK_DIM_Y) <= 1024, "BLOCK_DIM_X * BLOCK_DIM_Y must be less than 1024");
@@ -101,11 +107,12 @@ int main() {
                     (Reduce(k_dim, k_tiled))(
                         Stage(A_DS,
                               Stage(B_DS,
-                                    (Tile(C_DS["row"], warp_x) || Grid::Unit::WARP_X)(
-                                        (Tile(C_DS["col"], warp_y) || Grid::Unit::WARP_Y)(
+                                    (Tile(C_DS["row"], warp_x) || Grid::Unit::WARP_Y)(
+                                        (Tile(C_DS["col"], warp_y) || Grid::Unit::WARP_X)(
 
-                                            (Tile(C_DS["col"], thread_x))(
-                                                (Tile(C_DS["col"], thread_y))(
+                                            (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X_IN_WRAPS)(
+                                                (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_Y_IN_WRAPS)(
+
                                                     Stage(A_DS, obj.getView(),
                                                           Stage(B_DS, obj.getView(),
                                                                 (*mm_sp)(A_DS, B_DS, C_DS)))))))))))),
