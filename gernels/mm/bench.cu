@@ -4,8 +4,11 @@
 #include "impl/matrix_multiply.h"
 #include <chrono>
 #include <cuda_runtime.h>
+
+constexpr int64_t k_dim = 1024;
+
 template<int64_t block_x, int64_t block_y, int64_t k_dim, int64_t k_tiled, int64_t thread_k, int64_t thread_x, int64_t thread_y, int64_t warp_x, int64_t warp_y>
-__global__ void function_97(impl::MatrixGPU<1024, 1024, 1024, 1> A, impl::MatrixGPU<1024, 1024, 1024, 1> B, impl::MatrixGPU<1024, 1024, 1024, 1> C, int64_t smem_size) {
+__global__ void function_97(impl::MatrixGPU<k_dim, k_dim, k_dim, 1> A, impl::MatrixGPU<k_dim, k_dim, k_dim, 1> B, impl::MatrixGPU<k_dim, k_dim, k_dim, 1> C, int64_t smem_size) {
 
     init_shmem(smem_size);
 
@@ -45,9 +48,7 @@ int main() {
     constexpr int64_t block_x = 32;
     constexpr int64_t block_y = 32;
 
-    constexpr int64_t k_dim = 1024;
-
-    constexpr int64_t k_tiled = 64;
+    constexpr int64_t k_tiled = 16;
     constexpr int64_t thread_k = 8;
     constexpr int64_t thread_x = 1;
     constexpr int64_t thread_y = 1;
@@ -61,7 +62,7 @@ int main() {
     impl::MatrixGPU<k_dim, k_dim, k_dim, 1> C;
     C.ascending();
 
-    int64_t smem_size = 32 * 32 * 8 * 4;
+    int64_t smem_size = 100000;
 
     dim3 grid_106 = dim3((1 * (((block_x + (C.row - 0)) - 1) / block_x)), (1 * (((block_y + (C.col - 0)) - 1) / block_y)), 1);
     dim3 block_107 = dim3((1 * ((((warp_y + (block_y - 0)) - 1) / warp_y) * 32)), (1 * ((((warp_x + (block_x - 0)) - 1) / warp_x) * 32)), 1);
@@ -75,13 +76,13 @@ int main() {
     cudaDeviceSynchronize();
 
     auto start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 50; i++) {
         function_sp_108<<<grid_106, block_107, smem_size>>>(A, B, C, smem_size);
     }
     cudaDeviceSynchronize();
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::micro> duration = (end - start);
-    auto min = (duration.count() / 200) / 1e6;
+    auto min = (duration.count() / 50) / 1e6;
 
     long double measure = k_dim * k_dim * k_dim * 2LL * 1e-9;
     // double measure = 6 * row_val * col_val;

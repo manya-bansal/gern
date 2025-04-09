@@ -48,6 +48,6 @@ inline __device__ void *sh_malloc(size_t size) {
  * @param ptr Pointer to the memory to free.
  */
 inline __device__ void sh_free(void *ptr) {
-    // __syncthreads();
+    __syncthreads();
     // Do nothing for trivial allocator.
 }
