@@ -39,6 +39,7 @@ int main() {
     Variable block_y("block_y");
     Variable thread_x("thread_x");
     Variable thread_y("thread_y");
+    Variable thread_k("thread_k");
     Variable warp_x("warp_x");
     Variable warp_y("warp_y");
     Variable smem_size("smem_size");
@@ -54,7 +55,7 @@ int main() {
 
     constexpr int64_t TM = 1;
     constexpr int64_t TN = 1;
-    constexpr int64_t TK = 32;
+    constexpr int64_t TK = 8;
 
     constexpr int64_t BLOCK_DIM_X = (BM / WM) * 32;
     constexpr int64_t BLOCK_DIM_Y = (BN / WN) * 32;
@@ -67,6 +68,7 @@ int main() {
 
     thread_x = thread_x.bind(TM);
     thread_y = thread_y.bind(TN);
+    thread_k = thread_k.bind(TK);
 
     k_dim = k_dim.bind(k);
 
@@ -112,10 +114,11 @@ int main() {
 
                                             (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X_IN_WRAPS)(
                                                 (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_Y_IN_WRAPS)(
+                                                    Reduce(k_dim, thread_k)(
 
-                                                    Stage(A_DS, obj.getView(),
-                                                          Stage(B_DS, obj.getView(),
-                                                                (*mm_sp)(A_DS, B_DS, C_DS)))))))))))),
+                                                        Stage(A_DS, obj.getView(),
+                                                              Stage(B_DS, obj.getView(),
+                                                                    (*mm_sp)(A_DS, B_DS, C_DS))))))))))))),
             {}, smem_size, TrivialManager(smem_size)),
     };
 
