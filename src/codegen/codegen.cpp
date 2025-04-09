@@ -279,6 +279,11 @@ void CodeGenerator::visit(const IntervalNode *op) {
             // set this to the puter dimension.
             first = *dims.begin();
         }
+
+        if (getLevel(op->p) == Grid::Level::WARPS) {
+            first = ceil * 32;
+        }
+
         Variable interval_var = op->getIntervalVariable();
         dims_defined[getDim(op->p)].insert(first * ceil);
 

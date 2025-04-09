@@ -191,6 +191,11 @@ public:
 
     template<int64_t num_row, int64_t num_col>
     __device__ MatrixGPU<num_row, num_col, LDA, stride> query_global_2_global(int64_t x, int64_t y) {
+        if (blockIdx.x == 0 && blockIdx.y == 0) {
+            printf("query_global_2_global: %ld, %ld\n", x, y);
+        }
+        // printf("blockIdx: x %d, y %d\n", blockIdx.x, blockIdx.y);
+        // printf("gridIdx: x %d, y %d\n", gridDim.x, gridDim.y);
         return MatrixGPU<num_row, num_col, LDA, stride>(data + (x * lda + y));
     }
 
@@ -242,6 +247,32 @@ public:
                 float *data_start = data + (x + i + threadIdx.x) * lda + (y + j + threadIdx.y);
                 start[(threadIdx.x * num_col) + threadIdx.y] = data_start[0];
             }
+        }
+
+        __syncthreads();
+
+        return MatrixGPUShared<num_row, num_col, num_col>(smem_data_global);
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ MatrixGPUShared<num_row, num_col, num_col> stage_into_smem_flat(int64_t x, int64_t y) {
+        __shared__ float *smem_data_global;
+
+        if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+            smem_data_global = (float *)sh_malloc(num_row * num_col * sizeof(float));
+        }
+        __syncthreads();
+
+        int thread_id = threadIdx.x;
+        int total_elems = num_row * num_col;
+
+        for (int idx = thread_id; idx < total_elems; idx += blockDim.x) {
+            int row = idx / num_col;
+            int col = idx % num_col;
+
+            float *start = smem_data_global;
+            float *data_start = data + (x + row) * lda + (y + col);
+            start[idx] = data_start[0];
         }
 
         __syncthreads();

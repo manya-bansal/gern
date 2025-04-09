@@ -214,6 +214,21 @@ public:
     }
 };
 
+template<int Row, int Col, int Stride>
+class MatrixGlobalToSharedFlat : public MatrixGlobalToShared<Row, Col, Stride> {
+public:
+    MatrixGlobalToSharedFlat(const std::string &name, bool temp)
+        : MatrixGlobalToShared<Row, Col, Stride>(name, temp) {
+    }
+    FunctionSignature getQueryFunction() const {
+        return FunctionSignature{
+            .name = "template stage_into_smem_flat",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+};
+
 class StaticArray : public AbstractDataType {
 public:
     StaticArray(const std::string &name,

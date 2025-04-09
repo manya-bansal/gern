@@ -167,6 +167,10 @@ Grid::Level getLevel(const Grid::Dim &dim) {
     case Grid::Dim::GRID_DIM_Y:
     case Grid::Dim::GRID_DIM_Z:
         return Grid::Level::BLOCK;
+    case Grid::Dim::WARP_DIM_X:
+    case Grid::Dim::WARP_DIM_Y:
+    case Grid::Dim::WARP_DIM_Z:
+        return Grid::Level::WARPS;
     default:
         return Grid::Level::NULL_LEVEL;
     }
@@ -206,11 +210,11 @@ Grid::Dim getDim(const Grid::Unit &unit) {
     case Grid::Unit::THREAD_Z_IN_WRAPS:
         return Grid::Dim::WARP_DIM_Z;
     case Grid::Unit::WARP_X:
-        return Grid::Dim::WARP_DIM_X;
+        return Grid::Dim::BLOCK_DIM_X;
     case Grid::Unit::WARP_Y:
-        return Grid::Dim::WARP_DIM_Y;
+        return Grid::Dim::BLOCK_DIM_Y;
     case Grid::Unit::WARP_Z:
-        return Grid::Dim::WARP_DIM_Z;
+        return Grid::Dim::BLOCK_DIM_Z;
     case Grid::Unit::BLOCK_X:
         return Grid::Dim::GRID_DIM_X;
     case Grid::Unit::BLOCK_Y:
