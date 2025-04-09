@@ -10,7 +10,7 @@ macro(add_gernel name)
 endmacro()
 
 
-include(current_path.h)
+include(current_path.h benchmark.h)
 
 # Find gern and the cuda toolkit.
 find_package(Gern REQUIRED)

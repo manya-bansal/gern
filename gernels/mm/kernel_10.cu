@@ -1,3 +1,4 @@
+#include "../benchmark.h"
 #include "../current_path.h"
 #include "compose/runner.h"
 #include "float-error.h"
@@ -6,7 +7,9 @@
 #include "gern_annot/shmem_interface.h"
 #include "impl/matrix-gpu.h"
 #include "impl/matrix_multiply.h"
+
 #include <assert.h>
+#include <chrono>
 #include <iostream>
 
 using namespace gern;
@@ -107,23 +110,21 @@ int main() {
 
     Composable program = {
         Global(
-            (Tile(C_DS["row"], block_x) || Grid::Unit::BLOCK_X)(
-                (Tile(C_DS["col"], block_y) || Grid::Unit::BLOCK_Y)(
+            (Tile(C_DS["row"], block_x) || Grid::Unit::BLOCK_Y)(
+                (Tile(C_DS["col"], block_y) || Grid::Unit::BLOCK_X)(
                     (Reduce(k_dim, k_tiled))(
                         Stage(A_DS,
                               Stage(B_DS,
                                     (Tile(C_DS["row"], warp_x) || Grid::Unit::WARP_Y)(
                                         (Tile(C_DS["col"], warp_y) || Grid::Unit::WARP_X)(
-
-                                            (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X_IN_WRAPS)(
-                                                (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_Y_IN_WRAPS)(
+                                            (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_Y_IN_WRAPS)(
+                                                (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_X_IN_WRAPS)(
 
                                                     Stage(C_DS, obj_reg.getQueryFunction(), obj_reg.getInsertFunction(),
                                                           Stage(A_DS, obj_reg.getQueryFunction(),
                                                                 Stage(B_DS, obj_reg.getQueryFunction(),
 
                                                                       Reduce(k_dim, thread_k)(
-
                                                                           Stage(A_DS, obj.getView(),
                                                                                 Stage(B_DS, obj.getView(),
                                                                                       (*mm_sp)(A_DS, B_DS, C_DS)))))))))))))))),
@@ -146,13 +147,27 @@ int main() {
     CImpl C;
     C.vvals(0.0f);
 
-    // Set up all the values.
-    runner.evaluate({{A_DS.getName(), &A},
-                     {B_DS.getName(), &B},
-                     {C_DS.getName(), &C},
-                     {smem_size.getName(), &smem_size_val}});
+    for (int i = 0; i < 10; i++) {
+        // Set up all the values.
+        runner.evaluate({{A_DS.getName(), &A},
+                         {B_DS.getName(), &B},
+                         {C_DS.getName(), &C},
+                         {smem_size.getName(), &smem_size_val}});
+    }
 
     cudaDeviceSynchronize();
+
+    auto func = [&]() {
+        runner.evaluate({{A_DS.getName(), &A},
+                         {B_DS.getName(), &B},
+                         {C_DS.getName(), &C},
+                         {smem_size.getName(), &smem_size_val}});
+    };
+
+    double gflops = m * n * k * 2.0 * 1e-9;
+    auto s = benchmark::benchmark(5, 10, func);
+
+    std::cout << gflops / s << std::endl;
 
     // Make sure the output is correct!
     auto C_cpu = C.get();
@@ -161,9 +176,6 @@ int main() {
     auto A_cpu = A.get();
     auto B_cpu = B.get();
     matrix_multiply_cpu(A_cpu, B_cpu, C_cpu_ref);
-
-    // std::cout << "C_cpu: " << C_cpu << std::endl;
-    // std::cout << "C_cpu_ref: " << C_cpu_ref << std::endl;
 
     for (int64_t i = 0; i < m; i++) {
         for (int64_t j = 0; j < n; j++) {

@@ -9,11 +9,10 @@ constexpr int64_t k_dim = 1024;
 
 template<int64_t block_x, int64_t block_y, int64_t k_dim, int64_t k_tiled, int64_t thread_k, int64_t thread_x, int64_t thread_y, int64_t warp_x, int64_t warp_y>
 __global__ void function_97(impl::MatrixGPU<k_dim, k_dim, k_dim, 1> A, impl::MatrixGPU<k_dim, k_dim, k_dim, 1> B, impl::MatrixGPU<k_dim, k_dim, k_dim, 1> C, int64_t smem_size) {
-
     init_shmem(smem_size);
 
-    int64_t _gern_i_1_7_13_19_25_31_37_43_49_55_61_67_73_79_85_91 = ((((blockIdx.x / 1) % (((block_x + (C.row - 0)) - 1) / block_x)) * block_x) + 0);
-    int64_t _gern_j_2_8_14_20_26_32_38_44_50_56_62_68_74_80_86 = ((((blockIdx.y / 1) % (((block_y + (C.col - 0)) - 1) / block_y)) * block_y) + 0);
+    int64_t _gern_i_1_7_13_19_25_31_37_43_49_55_61_67_73_79_85_91 = ((((blockIdx.y / 1) % (((block_x + (C.row - 0)) - 1) / block_x)) * block_x) + 0);
+    int64_t _gern_j_2_8_14_20_26_32_38_44_50_56_62_68_74_80_86 = ((((blockIdx.x / 1) % (((block_y + (C.col - 0)) - 1) / block_y)) * block_y) + 0);
     auto _query_C_98 = C.template query_global_2_global<block_x, block_y>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67_73_79_85_91, (_gern_j_2_8_14_20_26_32_38_44_50_56_62_68_74_80_86 + 0));
 
     for (int64_t _gern_k_3_9_15_21_27_33_39_45_51_57_63_69_75_81 = 0; (_gern_k_3_9_15_21_27_33_39_45_51_57_63_69_75_81 < k_dim); _gern_k_3_9_15_21_27_33_39_45_51_57_63_69_75_81 = (_gern_k_3_9_15_21_27_33_39_45_51_57_63_69_75_81 + k_tiled)) {
@@ -23,10 +22,10 @@ __global__ void function_97(impl::MatrixGPU<k_dim, k_dim, k_dim, 1> A, impl::Mat
 
         int64_t _gern_i_1_7_13_19_25_31_37_43_49_55_61 = (((((threadIdx.y / 32) / 1) % ((((warp_x + (block_x - 0)) - 1) / warp_x) * 32)) * warp_x) + 0);
         int64_t _gern_j_2_8_14_20_26_32_38_44_50_56 = (((((threadIdx.x / 32) / 1) % ((((warp_y + (block_y - 0)) - 1) / warp_y) * 32)) * warp_y) + 0);
-        int64_t _gern_i_1_7_13_19_25_31_37_43_49 = (((threadIdx.x % 32) * thread_x) + 0);
+        int64_t _gern_i_1_7_13_19_25_31_37_43_49 = (((threadIdx.y % 32) * thread_x) + 0);
         auto _query_A_102 = _query_A_99.template query_2_reg_no_vector<thread_x, k_tiled>((_gern_i_1_7_13_19_25_31_37_43_49 + (_gern_i_1_7_13_19_25_31_37_43_49_55_61 + 0)), 0);
 
-        int64_t _gern_j_2_8_14_20_26_32_38_44 = (((threadIdx.y % 32) * thread_y) + 0);
+        int64_t _gern_j_2_8_14_20_26_32_38_44 = (((threadIdx.x % 32) * thread_y) + 0);
         auto _query_C_101 = _query_C_98.template query_2_reg_no_vector<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37_43_49 + (_gern_i_1_7_13_19_25_31_37_43_49_55_61 + 0)), (_gern_j_2_8_14_20_26_32_38_44 + (_gern_j_2_8_14_20_26_32_38_44_50_56 + 0)));
 
         auto _query_B_103 = _query_B_100.template query_2_reg_no_vector<k_tiled, thread_y>(0, (_gern_j_2_8_14_20_26_32_38_44 + (_gern_j_2_8_14_20_26_32_38_44_50_56 + 0)));

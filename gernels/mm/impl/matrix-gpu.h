@@ -33,10 +33,6 @@ struct StaticMatrix {
     float4 array[NumRow * NumCol];
     static constexpr int rows = NumRow;
     static constexpr int cols_by_4 = NumCol;
-    // template<int num_row, int num_col>
-    // __device__ StaticMatrix<num_row, num_col / 4> query_new(int64_t x, int64_t y) {
-    //     return *this;
-    // }
 };
 
 template<int Height, int Width>
@@ -298,7 +294,7 @@ public:
     }
 
     template<int64_t num_row, int64_t num_col>
-    __device__ MatrixGPUShared<num_row, num_col, num_col> stage_into_smem_flat(int64_t x, int64_t y) {
+    __device__ inline MatrixGPUShared<num_row, num_col, num_col> stage_into_smem_flat(int64_t x, int64_t y) {
         __shared__ float *smem_data_global;
 
         if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {

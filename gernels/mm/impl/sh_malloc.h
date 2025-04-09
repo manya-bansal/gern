@@ -26,19 +26,20 @@ inline __device__ void init_shmem(size_t size) {
  * @return void*  Pointer to the allocated memory.
  */
 inline __device__ void *sh_malloc(size_t size) {
-
     extern __shared__ char shmem[];
     size_t *shmem_size_t = (size_t *)shmem;
     size_t max_size = shmem_size_t[0];
     size_t offset = shmem_size_t[1];
 
+    // If we don't have enough space remaining, wrap around to the beginning
     if (offset + size > max_size) {
-        shmem_size_t[1] = sizeof(size_t) * 2;
-        return sh_malloc(size);
+        offset = 2 * sizeof(size_t);  // Reset to the beginning of usable memory
     }
 
-    shmem_size_t[1] = (offset + size);
-    // return the pointer to the allocated memory
+    // Update the next allocation offset
+    shmem_size_t[1] = offset + size;
+
+    // Return the pointer to the allocated memory
     return shmem + offset;
 }
 
