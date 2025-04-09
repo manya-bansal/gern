@@ -7,6 +7,7 @@ https://siboehm.com/articles/22/CUDA-MMM:
 - `kernel_2.cu` : Kernel 2
 - `kernel_3.cu` : Kernel 3, 4, 5
 - `kernel_6.cu` : Kernel 6
+- `kernel_10.cu` : Kernel 10
 
 
 Note that Kernel 7 & 8 are not in the blog (from the blog):
