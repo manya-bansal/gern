@@ -13,9 +13,9 @@ using namespace gern;
 
 int main() {
 
-    constexpr int64_t m = 8 * 8;
-    constexpr int64_t n = 8 * 8;
-    constexpr int64_t k = 8 * 8;
+    constexpr int64_t m = 8 * 8 * 8;
+    constexpr int64_t n = 8 * 8 * 8;
+    constexpr int64_t k = 8 * 8 * 8;
     constexpr int64_t block_size = 1;
 
     using AType = annot::MatrixGlobalToSharedFlat<m, k, block_size>;
@@ -39,26 +39,32 @@ int main() {
     Variable block_y("block_y");
     Variable thread_x("thread_x");
     Variable thread_y("thread_y");
+    Variable warp_x("warp_x");
+    Variable warp_y("warp_y");
     Variable smem_size("smem_size");
     Variable one_val("one_val");
 
     constexpr int64_t BM = 8 * 4;
     constexpr int64_t BN = 8 * 4;
-    constexpr int64_t BK = 8 * 4;
+    constexpr int64_t BK = 8 * 8;
 
-    constexpr int64_t WM = 8;
-    constexpr int64_t WN = 8;
-    constexpr int64_t WK = 8;
+    constexpr int64_t WM = 32;
+    constexpr int64_t WN = 32;
+    constexpr int64_t WK = 32;
 
-    constexpr int64_t TM = 32;
-    constexpr int64_t TN = 32;
+    constexpr int64_t TM = 1;
+    constexpr int64_t TN = 1;
     constexpr int64_t TK = 32;
 
-    constexpr int64_t BLOCK_DIM_X = (BM / TM) * 32;
-    constexpr int64_t BLOCK_DIM_Y = (BN / TN) * 32;
+    constexpr int64_t BLOCK_DIM_X = (BM / WM) * 32;
+    constexpr int64_t BLOCK_DIM_Y = (BN / WN) * 32;
 
     block_x = block_x.bind(BM);
     block_y = block_y.bind(BN);
+
+    warp_x = warp_x.bind(WM);
+    warp_y = warp_y.bind(WN);
+
     thread_x = thread_x.bind(TM);
     thread_y = thread_y.bind(TN);
 
@@ -88,10 +94,6 @@ int main() {
 
     // static_assert((WM * WN) <= 1024, "BLOCK_DIM_X * BLOCK_DIM_Y must be less than 1024");
 
-    // How much work each warp does.
-
-    // Distribute over blocks and threads trivially.
-    // But does memory coalescing flipping col and row basically gives memory coalescing.
     Composable program = {
         Global(
             (Tile(C_DS["row"], block_x) || Grid::Unit::BLOCK_X)(
@@ -99,11 +101,14 @@ int main() {
                     (Reduce(k_dim, k_tiled))(
                         Stage(A_DS,
                               Stage(B_DS,
-                                    (Tile(C_DS["row"], thread_x) || Grid::Unit::WARP_X)(      // Will eventually go to warps
-                                        (Tile(C_DS["col"], thread_y) || Grid::Unit::WARP_Y)(  // Will eventually go to warps
-                                            Stage(A_DS, obj.getView(),
-                                                  Stage(B_DS, obj.getView(),
-                                                        (*mm_sp)(A_DS, B_DS, C_DS)))))))))),
+                                    (Tile(C_DS["row"], warp_x) || Grid::Unit::WARP_X)(
+                                        (Tile(C_DS["col"], warp_y) || Grid::Unit::WARP_Y)(
+
+                                            (Tile(C_DS["col"], thread_x))(
+                                                (Tile(C_DS["col"], thread_y))(
+                                                    Stage(A_DS, obj.getView(),
+                                                          Stage(B_DS, obj.getView(),
+                                                                (*mm_sp)(A_DS, B_DS, C_DS)))))))))))),
             {}, smem_size, TrivialManager(smem_size)),
     };
 
@@ -139,12 +144,11 @@ int main() {
     auto B_cpu = B.get();
     matrix_multiply_cpu(A_cpu, B_cpu, C_cpu_ref);
 
-    std::cout << "C_cpu: " << C_cpu << std::endl;
-    std::cout << "C_cpu_ref: " << C_cpu_ref << std::endl;
+    // std::cout << "C_cpu: " << C_cpu << std::endl;
+    // std::cout << "C_cpu_ref: " << C_cpu_ref << std::endl;
 
     for (int64_t i = 0; i < m; i++) {
         for (int64_t j = 0; j < n; j++) {
-            std::cout << "C_cpu(" << i << ", " << j << "): " << C_cpu(i, j) << std::endl;
             assert_close(C_cpu(i, j), C_cpu_ref(i, j));
         }
     }

@@ -191,11 +191,6 @@ public:
 
     template<int64_t num_row, int64_t num_col>
     __device__ MatrixGPU<num_row, num_col, LDA, stride> query_global_2_global(int64_t x, int64_t y) {
-        if (blockIdx.x == 0 && blockIdx.y == 0) {
-            printf("query_global_2_global: %ld, %ld\n", x, y);
-        }
-        // printf("blockIdx: x %d, y %d\n", blockIdx.x, blockIdx.y);
-        // printf("gridIdx: x %d, y %d\n", gridDim.x, gridDim.y);
         return MatrixGPU<num_row, num_col, LDA, stride>(data + (x * lda + y));
     }
 
