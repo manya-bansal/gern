@@ -22,6 +22,8 @@ int main() {
     using BType = annot::MatrixGlobalToSharedFlat<k, n, block_size>;
     using CType = annot::MatrixGlobalToGlobal<m, n, block_size>;
 
+    using CTypeReg = annot::MatrixQueryRegNoVector<m, n, block_size>;
+
     using AImpl = impl::MatrixGPU<m, k, k, block_size>;
     using BImpl = impl::MatrixGPU<k, n, n, block_size>;
     using CImpl = impl::MatrixGPU<m, n, n, block_size>;
@@ -31,6 +33,7 @@ int main() {
     auto C_DS = AbstractDataTypePtr(new const CType("C", false));
 
     auto obj = AType("A_vec", false);
+    auto obj_reg = CTypeReg("C_reg", false);
 
     Variable k_dim("k_dim");
     Variable k_tiled("k_tiled");
@@ -114,11 +117,13 @@ int main() {
 
                                             (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X_IN_WRAPS)(
                                                 (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_Y_IN_WRAPS)(
-                                                    Reduce(k_dim, thread_k)(
 
-                                                        Stage(A_DS, obj.getView(),
-                                                              Stage(B_DS, obj.getView(),
-                                                                    (*mm_sp)(A_DS, B_DS, C_DS))))))))))))),
+                                                    Stage(C_DS, obj_reg.getQueryFunction(), obj_reg.getInsertFunction(),
+                                                          Reduce(k_dim, thread_k)(
+
+                                                              Stage(A_DS, obj.getView(),
+                                                                    Stage(B_DS, obj.getView(),
+                                                                          (*mm_sp)(A_DS, B_DS, C_DS)))))))))))))),
             {}, smem_size, TrivialManager(smem_size)),
     };
 
