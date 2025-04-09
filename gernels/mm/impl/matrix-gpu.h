@@ -40,10 +40,43 @@ struct StaticMatrix {
 };
 
 template<int Height, int Width>
+struct Placeholder {
+    float *data;
+
+    static constexpr int row = Height;
+    static constexpr int col = Width;
+    static constexpr int lda = Width;
+
+    __device__ __host__ float &operator()(int64_t x, int64_t y) {
+        return data[x * lda + y];
+    }
+
+    __device__ __host__ float operator()(int64_t x, int64_t y) const {
+        return data[x * lda + y];
+    }
+
+    __device__ void free_smem() {
+        // sh_free(data);
+    }
+
+    // template<int num_row, int num_col>
+    // __device__ StaticMatrix<num_row, num_col / 4> query_new(int64_t x, int64_t y) {
+    //     return *this;
+    // }
+};
+
+template<int Height, int Width>
 struct StaticMatrixNoVector {
     float array[Height * Width];
     static constexpr int height = Height;
     static constexpr int width = Width;
+
+    template<int64_t q_height, int64_t q_width>
+    __device__ Placeholder<q_height, q_width> get_view(int64_t x, int64_t y) {
+        Placeholder<q_height, q_width> placeholder;
+        placeholder.data = array + (x * width + y);
+        return placeholder;
+    }
 
     __device__ __host__ float &operator()(int64_t x, int64_t y) {
         return array[x * width + y];
@@ -51,6 +84,10 @@ struct StaticMatrixNoVector {
 
     __device__ __host__ float operator()(int64_t x, int64_t y) const {
         return array[x * width + y];
+    }
+
+    __device__ void free_smem() {
+        // sh_free(data);
     }
 };
 
@@ -170,6 +207,17 @@ public:
     __device__ MatrixGPUShared<q_height, q_width, LDA> get_view_vec(int64_t x, int64_t y) {
 
         return MatrixGPUShared<q_height, q_width, LDA>(data + (x * lda + y));
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ StaticMatrixNoVector<num_row, num_col> query_2_reg_no_vector(int64_t x, int64_t y) {
+        StaticMatrixNoVector<num_row, num_col> matrix;
+        for (int64_t i = 0; i < num_row; i++) {
+            for (int64_t j = 0; j < num_col; j++) {
+                matrix(i, j) = data[(x + i) * lda + (y + j)];
+            }
+        }
+        return matrix;
     }
 
     float *data;

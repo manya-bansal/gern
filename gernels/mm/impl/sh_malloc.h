@@ -37,7 +37,7 @@ inline __device__ void *sh_malloc(size_t size) {
         return sh_malloc(size);
     }
 
-    shmem_size_t[1] = offset + size;
+    shmem_size_t[1] = (offset + size) % max_size;
     // return the pointer to the allocated memory
     return shmem + offset;
 }
@@ -48,5 +48,6 @@ inline __device__ void *sh_malloc(size_t size) {
  * @param ptr Pointer to the memory to free.
  */
 inline __device__ void sh_free(void *ptr) {
+    // __syncthreads();
     // Do nothing for trivial allocator.
 }

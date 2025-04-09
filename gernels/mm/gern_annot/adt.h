@@ -227,6 +227,10 @@ public:
             .template_args = {this->row, this->col},
         };
     }
+
+    bool freeQuery() const override {
+        return false;
+    }
 };
 
 class StaticArray : public AbstractDataType {

@@ -13,9 +13,9 @@ using namespace gern;
 
 int main() {
 
-    constexpr int64_t m = 8 * 8 * 8;
-    constexpr int64_t n = 8 * 8 * 8;
-    constexpr int64_t k = 8 * 8 * 8;
+    constexpr int64_t m = 8 * 8 * 8 * 2;
+    constexpr int64_t n = 8 * 8 * 8 * 2;
+    constexpr int64_t k = 8 * 8 * 8 * 2;
     constexpr int64_t block_size = 1;
 
     using AType = annot::MatrixGlobalToSharedFlat<m, k, block_size>;
@@ -119,11 +119,14 @@ int main() {
                                                 (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_Y_IN_WRAPS)(
 
                                                     Stage(C_DS, obj_reg.getQueryFunction(), obj_reg.getInsertFunction(),
-                                                          Reduce(k_dim, thread_k)(
+                                                          Stage(A_DS, obj_reg.getQueryFunction(),
+                                                                Stage(B_DS, obj_reg.getQueryFunction(),
 
-                                                              Stage(A_DS, obj.getView(),
-                                                                    Stage(B_DS, obj.getView(),
-                                                                          (*mm_sp)(A_DS, B_DS, C_DS)))))))))))))),
+                                                                      Reduce(k_dim, thread_k)(
+
+                                                                          Stage(A_DS, obj.getView(),
+                                                                                Stage(B_DS, obj.getView(),
+                                                                                      (*mm_sp)(A_DS, B_DS, C_DS)))))))))))))))),
             {}, smem_size, TrivialManager(smem_size)),
     };
 
