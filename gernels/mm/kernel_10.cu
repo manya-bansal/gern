@@ -13,9 +13,9 @@ using namespace gern;
 
 int main() {
 
-    constexpr int64_t m = 16;
-    constexpr int64_t n = 16;
-    constexpr int64_t k = 16;
+    constexpr int64_t m = 8 * 8;
+    constexpr int64_t n = 8 * 8;
+    constexpr int64_t k = 8 * 8;
     constexpr int64_t block_size = 1;
 
     using AType = annot::MatrixGlobalToSharedFlat<m, k, block_size>;
@@ -42,20 +42,20 @@ int main() {
     Variable smem_size("smem_size");
     Variable one_val("one_val");
 
-    constexpr int64_t BM = 8;
-    constexpr int64_t BN = 8;
-    constexpr int64_t BK = 8;
+    constexpr int64_t BM = 8 * 4;
+    constexpr int64_t BN = 8 * 4;
+    constexpr int64_t BK = 8 * 4;
 
     constexpr int64_t WM = 8;
     constexpr int64_t WN = 8;
     constexpr int64_t WK = 8;
 
-    constexpr int64_t TM = 1;
-    constexpr int64_t TN = 2;
-    constexpr int64_t TK = 4;
+    constexpr int64_t TM = 32;
+    constexpr int64_t TN = 32;
+    constexpr int64_t TK = 32;
 
-    constexpr int64_t BLOCK_DIM_X = BM / TM;
-    constexpr int64_t BLOCK_DIM_Y = BN / TN;
+    constexpr int64_t BLOCK_DIM_X = (BM / TM) * 32;
+    constexpr int64_t BLOCK_DIM_Y = (BN / TN) * 32;
 
     block_x = block_x.bind(BM);
     block_y = block_y.bind(BN);
@@ -66,9 +66,9 @@ int main() {
 
     k_tiled = k_tiled.bind(BK);
 
-    int64_t smem_size_val = 32 * 32 * 8 * 2 + 1000;  // overallocating by a bit
+    int64_t smem_size_val = 32 * 32 * 8 * 4;  // overallocating by a bit
 
-    annot::MatrixMultiply mm(A_DS, B_DS, C_DS);
+    annot::MatrixMultiplyWarp mm(A_DS, B_DS, C_DS);
     auto mm_sp = &mm[{
         {"k_dim", k_dim},
     }];
@@ -100,12 +100,10 @@ int main() {
                         Stage(A_DS,
                               Stage(B_DS,
                                     (Tile(C_DS["row"], thread_x) || Grid::Unit::WARP_X)(      // Will eventually go to warps
-                                        (Tile(C_DS["row"], thread_x) || Grid::Unit::WARP_X)(  // Will eventually go to warps
-                                            (Tile(C_DS["col"], thread_y))(
-                                                (Tile(C_DS["col"], thread_y))(
-                                                    Stage(A_DS, obj.getView(),
-                                                          Stage(B_DS, obj.getView(),
-                                                                (*mm_sp)(A_DS, B_DS, C_DS)))))))))))),
+                                        (Tile(C_DS["col"], thread_y) || Grid::Unit::WARP_Y)(  // Will eventually go to warps
+                                            Stage(A_DS, obj.getView(),
+                                                  Stage(B_DS, obj.getView(),
+                                                        (*mm_sp)(A_DS, B_DS, C_DS)))))))))),
             {}, smem_size, TrivialManager(smem_size)),
     };
 
@@ -131,6 +129,8 @@ int main() {
                      {C_DS.getName(), &C},
                      {smem_size.getName(), &smem_size_val}});
 
+    cudaDeviceSynchronize();
+
     // Make sure the output is correct!
     auto C_cpu = C.get();
     auto C_cpu_ref = C.get();
@@ -144,6 +144,7 @@ int main() {
 
     for (int64_t i = 0; i < m; i++) {
         for (int64_t j = 0; j < n; j++) {
+            std::cout << "C_cpu(" << i << ", " << j << "): " << C_cpu(i, j) << std::endl;
             assert_close(C_cpu(i, j), C_cpu_ref(i, j));
         }
     }

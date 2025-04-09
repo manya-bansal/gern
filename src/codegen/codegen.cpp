@@ -281,7 +281,7 @@ void CodeGenerator::visit(const IntervalNode *op) {
         }
 
         if (getLevel(op->p) == Grid::Level::WARPS) {
-            first = ceil * 32;
+            ceil = ceil * 32;
         }
 
         Variable interval_var = op->getIntervalVariable();
