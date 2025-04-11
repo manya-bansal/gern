@@ -48,7 +48,7 @@ enum Level {
     NULL_LEVEL = 0,
     SCALAR = 1,
     THREADS = 2,
-    THREADS_WARP = 3,
+    THREADS_WARPS = 3,
     WARPS = 4,
     BLOCK = 5,
     BLOCK_CLUSTER = 6,

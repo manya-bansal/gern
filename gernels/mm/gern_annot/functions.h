@@ -59,6 +59,26 @@ protected:
     Variable k_dim{"k_dim", Datatype::Int64, true};
 };
 
+class MatrixMultiplyWarp : public MatrixMultiply {
+public:
+    MatrixMultiplyWarp(AbstractDataTypePtr A,
+                       AbstractDataTypePtr B,
+                       AbstractDataTypePtr C)
+        : MatrixMultiply(A, B, C) {
+    }
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "matrix_multiply_warp";
+        f.args = {
+            Parameter(A),
+            Parameter(B),
+            Parameter(C),
+        };
+        f.template_args = {k_dim};
+        return f;
+    }
+};
+
 class MatrixMultiplyReg : public MatrixMultiply {
 public:
     MatrixMultiplyReg(AbstractDataTypePtr A,

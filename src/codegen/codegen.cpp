@@ -290,7 +290,7 @@ void CodeGenerator::visit(const IntervalNode *op) {
     this->visit(op->body);
     CGStmt body_code = code;
 
-    if (op->isMappedToGrid()) {
+    if (op->isMappedToGrid() && getLevel(op->p) != Grid::Level::THREADS_WARPS) {
 
         Expr first = 1;
         auto dims = dims_defined[getDim(op->p)].pop();
@@ -298,6 +298,11 @@ void CodeGenerator::visit(const IntervalNode *op) {
             // set this to the puter dimension.
             first = *dims.begin();
         }
+
+        if (getLevel(op->p) == Grid::Level::WARPS) {
+            ceil = ceil * 32;
+        }
+
         Variable interval_var = op->getIntervalVariable();
         dims_defined[getDim(op->p)].insert(first * ceil);
 
@@ -305,6 +310,12 @@ void CodeGenerator::visit(const IntervalNode *op) {
             declVar(interval_var, false),
             // Add any shift factor specified in the interval.
             (((genProp(op->p) / gen(first)) % gen(ceil)) * gen(op->step)) + gen(op->start.getB())));
+    }
+
+    if (getLevel(op->p) == Grid::Level::THREADS_WARPS) {
+        body.push_back(VarAssign::make(
+            declVar(op->getIntervalVariable(), false),
+            (genProp(op->p) * gen(op->step)) + gen(op->start.getB())));
     }
 
     body.push_back(body_code);
