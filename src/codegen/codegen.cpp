@@ -8,6 +8,7 @@
 #include "codegen/concretize.h"
 #include "codegen/finalizer.h"
 #include "codegen/helpers/assert_device_properties.h"
+#include "codegen/helpers/check_last_error.h"
 #include "codegen/lower.h"
 #include "utils/debug.h"
 #include "utils/error.h"
@@ -71,6 +72,10 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     CGStmt hook_call = gen(compute_func.constructCall());
     hook_body.push_back(hook_call);
 
+    if (is_device_call) {
+        hook_body.push_back(gen(helpers::check_last_error()));
+    }
+
     // Finally ready to generate the full file.
     std::vector<CGStmt> full_code;
     // Now, add the headers.
@@ -80,6 +85,7 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     if (is_device_call) {
         full_code.push_back(EscapeCGStmt::make("#include <cuda_runtime.h>"));
         full_code.push_back(EscapeCGStmt::make(helpers::assert_device_constraints_decl));
+        full_code.push_back(EscapeCGStmt::make(helpers::check_last_error_decl));
     }
     full_code.push_back(BlankLine::make());
     full_code.push_back(BlankLine::make());
