@@ -59,6 +59,9 @@ CGStmt CodeGenerator::generate_code(Composable c) {
                 compute_func.block.x,
                 compute_func.block.y,
                 compute_func.block.z,
+                getCurrentVal(Grid::Dim::WARP_DIM_X),
+                getCurrentVal(Grid::Dim::WARP_DIM_Y),
+                getCurrentVal(Grid::Dim::WARP_DIM_Z),
                 // If smem_size is not defined,
                 // then we will just run with default,
                 // just check trivial condition against 0.
@@ -113,6 +116,13 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
 
     dims_defined[Grid::Dim::GRID_DIM_Z].insert(1);
     dims_defined[Grid::Dim::GRID_DIM_Z].scope();
+
+    dims_defined[Grid::Dim::WARP_DIM_X].insert(32);
+    dims_defined[Grid::Dim::WARP_DIM_X].scope();
+    dims_defined[Grid::Dim::WARP_DIM_Y].insert(32);
+    dims_defined[Grid::Dim::WARP_DIM_Y].scope();
+    dims_defined[Grid::Dim::WARP_DIM_Z].insert(32);
+    dims_defined[Grid::Dim::WARP_DIM_Z].scope();
 
     this->visit(ir);  // code should contain the lowered IR.
 
@@ -290,7 +300,7 @@ void CodeGenerator::visit(const IntervalNode *op) {
     this->visit(op->body);
     CGStmt body_code = code;
 
-    if (op->isMappedToGrid() && getLevel(op->p) != Grid::Level::THREADS_WARPS) {
+    if (op->isMappedToGrid() && getLevel(op->p)) {
 
         Expr first = 1;
         auto dims = dims_defined[getDim(op->p)].pop();
@@ -310,12 +320,6 @@ void CodeGenerator::visit(const IntervalNode *op) {
             declVar(interval_var, false),
             // Add any shift factor specified in the interval.
             (((genProp(op->p) / gen(first)) % gen(ceil)) * gen(op->step)) + gen(op->start.getB())));
-    }
-
-    if (getLevel(op->p) == Grid::Level::THREADS_WARPS) {
-        body.push_back(VarAssign::make(
-            declVar(op->getIntervalVariable(), false),
-            (genProp(op->p) * gen(op->step)) + gen(op->start.getB())));
     }
 
     body.push_back(body_code);
@@ -695,8 +699,10 @@ void CodeGenerator::updateGrid(Grid::Dim dim, Expr expr) {
 
 Expr CodeGenerator::getCurrentVal(const Grid::Dim &dim) {
     if (dims_defined[dim].front().size() == 0) {
+        if (getLevel(dim) == Grid::Level::THREADS_WARPS) {
+            return 32;  // default warp size.
+        }
         return 1;
-        throw error::InternalError("Expected one value for grid dim ");
     }
     return *dims_defined[dim].front().begin();
 }
