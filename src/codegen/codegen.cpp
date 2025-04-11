@@ -306,7 +306,7 @@ void CodeGenerator::visit(const IntervalNode *op) {
     this->visit(op->body);
     CGStmt body_code = code;
 
-    if (op->isMappedToGrid() && getLevel(op->p)) {
+    if (op->isMappedToGrid()) {
 
         Expr first = 1;
         auto dims = dims_defined[getDim(op->p)].pop();
