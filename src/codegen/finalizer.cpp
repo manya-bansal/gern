@@ -123,6 +123,132 @@ util::ScopedSet<AbstractDataTypePtr> Finalizer::getToFree() const {
     return to_free;
 }
 
+LowerIR ADTReuser::construct() {
+    cur_lno = 0;
+    visit(ir);
+
+    // Now that we have the live ranges, loop over all the allocate calls
+    // and figure out which data-structures can be reused.
+    std::map<AbstractDataTypePtr, std::set<AbstractDataTypePtr>> reusable_adts;
+    // for (const auto &adt : allocate_calls) {
+    //     // Look into the map and see if there is an adt that this adt does not conflict with.
+    //     FunctionCall call = adt.second;
+    //     for (auto &reusable_set : reusable_adts) {
+
+    //         bool can_reuse = true;
+    //         for (auto &reusable_adt : reusable_set) {
+    //             if (std::get<1>(live_range[reusable_adt]) < std::get<0>(live_range[adt.first])) {
+    //                 can_reuse = false;
+    //                 break;
+    //             }
+    //             reusable_set.insert(adt.first);
+    //             break;
+    //         }
+    //     }
+    // }
+
+    return ir;
+}
+
+void ADTReuser::visit(const AllocateNode *node) {
+    cur_lno++;
+    // The subset object becomes live at the point of allocation.
+    live_range[to<DSArg>(node->f.output)->getADTPtr()] = std::make_tuple(cur_lno, cur_lno);
+    allocate_calls[to<DSArg>(node->f.output)->getADTPtr()] = node->f;
+}
+
+void ADTReuser::visit(const FreeNode *node) {
+    cur_lno++;
+    update_live_range(node->call.data);
+}
+
+void ADTReuser::visit(const InsertNode *node) {
+    cur_lno++;
+    // Update parent adt live range.
+    update_live_range(node->call.data);
+    // Update child adt live range.
+    std::vector<Argument> args = node->call.call.args;
+    AbstractDataTypePtr child_adt = to<DSArg>(args[args.size() - 1])->getADTPtr();
+    update_live_range(child_adt);
+}
+
+void ADTReuser::visit(const QueryNode *node) {
+    cur_lno++;
+    // Update parent adt live range.
+    update_live_range(node->parent);
+    // Child appears for the first time.
+    live_range[node->child] = std::make_tuple(cur_lno, cur_lno);
+}
+
+void ADTReuser::visit(const ComputeNode *node) {
+    cur_lno++;
+    // Update adt live range.
+    update_live_range(node->adt);
+    // Update all the arguments.
+    for (const auto &arg : node->f.args) {
+        if (isa<DSArg>(arg)) {
+            update_live_range(to<DSArg>(arg)->getADTPtr());
+        }
+    }
+}
+
+void ADTReuser::visit(const IntervalNode *node) {
+    cur_lno++;
+    // Update the body.
+    visit(node->body);
+}
+
+void ADTReuser::visit(const BlankNode *) {
+}
+
+void ADTReuser::visit(const DefNode *node) {
+    update_live_range(node->assign.getA());
+    update_live_range(node->assign.getB());
+}
+
+void ADTReuser::visit(const AssertNode *node) {
+    update_live_range(node->constraint.getA());
+    update_live_range(node->constraint.getB());
+}
+
+void ADTReuser::visit(const BlockNode *node) {
+    for (const auto &ir : node->ir_nodes) {
+        visit(ir);
+    }
+}
+
+void ADTReuser::visit(const GridDeclNode *) {
+    cur_lno++;
+}
+
+void ADTReuser::visit(const SharedMemoryDeclNode *) {
+}
+
+void ADTReuser::visit(const OpaqueCall *node) {
+    // Update all the arguments.
+    for (const auto &arg : node->f.args) {
+        if (isa<DSArg>(arg)) {
+            update_live_range(to<DSArg>(arg)->getADTPtr());
+        }
+    }
+}
+
+void ADTReuser::update_live_range(AbstractDataTypePtr adt) {
+    if (!live_range.contains(adt)) {
+        throw error::InternalError("Free of undeclared subset object: " + adt.str());
+    }
+    int first_use = std::get<0>(live_range[adt]);
+    live_range[adt] = std::make_tuple(first_use, cur_lno);
+}
+
+void ADTReuser::update_live_range(Expr e) {
+    match(e,
+          std::function<void(const ADTMemberNode *)>(
+              [&](const ADTMemberNode *op) {
+                  update_live_range(op->ds);
+              }));
+}
+
 LowerIR Scoper::construct() {
     visit(ir);
     std::vector<LowerIR> new_body = new_statements[cur_scope];

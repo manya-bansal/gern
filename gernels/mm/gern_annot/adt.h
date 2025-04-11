@@ -229,7 +229,7 @@ public:
     }
 
     bool freeQuery() const override {
-        return false;
+        return true;
     }
 };
 

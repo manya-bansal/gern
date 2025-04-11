@@ -171,7 +171,7 @@ Grid::Level getLevel(const Grid::Dim &dim) {
     case Grid::Dim::WARP_DIM_X:
     case Grid::Dim::WARP_DIM_Y:
     case Grid::Dim::WARP_DIM_Z:
-        return Grid::Level::WARPS;
+        return Grid::Level::THREADS_WARPS;
     default:
         return Grid::Level::NULL_LEVEL;
     }

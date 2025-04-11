@@ -77,7 +77,7 @@ int main() {
 
     k_tiled = k_tiled.bind(BK);
 
-    int64_t smem_size_val = 32 * 32 * 8 * 4;  // overallocating by a bit
+    int64_t smem_size_val = 100000;  // overallocating by a bit
 
     annot::MatrixMultiply mm(A_DS, B_DS, C_DS);
     auto mm_sp = &mm[{
@@ -167,6 +167,11 @@ int main() {
 
     for (int64_t i = 0; i < m; i++) {
         for (int64_t j = 0; j < n; j++) {
+            if (C_cpu(i, j) != C_cpu_ref(i, j)) {
+                std::cout << "C_cpu(" << i << ", " << j << "): " << C_cpu(i, j) << std::endl;
+                std::cout << "C_cpu_ref(" << i << ", " << j << "): " << C_cpu_ref(i, j) << std::endl;
+                std::cout << "C_cpu: " << C_cpu(i, j) - C_cpu_ref(i, j) << std::endl;
+            }
             assert_close(C_cpu(i, j), C_cpu_ref(i, j));
         }
     }

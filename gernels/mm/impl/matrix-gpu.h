@@ -140,7 +140,7 @@ public:
 
     void ascending() {
         for (int64_t i = 0; i < lda * row; i++) {
-            data[i] = (float)(i % 100);
+            data[i] = (float)(i % 10);
         }
     }
 
@@ -279,6 +279,8 @@ public:
     __device__ MatrixGPUShared<num_row, num_col, num_col> stage_into_smem(int64_t x, int64_t y) {
         __shared__ float *smem_data_global;
 
+        __syncthreads();
+
         if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
             smem_data_global = (float *)sh_malloc(num_row * num_col * sizeof(float));
         }
@@ -300,6 +302,8 @@ public:
     template<int64_t num_row, int64_t num_col>
     __device__ MatrixGPUShared<num_row, num_col, num_col> stage_into_smem_flat(int64_t x, int64_t y) {
         __shared__ float *smem_data_global;
+
+        __syncthreads();
 
         if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
             smem_data_global = (float *)sh_malloc(num_row * num_col * sizeof(float));
@@ -328,6 +332,8 @@ public:
         static_assert(num_col % 4 == 0, "num_col must be divisible by 4");
         static_assert(lda % 4 == 0, "num_col must be divisible by 4");
         __shared__ float *smem_data_global;
+
+        __syncthreads();
 
         if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
             smem_data_global = (float *)sh_malloc(num_row * num_col * sizeof(float));

@@ -34,6 +34,44 @@ private:
     util::ScopedSet<const InsertNode *> to_insert;
 };
 
+class ADTReuser : public LowerIRVisitor {
+public:
+    ADTReuser(LowerIR ir)
+        : ir(ir) {
+    }
+
+    void visit(const AllocateNode *);
+    void visit(const FreeNode *);
+    void visit(const InsertNode *);
+    void visit(const QueryNode *);
+    void visit(const ComputeNode *);
+    void visit(const IntervalNode *);
+    void visit(const BlankNode *);
+    void visit(const DefNode *);
+    void visit(const AssertNode *);
+    void visit(const BlockNode *);
+    void visit(const GridDeclNode *);
+    void visit(const SharedMemoryDeclNode *);
+    void visit(const OpaqueCall *);
+
+    LowerIR construct();
+    using LowerIRVisitor::visit;
+
+private:
+    LowerIR ir;
+    int32_t cur_lno = 0;
+    /*
+    * live_range tracks the first and last line number that a subset is used.
+    * two subsets, subset1 and subset2, can be reused if the last use of subset1
+    * is before the first use of subset2.
+    */
+    std::map<AbstractDataTypePtr, std::tuple<int, int>> live_range;
+    std::map<AbstractDataTypePtr, FunctionCall> allocate_calls;
+
+    void update_live_range(AbstractDataTypePtr adt);
+    void update_live_range(Expr e);
+};
+
 class Scoper : public LowerIRVisitor {
 public:
     Scoper(LowerIR ir)
