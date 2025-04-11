@@ -28,6 +28,9 @@ void assert_device_properties(int64_t grid_x_dim,
     assert(device_properties.maxGridSize[0] >= grid_x_dim);
     assert(device_properties.maxGridSize[1] >= grid_y_dim);
     assert(device_properties.maxGridSize[2] >= grid_z_dim);
+    assert(device_properties.maxThreadsDim[0] >= block_x_dim);
+    assert(device_properties.maxThreadsDim[1] >= block_y_dim);
+    assert(device_properties.maxThreadsDim[2] >= block_z_dim);
     assert(device_properties.sharedMemPerBlock >= smem_size);
 }
 
