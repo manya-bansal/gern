@@ -7,6 +7,7 @@
 #include "annotations/visitor.h"
 #include "codegen/concretize.h"
 #include "codegen/finalizer.h"
+#include "codegen/helpers/assert_device_properties.h"
 #include "codegen/lower.h"
 #include "utils/debug.h"
 #include "utils/error.h"
@@ -47,6 +48,22 @@ CGStmt CodeGenerator::generate_code(Composable c) {
                                 Cast::make(Type::make(param.getType() + "*"),
                                            Var::make("args[" + std::to_string(i) + "]")))));
     }
+
+    // Generate calls to assertions before calling the function.
+    if (is_device_call) {
+        hook_body.push_back(gen(
+            helpers::assert_device_properties(
+                compute_func.grid.x,
+                compute_func.grid.y,
+                compute_func.grid.z,
+                compute_func.block.x,
+                compute_func.block.y,
+                compute_func.block.z,
+                // If smem_size is not defined,
+                // then we will just run with default,
+                // just check trivial condition against 0.
+                compute_func.smem_size.defined() ? compute_func.smem_size : Expr(0))));
+    }
     // Now, call the compute function.
     CGStmt hook_call = gen(compute_func.constructCall());
     hook_body.push_back(hook_call);
@@ -59,6 +76,7 @@ CGStmt CodeGenerator::generate_code(Composable c) {
     }
     if (is_device_call) {
         full_code.push_back(EscapeCGStmt::make("#include <cuda_runtime.h>"));
+        full_code.push_back(EscapeCGStmt::make(helpers::assert_device_constraints_decl));
     }
     full_code.push_back(BlankLine::make());
     full_code.push_back(BlankLine::make());
@@ -169,6 +187,7 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
 
     if (is_device_launch) {
         compute_func.access = GLOBAL;
+        // push back helpers.
     } else {
         compute_func.access = HOST;
     }

@@ -74,6 +74,7 @@ target_sources(
         include/gern/compose/composable_visitor.h
         include/gern/compose/composable_node.h
         include/gern/compose/runner.h
+        include/gern/codegen/helpers/assert_device_properties.h
         include/gern/codegen/concretize.h
         include/gern/codegen/codegen.h
         include/gern/codegen/codegen_ir.h
