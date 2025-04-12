@@ -176,7 +176,95 @@ std::ostream &operator<<(std::ostream &os, const Expr &e) {
     return os;
 }
 
-std::ostream &operator<<(std::ostream &os, const Constraint &c) {
+bool isSameExpr(const Expr &a, const Expr &b) {
+    struct IsSameExprVisitor : public ExprVisitorStrict {
+        IsSameExprVisitor(const Expr &a, const Expr &b)
+            : a(a), b(b) {
+        }
+
+        using ExprVisitorStrict::visit;
+
+        bool check() {
+            if (a.defined() && b.defined()) {
+                visit(a);
+                return isSame;
+            }
+
+            if (!a.defined() && !b.defined()) {
+                return true;
+            }
+
+            return false;
+        }
+
+        void visit(const LiteralNode *n) override {
+            if (isa<Literal>(b)) {
+                const LiteralNode *b_lit = to<LiteralNode>(b.ptr);
+                isSame = isSameValue(*n, *b_lit);
+                return;
+            }
+            isSame = false;
+        }
+
+        void visit(const VariableNode *n) override {
+            if (isa<Variable>(b)) {
+                Variable b_var = to<Variable>(b);
+                if (n->name == b_var.getName()) {
+                    isSame = true;
+                    return;
+                }
+            }
+            isSame = false;
+        }
+
+        void visit(const ADTMemberNode *n) override {
+            if (isa<ADTMember>(b)) {
+                ADTMember b_adt = to<ADTMember>(b);
+                if (n->ds == b_adt.getDS() && n->member == b_adt.getMember()) {
+                    isSame = true;
+                    return;
+                }
+            }
+            isSame = false;
+        }
+
+        void visit(const GridDimNode *n) override {
+            if (isa<GridDim>(b)) {
+                GridDim b_dim = to<GridDim>(b);
+                if (n->dim == b_dim.getDim()) {
+                    isSame = true;
+                    return;
+                }
+            }
+            isSame = false;
+        }
+
+#define DEFINE_BINARY_SameAs(NodeType, ClassType)                                    \
+    void visit(const NodeType *n) override {                                         \
+        if (isa<ClassType>(b)) {                                                     \
+            ClassType b_op = to<ClassType>(b);                                       \
+            isSame = isSameExpr(n->a, b_op.getA()) && isSameExpr(n->b, b_op.getB()); \
+        } else {                                                                     \
+            isSame = false;                                                          \
+        }                                                                            \
+    }
+
+        DEFINE_BINARY_SameAs(AddNode, Add);
+        DEFINE_BINARY_SameAs(SubNode, Sub);
+        DEFINE_BINARY_SameAs(MulNode, Mul);
+        DEFINE_BINARY_SameAs(DivNode, Div);
+        DEFINE_BINARY_SameAs(ModNode, Mod);
+
+        bool isSame = true;
+        Expr a, b;
+    };
+
+    IsSameExprVisitor isSameExprVisitor(a, b);
+    return isSameExprVisitor.check();
+}
+
+std::ostream &
+operator<<(std::ostream &os, const Constraint &c) {
     Printer p{os};
     p.visit(c);
     return os;
@@ -610,6 +698,10 @@ bool AbstractDataTypePtr::freeAlloc() const {
 
 ADTMember AbstractDataTypePtr::operator[](std::string member) const {
     return ADTMember(*this, member, false);
+}
+
+bool AbstractDataTypePtr::operator==(const AbstractDataTypePtr &other) const {
+    return getName() == other.getName();
 }
 
 std::string AbstractDataTypePtr::str() const {

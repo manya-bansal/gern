@@ -61,6 +61,10 @@ public:
 
 std::ostream &operator<<(std::ostream &os, const Expr &);
 
+// A more liberal check that only checks whether the leaf nodes,
+// and the binary nodes are the same semantically (does not check ptrs).
+bool isSameExpr(const Expr &a, const Expr &b);
+
 class Constraint : public util::IntrusivePtr<const ConstraintNode> {
 public:
     Constraint()
@@ -230,6 +234,7 @@ public:
     bool freeAlloc() const;
     std::string str() const;
     ADTMember operator[](std::string) const;
+    bool operator==(const AbstractDataTypePtr &other) const;
 };
 
 std::ostream &operator<<(std::ostream &os, const AbstractDataTypePtr &ads);

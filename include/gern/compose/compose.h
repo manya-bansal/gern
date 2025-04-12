@@ -45,6 +45,8 @@ struct FunctionCall {
     std::vector<Argument> getAllArguments() const;
 };
 
+bool isSameFunctionCall(const FunctionCall &a, const FunctionCall &b);
+
 struct MethodCall {
     // Data structure to call the method on.
     AbstractDataTypePtr data;

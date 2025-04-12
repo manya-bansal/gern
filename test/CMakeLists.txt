@@ -29,10 +29,12 @@ set(TEST_SOURCES
     test-functions.cpp
     test-function-ptr.cpp
     test-grid-constraints.cpp
+    test-same-expr.cpp
     test-map-grid.cpp
     test-nodes.cpp
     test-pipeline.cpp
     test-set-unit.cpp
+    test-temp-reuse.cpp
     # test-resolve-constraints.cpp
     test-runner.cpp
     test-stage.cpp

@@ -1,5 +1,6 @@
 #include "codegen/finalizer.h"
 #include "annotations/rewriter.h"
+#include "annotations/rewriter_helpers.h"
 #include "math.h"
 
 namespace gern {
@@ -18,11 +19,16 @@ static MethodCall makeFreeCall(AbstractDataTypePtr ds) {
 }
 
 LowerIR Finalizer::finalize() {
+    // Hoist out any statements.
     Scoper scoper(ir);
     ir = scoper.construct();
 
-    to_free.scope();
+    // Figure out which adts can be reused.
+    ADTReuser adt_reuser(ir);
+    ir = adt_reuser.construct();
 
+    // Figure out which adts need to be freed.
+    to_free.scope();
     visit(ir);
 
     std::vector<LowerIR> new_ir;
@@ -123,6 +129,248 @@ util::ScopedSet<AbstractDataTypePtr> Finalizer::getToFree() const {
     return to_free;
 }
 
+LowerIR ADTReuser::construct() {
+    cur_lno = 0;
+    visit(ir);
+
+    // Now that we have the live ranges, loop over all the allocate calls
+    // and figure out which data-structures can be reused.
+    std::map<AbstractDataTypePtr, std::set<AbstractDataTypePtr>> reusable_adts;
+    for (const auto &adt : allocate_calls) {
+        // Look into the map and see if there is an adt that this adt does not conflict with.
+        AbstractDataTypePtr cur_adt = adt.first;
+        FunctionCall call = adt.second;
+        bool found = false;
+
+        // Check whether this adt can be used by any of the existing sets.
+        for (auto &reusable_set : reusable_adts) {
+            bool can_reuse = true;
+            AbstractDataTypePtr possible_adt = reusable_set.first;
+            std::set<AbstractDataTypePtr> reused_by = reusable_set.second;
+            reused_by.insert(possible_adt);
+            for (auto &reused_adt : reused_by) {
+                // If the last use of adt1 is after the first use of adt2, then cannot reuse.
+                if (std::get<1>(live_range[reused_adt]) > std::get<0>(live_range[cur_adt])) {
+                    can_reuse = false;
+                    break;
+                }
+                // If the allocation functions are not the same call, then cannot reuse.
+                if (!isSameFunctionCall(call, allocate_calls[reused_adt])) {
+                    can_reuse = false;
+                    break;
+                }
+            }
+
+            // If we can use, add it, and move on to the next candidate.
+            if (can_reuse) {
+                reusable_adts[possible_adt].insert(cur_adt);
+                found = true;
+                break;
+            }
+        }
+
+        // If not found any available adts, start a new set.
+        if (!found) {
+            reusable_adts[cur_adt] = {};
+        }
+    }
+    std::map<AbstractDataTypePtr, AbstractDataTypePtr> rewrites;
+    for (auto &adt : reusable_adts) {
+        for (auto &reused_adt : adt.second) {
+            rewrites[reused_adt] = adt.first;
+        }
+    }
+
+    ADTReplacer replacer(ir, rewrites);
+    return replacer.replace();
+}
+
+void ADTReuser::visit(const AllocateNode *node) {
+    cur_lno++;
+    // The subset object becomes live at the point of allocation.
+    AbstractDataTypePtr adt = to<DSArg>(node->f.output)->getADTPtr();
+    update_live_range(adt);
+    allocate_calls[adt] = node->f;
+}
+
+void ADTReuser::visit(const FreeNode *node) {
+    cur_lno++;
+    update_live_range(node->call.data);
+}
+
+void ADTReuser::visit(const InsertNode *node) {
+    cur_lno++;
+    // Update parent adt live range.
+    update_live_range(node->call.data);
+    // Update child adt live range.
+    std::vector<Argument> args = node->call.call.args;
+    AbstractDataTypePtr child_adt = to<DSArg>(args[args.size() - 1])->getADTPtr();
+    update_live_range(child_adt);
+}
+
+void ADTReuser::visit(const QueryNode *node) {
+    cur_lno++;
+    // Update parent adt live range.
+    update_live_range(node->parent);
+    update_live_range(node->child);
+}
+
+void ADTReuser::visit(const ComputeNode *node) {
+    cur_lno++;
+    // Update adt live range.
+    update_live_range(node->adt);
+    // Update all the arguments.
+    for (const auto &arg : node->f.args) {
+        if (isa<DSArg>(arg)) {
+            update_live_range(to<DSArg>(arg)->getADTPtr());
+        }
+    }
+}
+
+void ADTReuser::visit(const IntervalNode *node) {
+    cur_lno++;
+    // Update the body.
+    visit(node->body);
+}
+
+void ADTReuser::visit(const BlankNode *) {
+}
+
+void ADTReuser::visit(const DefNode *node) {
+    update_live_range(node->assign.getA());
+    update_live_range(node->assign.getB());
+}
+
+void ADTReuser::visit(const AssertNode *node) {
+    update_live_range(node->constraint.getA());
+    update_live_range(node->constraint.getB());
+}
+
+void ADTReuser::visit(const BlockNode *node) {
+    for (const auto &ir : node->ir_nodes) {
+        visit(ir);
+    }
+}
+
+void ADTReuser::visit(const GridDeclNode *) {
+    cur_lno++;
+}
+
+void ADTReuser::visit(const SharedMemoryDeclNode *) {
+}
+
+void ADTReuser::visit(const OpaqueCall *node) {
+    // Update all the arguments.
+    for (const auto &arg : node->f.args) {
+        if (isa<DSArg>(arg)) {
+            update_live_range(to<DSArg>(arg)->getADTPtr());
+        }
+    }
+}
+
+void ADTReuser::update_live_range(AbstractDataTypePtr adt) {
+    if (!live_range.contains(adt)) {
+        live_range[adt] = std::make_tuple(cur_lno, cur_lno);
+    } else {
+        int first_use = std::get<0>(live_range[adt]);
+        live_range[adt] = std::make_tuple(first_use, cur_lno);
+    }
+}
+
+void ADTReuser::update_live_range(Expr e) {
+    match(e,
+          std::function<void(const ADTMemberNode *)>(
+              [&](const ADTMemberNode *op) {
+                  update_live_range(op->ds);
+              }));
+}
+
+LowerIR ADTReplacer::replace() {
+    visit(ir);
+    return final_ir;
+}
+
+void ADTReplacer::visit(const AllocateNode *node) {
+    auto adt = to<DSArg>(node->f.output)->getADTPtr();
+    if (rewrites.contains(adt)) {
+        final_ir = new const BlankNode();
+        return;
+    }
+    final_ir = new const AllocateNode(node->f);
+}
+
+void ADTReplacer::visit(const FreeNode *node) {
+    final_ir = new const FreeNode(node->call);
+}
+
+void ADTReplacer::visit(const InsertNode *node) {
+    FunctionCall call = node->call.call;
+    FunctionCall new_call = call.replaceAllDS(rewrites);
+    final_ir = new const InsertNode(MethodCall(node->call.data, new_call));
+}
+
+void ADTReplacer::visit(const QueryNode *node) {
+    FunctionCall call = node->call.call;
+    FunctionCall new_call = call.replaceAllDS(rewrites);
+    AbstractDataTypePtr method_data = get_adt(node->call.data);
+    AbstractDataTypePtr parent_adt = get_adt(node->parent);
+    AbstractDataTypePtr child_adt = get_adt(node->child);
+
+    final_ir = new const QueryNode(parent_adt, child_adt, node->fields, MethodCall(method_data, new_call));
+}
+
+void ADTReplacer::visit(const ComputeNode *node) {
+    FunctionCall call = node->f;
+    FunctionCall new_call = call.replaceAllDS(rewrites);
+    AbstractDataTypePtr adt = get_adt(node->adt);
+    final_ir = new const ComputeNode(new_call, node->headers, adt);
+}
+
+void ADTReplacer::visit(const IntervalNode *node) {
+    visit(node->body);
+    final_ir = new const IntervalNode(node->start, node->end, node->step, final_ir, node->p);
+}
+
+void ADTReplacer::visit(const BlankNode *) {
+    final_ir = new const BlankNode();
+}
+
+void ADTReplacer::visit(const DefNode *node) {
+    final_ir = new const DefNode(replaceADTs(node->assign, rewrites), node->const_expr);
+}
+
+void ADTReplacer::visit(const AssertNode *node) {
+    final_ir = new const AssertNode(replaceADTs(node->constraint, rewrites));
+}
+
+void ADTReplacer::visit(const BlockNode *node) {
+    std::vector<LowerIR> new_ir;
+    for (const auto &ir : node->ir_nodes) {
+        visit(ir);
+        new_ir.push_back(final_ir);
+    }
+    final_ir = new const BlockNode(new_ir);
+}
+
+void ADTReplacer::visit(const GridDeclNode *node) {
+    final_ir = new const GridDeclNode(node->dim, node->v);
+}
+
+void ADTReplacer::visit(const SharedMemoryDeclNode *node) {
+    final_ir = new const SharedMemoryDeclNode(node->size);
+}
+
+void ADTReplacer::visit(const OpaqueCall *node) {
+    FunctionCall new_call = node->f.replaceAllDS(rewrites);
+    final_ir = new const OpaqueCall(new_call, node->headers);
+}
+
+AbstractDataTypePtr ADTReplacer::get_adt(const AbstractDataTypePtr &adt) const {
+    if (rewrites.contains(adt)) {
+        return rewrites.at(adt);
+    }
+    return adt;
+}
 LowerIR Scoper::construct() {
     visit(ir);
     std::vector<LowerIR> new_body = new_statements[cur_scope];

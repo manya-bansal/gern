@@ -44,6 +44,40 @@ std::ostream &operator<<(std::ostream &os, const LiteralNode &op) {
     return os;
 }
 
+bool isSameValue(const LiteralNode &a, const LiteralNode &b) {
+    if (a.getDatatype() != b.getDatatype()) {
+        return false;
+    }
+
+    switch (a.getDatatype().getKind()) {
+    case Datatype::Kind::UInt64:
+        return a.getVal<uint64_t>() == b.getVal<uint64_t>();
+    case Datatype::Kind::UInt32:
+        return a.getVal<uint32_t>() == b.getVal<uint32_t>();
+    case Datatype::Kind::UInt16:
+        return a.getVal<uint16_t>() == b.getVal<uint16_t>();
+    case Datatype::Kind::Int64:
+        return a.getVal<int64_t>() == b.getVal<int64_t>();
+    case Datatype::Kind::Int32:
+        return a.getVal<int32_t>() == b.getVal<int32_t>();
+    case Datatype::Kind::Int16:
+        return a.getVal<int16_t>() == b.getVal<int16_t>();
+    case Datatype::Kind::Int8:
+        return a.getVal<int8_t>() == b.getVal<int8_t>();
+    case Datatype::Kind::Float32:
+        return a.getVal<float>() == b.getVal<float>();
+    case Datatype::Kind::Float64:
+        return a.getVal<double>() == b.getVal<double>();
+    case Datatype::Kind::Complex64:
+        return a.getVal<std::complex<float>>() == b.getVal<std::complex<float>>();
+    case Datatype::Kind::Complex128:
+        return a.getVal<std::complex<double>>() == b.getVal<std::complex<double>>();
+    default:
+        throw std::runtime_error("Unknown datatype");
+        return false;
+    }
+}
+
 std::vector<Variable> ProducesNode::getFieldsAsVars() const {
     std::vector<Variable> vars;
     std::vector<Expr> expr_vars = output.getFields();

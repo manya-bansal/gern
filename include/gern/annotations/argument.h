@@ -76,6 +76,8 @@ public:
     void accept(ArgumentVisitorStrict *v) const;
 };
 
+bool isSameArgument(Argument a, Argument b);
+
 // Class used to limit the types of arguments possible
 // to pass in FunctionSignature.
 class Parameter : public Argument {
