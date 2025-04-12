@@ -140,9 +140,11 @@ CGStmt CodeGenerator::top_level_codegen(LowerIR ir, bool is_device_launch) {
     // or allocated to the FunctionSignature arguments. These are the
     // true inputs, or the true outputs.
     std::vector<AbstractDataTypePtr> to_declare_adts;
+
     std::set_difference(used_adt.begin(), used_adt.end(),
                         declared_adt.begin(), declared_adt.end(),
-                        std::back_inserter(to_declare_adts));
+                        std::back_inserter(to_declare_adts),
+                        std::less<AbstractDataTypePtr>());
 
     for (const auto &ds : to_declare_adts) {
         parameters.push_back(Parameter(ds));

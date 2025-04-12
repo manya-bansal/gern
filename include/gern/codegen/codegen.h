@@ -1,6 +1,7 @@
 #pragma once
 #include <optional>
 
+#include "annotations/std_less_specialization.h"
 #include "codegen/codegen_ir.h"
 #include "codegen/lower_visitor.h"
 #include "utils/name_generator.h"

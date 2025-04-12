@@ -24,7 +24,9 @@ struct LiteralNode : public ExprNode {
 
     std::any val;
 };
+
 std::ostream &operator<<(std::ostream &os, const LiteralNode &);
+bool isSameValue(const LiteralNode &a, const LiteralNode &b);
 
 struct VariableNode : public ExprNode {
     VariableNode(const std::string &name,

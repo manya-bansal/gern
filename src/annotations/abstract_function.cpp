@@ -40,6 +40,37 @@ std::vector<Argument> FunctionCall::getAllArguments() const {
     return all_args;
 }
 
+bool isSameFunctionCall(const FunctionCall &a, const FunctionCall &b) {
+
+    if (a.name != b.name) {
+        return false;
+    }
+
+    if (a.args.size() != b.args.size()) {
+        return false;
+    }
+
+    if (a.template_args.size() != b.template_args.size()) {
+        return false;
+    }
+
+    // Make sure all the arguments are the same.
+    for (size_t i = 0; i < a.args.size(); i++) {
+        if (!isSameArgument(a.args[i], b.args[i])) {
+            return false;
+        }
+    }
+
+    // Make sure all the template arguments are the same.
+    for (size_t i = 0; i < a.template_args.size(); i++) {
+        if (!isSameArgument(a.template_args[i], b.template_args[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 Composable AbstractFunction::constructComposableObject(std::vector<Argument> concrete_arguments) {
     FunctionSignature f = getFunction();
     std::map<AbstractDataTypePtr, AbstractDataTypePtr> abstract_to_concrete_adt;

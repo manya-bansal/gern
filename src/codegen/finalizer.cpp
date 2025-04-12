@@ -18,11 +18,16 @@ static MethodCall makeFreeCall(AbstractDataTypePtr ds) {
 }
 
 LowerIR Finalizer::finalize() {
+    // Hoist out any statements.
     Scoper scoper(ir);
     ir = scoper.construct();
 
-    to_free.scope();
+    // Figure out which adts can be reused.
+    ADTReuser adt_reuser(ir);
+    ir = adt_reuser.construct();
 
+    // Figure out which adts need to be freed.
+    to_free.scope();
     visit(ir);
 
     std::vector<LowerIR> new_ir;
@@ -130,22 +135,52 @@ LowerIR ADTReuser::construct() {
     // Now that we have the live ranges, loop over all the allocate calls
     // and figure out which data-structures can be reused.
     std::map<AbstractDataTypePtr, std::set<AbstractDataTypePtr>> reusable_adts;
-    // for (const auto &adt : allocate_calls) {
-    //     // Look into the map and see if there is an adt that this adt does not conflict with.
-    //     FunctionCall call = adt.second;
-    //     for (auto &reusable_set : reusable_adts) {
+    for (const auto &adt : allocate_calls) {
+        // Look into the map and see if there is an adt that this adt does not conflict with.
+        AbstractDataTypePtr cur_adt = adt.first;
+        FunctionCall call = adt.second;
+        bool found = false;
 
-    //         bool can_reuse = true;
-    //         for (auto &reusable_adt : reusable_set) {
-    //             if (std::get<1>(live_range[reusable_adt]) < std::get<0>(live_range[adt.first])) {
-    //                 can_reuse = false;
-    //                 break;
-    //             }
-    //             reusable_set.insert(adt.first);
-    //             break;
-    //         }
-    //     }
-    // }
+        // Check whether this adt can be used by any of the existing sets.
+        for (auto &reusable_set : reusable_adts) {
+            bool can_reuse = true;
+            AbstractDataTypePtr possible_adt = reusable_set.first;
+            std::set<AbstractDataTypePtr> reused_by = reusable_set.second;
+            reused_by.insert(possible_adt);
+            for (auto &reused_adt : reused_by) {
+                // If the last use of adt1 is after the first use of adt2, then cannot reuse.
+                if (std::get<1>(live_range[reused_adt]) > std::get<0>(live_range[cur_adt])) {
+                    can_reuse = false;
+                    break;
+                }
+                // If the allocation functions are not the same call, then cannot reuse.
+                if (!isSameFunctionCall(call, allocate_calls[reused_adt])) {
+                    can_reuse = false;
+                    break;
+                }
+            }
+
+            // If we can use, add it, and move on to the next candidate.
+            if (can_reuse) {
+                reusable_adts[possible_adt].insert(cur_adt);
+                found = true;
+                break;
+            }
+        }
+
+        // If not found any available adts, start a new set.
+        if (!found) {
+            reusable_adts[cur_adt] = {};
+        }
+    }
+
+    for (auto &adt : reusable_adts) {
+        std::cout << adt.first.str() << " can be reused by: ";
+        for (auto &reused_adt : adt.second) {
+            std::cout << reused_adt.str() << " ";
+        }
+        std::cout << std::endl;
+    }
 
     return ir;
 }
@@ -153,8 +188,9 @@ LowerIR ADTReuser::construct() {
 void ADTReuser::visit(const AllocateNode *node) {
     cur_lno++;
     // The subset object becomes live at the point of allocation.
-    live_range[to<DSArg>(node->f.output)->getADTPtr()] = std::make_tuple(cur_lno, cur_lno);
-    allocate_calls[to<DSArg>(node->f.output)->getADTPtr()] = node->f;
+    AbstractDataTypePtr adt = to<DSArg>(node->f.output)->getADTPtr();
+    update_live_range(adt);
+    allocate_calls[adt] = node->f;
 }
 
 void ADTReuser::visit(const FreeNode *node) {
@@ -176,8 +212,7 @@ void ADTReuser::visit(const QueryNode *node) {
     cur_lno++;
     // Update parent adt live range.
     update_live_range(node->parent);
-    // Child appears for the first time.
-    live_range[node->child] = std::make_tuple(cur_lno, cur_lno);
+    update_live_range(node->child);
 }
 
 void ADTReuser::visit(const ComputeNode *node) {
@@ -235,10 +270,11 @@ void ADTReuser::visit(const OpaqueCall *node) {
 
 void ADTReuser::update_live_range(AbstractDataTypePtr adt) {
     if (!live_range.contains(adt)) {
-        throw error::InternalError("Free of undeclared subset object: " + adt.str());
+        live_range[adt] = std::make_tuple(cur_lno, cur_lno);
+    } else {
+        int first_use = std::get<0>(live_range[adt]);
+        live_range[adt] = std::make_tuple(first_use, cur_lno);
     }
-    int first_use = std::get<0>(live_range[adt]);
-    live_range[adt] = std::make_tuple(first_use, cur_lno);
 }
 
 void ADTReuser::update_live_range(Expr e) {
