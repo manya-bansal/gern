@@ -34,6 +34,36 @@ private:
     util::ScopedSet<const InsertNode *> to_insert;
 };
 
+class ADTReplacer : public LowerIRVisitor {
+public:
+    ADTReplacer(LowerIR ir,
+                std::map<AbstractDataTypePtr, AbstractDataTypePtr> rewrites)
+        : ir(ir), rewrites(rewrites) {
+    }
+
+    LowerIR replace();
+    using LowerIRVisitor::visit;
+    void visit(const AllocateNode *);
+    void visit(const FreeNode *);
+    void visit(const InsertNode *);
+    void visit(const QueryNode *);
+    void visit(const BlankNode *);
+    void visit(const ComputeNode *);
+    void visit(const IntervalNode *);
+    void visit(const DefNode *);
+    void visit(const AssertNode *);
+    void visit(const BlockNode *);
+    void visit(const GridDeclNode *);
+    void visit(const SharedMemoryDeclNode *);
+    void visit(const OpaqueCall *);
+
+private:
+    LowerIR ir;
+    LowerIR final_ir;
+    AbstractDataTypePtr get_adt(const AbstractDataTypePtr &adt) const;
+    const std::map<AbstractDataTypePtr, AbstractDataTypePtr> rewrites;
+};
+
 class ADTReuser : public LowerIRVisitor {
 public:
     ADTReuser(LowerIR ir)

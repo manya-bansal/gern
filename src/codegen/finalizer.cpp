@@ -1,5 +1,6 @@
 #include "codegen/finalizer.h"
 #include "annotations/rewriter.h"
+#include "annotations/rewriter_helpers.h"
 #include "math.h"
 
 namespace gern {
@@ -173,16 +174,15 @@ LowerIR ADTReuser::construct() {
             reusable_adts[cur_adt] = {};
         }
     }
-
+    std::map<AbstractDataTypePtr, AbstractDataTypePtr> rewrites;
     for (auto &adt : reusable_adts) {
-        std::cout << adt.first.str() << " can be reused by: ";
         for (auto &reused_adt : adt.second) {
-            std::cout << reused_adt.str() << " ";
+            rewrites[reused_adt] = adt.first;
         }
-        std::cout << std::endl;
     }
 
-    return ir;
+    ADTReplacer replacer(ir, rewrites);
+    return replacer.replace();
 }
 
 void ADTReuser::visit(const AllocateNode *node) {
@@ -285,6 +285,92 @@ void ADTReuser::update_live_range(Expr e) {
               }));
 }
 
+LowerIR ADTReplacer::replace() {
+    visit(ir);
+    return final_ir;
+}
+
+void ADTReplacer::visit(const AllocateNode *node) {
+    auto adt = to<DSArg>(node->f.output)->getADTPtr();
+    if (rewrites.contains(adt)) {
+        final_ir = new const BlankNode();
+        return;
+    }
+    final_ir = new const AllocateNode(node->f);
+}
+
+void ADTReplacer::visit(const FreeNode *node) {
+    final_ir = new const FreeNode(node->call);
+}
+
+void ADTReplacer::visit(const InsertNode *node) {
+    FunctionCall call = node->call.call;
+    FunctionCall new_call = call.replaceAllDS(rewrites);
+    final_ir = new const InsertNode(MethodCall(node->call.data, new_call));
+}
+
+void ADTReplacer::visit(const QueryNode *node) {
+    FunctionCall call = node->call.call;
+    FunctionCall new_call = call.replaceAllDS(rewrites);
+    AbstractDataTypePtr method_data = get_adt(node->call.data);
+    AbstractDataTypePtr parent_adt = get_adt(node->parent);
+    AbstractDataTypePtr child_adt = get_adt(node->child);
+
+    final_ir = new const QueryNode(parent_adt, child_adt, node->fields, MethodCall(method_data, new_call));
+}
+
+void ADTReplacer::visit(const ComputeNode *node) {
+    FunctionCall call = node->f;
+    FunctionCall new_call = call.replaceAllDS(rewrites);
+    AbstractDataTypePtr adt = get_adt(node->adt);
+    final_ir = new const ComputeNode(new_call, node->headers, adt);
+}
+
+void ADTReplacer::visit(const IntervalNode *node) {
+    visit(node->body);
+    final_ir = new const IntervalNode(node->start, node->end, node->step, final_ir, node->p);
+}
+
+void ADTReplacer::visit(const BlankNode *) {
+    final_ir = new const BlankNode();
+}
+
+void ADTReplacer::visit(const DefNode *node) {
+    final_ir = new const DefNode(replaceADTs(node->assign, rewrites), node->const_expr);
+}
+
+void ADTReplacer::visit(const AssertNode *node) {
+    final_ir = new const AssertNode(replaceADTs(node->constraint, rewrites));
+}
+
+void ADTReplacer::visit(const BlockNode *node) {
+    std::vector<LowerIR> new_ir;
+    for (const auto &ir : node->ir_nodes) {
+        visit(ir);
+        new_ir.push_back(final_ir);
+    }
+    final_ir = new const BlockNode(new_ir);
+}
+
+void ADTReplacer::visit(const GridDeclNode *node) {
+    final_ir = new const GridDeclNode(node->dim, node->v);
+}
+
+void ADTReplacer::visit(const SharedMemoryDeclNode *node) {
+    final_ir = new const SharedMemoryDeclNode(node->size);
+}
+
+void ADTReplacer::visit(const OpaqueCall *node) {
+    FunctionCall new_call = node->f.replaceAllDS(rewrites);
+    final_ir = new const OpaqueCall(new_call, node->headers);
+}
+
+AbstractDataTypePtr ADTReplacer::get_adt(const AbstractDataTypePtr &adt) const {
+    if (rewrites.contains(adt)) {
+        return rewrites.at(adt);
+    }
+    return adt;
+}
 LowerIR Scoper::construct() {
     visit(ir);
     std::vector<LowerIR> new_body = new_statements[cur_scope];
