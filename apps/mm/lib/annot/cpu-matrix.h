@@ -86,11 +86,11 @@ public:
         Variable tj("tj", Datatype::Int64);
         Variable tk("tk", Datatype::Int64);
 
-        return annotate(For(i = Expr(0), ADTMember(C, "row", false), ti,
-                            For(j = Expr(0), ADTMember(C, "col", false), tj,
+        return annotate(Tileable(i = Expr(0), ADTMember(C, "row", false), ti,
+                            Tileable(j = Expr(0), ADTMember(C, "col", false), tj,
                                 Produces::Subset(C, {i, j, ti, tj}),
                                 Consumes::Subsets(
-                                    Reduce(k = Expr(0), k_dim, tk,
+                                    Reducible(k = Expr(0), k_dim, tk,
                                            SubsetObjMany({
                                                SubsetObj(A, {i, k, ti, tk}),
                                                SubsetObj(B, {k, j, tk, tj}),

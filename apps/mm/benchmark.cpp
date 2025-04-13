@@ -227,5 +227,7 @@ int main() {
         c.destroy();
         a_pack.destroy();
         b_pack.destroy();
+
+        std::cout << std::endl;
     }
 }

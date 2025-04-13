@@ -108,10 +108,6 @@ if (Gern_CUDA_ARCH)
     message("Running GPU testers in this build.")
 endif ()
 
-## 
-# Benchmarks
-add_subdirectory(benchmark)
-
 ##
 # Installation and packaging
 
