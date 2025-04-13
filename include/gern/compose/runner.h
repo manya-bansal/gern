@@ -16,6 +16,7 @@ public:
     struct Options {
         std::string filename;
         std::string prefix = "/tmp";
+        std::string cpp_std = "c++11";
         std::string include = "";
         std::string ldflags = "";
         std::string arch = "";
