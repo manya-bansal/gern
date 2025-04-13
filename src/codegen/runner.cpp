@@ -25,8 +25,6 @@ void Runner::compile(Options config) {
     std::string arch = at_device ? "-arch=sm_" + config.arch : "";
     std::string compiler = at_device ? "nvcc" : "g++ -O3 -march=native ";
 
-    compiler += "/home/ege/Desktop/UROP/gern/benchmark/lib/impl/kernel/bli_sgemm_skx_asm_32x12_l2.o ";  // BROKEN AND BAD
-
     std::string compiler_option = at_device ? "--compiler-options " : "";
     std::string shared_obj = config.prefix + getUniqueName("libGern") + ".so";
     std::string cmd = compiler +

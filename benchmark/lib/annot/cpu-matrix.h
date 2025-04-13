@@ -56,12 +56,17 @@ public:
         return "gern::impl::" + implementation;
     }
     virtual FunctionSignature getInsertFunction() const override {
-        return FunctionSignature{
-            .name = "insert",
-            .args = {x, y, l_x, l_y}};
+        return has_static_mem_query ?
+                   FunctionSignature{
+                       .name = "insert",
+                       .args = {x, y},
+                       .template_args = {l_x, l_y}} :
+                   FunctionSignature{
+                       .name = "insert",
+                       .args = {x, y, l_x, l_y}};
     }
     virtual bool insertQuery() const override {
-        return false;
+        // return false;
         return has_static_mem_query;
     }
 };

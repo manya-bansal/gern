@@ -363,51 +363,6 @@ public:
     }
 };
 
-class C1 : public internal::MatrixViewRowMajor, public internal::QueryView<C1, C1> {
-    C1(int64_t l_x, int64_t l_y)
-        : MatrixViewRowMajor(l_x, l_y) {
-    }
-
-public:
-    C1(float *data, int64_t x, int64_t y, int64_t lda)
-        : MatrixViewRowMajor(data, x, y, lda) {
-    }
-    void destroy() {
-        free(this->data);
-    }
-    static C1 allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
-        return C1(l_x, l_y);
-    }
-};
-
-template<int64_t L_X, int64_t L_Y>
-class C2 : public internal::MatrixStaticMemRowMajor<L_X, L_Y>, public internal::QueryView<C2<L_X, L_Y>, C1> {
-public:
-    C2() = default;
-    void destroy() {
-    }
-    static C2 allocate(int64_t, int64_t, int64_t, int64_t) {
-        return C2();
-    }
-};
-
-class C3 : public internal::MatrixViewRowMajor, public internal::QueryStaticMem<C3, C2> {
-    C3(int64_t l_x, int64_t l_y)
-        : MatrixViewRowMajor(l_x, l_y) {
-    }
-
-public:
-    C3(float *data, int64_t x, int64_t y, int64_t lda)
-        : MatrixViewRowMajor(data, x, y, lda) {
-    }
-    void destroy() {
-        free(this->data);
-    }
-    static C3 allocate(int64_t, int64_t, int64_t l_x, int64_t l_y) {
-        return C3(l_x, l_y);
-    }
-};
-
 template<typename T>
 void random_fill(T &a) {
     std::random_device rd;
@@ -549,6 +504,7 @@ void inner_kernel(T1 &a, T2 &b, T3 &c, int64_t) {
     *((__m256 *)(&c.get(7, 8))) += result7_1;
 }
 
+#ifdef BLIS_KERNEL
 template<typename T1, typename T2, typename T3>
 void blis_kernel(T1 &a, T2 &b, T3 &c, int64_t) {
     // int64_t N = c.row, M = c.col, K = a.col;
@@ -573,6 +529,7 @@ void blis_kernel(T1 &a, T2 &b, T3 &c, int64_t) {
         nullptr,
         nullptr);
 }
+#endif
 
 }  // namespace impl
 }  // namespace gern

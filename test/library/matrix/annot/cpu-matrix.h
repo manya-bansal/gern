@@ -81,6 +81,20 @@ public:
     }
 };
 
+class MatrixCPUZero : public MatrixCPU {
+public:
+    MatrixCPUZero(const std::string &name)
+        : MatrixCPU(name) {
+    }
+
+    FunctionSignature getAllocateFunction() const override {
+        return FunctionSignature{
+            .name = "gern::impl::MatrixCPU::allocate_zero",
+            .args = {x, y, l_x, l_y},
+        };
+    }
+};
+
 class MatrixAddCPU : public AbstractFunction {
 public:
     MatrixAddCPU()
@@ -312,7 +326,8 @@ protected:
 class MatrixMultiplyCPUPacked : public MatrixMultiplyCPU {
 public:
     MatrixMultiplyCPUPacked()
-        : MatrixMultiplyCPU(AbstractDataTypePtr(new const MatrixCPUPack("A")), AbstractDataTypePtr(new const MatrixCPUPack("B")), AbstractDataTypePtr(new const MatrixCPU("C"))) {}
+        : MatrixMultiplyCPU(AbstractDataTypePtr(new const MatrixCPUPack("A")), AbstractDataTypePtr(new const MatrixCPUPack("B")), AbstractDataTypePtr(new const MatrixCPU("C"))) {
+    }
 
     FunctionSignature getFunction() override {
         FunctionSignature f;
@@ -321,7 +336,6 @@ public:
         return f;
     }
 };
-
 
 }  // namespace annot
 }  // namespace gern
