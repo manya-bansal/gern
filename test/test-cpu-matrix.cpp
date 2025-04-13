@@ -203,9 +203,9 @@ TEST(LoweringCPU, SoftmaxEnd) {
 	Composable tiled = untiled_program;
 	
 	for (auto [key, val] : tileableFields) {
-		Variable var = key.getMember() == "col" ? l_y : l_x;
+		Variable var = key.str() == "output.col" ? l_y : l_x;
 		tiled = Tile(key, var)(tiled);
-		std::cout << key.getMember() << " ";
+		std::cout << key.str() << " ";
 		std::cout << key << " " << get<0>(val) << " " << get<1>(val) << " " << get<2>(val) << std::endl;
 	}
 	

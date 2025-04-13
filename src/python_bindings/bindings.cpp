@@ -44,13 +44,13 @@ PYBIND11_MODULE(gern_py, m) {
 			return t.operator()(Composable(new const Computation(to_compose)));
 		});
 
-	py::class_<ADTMember>(m, "ADTMember")
+	py::class_<Expr>(m, "Expr");
+	py::class_<ADTMember, Expr>(m, "ADTMember")
 		.def("getMember", &ADTMember::getMember);
 	py::class_<Annotation>(m, "Annotation")
 		.def("getPattern", &Annotation::getPattern);
 	py::class_<gern::Pattern>(m, "Pattern")
 		.def("getTileableFields", &Annotation::getTileableFields);
-	py::class_<Expr>(m, "Expr");
 
 	py::class_<Datatype>(m, "DatatypeClass")
 		.def(py::init<Datatype::Kind>());
