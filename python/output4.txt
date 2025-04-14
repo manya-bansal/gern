@@ -1,0 +1,251 @@
+
+
+
+def forward(self, L_v_ : torch.Tensor, L_k_ : torch.Tensor, L_q_ : torch.Tensor, L_c_ : torch.Tensor):
+    l_v_ = L_v_
+    l_k_ = L_k_
+    l_q_ = L_q_
+    l_c_ = L_c_
+    scaled_dot_product_attention = torch._C._nn.scaled_dot_product_attention(l_q_, l_k_, l_v_);  l_q_ = l_k_ = l_v_ = None
+    add = scaled_dot_product_attention + l_c_;  scaled_dot_product_attention = l_c_ = None
+    return (add,)
+    
+node.target <built-in function scaled_dot_product_attention>
+node.args (l_q_, l_k_, l_v_)
+node.name scaled_dot_product_attention
+node.target <built-in function add>
+node.args (scaled_dot_product_attention, l_c_)
+node.name add
+{'source_fn_stack': [('add', <built-in function add>)], 'stack_trace': '  File "/Users/maggie/school/gern/python/split_pipeline_attention_test.py", line 17, in forward\n    return torch.nn.functional.scaled_dot_product_attention(q, k, v) + c\n', 'example_value': FakeTensor(..., size=(10, 10))}
+SPLIT PIPELINE ARG scaled_dot_product_attention
+<class 'torch.fx.node.Node'>
+[(<gern_py.Composable object at 0x121efcaf0>, [l_q_, l_k_, l_v_], [l_q_, l_k_, l_v_], scaled_dot_product_attention, [scaled_dot_product_attention_height, scaled_dot_product_attention_width])]
+ADD INP l_q_
+ADD INP l_k_
+ADD INP l_v_
+RELEVANT OUTPUTS [scaled_dot_product_attention, l_q_, l_k_, l_v_]
+RELEVANT FN CALLS {<gern_py.Composable object at 0x121efcaf0>}
+FILTERED VARIABLES [(scaled_dot_product_attention_height, <gern_py.Int object at 0x12239b0b0>), (scaled_dot_product_attention_width, <gern_py.Int object at 0x12239b630>)]
+RUNNER COMPILE
+[<gern_py.Composable object at 0x121efcaf0>]
+FINISH COMPILING
+PRINTING GM GRAPH graph():
+    %l_v_ : torch.Tensor [num_users=1] = placeholder[target=L_v_]
+    %l_k_ : torch.Tensor [num_users=1] = placeholder[target=L_k_]
+    %l_q_ : torch.Tensor [num_users=1] = placeholder[target=L_q_]
+    %l_c_ : torch.Tensor [num_users=1] = placeholder[target=L_c_]
+    %scaled_dot_product_attention : [num_users=1] = call_function[target=torch._C._nn.scaled_dot_product_attention](args = (%l_q_, %l_k_, %l_v_), kwargs = {})
+    %add : [num_users=1] = call_function[target=operator.add](args = (%scaled_dot_product_attention, %l_c_), kwargs = {})
+    return (add,)
+PRINTING GM GRAPH graph():
+    %scaled_dot_product_attention_inputs : [num_users=0] = get_attr[target=scaled_dot_product_attention_inputs]
+    %scaled_dot_product_attention_out_size : [num_users=0] = get_attr[target=scaled_dot_product_attention_out_size]
+    %scaled_dot_product_attention_output_adt_ptr : [num_users=0] = get_attr[target=scaled_dot_product_attention_output_adt_ptr]
+    %scaled_dot_product_attention_gern_args : [num_users=0] = get_attr[target=scaled_dot_product_attention_gern_args]
+    %scaled_dot_product_attention_generated_runner : [num_users=0] = get_attr[target=scaled_dot_product_attention_generated_runner]
+    %l_v_ : torch.Tensor [num_users=1] = placeholder[target=L_v_]
+    %l_k_ : torch.Tensor [num_users=1] = placeholder[target=L_k_]
+    %l_q_ : torch.Tensor [num_users=1] = placeholder[target=L_q_]
+    %l_c_ : torch.Tensor [num_users=1] = placeholder[target=L_c_]
+    %scaled_dot_product_attention : [num_users=1] = call_function[target=torch._C._nn.scaled_dot_product_attention](args = (%l_q_, %l_k_, %l_v_), kwargs = {})
+    %add : [num_users=1] = call_function[target=operator.add](args = (%scaled_dot_product_attention, %l_c_), kwargs = {})
+    return (add,)
+RELEVANT OUTPUT NODES 4 [scaled_dot_product_attention, l_q_, l_k_, l_v_]
+graph():
+    %scaled_dot_product_attention_inputs : [num_users=1] = get_attr[target=scaled_dot_product_attention_inputs]
+    %scaled_dot_product_attention_out_size : [num_users=1] = get_attr[target=scaled_dot_product_attention_out_size]
+    %scaled_dot_product_attention_output_adt_ptr : [num_users=1] = get_attr[target=scaled_dot_product_attention_output_adt_ptr]
+    %scaled_dot_product_attention_gern_args : [num_users=1] = get_attr[target=scaled_dot_product_attention_gern_args]
+    %scaled_dot_product_attention_generated_runner : [num_users=1] = get_attr[target=scaled_dot_product_attention_generated_runner]
+    %l_v_ : torch.Tensor [num_users=2] = placeholder[target=L_v_]
+    %l_k_ : torch.Tensor [num_users=2] = placeholder[target=L_k_]
+    %l_q_ : torch.Tensor [num_users=2] = placeholder[target=L_q_]
+    %l_c_ : torch.Tensor [num_users=1] = placeholder[target=L_c_]
+    %scaled_dot_product_attention : [num_users=1] = call_function[target=torch._C._nn.scaled_dot_product_attention](args = (%l_q_, %l_k_, %l_v_), kwargs = {})
+    %replaced_scaled_dot_product_attention : [num_users=1] = call_function[target=generate_torch_compile_pipeline.function_call_fn](args = (%scaled_dot_product_attention_generated_runner, %scaled_dot_product_attention_gern_args, %scaled_dot_product_attention_output_adt_ptr, %scaled_dot_product_attention_out_size, %scaled_dot_product_attention_inputs, %scaled_dot_product_attention, %l_q_, %l_k_, %l_v_), kwargs = {})
+    %add : [num_users=1] = call_function[target=operator.add](args = (%replaced_scaled_dot_product_attention, %l_c_), kwargs = {})
+    return (add,)
+SPLIT PIPELINE ARG l_c_
+<class 'torch.fx.node.Node'>
+[(<gern_py.Composable object at 0x121efcaf0>, [l_q_, l_k_, l_v_], [l_q_, l_k_, l_v_], scaled_dot_product_attention, [scaled_dot_product_attention_height, scaled_dot_product_attention_width])]
+PRINTING FINAL GM GRAPH graph():
+    %scaled_dot_product_attention_inputs : [num_users=1] = get_attr[target=scaled_dot_product_attention_inputs]
+    %scaled_dot_product_attention_out_size : [num_users=1] = get_attr[target=scaled_dot_product_attention_out_size]
+    %scaled_dot_product_attention_output_adt_ptr : [num_users=1] = get_attr[target=scaled_dot_product_attention_output_adt_ptr]
+    %scaled_dot_product_attention_gern_args : [num_users=1] = get_attr[target=scaled_dot_product_attention_gern_args]
+    %scaled_dot_product_attention_generated_runner : [num_users=1] = get_attr[target=scaled_dot_product_attention_generated_runner]
+    %l_v_ : torch.Tensor [num_users=2] = placeholder[target=L_v_]
+    %l_k_ : torch.Tensor [num_users=2] = placeholder[target=L_k_]
+    %l_q_ : torch.Tensor [num_users=2] = placeholder[target=L_q_]
+    %l_c_ : torch.Tensor [num_users=1] = placeholder[target=L_c_]
+    %scaled_dot_product_attention : [num_users=1] = call_function[target=torch._C._nn.scaled_dot_product_attention](args = (%l_q_, %l_k_, %l_v_), kwargs = {})
+    %replaced_scaled_dot_product_attention : [num_users=1] = call_function[target=generate_torch_compile_pipeline.function_call_fn](args = (%scaled_dot_product_attention_generated_runner, %scaled_dot_product_attention_gern_args, %scaled_dot_product_attention_output_adt_ptr, %scaled_dot_product_attention_out_size, %scaled_dot_product_attention_inputs, %scaled_dot_product_attention, %l_q_, %l_k_, %l_v_), kwargs = {})
+    %add : [num_users=1] = call_function[target=operator.add](args = (%replaced_scaled_dot_product_attention, %l_c_), kwargs = {})
+    return (add,)
+
+
+
+def forward(self, L_v_ : torch.Tensor, L_k_ : torch.Tensor, L_q_ : torch.Tensor, L_c_ : torch.Tensor):
+    scaled_dot_product_attention_inputs = self.scaled_dot_product_attention_inputs
+    scaled_dot_product_attention_out_size = self.scaled_dot_product_attention_out_size
+    scaled_dot_product_attention_output_adt_ptr = self.scaled_dot_product_attention_output_adt_ptr
+    scaled_dot_product_attention_gern_args = self.scaled_dot_product_attention_gern_args
+    scaled_dot_product_attention_generated_runner = self.scaled_dot_product_attention_generated_runner
+    l_v_ = L_v_
+    l_k_ = L_k_
+    l_q_ = L_q_
+    l_c_ = L_c_
+    scaled_dot_product_attention = torch._C._nn.scaled_dot_product_attention(l_q_, l_k_, l_v_)
+    replaced_scaled_dot_product_attention = generate_torch_compile_pipeline_function_call_fn(scaled_dot_product_attention_generated_runner, scaled_dot_product_attention_gern_args, scaled_dot_product_attention_output_adt_ptr, scaled_dot_product_attention_out_size, scaled_dot_product_attention_inputs, scaled_dot_product_attention, l_q_, l_k_, l_v_);  scaled_dot_product_attention_generated_runner = scaled_dot_product_attention_gern_args = scaled_dot_product_attention_output_adt_ptr = scaled_dot_product_attention_out_size = scaled_dot_product_attention_inputs = scaled_dot_product_attention = l_q_ = l_k_ = l_v_ = None
+    add = replaced_scaled_dot_product_attention + l_c_;  replaced_scaled_dot_product_attention = l_c_ = None
+    return (add,)
+    
+CALLING EVALUATE
+INPUT ADT PTRS [l_q_, l_k_, l_v_]
+[(scaled_dot_product_attention_height, <gern_py.Int object at 0x12239b0b0>), (scaled_dot_product_attention_width, <gern_py.Int object at 0x12239b630>)]
+VAR GETNAME scaled_dot_product_attention_height
+GETADDRESS <capsule object NULL at 0x1222c4960>
+VAR GETNAME scaled_dot_product_attention_width
+GETADDRESS <capsule object NULL at 0x1222c4960>
+ARGS (tensor([[ 0.467118, -1.901354, -1.378922,  0.505993, -0.662895, -0.289434,
+          1.302929, -0.283346, -0.556264, -0.559360],
+        [ 0.737815,  0.396062,  0.533871, -0.118441,  0.196128,  0.733127,
+         -0.039233, -0.757077, -0.091732,  0.927834],
+        [-0.340728,  0.953356,  0.414064,  0.147834,  1.509278,  0.554530,
+          0.231590, -0.305412, -1.704228, -0.078920],
+        [ 0.513025, -0.198136,  0.150520,  0.402394,  0.645853, -0.758699,
+         -1.232827,  0.670772, -1.060988,  0.517910],
+        [-0.033943, -1.267784, -0.995033, -0.121862,  0.755345,  0.286322,
+         -0.407911,  1.717993,  0.735047,  0.533701],
+        [-0.041121, -1.432702,  1.762021, -0.738472, -0.845419, -0.816115,
+         -0.651349,  0.493194, -0.138815, -1.040007],
+        [-0.854372, -1.286168, -0.623223,  1.211161, -0.146896, -0.062609,
+         -0.044788, -0.473617, -0.394468,  0.134406],
+        [-0.517561, -0.487328,  0.159198,  2.019295, -0.901372,  0.078104,
+          1.359436,  0.127941, -0.872495,  0.660836],
+        [ 0.208197, -0.356001,  0.410120, -0.255364, -1.317938,  1.471645,
+          0.600469, -0.217346,  1.766513,  2.201054],
+        [-0.926036,  1.917543,  1.764898, -0.206052,  1.191253,  0.194807,
+         -1.347530, -0.786863,  0.563305, -0.533053]]), tensor([[-0.612576, -1.867768,  0.555988,  1.614621, -0.846913, -1.282957,
+          2.154593,  0.156552, -0.693637,  1.517389],
+        [-1.528953,  1.194592,  0.331830,  0.152784,  0.198504, -0.641744,
+          0.155425, -0.768349, -0.211544,  1.967855],
+        [-0.886755,  0.122062,  0.798476, -0.755057, -0.702338, -0.196640,
+          2.967805,  1.186928,  1.389911, -1.478763],
+        [-1.283871, -1.910454, -0.634982, -0.058377, -1.332233,  0.304380,
+         -0.322535, -0.436309, -0.859353,  0.730550],
+        [-0.300214,  0.960186,  1.511766,  1.022281, -0.220445, -0.251085,
+          0.496757, -0.495898,  0.180170,  1.380620],
+        [ 0.976922, -0.717930, -0.485139,  0.866971,  0.646574, -0.984730,
+          1.052879,  1.110009, -2.967704,  1.821890],
+        [-0.560449, -0.860225,  0.418246,  0.906979, -0.360093,  0.221992,
+         -0.941056,  0.227529,  0.414422,  0.514657],
+        [-0.123776, -0.841182,  1.028331,  0.051744, -0.009339, -1.592330,
+          0.292863,  0.153437, -1.411032, -0.312822],
+        [ 0.428237, -0.645017, -0.173403,  0.091279, -0.347040,  0.081843,
+         -1.108806,  1.370447, -1.290482, -0.307638],
+        [ 0.326365, -0.030065,  1.310079, -0.308732, -0.791915,  0.503453,
+         -0.543877,  0.269579, -0.911424, -0.192380]]), tensor([[-0.099202, -1.860859,  0.881596,  1.153174,  0.687137, -0.565985,
+          1.697673,  0.740512,  0.460228, -0.475555],
+        [ 1.473751,  0.811681, -0.088020,  1.329328, -1.274581, -0.886263,
+         -0.350299,  1.193081, -0.041276, -0.511598],
+        [ 0.014169, -1.084051, -0.814634, -1.221028, -0.788625, -0.214254,
+          0.308469, -1.405912, -0.598665,  0.023520],
+        [ 0.694443, -0.260820,  0.039512,  0.660566,  0.130423,  0.496916,
+         -0.787509, -0.207576,  0.798746,  1.230601],
+        [ 1.575665,  0.039019,  0.100672,  0.624655,  1.192595,  1.436046,
+         -0.034107, -0.649608,  2.890423,  0.623946],
+        [ 0.033151,  0.664816,  1.214077,  0.048950,  0.317815, -2.325009,
+         -0.130686, -0.006396,  0.167240,  0.992303],
+        [-1.474612,  0.182437, -1.282981,  0.353522,  1.488687, -1.977203,
+         -1.599421, -0.850288,  0.054154, -1.687148],
+        [-0.287802, -0.743350, -2.158449, -0.072013, -1.059919, -1.682593,
+         -0.506811, -0.384633,  0.992212, -0.138487],
+        [-0.194075,  0.207281,  0.012931, -0.798479,  0.239431,  1.861288,
+         -1.401189,  1.091046, -0.467427, -1.054410],
+        [ 2.338495,  0.805741,  1.364813, -1.185763,  0.987126, -0.208223,
+          0.594556, -1.444554,  1.188745, -0.265886]]))
+4643721536
+4643723968
+4643724736
+FINAL OUT VALS tensor([[ 0.107848, -0.655223,  0.274315,  0.374309,  0.264048, -0.627362,
+          0.269430,  0.070313,  0.403516,  0.089688],
+        [ 0.724624,  0.102266,  0.106272,  0.240087,  0.311465, -0.326909,
+         -0.189515, -0.174064,  0.839748, -0.052083],
+        [ 0.548620,  0.203365,  0.191501,  0.149574,  0.095750, -0.788694,
+         -0.219451, -0.043942,  0.580639,  0.096967],
+        [ 0.211978,  0.154224,  0.183968,  0.011945,  0.231248, -0.795215,
+         -0.380983,  0.015872,  0.408408,  0.017973],
+        [ 0.042124, -0.100526, -0.032562,  0.027434,  0.323017, -0.410236,
+         -0.466164, -0.054910,  0.257762, -0.211580],
+        [ 0.321106, -0.273123, -0.369832, -0.218360,  0.082933, -0.428448,
+         -0.241008, -0.401972,  0.537196, -0.227298],
+        [ 0.193205, -0.434519,  0.092557,  0.465855,  0.328216, -0.492810,
+         -0.050648,  0.040457,  0.527529, -0.001379],
+        [ 0.152675, -0.842046,  0.499797,  0.640821,  0.441337, -0.679100,
+          0.665973,  0.249081,  0.544433, -0.076632],
+        [ 0.554331, -0.252256, -0.007052,  0.400778,  0.366060, -0.179434,
+         -0.059964, -0.211881,  0.790113, -0.087776],
+        [ 1.032400,  0.265208, -0.098236,  0.340184,  0.139380, -0.147703,
+         -0.259807, -0.167592,  0.974732, -0.206829]])
+ACTUAL VAL tensor([[ 0.107848, -0.655223,  0.274315,  0.374309,  0.264048, -0.627362,
+          0.269430,  0.070313,  0.403516,  0.089688],
+        [ 0.724624,  0.102266,  0.106272,  0.240087,  0.311464, -0.326910,
+         -0.189515, -0.174064,  0.839748, -0.052083],
+        [ 0.548620,  0.203365,  0.191501,  0.149574,  0.095750, -0.788694,
+         -0.219451, -0.043942,  0.580639,  0.096967],
+        [ 0.211978,  0.154224,  0.183968,  0.011945,  0.231248, -0.795215,
+         -0.380983,  0.015872,  0.408408,  0.017973],
+        [ 0.042124, -0.100526, -0.032562,  0.027434,  0.323017, -0.410236,
+         -0.466164, -0.054910,  0.257762, -0.211580],
+        [ 0.321106, -0.273123, -0.369832, -0.218360,  0.082933, -0.428448,
+         -0.241008, -0.401972,  0.537196, -0.227298],
+        [ 0.193205, -0.434519,  0.092557,  0.465855,  0.328216, -0.492810,
+         -0.050648,  0.040457,  0.527529, -0.001379],
+        [ 0.152675, -0.842046,  0.499797,  0.640821,  0.441337, -0.679100,
+          0.665973,  0.249081,  0.544433, -0.076632],
+        [ 0.554331, -0.252256, -0.007052,  0.400778,  0.366060, -0.179434,
+         -0.059964, -0.211881,  0.790113, -0.087776],
+        [ 1.032400,  0.265208, -0.098236,  0.340184,  0.139379, -0.147703,
+         -0.259807, -0.167592,  0.974732, -0.206829]])
+OPT OUTPUT tensor([[-0.403055, -1.142916, -0.635862,  0.733503, -0.108583, -0.984614,
+         -0.351748,  0.509628, -1.435911,  0.569447],
+        [ 0.113991,  1.474297, -1.380166, -0.770607,  0.416557, -0.680770,
+          0.289850,  1.820608,  0.282629,  1.080768],
+        [ 0.087442, -1.735731,  0.115570,  1.245603,  1.281522, -0.108556,
+         -0.054187,  0.028997,  1.173237,  1.168829],
+        [ 1.122849, -0.345622,  1.479471,  0.441329,  0.225167, -0.980254,
+          0.701435, -0.079831,  0.725863,  0.937912],
+        [ 1.692178, -0.863915,  0.300909,  1.592297,  0.823157, -1.214415,
+          1.003724, -0.211995,  1.421234,  1.119164],
+        [ 1.104140,  1.033782, -0.328025, -0.033032,  0.091720, -0.647411,
+         -0.728384, -0.776178, -0.851309, -0.235391],
+        [-0.159314, -1.632018,  1.913247,  1.365859,  0.782251, -0.551895,
+          2.456716, -1.123179,  0.743240, -0.793550],
+        [-1.006346, -2.370036,  0.247909,  0.921406, -0.699015, -1.528212,
+          1.046528, -0.442002,  0.145650, -0.419260],
+        [-0.133804,  1.209900, -0.067230,  0.673566,  1.125623,  0.440242,
+         -0.766072,  0.333754,  0.435120, -0.706361],
+        [ 1.145942,  0.515055,  0.062329,  0.777954,  1.451048, -1.149596,
+         -0.304330, -0.106208,  0.641369, -0.360183]])
+REF OUTPUT tensor([[-0.403055, -1.142916, -0.635862,  0.733503, -0.108583, -0.984614,
+         -0.351748,  0.509628, -1.435911,  0.569447],
+        [ 0.113991,  1.474297, -1.380166, -0.770606,  0.416557, -0.680770,
+          0.289850,  1.820608,  0.282629,  1.080768],
+        [ 0.087442, -1.735731,  0.115570,  1.245603,  1.281522, -0.108556,
+         -0.054187,  0.028997,  1.173237,  1.168829],
+        [ 1.122849, -0.345622,  1.479471,  0.441329,  0.225167, -0.980254,
+          0.701435, -0.079831,  0.725863,  0.937912],
+        [ 1.692178, -0.863915,  0.300909,  1.592297,  0.823157, -1.214415,
+          1.003723, -0.211995,  1.421234,  1.119164],
+        [ 1.104140,  1.033782, -0.328025, -0.033032,  0.091720, -0.647411,
+         -0.728384, -0.776178, -0.851309, -0.235391],
+        [-0.159314, -1.632018,  1.913247,  1.365859,  0.782251, -0.551895,
+          2.456716, -1.123179,  0.743240, -0.793550],
+        [-1.006346, -2.370036,  0.247909,  0.921406, -0.699015, -1.528212,
+          1.046528, -0.442002,  0.145650, -0.419260],
+        [-0.133804,  1.209900, -0.067230,  0.673566,  1.125623,  0.440242,
+         -0.766072,  0.333754,  0.435120, -0.706361],
+        [ 1.145942,  0.515055,  0.062329,  0.777954,  1.451048, -1.149596,
+         -0.304330, -0.106208,  0.641369, -0.360183]])
+OUTPUTS MATCH True

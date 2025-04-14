@@ -81,6 +81,11 @@ PYBIND11_MODULE(gern_py, m) {
 			return new const annot::MatrixCPU(name);
 		}, py::return_value_policy::reference);
 	
+	py::class_<annot::MatrixCPU4Dim, AbstractDataType>(m, "AnnotMatrixCPU4Dim")
+		.def("init", [](std::string &name){
+			return new const annot::MatrixCPU4Dim(name);
+		}, py::return_value_policy::reference);
+	
 	py::class_<annot::MatrixCPUTemplate, AbstractDataType>(m, "AnnotMatrixCPUTemplate")
 		.def("init", [](std::string &name){
 			return new const annot::MatrixCPUTemplate(name);
@@ -143,6 +148,9 @@ PYBIND11_MODULE(gern_py, m) {
 	
 	py::class_<annot::MatrixAttention, AbstractFunction>(m, "MatrixAttention")
 		.def(py::init<>());
+	
+	py::class_<annot::MatrixAttention4D, AbstractFunction>(m, "MatrixAttention4D")
+		.def(py::init<>());
 
 	// m.def("MatrixAddCPU", [](AbstractDataTypePtr in, AbstractDataTypePtr out, const std::map<std::string, Variable> &replacements = {}){
 	// 	annot::MatrixAddCPU add;
@@ -202,6 +210,19 @@ PYBIND11_MODULE(gern_py, m) {
             return oss.str();
         });
 
+	py::class_<impl::MatrixCPU4Dim>(m, "MatrixCPU4Dim")
+		.def("init", [](uintptr_t ptr, int64_t i_dim, int64_t j_dim, int64_t k_dim, int64_t l_dim, int64_t i_incr, int64_t j_incr, int64_t k_incr){
+			float* data = reinterpret_cast<float*>(ptr);
+			return new impl::MatrixCPU4Dim(data, i_dim, j_dim, k_dim, l_dim, i_incr, j_incr, k_incr);
+		}, py::return_value_policy::reference)
+		.def("init", [](int64_t i_dim, int64_t j_dim, int64_t k_dim, int64_t l_dim, int64_t i_incr, int64_t j_incr, int64_t k_incr){
+			auto mat = new impl::MatrixCPU4Dim(i_dim, j_dim, k_dim, l_dim, i_incr, j_incr, k_incr);
+			return mat;
+		}, py::return_value_policy::reference)
+		.def("vvals", &impl::MatrixCPU4Dim::vvals)
+		.def("random_fill", &impl::MatrixCPU4Dim::random_fill, py::arg("min") = 0.0f, py::arg("max") = 1.0f)
+		.def("ascending", &impl::MatrixCPU4Dim::ascending);
+
 	// helper classes to create variable values in c++
 	// and give c++ ownership (to get pointers later)
 	py::class_<MyInt>(m, "Int")
@@ -219,6 +240,10 @@ PYBIND11_MODULE(gern_py, m) {
 			oss << *obj.val;
 			return oss.str();
 		});
+	
+	m.def("getAddress", [](impl::MatrixCPU4Dim* mat){
+		return static_cast<void*>(mat);
+	});
 	
 	m.def("getAddress", [](impl::MatrixCPU* mat){
 		return static_cast<void*>(mat);

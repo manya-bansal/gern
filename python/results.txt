@@ -1,0 +1,22 @@
+unfused attention (1, 12, 512, 64)
+
+[-------------- unfused attention 512 x 64 --------------]
+                             |  unfused attention 512 x 64
+1 threads: -----------------------------------------------
+      gern, row tiling 512   |             11.0           
+      unoptimized            |             10.1           
+      default torch.compile  |             10.1           
+
+Times are in milliseconds (ms).
+
+======
+
+bert 
+
+[ bert batch_size=1, seq_length=512 ]
+               |   gern  |  default
+1 threads: ------------------------
+      gern     |  297.8  |         
+      default  |         |   255.5 
+
+Times are in milliseconds (ms).
