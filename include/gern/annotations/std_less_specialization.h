@@ -16,11 +16,19 @@ struct less<gern::Variable> {
 };
 
 template<>
+struct less<gern::AbstractDataTypePtr> {
+    bool operator()(const gern::AbstractDataTypePtr &a,
+                    const gern::AbstractDataTypePtr &b) const {
+        return a.getName() < b.getName();
+    }
+};
+
+template<>
 struct less<gern::ADTMember> {
     bool operator()(const gern::ADTMember &a, const gern::ADTMember &b) const {
-        if (a.getDS() < b.getDS()) return true;   // Compare primary key
-        if (b.getDS() < a.getDS()) return false;  // Compare reverse order
-        return a.getMember() < b.getMember();     // Compare secondary key
+        if (std::less<gern::AbstractDataTypePtr>()(a.getDS(), b.getDS())) return true;   // Compare primary key
+        if (std::less<gern::AbstractDataTypePtr>()(b.getDS(), a.getDS())) return false;  // Compare reverse order
+        return a.getMember() < b.getMember();                                            // Compare secondary key
     }
 };
 
@@ -33,13 +41,6 @@ struct less<gern::Expr> {
         if (gern::isa<gern::ADTMember>(a) && gern::isa<gern::ADTMember>(b)) {
             return std::less<gern::ADTMember>()(gern::to<gern::ADTMember>(a), gern::to<gern::ADTMember>(b));
         }
-        return a.ptr < b.ptr;
-    }
-};
-
-template<>
-struct less<gern::AbstractDataTypePtr> {
-    bool operator()(const gern::AbstractDataTypePtr &a, const gern::AbstractDataTypePtr &b) const {
         return a.ptr < b.ptr;
     }
 };

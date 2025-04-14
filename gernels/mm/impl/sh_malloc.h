@@ -33,6 +33,7 @@ inline __device__ void *sh_malloc(size_t size) {
     size_t offset = shmem_size_t[1];
 
     if (offset + size > max_size) {
+        // set to 0
         shmem_size_t[1] = sizeof(size_t) * 2;
         return sh_malloc(size);
     }

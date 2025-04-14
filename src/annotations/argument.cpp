@@ -33,6 +33,19 @@ void Argument::accept(ArgumentVisitorStrict *v) const {
     ptr->accept(v);
 }
 
+bool isSameArgument(Argument a, Argument b) {
+    if (!a.defined() && !b.defined()) {
+        return true;
+    }
+    if (isa<DSArg>(a) && isa<DSArg>(b)) {
+        return to<DSArg>(a)->getADTPtr() == to<DSArg>(b)->getADTPtr();
+    }
+    if (isa<ExprArg>(a) && isa<ExprArg>(b)) {
+        return isSameExpr(to<ExprArg>(a)->getExpr(), to<ExprArg>(b)->getExpr());
+    }
+    return false;
+}
+
 std::ostream &operator<<(std::ostream &os, const Argument &a) {
     ArgumentPrinter print(os);
     print.visit(a);

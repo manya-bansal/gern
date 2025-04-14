@@ -20,18 +20,23 @@ void assert_device_properties(int64_t grid_x_dim,
                              int64_t block_x_dim, 
                              int64_t block_y_dim, 
                              int64_t block_z_dim,
+                             int64_t warp_x_dim,
+                             int64_t warp_y_dim,
+                             int64_t warp_z_dim,
                              int64_t smem_size) {
     cudaDeviceProp device_properties;
     cudaGetDeviceProperties(&device_properties, 0);
     assert(device_properties.maxThreadsPerBlock >= block_x_dim * block_y_dim * block_z_dim);
-    // assert(device_properties.warpSize == warp_dim);
+    assert(device_properties.warpSize == warp_x_dim);
+    assert(device_properties.warpSize == warp_y_dim);
+    assert(device_properties.warpSize == warp_z_dim);
     assert(device_properties.maxGridSize[0] >= grid_x_dim);
     assert(device_properties.maxGridSize[1] >= grid_y_dim);
     assert(device_properties.maxGridSize[2] >= grid_z_dim);
     assert(device_properties.maxThreadsDim[0] >= block_x_dim);
     assert(device_properties.maxThreadsDim[1] >= block_y_dim);
     assert(device_properties.maxThreadsDim[2] >= block_z_dim);
-    assert(device_properties.sharedMemPerBlock >= smem_size);
+    assert(device_properties.sharedMemPerBlockOptin >= smem_size);
 }
 
 )";
@@ -42,6 +47,9 @@ static FunctionCall assert_device_properties(Expr grid_x_dim,
                                              Expr block_x_dim,
                                              Expr block_y_dim,
                                              Expr block_z_dim,
+                                             Expr warp_x_dim,
+                                             Expr warp_y_dim,
+                                             Expr warp_z_dim,
                                              Expr smem_size) {
     return FunctionCall{
         .name = "assert_device_properties",
@@ -52,6 +60,9 @@ static FunctionCall assert_device_properties(Expr grid_x_dim,
             Argument(block_x_dim),
             Argument(block_y_dim),
             Argument(block_z_dim),
+            Argument(warp_x_dim),
+            Argument(warp_y_dim),
+            Argument(warp_z_dim),
             Argument(smem_size),
         },
         .template_args = {},
