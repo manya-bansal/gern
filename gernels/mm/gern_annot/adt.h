@@ -6,11 +6,10 @@ using namespace gern;
 
 namespace annot {
 
-template<int Row, int Col, int Stride>
 class MatrixGPU : public AbstractDataType {
 public:
-    MatrixGPU(const std::string &name, bool temp)
-        : name(name), temp(temp) {
+    MatrixGPU(const std::string &name, int64_t row, int64_t col, int64_t stride, bool temp)
+        : name(name), temp(temp), row_const(row), col_const(col), stride_const(stride) {
     }
     std::string getName() const override {
         return name;
@@ -20,10 +19,10 @@ public:
             return "auto";
         } else {
             return "impl::MatrixGPU<" +
-                   std::to_string(Row) + "," +
-                   std::to_string(Col) + "," +
-                   std::to_string(Col) + "," +
-                   std::to_string(Stride) +
+                   std::to_string(row_const) + "," +
+                   std::to_string(col_const) + "," +
+                   std::to_string(col_const) + "," +
+                   std::to_string(stride_const) +
                    ">";
         }
     }
@@ -69,13 +68,19 @@ protected:
     Variable row{"row", Datatype::Int64, true};
     Variable col{"col", Datatype::Int64, true};
     bool temp;
+    int64_t row_const;
+    int64_t col_const;
+    int64_t stride_const;
 };
 
-template<int Row, int Col, int Stride>
-class MatrixGPUSequential : public MatrixGPU<Row, Col, Stride> {
+class MatrixGPUSequential : public MatrixGPU {
 public:
-    MatrixGPUSequential(const std::string &name, bool temp)
-        : MatrixGPU<Row, Col, Stride>(name, temp) {
+    MatrixGPUSequential(const std::string &name,
+                        int64_t row,
+                        int64_t col,
+                        int64_t stride,
+                        bool temp)
+        : MatrixGPU(name, row, col, stride, temp) {
     }
     FunctionSignature getQueryFunction() const {
         return FunctionSignature{
@@ -92,11 +97,14 @@ public:
     }
 };
 
-template<int Row, int Col, int Stride>
-class MatrixGlobalToGlobal : public MatrixGPU<Row, Col, Stride> {
+class MatrixGlobalToGlobal : public MatrixGPU {
 public:
-    MatrixGlobalToGlobal(const std::string &name, bool temp)
-        : MatrixGPU<Row, Col, Stride>(name, temp) {
+    MatrixGlobalToGlobal(const std::string &name,
+                         int64_t row,
+                         int64_t col,
+                         int64_t stride,
+                         bool temp)
+        : MatrixGPU(name, row, col, stride, temp) {
     }
     FunctionSignature getQueryFunction() const {
         return FunctionSignature{
@@ -118,11 +126,10 @@ public:
     }
 };
 
-template<int Row, int Col, int Stride>
-class MatrixQueryRegNoVector : public MatrixGPU<Row, Col, Stride> {
+class MatrixQueryRegNoVector : public MatrixGPU {
 public:
-    MatrixQueryRegNoVector(const std::string &name, bool temp)
-        : MatrixGPU<Row, Col, Stride>(name, temp) {
+    MatrixQueryRegNoVector(const std::string &name, int64_t row, int64_t col, int64_t stride, bool temp)
+        : MatrixGPU(name, row, col, stride, temp) {
     }
     FunctionSignature getQueryFunction() const {
         return FunctionSignature{
@@ -144,11 +151,10 @@ public:
     }
 };
 
-template<int Row, int Col, int Stride>
-class MatrixGlobalToShared : public MatrixGPU<Row, Col, Stride> {
+class MatrixGlobalToShared : public MatrixGPU {
 public:
-    MatrixGlobalToShared(const std::string &name, bool temp)
-        : MatrixGPU<Row, Col, Stride>(name, temp) {
+    MatrixGlobalToShared(const std::string &name, int64_t row, int64_t col, int64_t stride, bool temp)
+        : MatrixGPU(name, row, col, stride, temp) {
     }
     FunctionSignature getQueryFunction() const {
         return FunctionSignature{
@@ -192,11 +198,14 @@ public:
     }
 };
 
-template<int Row, int Col, int Stride>
-class MatrixGlobalToSharedVec : public MatrixGlobalToShared<Row, Col, Stride> {
+class MatrixGlobalToSharedVec : public MatrixGlobalToShared {
 public:
-    MatrixGlobalToSharedVec(const std::string &name, bool temp)
-        : MatrixGlobalToShared<Row, Col, Stride>(name, temp) {
+    MatrixGlobalToSharedVec(const std::string &name,
+                            int64_t row,
+                            int64_t col,
+                            int64_t stride,
+                            bool temp)
+        : MatrixGlobalToShared(name, row, col, stride, temp) {
     }
     FunctionSignature getQueryFunction() const {
         return FunctionSignature{
@@ -214,11 +223,14 @@ public:
     }
 };
 
-template<int Row, int Col, int Stride>
-class MatrixGlobalToSharedFlat : public MatrixGlobalToShared<Row, Col, Stride> {
+class MatrixGlobalToSharedFlat : public MatrixGlobalToShared {
 public:
-    MatrixGlobalToSharedFlat(const std::string &name, bool temp)
-        : MatrixGlobalToShared<Row, Col, Stride>(name, temp) {
+    MatrixGlobalToSharedFlat(const std::string &name,
+                             int64_t row,
+                             int64_t col,
+                             int64_t stride,
+                             bool temp)
+        : MatrixGlobalToShared(name, row, col, stride, temp) {
     }
     FunctionSignature getQueryFunction() const {
         return FunctionSignature{

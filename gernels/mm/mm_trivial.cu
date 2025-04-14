@@ -17,17 +17,17 @@ int main() {
     constexpr int64_t k = 8;
     constexpr int64_t block_size = 1;
 
-    using AType = annot::MatrixGPU<m, k, k>;
-    using BType = annot::MatrixGPU<k, n, n>;
-    using CType = annot::MatrixGPU<m, n, n>;
+    using AType = annot::MatrixGPU;
+    using BType = annot::MatrixGPU;
+    using CType = annot::MatrixGPU;
 
     using AImpl = impl::MatrixGPU<m, k, k, block_size>;
     using BImpl = impl::MatrixGPU<k, n, n, block_size>;
     using CImpl = impl::MatrixGPU<m, n, n, block_size>;
 
-    auto A_DS = AbstractDataTypePtr(new const AType("A", false));
-    auto B_DS = AbstractDataTypePtr(new const BType("B", false));
-    auto C_DS = AbstractDataTypePtr(new const CType("C", false));
+    auto A_DS = AbstractDataTypePtr(new const AType("A", m, k, k, false));
+    auto B_DS = AbstractDataTypePtr(new const BType("B", k, n, n, false));
+    auto C_DS = AbstractDataTypePtr(new const CType("C", m, n, n, false));
 
     Variable k_dim("k_dim");
     // Get the function object.

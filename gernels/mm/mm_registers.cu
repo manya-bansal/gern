@@ -20,17 +20,17 @@ int main() {
     constexpr int64_t tile_size_k = 4;
     constexpr int64_t block_size = 1;
 
-    using AType = annot::MatrixGPU<m, k, block_size>;
-    using BType = annot::MatrixGPU<k, n, block_size>;
-    using CType = annot::MatrixGPU<m, n, block_size>;
+    using AType = annot::MatrixGPU;
+    using BType = annot::MatrixGPU;
+    using CType = annot::MatrixGPU;
 
     using AImpl = impl::MatrixGPU<m, k, k, block_size>;
     using BImpl = impl::MatrixGPU<k, n, n, block_size>;
     using CImpl = impl::MatrixGPU<m, n, n, block_size>;
 
-    auto A_DS = AbstractDataTypePtr(new const AType("A", false));
-    auto B_DS = AbstractDataTypePtr(new const BType("B", false));
-    auto C_DS = AbstractDataTypePtr(new const CType("C", false));
+    auto A_DS = AbstractDataTypePtr(new const AType("A", m, k, block_size, false));
+    auto B_DS = AbstractDataTypePtr(new const BType("B", k, n, block_size, false));
+    auto C_DS = AbstractDataTypePtr(new const CType("C", m, n, block_size, false));
 
     Variable k_dim("k_dim");
     Variable c_row("c_row");

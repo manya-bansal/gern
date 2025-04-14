@@ -18,22 +18,22 @@ int main() {
     constexpr int64_t k = 8 * 8 * 8 * 2;
     constexpr int64_t block_size = 1;
 
-    using AType = annot::MatrixGlobalToSharedFlat<m, k, block_size>;
-    using BType = annot::MatrixGlobalToSharedFlat<k, n, block_size>;
-    using CType = annot::MatrixGlobalToGlobal<m, n, block_size>;
+    using AType = annot::MatrixGlobalToSharedFlat;
+    using BType = annot::MatrixGlobalToSharedFlat;
+    using CType = annot::MatrixGlobalToGlobal;
 
-    using CTypeReg = annot::MatrixQueryRegNoVector<m, n, block_size>;
+    using CTypeReg = annot::MatrixQueryRegNoVector;
 
     using AImpl = impl::MatrixGPU<m, k, k, block_size>;
     using BImpl = impl::MatrixGPU<k, n, n, block_size>;
     using CImpl = impl::MatrixGPU<m, n, n, block_size>;
 
-    auto A_DS = AbstractDataTypePtr(new const AType("A", false));
-    auto B_DS = AbstractDataTypePtr(new const BType("B", false));
-    auto C_DS = AbstractDataTypePtr(new const CType("C", false));
+    auto A_DS = AbstractDataTypePtr(new const AType("A", m, k, block_size, false));
+    auto B_DS = AbstractDataTypePtr(new const BType("B", k, n, block_size, false));
+    auto C_DS = AbstractDataTypePtr(new const CType("C", m, n, block_size, false));
 
-    auto obj = AType("A_vec", false);
-    auto obj_reg = CTypeReg("C_reg", false);
+    auto obj = AType("A_vec", m, k, block_size, false);
+    auto obj_reg = CTypeReg("C_reg", m, n, block_size, false);
 
     Variable k_dim("k_dim");
     Variable k_tiled("k_tiled");
