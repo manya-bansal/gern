@@ -147,7 +147,18 @@ void Concretize::visit(const TiledComputation *node) {
 
 void Concretize::visit(const ComputeFunctionCall *node) {
     std::vector<LowerIR> lowered;
+
     auto annotation = node->getAnnotation();
+    // Track all the tileable and reducable fields.
+    auto tileable_fileds = node->getAnnotation().getPattern().getTileableFields();
+    for (const auto &field : tileable_fileds) {
+        declare_intervals(field.first, get<2>(field.second));
+    }
+
+    auto reducable_fields = node->getAnnotation().getPattern().getReducableFields();
+    for (const auto &field : reducable_fields) {
+        declare_intervals(field.first, get<2>(field.second));
+    }
     // Emit any asserts that we need.
     for (const auto &constraint : annotation.getConstraints()) {
         lowered.push_back(new const AssertNode(get_base_constraint(constraint, {})));
