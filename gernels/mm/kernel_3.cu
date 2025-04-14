@@ -1,3 +1,4 @@
+#include "../benchmark.h"
 #include "../current_path.h"
 #include "compose/runner.h"
 #include "float-error.h"
@@ -6,6 +7,8 @@
 #include "gern_annot/shmem_interface.h"
 #include "impl/matrix-gpu.h"
 #include "impl/matrix_multiply.h"
+#include "kernel_3.h"
+#include "mm_helpers.h"
 #include <assert.h>
 #include <iostream>
 
@@ -13,9 +16,9 @@ using namespace gern;
 
 int main() {
 
-    constexpr int64_t m = 128;
-    constexpr int64_t n = 128;
-    constexpr int64_t k = 128;
+    constexpr int64_t m = M_CONST;
+    constexpr int64_t n = N_CONST;
+    constexpr int64_t k = K_CONST;
     constexpr int64_t block_size = 1;
 
     using AType = annot::MatrixGlobalToShared;
@@ -42,13 +45,12 @@ int main() {
     Variable smem_size("smem_size");
     Variable one_val("one_val");
 
-    block_x = block_x.bind(16);
-    block_y = block_y.bind(8);
-    thread_x = thread_x.bind(4);
-    thread_y = thread_y.bind(4);
+    block_x = block_x.bind(32);
+    block_y = block_y.bind(32);
+    thread_x = thread_x.bind(1);
+    thread_y = thread_y.bind(1);
     k_dim = k_dim.bind(k);
-    k_tiled = k_tiled.bind(8);
-    one_val = one_val.bind(8);
+    k_tiled = k_tiled.bind(32);
     int64_t smem_size_val = 32 * 32 * 8 * 2 + 1000;  // overallocating by a bit
 
     annot::MatrixMultiply mm(A_DS, B_DS, C_DS);
@@ -67,21 +69,13 @@ int main() {
                               Stage(B_DS,
                                     (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_Y)(
                                         (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_X)(
-                                            (Reduce(k_dim, one_val))(
-                                                Stage(A_DS, obj.getView(),
-                                                      Stage(B_DS, obj.getView(),
-                                                            (*mm_sp)(A_DS, B_DS, C_DS))))))))))),
+                                            Stage(A_DS, obj.getView(),
+                                                  Stage(B_DS, obj.getView(),
+                                                        (*mm_sp)(A_DS, B_DS, C_DS)))))))))),
             {}, smem_size, TrivialManager(smem_size)),
     };
 
-    Runner::Options options;
-    options.filename = "kernel_3.cu";
-    options.cpp_std = "c++17";
-    options.arch = GERNELS_ARCH;
-    options.include = " -I" + std::string(GERNELS_PATH) + "/mm";
-
-    Runner runner(program);
-    runner.compile(options);
+    Runner runner = mm_helpers::runner(program, "kernel_3.cu");
 
     AImpl A;
     A.ascending();
@@ -90,33 +84,18 @@ int main() {
     CImpl C;
     C.vvals(0.0f);
 
-    // Set up all the values.
-    runner.evaluate({{A_DS.getName(), &A},
-                     {B_DS.getName(), &B},
-                     {C_DS.getName(), &C},
-                     {smem_size.getName(), &smem_size_val}});
+    // mm_helpers::evalute_and_check(runner, A, B, C);
+    auto func = [&]() {
+        runner.evaluate({{A_DS.getName(), &A},
+                         {B_DS.getName(), &B},
+                         {C_DS.getName(), &C},
+                         {smem_size.getName(), &smem_size_val}});
+    };
+    double time = benchmark::benchmark(10, 1, func, 2);
+    std::cout << "Time: " << time << " ms" << std::endl;
+    std::cout << "GFLOPS: " << mm_helpers::gflops(m, n, k, time) << std::endl;
+    std::cout << "% of peak " << mm_helpers::gflops(m, n, k, time) / (44 * 10) << std::endl;
 
-    // Make sure the output is correct!
-    auto C_cpu = C.get();
-    auto C_cpu_ref = C.get();
-    C_cpu_ref.vvals(0.0f);
-    auto A_cpu = A.get();
-    auto B_cpu = B.get();
-    matrix_multiply_cpu(A_cpu, B_cpu, C_cpu_ref);
-
-    for (int64_t i = 0; i < m; i++) {
-        for (int64_t j = 0; j < n; j++) {
-            assert_close(C_cpu(i, j), C_cpu_ref(i, j));
-        }
-    }
-
-    std::cout << "Success!" << std::endl;
-
-    // Free everything.
-    C_cpu.destroy();
-    C_cpu_ref.destroy();
-    A_cpu.destroy();
-    B_cpu.destroy();
     A.destroy();
     B.destroy();
     C.destroy();

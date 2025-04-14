@@ -16,7 +16,7 @@ Runner runner(Composable program, const std::string &filename) {
     options.filename = filename;
     options.cpp_std = "c++17";
     options.arch = GERNELS_ARCH;
-    options.include = " -I" + std::string(GERNELS_PATH) + "/mm";
+    options.include = "-O3 -I" + std::string(GERNELS_PATH) + "/mm";
     Runner runner(program);
     runner.compile(options);
     return runner;

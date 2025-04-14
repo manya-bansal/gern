@@ -67,12 +67,6 @@ inline __device__ void matrix_multiply_warp(const AT &A,
                                             const BT &B,
                                             CT &C) {
     if (threadIdx.x % 32 == 0 && threadIdx.y % 32 == 0) {
-        for (int64_t i = 0; i < A.row; i++) {
-            for (int64_t j = 0; j < B.col; j++) {
-                for (int64_t k = 0; k < k_dim; k++) {
-                    C(i, j) += A(i, k) * B(k, j);
-                }
-            }
-        }
+        matrix_multiply<k_dim>(A, B, C);
     }
 }

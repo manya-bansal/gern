@@ -3,9 +3,9 @@
 #include "compose/runner.h"
 #include "gern_annot/adt.h"
 #include "gern_annot/functions.h"
-#include "helpers.h"
 #include "impl/matrix-gpu.h"
 #include "impl/matrix_multiply.h"
+#include "mm_helpers.h"
 #include "schedules.h"
 #include <assert.h>
 #include <iostream>
