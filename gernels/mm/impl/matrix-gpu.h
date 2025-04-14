@@ -238,12 +238,12 @@ public:
     }
 
     template<int64_t num_row, int64_t num_col>
-    __device__ MatrixGPU<num_row, num_col, LDA, stride> query_global_2_global(int64_t x, int64_t y) {
+    __device__ inline MatrixGPU<num_row, num_col, LDA, stride> query_global_2_global(int64_t x, int64_t y) {
         return MatrixGPU<num_row, num_col, LDA, stride>(data + (x * lda + y));
     }
 
     template<int64_t num_row, int64_t num_col>
-    __device__ void insert_global_2_global(int64_t x, int64_t y, MatrixGPU<num_row, num_col, LDA, stride> to_insert) {
+    inline __device__ void insert_global_2_global(int64_t x, int64_t y, MatrixGPU<num_row, num_col, LDA, stride> to_insert) {
         float *data_tmp;
         float *data_insert_tmp;
         for (int64_t i = 0; i < num_row; i++) {
@@ -401,9 +401,9 @@ public:
     }
 
     template<typename T2>
-    __device__ void insert(int x,
-                           int y,
-                           T2 &reg_array_big) {
+    inline __device__ void insert(int x,
+                                  int y,
+                                  T2 &reg_array_big) {
         auto matrix_data = reg_array_big.array;
         constexpr int64_t num_row = reg_array_big.rows;
         constexpr int64_t num_col = reg_array_big.cols_by_4;
@@ -420,11 +420,11 @@ public:
         }
     }
 
-    __device__ float &operator()(int64_t x, int64_t y) {
+    inline __device__ float &operator()(int64_t x, int64_t y) {
         return data[x * lda + y];
     }
 
-    __device__ float operator()(int64_t x, int64_t y) const {
+    inline __device__ float operator()(int64_t x, int64_t y) const {
         return data[x * lda + y];
     }
 

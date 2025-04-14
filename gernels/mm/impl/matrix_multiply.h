@@ -51,19 +51,21 @@ template<int64_t k_dim, typename AT, typename BT, typename CT>
 inline __device__ void matrix_multiply(const AT &A,
                                        const BT &B,
                                        CT &C) {
+    float tmp = 0.0f;
     for (int64_t i = 0; i < A.row; i++) {
         for (int64_t j = 0; j < B.col; j++) {
             for (int64_t k = 0; k < k_dim; k++) {
-                C(i, j) += A(i, k) * B(k, j);
+                tmp += A(i, k) * B(k, j);
             }
+            C(i, j) += tmp;
         }
     }
 }
 
 template<int64_t k_dim, typename AT, typename BT, typename CT>
-__device__ void matrix_multiply_warp(const AT &A,
-                                     const BT &B,
-                                     CT &C) {
+inline __device__ void matrix_multiply_warp(const AT &A,
+                                            const BT &B,
+                                            CT &C) {
     if (threadIdx.x % 32 == 0 && threadIdx.y % 32 == 0) {
         for (int64_t i = 0; i < A.row; i++) {
             for (int64_t j = 0; j < B.col; j++) {
