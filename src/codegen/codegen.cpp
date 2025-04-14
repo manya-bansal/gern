@@ -8,10 +8,7 @@
 #include "codegen/concretize.h"
 #include "codegen/finalizer.h"
 #include "codegen/helpers/assert_device_properties.h"
-<<<<<<< HEAD
-=======
 #include "codegen/helpers/check_last_error.h"
->>>>>>> 353d78bfdaab9e4c9a0ecf59ca989e0fe4f86ba2
 #include "codegen/lower.h"
 #include "utils/debug.h"
 #include "utils/error.h"
