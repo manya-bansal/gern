@@ -57,6 +57,39 @@ __global__ void sgemm_shared_mem_block(int M, int N, int K, float alpha,
     C[threadRow * N + threadCol] = tmp;
 }
 
+template<int64_t block_x, int64_t block_y, int64_t k_dim, int64_t k_tiled, int64_t smem_size, int64_t thread_x, int64_t thread_y>
+__global__ void function_73(impl::MatrixGPU<1024, 1024, 1024, 1> A, impl::ColumnMajorMatrix<1024, 1024> B, impl::MatrixGPU<1024, 1024, 1024, 1> C) {
+
+    int64_t _gern_i_1_7_13_19_25_31_37_43_49_55_61_67 = ((((blockIdx.x / 1) % (((block_x + (C.row - 0)) - 1) / block_x)) * block_x) + 0);
+    auto _query_A_74 = A.template query_global_2_global<block_x, k_dim>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67, 0);
+
+    int64_t _gern_j_2_8_14_20_26_32_38_44_50_56_62 = ((((blockIdx.y / 1) % (((block_y + (C.col - 0)) - 1) / block_y)) * block_y) + 0);
+    auto _query_B_75 = B.template query_global_2_global<k_dim, block_y>(0, (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + 0));
+
+    // auto _query_C_76 = C.template query_global_2_global<block_x, block_y>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67, (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + 0));
+
+    int64_t _gern_i_1_7_13_19_25 = ((((threadIdx.x / (1 * (((thread_y + (block_y - 0)) - 1) / thread_y))) % (((thread_x + (block_x - 0)) - 1) / thread_x)) * thread_x) + 0);
+    int64_t _gern_j_2_8_14_20 = ((((threadIdx.x / 1) % (((thread_y + (block_y - 0)) - 1) / thread_y)) * thread_y) + 0);
+
+    auto _query_C_81 = C.template query_2_reg_no_vector_zero<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37_43_49_55_61_67 + _gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + _gern_j_2_8_14_20 + 0));
+
+    for (int64_t _gern_k_3_9_15_21_27_33_39_45 = 0; (_gern_k_3_9_15_21_27_33_39_45 < k_dim); _gern_k_3_9_15_21_27_33_39_45 = (_gern_k_3_9_15_21_27_33_39_45 + k_tiled)) {
+        auto _query_A_77 = _query_A_74.template query_global_2_shared_restrict<block_x, k_tiled>(0, (_gern_k_3_9_15_21_27_33_39_45 + 0));
+
+        auto _query_B_78 = _query_B_75.template query_global_2_shared_restrict<k_tiled, block_y>((_gern_k_3_9_15_21_27_33_39_45 + 0), 0);
+
+        auto _query_A_79 = _query_A_77.template query_global_2_global_sync<thread_x, k_tiled>((_gern_i_1_7_13_19_25 + 0), 0);
+
+        auto _query_B_80 = _query_B_78.template query_global_2_global<k_tiled, thread_y>(0, (_gern_j_2_8_14_20 + 0));
+
+        // auto _query_C_81 = _query_C_76.template query_global_2_global<thread_x, thread_y>((_gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20 + 0));
+
+        matrix_multiply_sync<k_tiled>(_query_A_79, _query_B_80, _query_C_81);
+    }
+
+    C.template insert_2_reg_no_vector<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37_43_49_55_61_67 + _gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + _gern_j_2_8_14_20 + 0), _query_C_81);
+}
+
 template<const int BLOCKSIZE, const int M, const int N, const int K>
 __global__ void gernel_mine(impl::MatrixGPU<M, K, K, 1> A_ds,
                             impl::ColumnMajorMatrix<K, N> B_ds,
@@ -82,22 +115,17 @@ __global__ void gernel_mine(impl::MatrixGPU<M, K, K, 1> A_ds,
 
     for (int bkIdx = 0; bkIdx < K; bkIdx += BLOCKSIZE) {
 
-        float *As = (float *)smem_manager.malloc(BLOCKSIZE * BLOCKSIZE * sizeof(float));
-        float *Bs = (float *)smem_manager.malloc(BLOCKSIZE * BLOCKSIZE * sizeof(float));
+        auto a_s_mine = a_q.template query_global_2_shared_restrict<BLOCKSIZE, BLOCKSIZE>(0, bkIdx);
+        auto b_s_mine = b_q.template query_global_2_shared_restrict<BLOCKSIZE, BLOCKSIZE>(bkIdx, 0);
 
-        auto a_s_mine = a_q.template query_global_2_shared<BLOCKSIZE, BLOCKSIZE, BLOCKSIZE * BLOCKSIZE>(0, bkIdx, As);
-        auto b_s_mine = b_q.template query_global_2_shared<BLOCKSIZE, BLOCKSIZE, BLOCKSIZE * BLOCKSIZE>(bkIdx, 0, Bs);
+        // __syncthreads();
 
-        __syncthreads();
-
-        auto a_reg = a_s_mine.template query_global_2_global<1, BLOCKSIZE>(threadRow, 0);
+        auto a_reg = a_s_mine.template query_global_2_global_sync<1, BLOCKSIZE>(threadRow, 0);
         auto b_reg = b_s_mine.template query_global_2_global<BLOCKSIZE, 1>(0, threadCol);
 
-        matrix_multiply<BLOCKSIZE>(a_reg, b_reg, c_q_req);
+        matrix_multiply_sync<BLOCKSIZE>(a_reg, b_reg, c_q_req);
 
-        __syncthreads();
-
-        smem_manager.free();
+        // __syncthreads();
     }
 
     C_ds.template insert_2_reg_no_vector<1, 1>(cRow + threadRow, cCol + threadCol, c_q_req);
@@ -108,12 +136,15 @@ int main() {
     constexpr int N = 1024;
     constexpr int K = 1024;
 
-    impl::SharedMemoryManager smem_manager;
-
-    impl::MatrixGPU<M, K, K, 1> A(&smem_manager);
+    // impl::SharedMemoryManager smem_manager;
+    int32_t offset = 0;
+    impl::MatrixGPU<M, K, K, 1> A;
+    offset += 32 * 32 * sizeof(float);
     // impl::MatrixGPU<K, N, N, 1> B;
-    impl::ColumnMajorMatrix<K, N> B(&smem_manager);
-    impl::MatrixGPU<M, N, N, 1> C;
+    impl::ColumnMajorMatrix<K, N> B(offset);
+
+    offset += 32 * 32 * sizeof(float);
+    impl::MatrixGPU<M, N, N, 1> C(offset);
 
     A.ascending();
     B.ascending();
@@ -139,7 +170,7 @@ int main() {
     C_mine.vvals(0.0f);
 
     auto gern_sp = gernel_mine<32, M, N, K>;
-    int64_t smem_size = 32 * 32 * 8 * 10;
+    constexpr int64_t smem_size = 32 * 32 * 8 * 10;
 
     cudaFuncSetAttribute(gern_sp, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size);
     auto func_mine = [&]() {
@@ -150,12 +181,36 @@ int main() {
     std::cout << "Time mine: " << time_mine << " ms" << std::endl;
     std::cout << "GFLOPS mine: " << static_cast<double>(int64_t(2) * M * N * K) / (time_mine * 1e9) << std::endl;
 
+    constexpr int64_t block_x = 32;
+    constexpr int64_t block_y = 32;
+    constexpr int64_t k_dim = 1024;
+    constexpr int64_t k_tiled = 32;
+    constexpr int64_t thread_x = 1;
+    constexpr int64_t thread_y = 1;
+    dim3 grid_82 = dim3((1 * (((block_x + (C.row - 0)) - 1) / block_x)), (1 * (((block_y + (C.col - 0)) - 1) / block_y)), 1);
+    dim3 block_83 = dim3(((1 * (((thread_y + (block_y - 0)) - 1) / thread_y)) * (((thread_x + (block_x - 0)) - 1) / thread_x)), 1, 1);
+    auto function_sp_84 = function_73<block_x, block_y, k_dim, k_tiled, smem_size, thread_x, thread_y>;
+    cudaFuncSetAttribute(function_sp_84, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size);
+
+    impl::MatrixGPU<M, N, N, 1> C_gern;
+    C_gern.vvals(0.0f);
+
+    auto func_gern = [&]() {
+        function_sp_84<<<grid_82, block_83, smem_size>>>(A, B, C_gern);
+    };
+
+    double time_gern = benchmark::benchmark(10, 1, func_gern, 2);
+    std::cout << "Time gern: " << time_gern << " ms" << std::endl;
+    std::cout << "GFLOPS gern: " << static_cast<double>(int64_t(2) * M * N * K) / (time_gern * 1e9) << std::endl;
+
     auto C_cpu = C.get();
     auto C_cpu_mine = C_mine.get();
+    auto C_cpu_gern = C_gern.get();
 
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
             assert(C_cpu(i, j) == C_cpu_mine(i, j));
+            assert(C_cpu(i, j) == C_cpu_gern(i, j));
         }
     }
 

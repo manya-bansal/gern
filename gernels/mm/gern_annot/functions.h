@@ -79,6 +79,33 @@ public:
     }
 };
 
+class MatrixMultiplySync : public MatrixMultiply {
+public:
+    MatrixMultiplySync(AbstractDataTypePtr A,
+                       AbstractDataTypePtr B,
+                       AbstractDataTypePtr C)
+        : MatrixMultiply(A, B, C) {
+    }
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "matrix_multiply_sync";
+        f.args = {
+            Parameter(A),
+            Parameter(B),
+            Parameter(C),
+        };
+        f.template_args = {k_dim};
+        return f;
+    }
+    std::vector<std::string> getHeader() override {
+        return {
+            "impl/matrix-gpu.h",
+            "impl/matrix_multiply.h",
+            "impl/column-major.h",
+        };
+    }
+};
+
 class MatrixMultiplyReg : public MatrixMultiply {
 public:
     MatrixMultiplyReg(AbstractDataTypePtr A,

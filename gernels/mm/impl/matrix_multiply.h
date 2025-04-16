@@ -63,6 +63,23 @@ inline __device__ void matrix_multiply(const AT &A,
 }
 
 template<int64_t k_dim, typename AT, typename BT, typename CT>
+inline __device__ void matrix_multiply_sync(const AT &A,
+                                            const BT &B,
+                                            CT &C) {
+    float tmp = 0.0f;
+    for (int64_t i = 0; i < A.row; i++) {
+        for (int64_t j = 0; j < B.col; j++) {
+            for (int64_t k = 0; k < k_dim; k++) {
+                tmp += A(i, k) * B(k, j);
+            }
+            C(i, j) += tmp;
+        }
+    }
+
+    __syncthreads();
+}
+
+template<int64_t k_dim, typename AT, typename BT, typename CT>
 inline __device__ void matrix_multiply_warp(const AT &A,
                                             const BT &B,
                                             CT &C) {

@@ -242,15 +242,6 @@ public:
     static constexpr int64_t lda = LDA;
 };
 
-template<int64_t Height, int64_t Width, int LDA>
-class MatrixGPUSharedStatic : public MatrixGPUShared<Height, Width, LDA> {
-public:
-    __shared__ float data[Height * LDA];
-    static constexpr int64_t row = Height;
-    static constexpr int64_t col = Width;
-    static constexpr int64_t lda = LDA;
-};
-
 template<int64_t Row, int64_t Col, int64_t LDA, int64_t stride>
 class MatrixGPU {
 public:
@@ -258,18 +249,27 @@ public:
         CUDA_CHECK(cudaMalloc(&data, lda * row * sizeof(float)));
     }
 
-    MatrixGPU(SharedMemoryManager *smem_manager)
-        : smem_manager(smem_manager) {
-        CUDA_CHECK(cudaMalloc(&data, lda * row * sizeof(float)));
-    }
-
     __device__ MatrixGPU(float *data)
         : data(data) {
     }
 
+    __host__ __device__ MatrixGPU(int32_t offset)
+        : offset(offset) {
+        CUDA_CHECK(cudaMalloc(&data, lda * row * sizeof(float)));
+    }
+    __host__ __device__ MatrixGPU(float *data, int32_t offset)
+        : data(data), offset(offset) {
+    }
+
     template<int64_t num_row, int64_t num_col>
     __device__ inline MatrixGPU<num_row, num_col, LDA, stride> query_global_2_global(int64_t x, int64_t y) {
-        return MatrixGPU<num_row, num_col, LDA, stride>(data + (x * lda + y));
+        return MatrixGPU<num_row, num_col, LDA, stride>(data + (x * lda + y), offset);
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ inline MatrixGPU<num_row, num_col, LDA, stride> query_global_2_global_sync(int64_t x, int64_t y) {
+        __syncthreads();
+        return query_global_2_global<num_row, num_col>(x, y);
     }
 
     template<int64_t num_row, int64_t num_col>
@@ -337,7 +337,50 @@ public:
                 shmem[idx] = operator()(x + row, y + col);
             }
         }
-        return MatrixGPU<M, N, N, stride>(shmem);
+        return MatrixGPU<M, N, N, stride>(shmem, offset);
+    }
+
+    template<int64_t M, int64_t N, int64_t BLOCKSIZE>
+    __device__ inline MatrixGPU<M, N, N, stride> query_global_2_shared(int64_t x,
+                                                                       int64_t y) {
+        int thread_id = threadIdx.x;
+        constexpr int total_elems = M * N;
+
+        extern __shared__ char shmem[];
+        float *shmem_malloced = (float *)(shmem);
+        // current_size += total_elems * sizeof(float);
+
+        // Idk why this constexpr is needed, and why the compiler does not optimize this
+        if constexpr (total_elems == BLOCKSIZE) {
+            int row = thread_id / N;
+            int col = thread_id % N;
+            shmem_malloced[thread_id] = operator()(x + row, y + col);
+        } else {
+#pragma unroll 8
+            for (int idx = thread_id; idx < total_elems; idx += BLOCKSIZE) {
+                int row = idx / N;
+                int col = idx % N;
+
+                shmem_malloced[idx] = operator()(x + row, y + col);
+            }
+        }
+        return MatrixGPU<M, N, N, stride>(shmem_malloced, offset);
+    }
+
+    template<int64_t M, int64_t N>
+    __device__ inline MatrixGPU<M, N, N, 1> query_global_2_shared_restrict(int64_t x,
+                                                                           int64_t y) {
+        int thread_id = threadIdx.x;
+        constexpr int total_elems = M * N;
+
+        extern __shared__ char shmem[];
+        float *shmem_malloced = (float *)(shmem);
+        // current_size += total_elems * sizeof(float);
+
+        int row = thread_id / N;
+        int col = thread_id % N;
+        shmem_malloced[thread_id] = operator()(x + row, y + col);
+        return MatrixGPU<M, N, N, 1>(shmem_malloced, offset);
     }
 
     template<int64_t num_row, int64_t num_col>
@@ -570,7 +613,8 @@ public:
     static constexpr int64_t row = Row;
     static constexpr int64_t col = Col;
     static constexpr int64_t lda = LDA;
-    SharedMemoryManager *smem_manager;
+    int32_t offset = 0;
+    // impl::SharedMemoryManager &smem_manager;
 };
 
 template<int64_t num_row, int64_t num_col>

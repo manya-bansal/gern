@@ -73,6 +73,32 @@ protected:
     int64_t stride_const;
 };
 
+class ColumnMajorMatrix : public MatrixGPU {
+public:
+    ColumnMajorMatrix(const std::string &name, int64_t row, int64_t col, int64_t stride, bool temp)
+        : MatrixGPU(name, row, col, stride, temp) {
+    }
+
+    std::string getType() const override {
+        if (temp) {
+            return "auto";
+        } else {
+            return "impl::ColumnMajorMatrix<" +
+                   std::to_string(row_const) + "," +
+                   std::to_string(col_const) +
+                   ">";
+        }
+    }
+
+    FunctionSignature toShared() const {
+        return FunctionSignature{
+            .name = "template query_global_2_shared_restrict",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+};
+
 class MatrixGPUSequential : public MatrixGPU {
 public:
     MatrixGPUSequential(const std::string &name,
@@ -113,6 +139,14 @@ public:
             .template_args = {this->row, this->col},
         };
     }
+
+    FunctionSignature getQueryFunctionSync() const {
+        return FunctionSignature{
+            .name = "template query_global_2_global_sync",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
     FunctionSignature getInsertFunction() const {
         return FunctionSignature{
             .name = "template insert_global_2_global",
@@ -141,6 +175,14 @@ public:
     FunctionSignature getInsertFunction() const {
         return FunctionSignature{
             .name = "template insert_2_reg_no_vector",
+            .args = {this->x, this->y},
+            .template_args = {this->row, this->col},
+        };
+    }
+
+    FunctionSignature getQueryFunctionZero() const {
+        return FunctionSignature{
+            .name = "template query_2_reg_no_vector_zero",
             .args = {this->x, this->y},
             .template_args = {this->row, this->col},
         };
