@@ -100,6 +100,22 @@ constexpr int URF{UNROLL_FACTOR};
 
 namespace impl {
 
+struct SharedMemoryManager {
+    static constexpr int32_t max_size = 32 * 32 * 8 * 10;
+    int32_t current_size = 0;
+
+    __device__ void *malloc(int32_t size) {
+        extern __shared__ char shmem[];
+        void *to_return = shmem + current_size;
+        current_size += size;
+        return to_return;
+    }
+
+    __device__ void free() {
+        current_size = 0;
+    }
+};
+
 class MatrixCPU {
 public:
     MatrixCPU(float *data, int64_t row, int64_t col, int64_t lda)
@@ -210,11 +226,11 @@ public:
     }
 
     template<int64_t num_row, int64_t num_col>
-    __device__ StaticMatrixNoVector<num_row, num_col> query_2_reg_no_vector(int64_t x, int64_t y) {
+    inline __device__ StaticMatrixNoVector<num_row, num_col> query_2_reg_no_vector(int64_t x, int64_t y) {
         StaticMatrixNoVector<num_row, num_col> matrix;
         for (int64_t i = 0; i < num_row; i++) {
             for (int64_t j = 0; j < num_col; j++) {
-                matrix(i, j) = data[(x + i) * lda + (y + j)];
+                matrix(i, j) = operator()(x + i, y + j);
             }
         }
         return matrix;
@@ -226,10 +242,24 @@ public:
     static constexpr int64_t lda = LDA;
 };
 
+template<int64_t Height, int64_t Width, int LDA>
+class MatrixGPUSharedStatic : public MatrixGPUShared<Height, Width, LDA> {
+public:
+    __shared__ float data[Height * LDA];
+    static constexpr int64_t row = Height;
+    static constexpr int64_t col = Width;
+    static constexpr int64_t lda = LDA;
+};
+
 template<int64_t Row, int64_t Col, int64_t LDA, int64_t stride>
 class MatrixGPU {
 public:
     MatrixGPU() {
+        CUDA_CHECK(cudaMalloc(&data, lda * row * sizeof(float)));
+    }
+
+    MatrixGPU(SharedMemoryManager *smem_manager)
+        : smem_manager(smem_manager) {
         CUDA_CHECK(cudaMalloc(&data, lda * row * sizeof(float)));
     }
 
@@ -267,12 +297,47 @@ public:
     }
 
     template<int64_t num_row, int64_t num_col>
+    inline __device__ StaticMatrixNoVector<num_row, num_col> query_2_reg_no_vector_zero(int64_t x, int64_t y) {
+        StaticMatrixNoVector<num_row, num_col> matrix;
+        for (int64_t i = 0; i < num_row; i++) {
+            for (int64_t j = 0; j < num_col; j++) {
+                matrix(i, j) = 0.0f;
+            }
+        }
+        return matrix;
+    }
+
+    template<int64_t num_row, int64_t num_col>
     __device__ void insert_2_reg_no_vector(int64_t x, int64_t y, StaticMatrixNoVector<num_row, num_col> to_insert) {
         for (int64_t i = 0; i < num_row; i++) {
             for (int64_t j = 0; j < num_col; j++) {
                 data[(x + i) * lda + (y + j)] = to_insert(i, j);
             }
         }
+    }
+
+    template<int64_t M, int64_t N, int64_t BLOCKSIZE>
+    __device__ inline MatrixGPU<M, N, N, stride> query_global_2_shared(int64_t x,
+                                                                       int64_t y,
+                                                                       float *shmem) {
+        int thread_id = threadIdx.x;
+        constexpr int total_elems = M * N;
+
+        // Idk why this constexpr is needed, and why the compiler does not optimize this
+        if constexpr (total_elems == BLOCKSIZE) {
+            int row = thread_id / N;
+            int col = thread_id % N;
+            shmem[thread_id] = operator()(x + row, y + col);
+        } else {
+#pragma unroll 8
+            for (int idx = thread_id; idx < total_elems; idx += BLOCKSIZE) {
+                int row = idx / N;
+                int col = idx % N;
+
+                shmem[idx] = operator()(x + row, y + col);
+            }
+        }
+        return MatrixGPU<M, N, N, stride>(shmem);
     }
 
     template<int64_t num_row, int64_t num_col>
@@ -505,6 +570,7 @@ public:
     static constexpr int64_t row = Row;
     static constexpr int64_t col = Col;
     static constexpr int64_t lda = LDA;
+    SharedMemoryManager *smem_manager;
 };
 
 template<int64_t num_row, int64_t num_col>

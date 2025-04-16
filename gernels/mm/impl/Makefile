@@ -2,8 +2,8 @@
 BUILD = build
 
 all: $(BUILD).dir
-	nvcc -g -o $(BUILD)/test test.cu 
-	./$(BUILD)/test
+	nvcc --std=c++17 -O3 -g -o $(BUILD)/smem_new smem_new.cu 
+	./$(BUILD)/smem_new
 
 
 clean:
