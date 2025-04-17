@@ -292,4 +292,9 @@ private:
     bool insert_query;
 };
 
+template<typename E>
+inline bool isaLower(const LowerIR &e) {
+    return e.ptr != nullptr && dynamic_cast<const E *>(e.ptr) != nullptr;
+}
+
 }  // namespace gern

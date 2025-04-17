@@ -19,6 +19,11 @@ static MethodCall makeFreeCall(AbstractDataTypePtr ds) {
 }
 
 LowerIR Finalizer::finalize() {
+
+    // HoistGridLoops hoister(ir);
+    // ir = hoister.construct();
+
+    std::cout << "After hoisting: " << ir << std::endl;
     // Hoist out any statements.
     Scoper scoper(ir);
     ir = scoper.construct();
@@ -371,6 +376,82 @@ AbstractDataTypePtr ADTReplacer::get_adt(const AbstractDataTypePtr &adt) const {
     }
     return adt;
 }
+
+LowerIR HoistGridLoops::construct() {
+    visit(ir);
+    std::cout << "here: " << std::endl;
+    while (!to_wrap.empty()) {
+        auto node = to_wrap.front();
+        final_ir = new const IntervalNode(node->start, node->end, node->step, final_ir, node->p);
+        to_wrap.pop_front();
+    }
+    return final_ir;
+}
+
+void HoistGridLoops::visit(const AllocateNode *node) {
+    final_ir = new const AllocateNode(node->f);
+}
+
+void HoistGridLoops::visit(const FreeNode *node) {
+    final_ir = new const FreeNode(node->call);
+}
+
+void HoistGridLoops::visit(const InsertNode *node) {
+    final_ir = new const InsertNode(node->call);
+}
+
+void HoistGridLoops::visit(const QueryNode *node) {
+    final_ir = new const QueryNode(node->parent, node->child, node->fields, node->call);
+}
+
+void HoistGridLoops::visit(const ComputeNode *node) {
+    final_ir = new const ComputeNode(node->f, node->headers, node->adt);
+}
+
+void HoistGridLoops::visit(const BlankNode *) {
+    final_ir = new const BlankNode();
+}
+
+void HoistGridLoops::visit(const IntervalNode *node) {
+
+    visit(node->body);
+    to_wrap.push_back(node);
+}
+
+void HoistGridLoops::visit(const DefNode *node) {
+    final_ir = new const DefNode(node->assign, node->const_expr);
+}
+
+void HoistGridLoops::visit(const AssertNode *node) {
+    final_ir = new const AssertNode(node->constraint);
+}
+
+void HoistGridLoops::visit(const BlockNode *node) {
+    std::vector<LowerIR> new_ir;
+    for (const auto &ir : node->ir_nodes) {
+        // if (isaLower<IntervalNode>(ir)) {
+        //     HoistGridLoops hoister(ir);
+        //     new_ir.push_back(hoister.construct());
+        // } else {
+        visit(ir);
+        new_ir.push_back(final_ir);
+        // }
+    }
+    final_ir = new const BlockNode(new_ir);
+}
+
+void HoistGridLoops::visit(const GridDeclNode *node) {
+    final_ir = new const GridDeclNode(node->dim, node->v);
+}
+
+void HoistGridLoops::visit(const SharedMemoryDeclNode *node) {
+    final_ir = new const SharedMemoryDeclNode(node->size);
+}
+
+void HoistGridLoops::visit(const OpaqueCall *node) {
+    final_ir = new const OpaqueCall(node->f, node->headers);
+}
+
 LowerIR Scoper::construct() {
     visit(ir);
     std::vector<LowerIR> new_body = new_statements[cur_scope];
@@ -441,14 +522,14 @@ void Scoper::visit(const ComputeNode *node) {
 void Scoper::visit(const IntervalNode *node) {
     cur_scope++;
     var_scope[node->getIntervalVariable()] = cur_scope;
-    visit(node->body);
 
-    // Generate the new body!
+    // Scoper scoper(node->body);
+    // auto body = scoper.construct();
+    visit(node->body);
     std::vector<LowerIR> new_body = new_statements[cur_scope];
     new_statements.erase(cur_scope);
-    cur_scope--;
 
-    // Insert the new interval node with the new body at the previous scope.
+    cur_scope--;
     new_statements[cur_scope].push_back(new const IntervalNode(node->start,
                                                                node->end,
                                                                node->step,

@@ -1,5 +1,6 @@
 #include "codegen/lower_visitor.h"
 #include "utils/scoped_set.h"
+#include <deque>
 
 namespace gern {
 
@@ -102,6 +103,35 @@ private:
     void update_live_range(Expr e);
 };
 
+class HoistGridLoops : public LowerIRVisitor {
+public:
+    HoistGridLoops(LowerIR ir)
+        : ir(ir) {
+    }
+
+    LowerIR construct();
+    using LowerIRVisitor::visit;
+
+    void visit(const AllocateNode *);
+    void visit(const FreeNode *);
+    void visit(const InsertNode *);
+    void visit(const QueryNode *);
+    void visit(const ComputeNode *);
+    void visit(const IntervalNode *);
+    void visit(const BlankNode *);
+    void visit(const DefNode *);
+    void visit(const AssertNode *);
+    void visit(const BlockNode *);
+    void visit(const GridDeclNode *);
+    void visit(const SharedMemoryDeclNode *);
+    void visit(const OpaqueCall *);
+
+private:
+    LowerIR ir;
+    LowerIR final_ir;
+    std::deque<const IntervalNode *> to_wrap;
+};
+
 class Scoper : public LowerIRVisitor {
 public:
     Scoper(LowerIR ir)
@@ -109,6 +139,7 @@ public:
     }
 
     LowerIR construct();
+    LowerIR construct_with_out_zero_scope();
 
     using LowerIRVisitor::visit;
 

@@ -75,10 +75,7 @@ target_sources(
         include/gern/compose/composable_node.h
         include/gern/compose/runner.h
         include/gern/codegen/helpers/assert_device_properties.h
-<<<<<<< HEAD
-=======
         include/gern/codegen/helpers/check_last_error.h
->>>>>>> 353d78bfdaab9e4c9a0ecf59ca989e0fe4f86ba2
         include/gern/codegen/concretize.h
         include/gern/codegen/codegen.h
         include/gern/codegen/codegen_ir.h

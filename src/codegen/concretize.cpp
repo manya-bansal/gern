@@ -1,6 +1,7 @@
 #include "codegen/concretize.h"
 #include "annotations/rewriter.h"
 #include "annotations/rewriter_helpers.h"
+#include "codegen/lower.h"
 
 namespace gern {
 
