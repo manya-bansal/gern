@@ -54,7 +54,8 @@ __global__ void sgemm_shared_mem_block(int M, int N, int K, float alpha,
         // fetching the next block into the cache before slower threads are done
         __syncthreads();
     }
-    C[threadRow * N + threadCol] = tmp;
+    C[threadRow * N + threadCol] =
+        alpha * tmp + beta * C[threadRow * N + threadCol];
 }
 
 template<int64_t block_x, int64_t block_y, int64_t k_dim, int64_t k_tiled, int64_t smem_size, int64_t thread_x, int64_t thread_y>
@@ -66,12 +67,12 @@ __global__ void function_73(impl::MatrixGPU<1024, 1024, 1024, 1> A, impl::Column
     int64_t _gern_j_2_8_14_20_26_32_38_44_50_56_62 = ((((blockIdx.y / 1) % (((block_y + (C.col - 0)) - 1) / block_y)) * block_y) + 0);
     auto _query_B_75 = B.template query_global_2_global<k_dim, block_y>(0, (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + 0));
 
-    // auto _query_C_76 = C.template query_global_2_global<block_x, block_y>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67, (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + 0));
+    auto _query_C_76 = C.template query_global_2_global<block_x, block_y>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67, (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + 0));
 
     int64_t _gern_i_1_7_13_19_25 = ((((threadIdx.x / (1 * (((thread_y + (block_y - 0)) - 1) / thread_y))) % (((thread_x + (block_x - 0)) - 1) / thread_x)) * thread_x) + 0);
     int64_t _gern_j_2_8_14_20 = ((((threadIdx.x / 1) % (((thread_y + (block_y - 0)) - 1) / thread_y)) * thread_y) + 0);
 
-    auto _query_C_81 = C.template query_2_reg_no_vector_zero<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37_43_49_55_61_67 + _gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + _gern_j_2_8_14_20 + 0));
+    auto _query_C_81 = _query_C_76.template query_2_reg_no_vector_zero<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37_43_49_55_61_67 + _gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + _gern_j_2_8_14_20 + 0));
 
     for (int64_t _gern_k_3_9_15_21_27_33_39_45 = 0; (_gern_k_3_9_15_21_27_33_39_45 < k_dim); _gern_k_3_9_15_21_27_33_39_45 = (_gern_k_3_9_15_21_27_33_39_45 + k_tiled)) {
         auto _query_A_77 = _query_A_74.template query_global_2_shared_restrict<block_x, k_tiled>(0, (_gern_k_3_9_15_21_27_33_39_45 + 0));

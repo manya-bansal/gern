@@ -1,9 +1,11 @@
 
 BUILD = build
 
-all: $(BUILD).dir
-	nvcc --std=c++17 -O3 -g -o $(BUILD)/smem_new smem_new.cu 
-	./$(BUILD)/smem_new
+all: smem_2d.run
+
+%.run: $(BUILD).dir
+	nvcc --std=c++17 -O3 -g -o $(BUILD)/$* $*.cu
+	./$(BUILD)/$*
 
 
 clean:

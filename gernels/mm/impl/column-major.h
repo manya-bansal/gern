@@ -5,7 +5,7 @@
 
 namespace impl {
 
-template<int64_t NumRow, int64_t NumCol>
+template<int64_t NumRow, int64_t NumCol, int64_t Lda = NumRow>
 class ColumnMajorMatrix {
 public:
     ColumnMajorMatrix() {
@@ -55,8 +55,8 @@ public:
     }
 
     template<int64_t M, int64_t N>
-    __device__ inline ColumnMajorMatrix<M, N> query_global_2_global(int64_t x, int64_t y) {
-        return ColumnMajorMatrix<M, N>(&operator()(x, y), offset);
+    __device__ inline ColumnMajorMatrix<M, N, Lda> query_global_2_global(int64_t x, int64_t y) {
+        return ColumnMajorMatrix<M, N, Lda>(&operator()(x, y), offset);
     }
 
     template<int64_t M, int64_t N, int64_t BLOCKSIZE>
@@ -72,12 +72,23 @@ public:
             int col = thread_id % N;
             shmem[thread_id] = operator()(x + row, y + col);
         } else {
-#pragma unroll 8
-            for (int idx = thread_id; idx < total_elems; idx += BLOCKSIZE) {
-                int row = idx / N;
-                int col = idx % N;
+            // #pragma unroll 8
+            //             for (int idx = thread_id; idx < total_elems; idx += BLOCKSIZE) {
+            //                 int row = idx / N;
+            //                 int col = idx % N;
 
-                shmem[idx] = operator()(x + row, y + col);
+            //                 shmem[idx] = operator()(x + row, y + col);
+            //             }
+            auto temp = query_global_2_global<M, N>(x, y);
+            int innerRowB = thread_id / N;
+            int innerColB = thread_id % N;
+            constexpr int strideB = BLOCKSIZE / N;
+
+            for (uint loadOffset = 0; loadOffset < M; loadOffset += strideB) {
+                shmem[(innerRowB + loadOffset) * N + innerColB] =
+                    // temp.data[(innerRowB + loadOffset) * N + innerColB];
+                    temp(innerRowB + loadOffset, innerColB);
+                // temp(innerRowA + loadOffset, innerColA);
             }
         }
 
@@ -119,6 +130,28 @@ public:
     }
 
     template<int64_t M, int64_t N>
+    __device__ inline MatrixGPU<M, N, N, 1> query_global_2_shared_no_temp(int64_t x,
+                                                                          int64_t y) {
+        int thread_id = threadIdx.x;
+        constexpr int total_elems = M * N;
+
+        extern __shared__ char shmem[];
+        float *shmem_malloced = (float *)(shmem + offset);
+        int block_dim = blockDim.x;
+
+        // Idk why this constexpr is needed, and why the compiler does not optimize this
+#pragma unroll 8
+        for (int idx = thread_id; idx < total_elems; idx += block_dim) {
+            int row = idx / N;
+            int col = idx % N;
+
+            shmem_malloced[idx] = operator()(x + row, y + col);
+        }
+
+        return MatrixGPU<M, N, N, 1>(shmem_malloced);
+    }
+
+    template<int64_t M, int64_t N>
     __device__ inline MatrixGPU<M, N, N, 1> query_global_2_shared_restrict(int64_t x,
                                                                            int64_t y) {
         int thread_id = threadIdx.x;
@@ -154,7 +187,7 @@ public:
 
     static constexpr int64_t num_row = NumRow;
     static constexpr int64_t num_col = NumCol;
-    static constexpr int64_t lda = NumRow;
+    static constexpr int64_t lda = Lda;
     float *data;
     int32_t offset;
 };
