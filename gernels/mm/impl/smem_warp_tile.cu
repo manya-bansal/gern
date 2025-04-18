@@ -301,11 +301,24 @@ __global__ void __launch_bounds__(NUM_THREADS)
             }
 
             // Manya: this just staging b early.
+
+            // Manya: this pulling one line of B in.
+            // WNITER: HOW MANY OF B DO WE HAVE?
+            // WHAT'S THE LENGTH OF EACH?
             for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
                 auto b_s_warp_tile = b_s_warp.template query_global_2_global<BK, WN>(0, wSubColIdx * WSUBN);
                 for (uint i = 0; i < TN; ++i) {
                     b_reg(wSubColIdx, i) =
                         b_s_warp_tile(0, i);
+                }
+            }
+
+            // ABOVE IS EQUIVALENT TO:
+            // It's just producing a tile output
+            // So, truly, breg is ONE COLOUMN of size [1, TN * WNITER]
+            for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+                for (uint i = 0; i < TN; ++i) {
+                    b_reg.array[i + wSubColIdx * TN] = b_s_warp(0, (wSubColIdx * WSUBN + i));
                 }
             }
 
@@ -345,14 +358,16 @@ __global__ void __launch_bounds__(NUM_THREADS)
         for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
             // move C pointer to current warp subtile
             // float *C_interim = C + (wSubRowIdx * WSUBM) * N + wSubColIdx * WSUBN;
-            float *C_interim = &c_w_q(wSubRowIdx * WSUBM, wSubColIdx * WSUBN);
+            // float *C_interim = &c_w_q(wSubRowIdx * WSUBM, wSubColIdx * WSUBN);
+            auto warp_query_c = c_w_q.template query_global_2_global<WM, WN>(wSubRowIdx * WSUBM, wSubColIdx * WSUBN);
+            float *C_interim = warp_query_c.data;
 
             for (uint resIdxM = 0; resIdxM < TM; resIdxM += 1) {
                 for (uint resIdxN = 0; resIdxN < TN; resIdxN += 4) {
                     // load C vector into registers
                     float4 tmp = reinterpret_cast<float4 *>(
-                        &C_interim[(threadRowInWarp * TM + resIdxM) * N +
-                                   threadColInWarp * TN + resIdxN])[0];
+                        &warp_query_c.data[(threadRowInWarp * TM + resIdxM) * N +
+                                           threadColInWarp * TN + resIdxN])[0];
                     // perform GEMM update in reg
                     const int i = (wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
                                   wSubColIdx * TN + resIdxN;
@@ -362,8 +377,8 @@ __global__ void __launch_bounds__(NUM_THREADS)
                     tmp.w = alpha * threadResults[i + 3] + beta * tmp.w;
                     // write back
                     reinterpret_cast<float4 *>(
-                        &C_interim[(threadRowInWarp * TM + resIdxM) * N +
-                                   threadColInWarp * TN + resIdxN])[0] = tmp;
+                        &warp_query_c.data[(threadRowInWarp * TM + resIdxM) * N +
+                                           threadColInWarp * TN + resIdxN])[0] = tmp;
                 }
             }
         }
