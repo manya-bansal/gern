@@ -290,22 +290,29 @@ __global__ void __launch_bounds__(NUM_THREADS)
 
             StaticMatrixNoVector<WNITER, TN> b_reg;
 
-            // execute warptile matmul
+            // This weird structure just has to do with column major??
+            // If I just model that i SHOULD BE OKAY
             for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
-
                 for (uint i = 0; i < TM; ++i) {
                     a_reg(wSubRowIdx, i) =
                         a_s_warp(0, warpRow * WM + wSubRowIdx * WSUBM +
                                         threadRowInWarp * TM + i);
                 }
+            }
+
+            // Manya: this just staging b early.
+            for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+                auto b_s_warp_tile = b_s_warp.template query_global_2_global<BK, WN>(0, wSubColIdx * WSUBN);
+                for (uint i = 0; i < TN; ++i) {
+                    b_reg(wSubColIdx, i) =
+                        b_s_warp_tile(0, i);
+                }
+            }
+
+            // execute warptile matmul
+            for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
 
                 for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
-
-                    auto b_s_warp_tile = b_s_warp.template query_global_2_global<BK, WN>(0, wSubColIdx * WSUBN);
-                    for (uint i = 0; i < TN; ++i) {
-                        b_reg(wSubColIdx, i) =
-                            b_s_warp_tile(0, i);
-                    }
 
                     // then there is a threads in a warp tile.....
                     auto c_thread = c_reg.template get_view<TM, TN>(wSubRowIdx * TM, wSubColIdx * TN);
