@@ -39,19 +39,19 @@ struct StaticMatrix {
     // }
 };
 
-template<int Height, int Width>
+template<int Height, int Width, int LDA>
 struct Placeholder {
     float *data;
 
     static constexpr int row = Height;
     static constexpr int col = Width;
-    static constexpr int lda = Width;
+    static constexpr int lda = LDA;
 
     __device__ __host__ float &operator()(int64_t x, int64_t y) {
         return data[x * lda + y];
     }
 
-    __device__ __host__ float operator()(int64_t x, int64_t y) const {
+    __device__ __host__ float &operator()(int64_t x, int64_t y) const {
         return data[x * lda + y];
     }
 
@@ -70,10 +70,12 @@ struct StaticMatrixNoVector {
     float array[Height * Width];
     static constexpr int height = Height;
     static constexpr int width = Width;
+    static constexpr int row = Height;
+    static constexpr int col = Width;
 
     template<int64_t q_height, int64_t q_width>
-    __device__ Placeholder<q_height, q_width> get_view(int64_t x, int64_t y) {
-        Placeholder<q_height, q_width> placeholder;
+    __device__ Placeholder<q_height, q_width, width> get_view(int64_t x, int64_t y) {
+        Placeholder<q_height, q_width, width> placeholder;
         placeholder.data = array + (x * width + y);
         return placeholder;
     }
@@ -316,6 +318,28 @@ public:
         }
     }
 
+    template<int64_t num_row, int64_t num_col>
+    __device__ void insert_from_reg_no_vector(int64_t x, int64_t y, StaticMatrixNoVector<num_row, num_col> to_insert) {
+        auto temp = query_global_2_global<num_row, num_col>(x, y);
+        for (uint resIdxM = 0; resIdxM < num_row; resIdxM += 1) {
+            for (uint resIdxN = 0; resIdxN < num_col; resIdxN += 4) {
+                // load C vector into registers
+                float4 tmp = reinterpret_cast<float4 *>(
+                    &temp(resIdxM, resIdxN))[0];
+
+                // perform GEMM update in reg
+                tmp.x = to_insert(resIdxM, resIdxN);
+                tmp.y = to_insert(resIdxM, resIdxN + 1);
+                tmp.z = to_insert(resIdxM, resIdxN + 2);
+                tmp.w = to_insert(resIdxM, resIdxN + 3);
+                // write back
+                reinterpret_cast<float4 *>(
+                    &temp(resIdxM, resIdxN))[0] =
+                    tmp;
+            }
+        }
+    }
+
     template<int64_t M, int64_t N, int64_t BLOCKSIZE>
     __device__ inline MatrixGPU<M, N, N, stride> query_global_2_shared(int64_t x,
                                                                        int64_t y,
@@ -385,6 +409,57 @@ public:
             // }
         }
         return MatrixGPU<M, N, N, stride>(shmem_malloced, offset);
+    }
+
+    template<int64_t M, int64_t N, int64_t BLOCKSIZE>
+    __device__ inline MatrixGPU<N, M, M, 1> query_global_2_shared_vec_t(int64_t x,
+                                                                        int64_t y,
+                                                                        float *shmem) {
+
+        int thread_id = threadIdx.x;
+        constexpr int BLOCKSIZE_VEC = 4;
+
+        static_assert(M % BLOCKSIZE_VEC == 0, "M must be divisible by BLOCKSIZE_VEC");
+
+        constexpr int total_elems = (M * N) / BLOCKSIZE_VEC;
+
+        constexpr int NUM_THREADS_VEC = BLOCKSIZE / BLOCKSIZE_VEC;
+
+        const uint innerRowB = threadIdx.x / (N / BLOCKSIZE_VEC);
+        const uint innerColB = threadIdx.x % (N / BLOCKSIZE_VEC);
+
+        // static_assert(BLOCKSIZE == total_elems, "BLOCKSIZE must be equal to total_elems");
+
+        // Idk why this constexpr is needed, and why the compiler does not optimize this
+        if constexpr (BLOCKSIZE == total_elems) {
+            int row = thread_id / N;
+            int col = thread_id % N;
+            float4 tmp =
+                reinterpret_cast<float4 *>(&operator()(x + innerRowB, y + innerColB * 4))[0];
+            shmem[(innerColB * 4 + 0) * M + innerRowB] = tmp.x;
+            shmem[(innerColB * 4 + 1) * M + innerRowB] = tmp.y;
+            shmem[(innerColB * 4 + 2) * M + innerRowB] = tmp.z;
+            shmem[(innerColB * 4 + 3) * M + innerRowB] = tmp.w;
+
+        } else {
+            constexpr int strideB = (BLOCKSIZE * 4) / N;
+            auto temp = query_global_2_global<M, N>(x, y);
+
+            for (uint offset = 0; offset + strideB <= M; offset += strideB) {
+                const float4 tmp = reinterpret_cast<const float4 *>(
+                    &temp(innerRowB + offset, innerColB * 4))[0];
+                // float4 tmp;
+                // asm("ld.global.nc.v4.f32 {%0, %1, %2, %3}, [%4];"
+                //     : "=f"(tmp.x), "=f"(tmp.y), "=f"(tmp.z), "=f"(tmp.w)
+                //     : "l"(&A[(innerRowA + offset) * K + innerColA * 4]));
+                shmem[(innerColB * 4 + 0) * M + innerRowB + offset] = tmp.x;
+                shmem[(innerColB * 4 + 1) * M + innerRowB + offset] = tmp.y;
+                shmem[(innerColB * 4 + 2) * M + innerRowB + offset] = tmp.z;
+                shmem[(innerColB * 4 + 3) * M + innerRowB + offset] = tmp.w;
+            }
+        }
+
+        return MatrixGPU<N, M, M, 1>(shmem);
     }
 
     template<int64_t M, int64_t N>

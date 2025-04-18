@@ -1,7 +1,7 @@
 
 BUILD = build
 
-all: smem_2d.run
+all: smem_warp_tile.run
 
 %.run: $(BUILD).dir
 	nvcc --std=c++17 -O3 -g -o $(BUILD)/$* $*.cu

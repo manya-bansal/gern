@@ -96,6 +96,48 @@ public:
     }
 
     template<int64_t M, int64_t N, int64_t BLOCKSIZE>
+    __device__ inline MatrixGPU<M, N, N, 1> query_global_2_shared_vec(int64_t x,
+                                                                      int64_t y,
+                                                                      float *shmem) const {
+
+        int thread_id = threadIdx.x;
+        constexpr int BLOCKSIZE_VEC = 4;
+
+        static_assert(M % BLOCKSIZE_VEC == 0, "M must be divisible by BLOCKSIZE_VEC");
+
+        constexpr int total_elems = (M * N) / BLOCKSIZE_VEC;
+
+        constexpr int NUM_THREADS_VEC = BLOCKSIZE / BLOCKSIZE_VEC;
+        constexpr int strideB = NUM_THREADS_VEC / N;
+
+        const uint innerRowB = threadIdx.x / (N / BLOCKSIZE_VEC);
+        const uint innerColB = threadIdx.x % (N / BLOCKSIZE_VEC);
+
+        // static_assert(BLOCKSIZE == total_elems, "NUM_THREADS_VEC must be equal to total_elems");
+
+        // Idk why this constexpr is needed, and why the compiler does not optimize this
+        if constexpr (BLOCKSIZE == total_elems) {
+            int row = thread_id / N;
+            int col = thread_id % N;
+            // shmem[thread_id] = operator()(x + row, y + col);
+            reinterpret_cast<float4 *>(&shmem[innerRowB * N + innerColB * 4])[0] =
+                reinterpret_cast<float4 *>(&operator()(x + innerRowB, y + innerColB * 4))[0];
+        } else {
+            constexpr int strideB = (BLOCKSIZE * 4) / N;
+            auto temp = query_global_2_global<M, N>(x, y);
+
+            for (uint offset = 0; offset + strideB <= M; offset += strideB) {
+                reinterpret_cast<float4 *>(
+                    &shmem[(innerRowB + offset) * N + innerColB * 4])[0] =
+                    reinterpret_cast<const float4 *>(
+                        &temp(innerRowB + offset, innerColB * 4))[0];
+            }
+        }
+
+        return MatrixGPU<M, N, N, 1>(shmem);
+    }
+
+    template<int64_t M, int64_t N, int64_t BLOCKSIZE>
     __device__ inline MatrixGPU<M, N, N, BLOCKSIZE> query_global_2_shared(int64_t x,
                                                                           int64_t y) {
         int thread_id = threadIdx.x;

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../../benchmark.h"
 #include "column-major.h"
 #include "matrix-gpu.h"
@@ -11,18 +13,10 @@
 #define CEIL_DIV(M, N) (((M) + (N) - 1) / (N))
 
 template<const int BM, const int BN, const int BK, const int TM, const int TN>
-__global__ void __launch_bounds__((BM * BN) / (TM * TN), 1)
-    sgemm2DBlocktiling(int M, int N, int K, float alpha, const float *A,
-                       const float *B, float beta, float *C) {
+__global__ void sgemmVectorize(int M, int N, int K, float alpha, float *A,
+                               float *B, float beta, float *C) {
     const uint cRow = blockIdx.y;
     const uint cCol = blockIdx.x;
-
-    const uint totalResultsBlocktile = BM * BN;
-    // A thread is responsible for calculating TM*TN elements in the blocktile
-    const uint numThreadsBlocktile = totalResultsBlocktile / (TM * TN);
-
-    // ResultsPerBlock / ResultsPerThread == ThreadsPerBlock
-    assert(numThreadsBlocktile == blockDim.x);
 
     // BN/TN are the number of threads to span a column
     const int threadCol = threadIdx.x % (BN / TN);
@@ -38,35 +32,30 @@ __global__ void __launch_bounds__((BM * BN) / (TM * TN), 1)
     C += cRow * BM * N + cCol * BN;
 
     // calculating the indices that this thread will load into SMEM
-    const uint innerRowA = threadIdx.x / BK;
-    const uint innerColA = threadIdx.x % BK;
-    // calculates the number of rows of As that are being loaded in a single step
-    // by a single block
-    const uint strideA = numThreadsBlocktile / BK;
-    const uint innerRowB = threadIdx.x / BN;
-    const uint innerColB = threadIdx.x % BN;
-    // for both As and Bs we want each load to span the full column-width, for
-    // better GMEM coalescing (as opposed to spanning full row-width and iterating
-    // across columns)
-    const uint strideB = numThreadsBlocktile / BN;
+    // we'll load 128bit / 32bit = 4 elements per thread at each step
+    const uint innerRowA = threadIdx.x / (BK / 4);
+    const uint innerColA = threadIdx.x % (BK / 4);
+    const uint innerRowB = threadIdx.x / (BN / 4);
+    const uint innerColB = threadIdx.x % (BN / 4);
 
     // allocate thread-local cache for results in registerfile
     float threadResults[TM * TN] = {0.0};
-    // register caches for As and Bs
     float regM[TM] = {0.0};
     float regN[TN] = {0.0};
 
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
         // populate the SMEM caches
-        for (uint loadOffset = 0; loadOffset < BM; loadOffset += strideA) {
-            As[(innerRowA + loadOffset) * BK + innerColA] =
-                A[(innerRowA + loadOffset) * K + innerColA];
-        }
-        for (uint loadOffset = 0; loadOffset < BK; loadOffset += strideB) {
-            Bs[(innerRowB + loadOffset) * BN + innerColB] =
-                B[(innerRowB + loadOffset) * N + innerColB];
-        }
+        // transpose A while loading it
+        float4 tmp =
+            reinterpret_cast<float4 *>(&A[innerRowA * K + innerColA * 4])[0];
+        As[(innerColA * 4 + 0) * BM + innerRowA] = tmp.x;
+        As[(innerColA * 4 + 1) * BM + innerRowA] = tmp.y;
+        As[(innerColA * 4 + 2) * BM + innerRowA] = tmp.z;
+        As[(innerColA * 4 + 3) * BM + innerRowA] = tmp.w;
+
+        reinterpret_cast<float4 *>(&Bs[innerRowB * BN + innerColB * 4])[0] =
+            reinterpret_cast<float4 *>(&B[innerRowB * N + innerColB * 4])[0];
         __syncthreads();
 
         // advance blocktile
@@ -77,7 +66,7 @@ __global__ void __launch_bounds__((BM * BN) / (TM * TN), 1)
         for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
             // block into registers
             for (uint i = 0; i < TM; ++i) {
-                regM[i] = As[(threadRow * TM + i) * BK + dotIdx];
+                regM[i] = As[dotIdx * BM + threadRow * TM + i];
             }
             for (uint i = 0; i < TN; ++i) {
                 regN[i] = Bs[dotIdx * BN + threadCol * TN + i];
@@ -93,45 +82,43 @@ __global__ void __launch_bounds__((BM * BN) / (TM * TN), 1)
     }
 
     // write out the results
-    for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
-        for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
-            C[(threadRow * TM + resIdxM) * N + threadCol * TN + resIdxN] =
-                threadResults[resIdxM * TN + resIdxN];
+    for (uint resIdxM = 0; resIdxM < TM; resIdxM += 1) {
+        for (uint resIdxN = 0; resIdxN < TN; resIdxN += 4) {
+            // load C vector into registers
+            float4 tmp = reinterpret_cast<float4 *>(
+                &C[(threadRow * TM + resIdxM) * N + threadCol * TN + resIdxN])[0];
+            // perform GEMM update in reg
+            tmp.x = threadResults[resIdxM * TN + resIdxN];
+            tmp.y = threadResults[resIdxM * TN + resIdxN + 1];
+            tmp.z = threadResults[resIdxM * TN + resIdxN + 2];
+            tmp.w = threadResults[resIdxM * TN + resIdxN + 3];
+            // write back
+            reinterpret_cast<float4 *>(
+                &C[(threadRow * TM + resIdxM) * N + threadCol * TN + resIdxN])[0] =
+                tmp;
         }
     }
 }
 
+#define CEIL_DIV(M, N) (((M) + (N) - 1) / (N))
+
 template<const int BM, const int BN, const int BK, const int TM, const int TN, typename AT, typename BT, typename CT>
-__global__ void __launch_bounds__((BM * BN) / (TM * TN), 1)
-    gern_smem_2d(int M, int N, int K, AT A_ds, BT B_ds, CT C_ds) {
+__global__ void gernel_mine(int M, int N, int K, float alpha, AT A_ds, BT B_ds, CT C_ds) {
+    const uint cRow = blockIdx.y;
+    const uint cCol = blockIdx.x;
 
     float *A = A_ds.data;
     float *B = B_ds.data;
     float *C = C_ds.data;
 
-    const uint cRow = blockIdx.y;
-    const uint cCol = blockIdx.x;
-
-    const uint totalResultsBlocktile = BM * BN;
-    // A thread is responsible for calculating TM*TN elements in the blocktile
-    const uint numThreadsBlocktile = totalResultsBlocktile / (TM * TN);
-
-    // ResultsPerBlock / ResultsPerThread == ThreadsPerBlock
-    assert(numThreadsBlocktile == blockDim.x);
-
     // BN/TN are the number of threads to span a column
     const int threadCol = threadIdx.x % (BN / TN);
     const int threadRow = threadIdx.x / (BN / TN);
-
-    // const int threadCol_gern = threadCol * TN;
-    // const int threadRow_gern = threadRow * TM;
 
     // allocate space for the current blocktile in smem
     __shared__ float As[BM * BK];
     __shared__ float Bs[BK * BN];
 
-    // Move blocktile to beginning of A's row and B's column
-    // A += cRow * BM * K;
     auto a_q = A_ds.template query_global_2_global<BM, BK>(cRow * BM, 0);
     A = a_q.data;
     auto b_q = B_ds.template query_global_2_global<BK, BN>(0, cCol * BN);
@@ -139,55 +126,30 @@ __global__ void __launch_bounds__((BM * BN) / (TM * TN), 1)
     auto c_q = C_ds.template query_global_2_global<BM, BN>(cRow * BM, cCol * BN);
     C = c_q.data;
 
-    // calculating the indices that this thread will load into SMEM
-    const uint innerRowA = threadIdx.x / BK;
-    const uint innerColA = threadIdx.x % BK;
-    // calculates the number of rows of As that are being loaded in a single step
-    // by a single block
-    const uint strideA = numThreadsBlocktile / BK;
-    const uint innerRowB = threadIdx.x / BN;
-    const uint innerColB = threadIdx.x % BN;
-    // for both As and Bs we want each load to span the full column-width, for
-    // better GMEM coalescing (as opposed to spanning full row-width and iterating
-    // across columns)
-    const uint strideB = numThreadsBlocktile / BN;
-
     auto c_reg = c_q.template query_2_reg_no_vector_zero<TM, TN>(threadRow * TM, threadCol * TN);
     float *threadResults = c_reg.array;
-    // float *C = c_reg.array;
 
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
 
-        auto a_s_mine = a_q.template query_global_2_shared<BM, BK, (BM / TM) * (BN / TN)>(0, bkIdx, As);
-        auto b_s_mine = b_q.template query_global_2_shared<BK, BN, (BM / TM) * (BN / TN)>(bkIdx, 0, Bs);
+        auto a_s_mine = a_q.template query_global_2_shared_vec_t<BM, BK, (BM / TM) * (BN / TN)>(0, bkIdx, As);
 
+        auto b_s_mine = b_q.template query_global_2_shared_vec<BK, BN, (BM / TM) * (BN / TN)>(bkIdx, 0, Bs);
         __syncthreads();
 
         // calculate per-thread results
         for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
 
-            auto a_reg = a_s_mine.template query_2_reg_no_vector<TM, 1>(threadRow * TM, dotIdx);
-            float *regM = a_reg.array;
+            auto a_reg = a_s_mine.template query_2_reg_no_vector<1, TM>(dotIdx, threadRow * TM);
 
             auto b_reg = b_s_mine.template query_2_reg_no_vector<1, TN>(dotIdx, threadCol * TN);
-            float *regN = b_reg.array;
 
-            matrix_multiply_reg_flat<1>(a_reg, b_reg, c_reg);
+            matrix_multiply_reg_flat_T<1>(a_reg, b_reg, c_reg);
         }
-
         __syncthreads();
     }
 
-    // write out the results
-    // for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
-    //     for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
-    //         C[(threadRow * TM + resIdxM) * N + threadCol * TN + resIdxN] =
-    //             threadResults[resIdxM * TN + resIdxN];
-    //     }
-    // }
-
-    c_q.template insert_2_reg_no_vector<TM, TN>(threadRow * TM, threadCol * TN, c_reg);
+    c_q.template insert_from_reg_no_vector<TM, TN>(threadRow * TM, threadCol * TN, c_reg);
 }
 
 int main() {
@@ -222,7 +184,7 @@ int main() {
     dim3 blockDim((BM * BN) / (TM * TN));
 
     auto func = [&]() {
-        sgemm2DBlocktiling<BM, BN, BK, TM, TN>
+        sgemmVectorize<BM, BN, BK, TM, TN>
             <<<gridDim, blockDim>>>(M, N, K, alpha, A.data, B.data, beta, C.data);
     };
 
@@ -232,8 +194,8 @@ int main() {
 
     impl::MatrixGPU<M, N, N, 1> C_gern(offset);
     auto func_gern = [&]() {
-        gern_smem_2d<BM, BN, BK, TM, TN>
-            <<<gridDim, blockDim>>>(M, N, K, A, B, C_gern);
+        gernel_mine<BM, BN, BK, TM, TN, impl::MatrixGPU<M, K, K, 1>, impl::ColumnMajorMatrix<K, N>, impl::MatrixGPU<M, N, N, 1>>
+            <<<gridDim, blockDim>>>(M, N, K, alpha, A, B, C_gern);
     };
 
     double time_gern = benchmark::benchmark(10, 1, func_gern, 2);
