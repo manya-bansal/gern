@@ -425,20 +425,19 @@ inline void mmul2d(MatrixCPU4Dim a, MatrixCPU4Dim b, MatrixCPU4Dim out) {
 }
 
 inline void attention(MatrixCPU q, MatrixCPU k, MatrixCPU v, MatrixCPU out) {
-	// std::cout << "Q " << q.row << " " << q.col << " " << q.lda << std::endl;
-	// std::cout << "K " << k.row << " " << k.col << " " << k.lda << std::endl;
-	// std::cout << "V " << v.row << " " << v.col << " " << v.lda << std::endl;
-	// std::cout << "OUT " << out.row << " " << out.col << " " << out.lda << std::endl;
-    MatrixCPU kt(k.col, k.row, k.row);
-    transpose(k, kt);
-    MatrixCPU q_kt(q.row, k.row, k.row);
-    mmul(q, kt, q_kt);
-    float sqrt_dk = sqrt(q.col);
-    MatrixCPU sm_in(q.row, k.row, k.row);
-    divn(q_kt, sqrt_dk, sm_in);
-    MatrixCPU sm_out(q.row, k.row, k.row);
-    softmax(sm_in, sm_out);
-    mmul(sm_out, v, out);
+	gern::impl::MatrixCPU t = gern::impl::MatrixCPU::allocate(0, 0, k.col, k.row);
+	gern::impl::transpose(k, t);
+	gern::impl::MatrixCPU matmul = gern::impl::MatrixCPU::allocate(0, 0, q.row, k.row);
+	gern::impl::mmul(q, t, matmul);
+	gern::impl::MatrixCPU truediv = gern::impl::MatrixCPU::allocate(0, 0, q.row, k.row);
+	gern::impl::divn(matmul, sqrt(q.col), truediv);
+	gern::impl::MatrixCPU softmax = gern::impl::MatrixCPU::allocate(0, 0, q.row, k.row);
+	gern::impl::softmax(truediv, softmax);
+	gern::impl::mmul(softmax, v, out);
+	matmul.destroy();
+	truediv.destroy();
+	softmax.destroy();
+	t.destroy();
 }
 
 inline void attention(MatrixCPU4Dim q, MatrixCPU4Dim k, MatrixCPU4Dim v, MatrixCPU4Dim out) {

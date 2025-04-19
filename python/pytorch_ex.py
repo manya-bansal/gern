@@ -18,8 +18,12 @@ torch_to_gern = {
 class M(torch.nn.Module):
     def forward(self, q, k, v):
         return torch.nn.functional.softmax((q @ torch.t(k)) / math.sqrt(q.size(dim=1))) @ v
+class UnfusedAttention(torch.nn.Module):
+    def forward(self, q, k, v):
+        return torch.nn.functional.scaled_dot_product_attention(q, k, v)
+    
 
-def benchmark_runtimes(rows, cols, tiling):
+def benchmark_runtimes(module, label, rows, cols, tiling):
     q = torch.randn((rows, cols))
     k = torch.randn((rows, cols))
     v = torch.randn((rows, cols))
@@ -28,37 +32,37 @@ def benchmark_runtimes(rows, cols, tiling):
 
     for row_tiling in tiling:
         torch.compiler.reset()
-        opt_M = gen(M(), torch_to_gern, tile_rows=row_tiling)
+        opt_M = gen(module(), torch_to_gern, tile_rows=row_tiling)
 
         optimized = benchmark.Timer(
             setup='opt_M(q, k, v)',
             stmt='opt_M(q, k, v)',
             globals={'opt_M': opt_M, 'q': q, 'k': k, 'v': v},
-            label=f"flash attention {rows} x {cols}",
+            label=f"{label} {rows} x {cols}",
             description=f"{rows} x {cols}",
             sub_label=f"gern, row tiling {row_tiling}"
         )
 
         results.append(optimized.blocked_autorange(min_run_time=2))
 
-    m = M()
+    m = module()
     
     unoptimized = benchmark.Timer(
         stmt='m(q, k, v)',
         globals={'m': m, 'q': q, 'k': k, 'v': v},
-        label=f"flash attention {rows} x {cols}",
+        label=f"{label} {rows} x {cols}",
         description=f"{rows} x {cols}",
         sub_label="unoptimized"
     )
 
     torch.compiler.reset()
-    default_tc_m = torch.compile(M())
+    default_tc_m = torch.compile(module())
 
     default_compiled = benchmark.Timer(
         setup='default_tc_m(q, k, v)',
         stmt='default_tc_m(q, k, v)',
         globals={'default_tc_m': default_tc_m, 'q': q, 'k': k, 'v': v},
-        label=f"flash attention {rows} x {cols}",
+        label=f"{label} {rows} x {cols}",
         description=f"{rows} x {cols}",
         sub_label="default torch.compile"
     )
@@ -77,7 +81,7 @@ def benchmark_runtimes(rows, cols, tiling):
     from torch.nn.attention import SDPBackend, sdpa_kernel
     """,
         globals={'q': q_4d, 'k': k_4d, 'v': v_4d},
-        label=f"flash attention {rows} x {cols}",
+        label=f"{label} {rows} x {cols}",
         description=f"{rows} x {cols}",
         sub_label="pytorch flash attention"
     )
@@ -214,14 +218,35 @@ def verify_correctness():
     ref = m(q2, k2, v2)
     print(torch.allclose(ref, output, atol=1e-6))
 
-def unfused_attention_benchmark():
+def attention_benchmark():
+    import gc
+
     class UnfusedAttention(torch.nn.Module):
         def forward(self, q, k, v):
             return torch.nn.functional.scaled_dot_product_attention(q, k, v)
     
-    row_sizes = [512, 1024, 2048, 4096]
+    class FusedAttention(torch.nn.Module):
+        def forward(self, q, k, v):
+            return torch.nn.functional.softmax((q @ torch.t(k)) / math.sqrt(q.size(dim=1))) @ v
+    
+    all_results = []
+    
+    # 2d benchmarks
+    row_sizes = [512, 1024, 2048]
     for row_size in row_sizes:
-        benchmark_module(UnfusedAttention, f"unfused attention {row_size} x 64", [row_size], ("q", torch.randn((row_size, 64))), ("k", torch.randn(row_size, 64)), ("v", torch.randn((row_size, 64))))
+        all_results.extend(benchmark_module(UnfusedAttention, f"unfused attention {row_size} x 64", [256, 512], ("q", torch.randn((row_size, 64))), ("k", torch.randn(row_size, 64)), ("v", torch.randn((row_size, 64)))))
+        gc.collect()
+
+    # for row_size in row_sizes:
+    #     all_results.extend(benchmark_module(FusedAttention, f"fused attention {row_size} x 64", [256, 512], ("q", torch.randn((row_size, 64))), ("k", torch.randn(row_size, 64)), ("v", torch.randn((row_size, 64)))))
+    #     gc.collect()
+    
+    compare = benchmark.Compare(all_results)
+    compare.print()
+    
+    # 4d benchmarks
+    # for row_size in row_sizes:
+    #     benchmark_module(UnfusedAttention, f"unfused attention 1 x 12 x {row_size} x 64", [256, 512], ("q", torch.randn((1, 12, row_size, 64))), ("k", torch.randn(1, 12, row_size, 64)), ("v", torch.randn((1, 12, row_size, 64))))
 
 def individual_benchmarks():
     class SoftmaxMatmul(torch.nn.Module):
@@ -261,23 +286,29 @@ if __name__ == "__main__":
     # individual_benchmarks() 
 
     ### FLASH ATTENTION BENCHMARKS
-    # all_results = []
-    # # row_vals = [512, 1024, 1536, 2048]
-    # # row_tilings = [[32, 64, 128, 256, 512], [32, 64, 128, 256, 512, 1024], [128, 256, 512, 1536], [512, 1024, 2048]]
-    # # col_vals = [32, 64, 96, 128]
-    # row_vals = [512, 1024]
-    # row_tilings=[[32, 64, 128, 256, 512], [32, 64, 128, 256, 512, 1024]]
-    # col_vals = [64]
-    # for rows, row_tiling in zip(row_vals, row_tilings):
-    #     for cols in col_vals:
-    #         results = benchmark_runtimes(rows, cols, row_tiling)
-    #         all_results.append(benchmark.Compare(results))
+    all_results = []
+    # row_vals = [512, 1024, 1536, 2048]
+    # row_tilings = [[32, 64, 128, 256, 512], [32, 64, 128, 256, 512, 1024], [128, 256, 512, 1536], [512, 1024, 2048]]
+    # col_vals = [32, 64, 96, 128]
+    # row_vals = [512, 1024, 2048]
+    # row_tilings=[[32, 64, 128, 256, 512], [32, 64, 128, 256, 512, 1024], [32, 64, 128, 256, 512, 2048]]
+    row_vals = [1024]
+    row_tilings=[[32, 64, 128, 256, 512, 1024]]
+    col_vals = [64]
+    for rows, row_tiling in zip(row_vals, row_tilings):
+        for cols in col_vals:
+            results = benchmark_runtimes(M, "fused", rows, cols, row_tiling)
+            all_results.append(benchmark.Compare(results))
 
-    # for res in all_results:
-    #     res.print()
+            results = benchmark_runtimes(UnfusedAttention, "unfused", rows, cols, row_tiling)
+            all_results.append(benchmark.Compare(results))
+            
+
+    for res in all_results:
+        res.print()
     ### END FLASH ATTENTION BENCHMARKS
 
-    unfused_attention_benchmark()
+    # attention_benchmark()
 
     # q_32 = torch.randn((1024, 32))
     # k_32 = torch.randn((1024, 32))
