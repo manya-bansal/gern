@@ -455,6 +455,10 @@ inline void attention(MatrixCPU4Dim q, MatrixCPU4Dim k, MatrixCPU4Dim v, MatrixC
 	MatrixCPU4Dim sm_out(q.i_dim, q.j_dim, q.k_dim, k.k_dim, q.j_dim, q.k_dim, k.k_dim); 
 	softmax(sm_in, sm_out);
 	mmul2d(sm_out, v, out);
+	kt.destroy();
+	q_kt.destroy();
+	sm_in.destroy();
+	sm_out.destroy();
     // MatrixCPU kt(k.col, k.row, k.row);
     // transpose(k, kt);
     // MatrixCPU q_kt(q.row, k.row, k.row);
