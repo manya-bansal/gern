@@ -6,16 +6,20 @@ from gern_py import *
 import operator
 import torch.utils.benchmark as benchmark
 
+torch_to_gern_4d_only_attention = {
+    torch.nn.functional.scaled_dot_product_attention: FnInterface(MatrixAttention4D, extra_args={"height": lambda args: args[0].meta["example_value"].size(dim=-2), "width": lambda args: args[0].meta["example_value"].size(dim=-1)})
+}
 torch_to_gern_4d = {
-    torch.nn.functional.scaled_dot_product_attention: FnInterface(MatrixAttention4D, {"height": lambda args: args[0].meta["example_value"].size(dim=-2), "width": lambda args: args[0].meta["example_value"].size(dim=-1)})
+    torch.nn.functional.scaled_dot_product_attention: FnInterface(MatrixAttention4D, extra_args={"height": lambda args: args[0].meta["example_value"].size(dim=-2), "width": lambda args: args[0].meta["example_value"].size(dim=-1)}),
+    "transpose": FnInterface(MatrixTranspose4D, fn_args=(lambda args: args[1], lambda args: args[2]), skip_nontensor_args=True)
 }
 
 torch_to_gern_2d = {
     torch.t: FnInterface(MatrixTranspose),
-    operator.matmul: FnInterface(MatrixMultiply, {"shared_len": lambda args: args[0].meta["example_value"].size(dim=-1)}),
+    operator.matmul: FnInterface(MatrixMultiply, extra_args={"shared_len": lambda args: args[0].meta["example_value"].size(dim=-1)}),
     operator.truediv: FnInterface(MatrixDivn),
     torch.nn.functional.softmax: FnInterface(MatrixSoftmax),
-    torch.nn.functional.scaled_dot_product_attention: FnInterface(MatrixAttention, {"height": lambda args: args[0].meta["example_value"].size(dim=-2), "width": lambda args: args[0].meta["example_value"].size(dim=-1)})
+    torch.nn.functional.scaled_dot_product_attention: FnInterface(MatrixAttention, extra_args={"height": lambda args: args[0].meta["example_value"].size(dim=-2), "width": lambda args: args[0].meta["example_value"].size(dim=-1)})
 }
 
 
@@ -67,32 +71,45 @@ row_tilings = [[64, 128, 256], [64, 128, 256, 512]]
 for seq_length, row_tilings in zip(seq_lengths, row_tilings):
     input_ids = torch.randint(0, 30522, (1, seq_length), dtype=torch.long)
 
-    for row_tiling in row_tilings:
-        torch.compiler.reset()
-        gern_model_2d = gen2d(model, torch_to_gern_2d, tile_rows=row_tiling)
+    # for row_tiling in row_tilings:
+    torch.compiler.reset()
+    gern_model_2d = gen2d(model, torch_to_gern_2d)
 
-        optimized_2d = benchmark.Timer(
-            setup='gern_model(input_ids)',
-            stmt='gern_model(input_ids)',
-            globals={'gern_model': gern_model_2d, 'input_ids': input_ids},
-            label=f"bert batch_size=1",
-            description=f"seq_length={seq_length}",
-            sub_label=f"gern 2d, row_tiling={row_tiling}"
-        )
-        results.append(optimized_2d.blocked_autorange(min_run_time=2))
+    optimized_2d = benchmark.Timer(
+        setup='gern_model(input_ids)',
+        stmt='gern_model(input_ids)',
+        globals={'gern_model': gern_model_2d, 'input_ids': input_ids},
+        label=f"bert batch_size=1",
+        description=f"seq_length={seq_length}",
+        sub_label=f"gern 2d"
+    )
+    results.append(optimized_2d.blocked_autorange(min_run_time=2))
 
-        torch.compiler.reset()
-        gern_model_4d = gen4d(model, torch_to_gern_4d, tile_rows=row_tiling)
+    torch.compiler.reset()
+    gern_model_4d_only_attention = gen4d(model, torch_to_gern_4d_only_attention)
 
-        optimized_4d = benchmark.Timer(
-            setup='gern_model(input_ids)',
-            stmt='gern_model(input_ids)',
-            globals={'gern_model': gern_model_4d, 'input_ids': input_ids},
-            label=f"bert batch_size=1",
-            description=f"seq_length={seq_length}",
-            sub_label=f"gern 4d, row_tiling={row_tiling}"
-        )
-        results.append(optimized_4d.blocked_autorange(min_run_time=2))
+    optimized_4d = benchmark.Timer(
+        setup='gern_model(input_ids)',
+        stmt='gern_model(input_ids)',
+        globals={'gern_model': gern_model_4d_only_attention, 'input_ids': input_ids},
+        label=f"bert batch_size=1",
+        description=f"seq_length={seq_length}",
+        sub_label=f"gern 4d only attention"
+    )
+    results.append(optimized_4d.blocked_autorange(min_run_time=2))
+
+    torch.compiler.reset()
+    gern_model_4d = gen4d(model, torch_to_gern_4d)
+
+    optimized_4d_full = benchmark.Timer(
+        setup='gern_model(input_ids)',
+        stmt='gern_model(input_ids)',
+        globals={'gern_model': gern_model_4d, 'input_ids': input_ids},
+        label=f"bert batch_size=1",
+        description=f"seq_length={seq_length}",
+        sub_label=f"gern 4d attention and transpose"
+    )
+    results.append(optimized_4d_full.blocked_autorange(min_run_time=2))
 
     unoptimized = benchmark.Timer(
         setup='model(input_ids)',

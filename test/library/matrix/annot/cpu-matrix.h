@@ -30,61 +30,61 @@ namespace annot {
 
 class MatrixCPU4Dim : public AbstractDataType {
 public:
-	MatrixCPU4Dim(const std::string &name)
-		: name(name) {
-	}
-	MatrixCPU4Dim()
-		: MatrixCPU4Dim("test") {
-	}
-	std::string getName() const override {
-		return name;
-	}
+    MatrixCPU4Dim(const std::string &name)
+        : name(name) {
+    }
+    MatrixCPU4Dim()
+        : MatrixCPU4Dim("test") {
+    }
+    std::string getName() const override {
+        return name;
+    }
 
-	std::string getType() const override {
-		return "gern::impl::MatrixCPU4Dim";
-	}
+    std::string getType() const override {
+        return "gern::impl::MatrixCPU4Dim";
+    }
 
-	std::vector<Variable> getFields() const override {
-		return {w, x, y, z, l_w, l_x, l_y, l_z};
-	}
+    std::vector<Variable> getFields() const override {
+        return {w, x, y, z, l_w, l_x, l_y, l_z};
+    }
 
-	FunctionSignature getAllocateFunction() const override {
-		return FunctionSignature{
-			.name = "gern::impl::MatrixCPU4Dim::allocate",
-			.args = {w, x, y, z, l_w, l_x, l_y, l_z},
-		};
-	}
-	FunctionSignature getFreeFunction() const override {
-		return FunctionSignature{
-			.name = "destroy",
-			.args = {},
-		};
-	}
-	FunctionSignature getInsertFunction() const override {
-		return FunctionSignature{
-			.name = "insert",
-			.args = {w, x, y, z, l_w, l_x, l_y, l_z},
-		};
-	}
-	FunctionSignature getQueryFunction() const override {
-		return FunctionSignature{
-			.name = "query",
-			.args = {w, x, y, z, l_w, l_x, l_y, l_z},
-		};
-	}
+    FunctionSignature getAllocateFunction() const override {
+        return FunctionSignature{
+            .name = "gern::impl::MatrixCPU4Dim::allocate",
+            .args = {w, x, y, z, l_w, l_x, l_y, l_z},
+        };
+    }
+    FunctionSignature getFreeFunction() const override {
+        return FunctionSignature{
+            .name = "destroy",
+            .args = {},
+        };
+    }
+    FunctionSignature getInsertFunction() const override {
+        return FunctionSignature{
+            .name = "insert",
+            .args = {w, x, y, z, l_w, l_x, l_y, l_z},
+        };
+    }
+    FunctionSignature getQueryFunction() const override {
+        return FunctionSignature{
+            .name = "query",
+            .args = {w, x, y, z, l_w, l_x, l_y, l_z},
+        };
+    }
 
 private:
-	std::string name;
-	Variable w{"w"};
-	Variable x{"x"};
-	Variable y{"y"};
-	Variable z{"z"};
-	Variable l_w{"l_w"};
-	Variable l_x{"l_x"};
-	Variable l_y{"l_y"};
-	Variable l_z{"l_z"};
+    std::string name;
+    Variable w{"w"};
+    Variable x{"x"};
+    Variable y{"y"};
+    Variable z{"z"};
+    Variable l_w{"l_w"};
+    Variable l_x{"l_x"};
+    Variable l_y{"l_y"};
+    Variable l_z{"l_z"};
 };
-	
+    
 
 class MatrixCPU3Dim : public AbstractDataType {
 public:
@@ -196,52 +196,52 @@ private:
 
 class MatrixAddCPU3D : public AbstractFunction {
 public:
-	MatrixAddCPU3D()
-		: input(new const MatrixCPU3Dim("input")),
-			output(new const MatrixCPU3Dim("output")) {
-	}
-	std::string getName() {
-		return "gern::impl::add";
-	}
+    MatrixAddCPU3D()
+        : input(new const MatrixCPU3Dim("input")),
+            output(new const MatrixCPU3Dim("output")) {
+    }
+    std::string getName() {
+        return "gern::impl::add";
+    }
 
-	Annotation getAnnotation() override {
+    Annotation getAnnotation() override {
 
-		Variable x("x");
-		Variable y("y");
-		Variable z("z");
-		Variable l_x("l_x");
-		Variable l_y("l_y");
-		Variable l_z("l_z");
+        Variable x("x");
+        Variable y("y");
+        Variable z("z");
+        Variable l_x("l_x");
+        Variable l_y("l_y");
+        Variable l_z("l_z");
 
-		Variable row("row");
-		Variable col("col");
+        Variable row("row");
+        Variable col("col");
 
-		auto innerLoop = For(z = Expr(0), output["k_dim"], l_z, 
-								Produces::Subset(output, {x, y, z, l_x, l_y, l_z}),
-							Consumes::Subset(input, {x, y, z, l_x, l_y, l_z}));
-		auto middleLoop = For(y = Expr(0), output["j_dim"], l_y, innerLoop);
-		auto outerLoop = For(x = Expr(0), output["i_dim"], l_x, middleLoop);
+        auto innerLoop = For(z = Expr(0), output["k_dim"], l_z, 
+                                Produces::Subset(output, {x, y, z, l_x, l_y, l_z}),
+                            Consumes::Subset(input, {x, y, z, l_x, l_y, l_z}));
+        auto middleLoop = For(y = Expr(0), output["j_dim"], l_y, innerLoop);
+        auto outerLoop = For(x = Expr(0), output["i_dim"], l_x, middleLoop);
 
-		return annotate(outerLoop);
-	}
+        return annotate(outerLoop);
+    }
 
-	std::vector<std::string> getHeader() override {
-		return {
-			"cpu-matrix.h",
-		};
-	}
+    std::vector<std::string> getHeader() override {
+        return {
+            "cpu-matrix.h",
+        };
+    }
 
-	virtual FunctionSignature getFunction() override {
-		FunctionSignature f;
-		f.name = "gern::impl::add";
-		f.args = {Parameter(input), Parameter(output)};
-		return f;
-	}
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::add";
+        f.args = {Parameter(input), Parameter(output)};
+        return f;
+    }
 
 protected:
-	AbstractDataTypePtr input;
-	AbstractDataTypePtr output;
-	Variable end{"end"};
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
+    Variable end{"end"};
 };
 
 class MatrixAddCPU : public AbstractFunction {
@@ -456,53 +456,53 @@ protected:
 
 class MatrixDivn4D : public AbstractFunction {
 public:
-	MatrixDivn4D()
-		: input(new const MatrixCPU4Dim("input")),
-			output(new const MatrixCPU4Dim("output")) {
-	}
-	std::string getName() {
-		return "gern::impl::divn";
-	}
+    MatrixDivn4D()
+        : input(new const MatrixCPU4Dim("input")),
+            output(new const MatrixCPU4Dim("output")) {
+    }
+    std::string getName() {
+        return "gern::impl::divn";
+    }
 
-	Annotation getAnnotation() override {
+    Annotation getAnnotation() override {
 
-		Variable w("w");
-		Variable x("x");
-		Variable y("y");
-		Variable z("z");
-		Variable l_w("l_w");
-		Variable l_x("l_x");
-		Variable l_y("l_y");
-		Variable l_z("l_z");
+        Variable w("w");
+        Variable x("x");
+        Variable y("y");
+        Variable z("z");
+        Variable l_w("l_w");
+        Variable l_x("l_x");
+        Variable l_y("l_y");
+        Variable l_z("l_z");
 
-		auto innerLoop = For(z = Expr(0), output["dims[3]"], l_z, 
-								Produces::Subset(output, {w, x, y, z, l_w, l_x, l_y, l_z}),
-							Consumes::Subset(input, {w, x, y, z, l_w, l_x, l_y, l_z}));
-		auto middleLoop = For(y = Expr(0), output["dims[2]"], l_y, innerLoop);
-		auto secondMiddleLoop = For(x = Expr(0), output["dims[1]"], l_x, middleLoop);
-		auto outerLoop = For(w = Expr(0), output["dims[0]"], l_w, secondMiddleLoop);
+        auto innerLoop = For(z = Expr(0), output["dims[3]"], l_z, 
+                                Produces::Subset(output, {w, x, y, z, l_w, l_x, l_y, l_z}),
+                            Consumes::Subset(input, {w, x, y, z, l_w, l_x, l_y, l_z}));
+        auto middleLoop = For(y = Expr(0), output["dims[2]"], l_y, innerLoop);
+        auto secondMiddleLoop = For(x = Expr(0), output["dims[1]"], l_x, middleLoop);
+        auto outerLoop = For(w = Expr(0), output["dims[0]"], l_w, secondMiddleLoop);
 
-		return annotate(outerLoop);
-	}
+        return annotate(outerLoop);
+    }
 
-	std::vector<std::string> getHeader() override {
-		return {
-			"cpu-matrix.h",
-		};
-	}
+    std::vector<std::string> getHeader() override {
+        return {
+            "cpu-matrix.h",
+        };
+    }
 
-	virtual FunctionSignature getFunction() override {
-		FunctionSignature f;
-		f.name = "gern::impl::divn";
-		f.args = {Parameter(input), Parameter(n), Parameter(output)};
-		return f;
-	}
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::divn";
+        f.args = {Parameter(input), Parameter(n), Parameter(output)};
+        return f;
+    }
 
 protected:
-	AbstractDataTypePtr input;
-	Variable n{"n", Datatype::Float32};
-	AbstractDataTypePtr output;
-	Variable end{"end"};
+    AbstractDataTypePtr input;
+    Variable n{"n", Datatype::Float32};
+    AbstractDataTypePtr output;
+    Variable end{"end"};
 };
 
 class MatrixSoftmax4D : public AbstractFunction {
@@ -600,11 +600,11 @@ public:
     MatrixTranspose4D(int64_t dim1, int64_t dim2)
         : input(new const MatrixCPU4Dim("input")),
             output(new const MatrixCPU4Dim("output")) {
-		if (dim1 < 0 || dim1 >= 4 || dim2 < 0 || dim2 >= 4) {
-			throw error::UserError("4d transpose annotation must have transpose dimensions between 0 and 3, inclusive");
-		}
-		this->dim1 = dim1;
-		this->dim2 = dim2;
+        if (dim1 < 0 || dim1 >= 4 || dim2 < 0 || dim2 >= 4) {
+            throw error::UserError("4d transpose annotation must have transpose dimensions between 0 and 3, inclusive");
+        }
+        this->dim1 = dim1;
+        this->dim2 = dim2;
     }
     std::string getName() {
         return "gern::impl::transpose4d";
@@ -623,33 +623,28 @@ public:
         Variable row("row");
         Variable col("col");
 
-		std::vector<Variable> produceVars = {w, x, y, z, l_w, l_x, l_y, l_z};
-		std::vector<Expr> consumeVars = {};
+        std::vector<Variable> produceVars = {w, x, y, z, l_w, l_x, l_y, l_z};
+        std::vector<Expr> consumeVars = {};
 
-		for (int i = 0; i < 4; i++) {
-			if (i == dim1) {
-				consumeVars.push_back(produceVars[dim2]);
-			} else if (i == dim2) {
-				consumeVars.push_back(produceVars[dim1]);
-			} else {
-				consumeVars.push_back(produceVars[i]);
-			}
-		}
+        for (int i = 0; i < 4; i++) {
+            if (i == dim1) {
+                consumeVars.push_back(produceVars[dim2]);
+            } else if (i == dim2) {
+                consumeVars.push_back(produceVars[dim1]);
+            } else {
+                consumeVars.push_back(produceVars[i]);
+            }
+        }
 
-		for (int i = 4; i < 8; i++) {
-			if (i - 4 == dim1) {
-				consumeVars.push_back(produceVars[dim2 + 4]);
-			} else if (i - 4 == dim2) {
-				consumeVars.push_back(produceVars[dim1 + 4]);
-			} else {
-				consumeVars.push_back(produceVars[i]);
-			}
-		}
-
-		std::cout << "consume vars" << std::endl;
-		for (auto var : consumeVars) {
-			std::cout << var << std::endl;
-		}
+        for (int i = 4; i < 8; i++) {
+            if (i - 4 == dim1) {
+                consumeVars.push_back(produceVars[dim2 + 4]);
+            } else if (i - 4 == dim2) {
+                consumeVars.push_back(produceVars[dim1 + 4]);
+            } else {
+                consumeVars.push_back(produceVars[i]);
+            }
+        }
 
         auto innerLoop = For(y = Expr(0), output["dims[2]"], l_y,
                             For(z = Expr(0), output["dims[3]"], l_z,
@@ -671,21 +666,17 @@ public:
         FunctionSignature f;
         f.name = "gern::impl::transpose4d";
         f.args = {Parameter(input), Parameter(output)};
-		std::cout << "d1 name " << d1.getName() << std::endl;
-		Variable boundD1 = d1.bind(2);
-		std::cout << "d1 bound name " << boundD1.getName() << std::endl;
-		std::cout << "d1 bound " << boundD1.isBound() << std::endl;
-		f.template_args = {boundD1, d2.bind(3)};
+        f.template_args = {d1.bind(dim1), d2.bind(dim2)};
         return f;
     }
 
 protected:
     AbstractDataTypePtr input;
     AbstractDataTypePtr output;
-	Variable d1{"d1"};
-	Variable d2{"d2"};
-	int64_t dim1;
-	int64_t dim2;
+    Variable d1{"d1"};
+    Variable d2{"d2"};
+    int64_t dim1;
+    int64_t dim2;
     Variable end{"end"};
 };
 
