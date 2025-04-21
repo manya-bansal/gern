@@ -21,7 +21,7 @@ namespace impl {
 class MatrixCPU4Dim {
 public:
     MatrixCPU4Dim(float *data, int64_t i_dim, int64_t j_dim, int64_t k_dim, int64_t l_dim, int64_t i_incr, int64_t j_incr, int64_t k_incr)
-        : data(data), i_dim(i_dim), j_dim(j_dim), k_dim(k_dim), l_dim(l_dim), i_incr(i_incr), j_incr(j_incr), k_incr(k_incr) {
+        : data(data), dims({i_dim, j_dim, k_dim, l_dim}), i_incr(i_incr), j_incr(j_incr), k_incr(k_incr) {
     }
 
     MatrixCPU4Dim(int64_t i_dim, int64_t j_dim, int64_t k_dim, int64_t l_dim, int64_t i_incr, int64_t j_incr, int64_t k_incr)
@@ -58,11 +58,11 @@ public:
 
     void vvals(float f) {
         float *data_tmp;
-        for (int64_t i = 0; i < i_dim; i++) {
-            for (int64_t j = 0; j < j_dim; j++) {
-                for (int64_t k = 0; k < k_dim; k++) {
+        for (int64_t i = 0; i < dims[0]; i++) {
+            for (int64_t j = 0; j < dims[1]; j++) {
+                for (int64_t k = 0; k < dims[2]; k++) {
                     data_tmp = data + (i * i_incr * j_incr * k_incr) + j * j_incr * k_incr + k * k_incr;
-                    for (int64_t l = 0; l < l_dim; l++) {
+                    for (int64_t l = 0; l < dims[3]; l++) {
                         data_tmp[l] = f;
                     }
                 }
@@ -74,11 +74,11 @@ public:
         float *data_tmp;
         std::mt19937 gen(0);
         std::uniform_real_distribution<float> dist(min, max);
-        for (int64_t i = 0; i < i_dim; i++) {
-            for (int64_t j = 0; j < j_dim; j++) {
-                for (int64_t k = 0; k < k_dim; k++) {
+        for (int64_t i = 0; i < dims[0]; i++) {
+            for (int64_t j = 0; j < dims[1]; j++) {
+                for (int64_t k = 0; k < dims[2]; k++) {
                     data_tmp = data + (i * i_incr * j_incr * k_incr) + j * j_incr * k_incr + k * k_incr;
-                    for (int64_t l = 0; l < l_dim; l++) {
+                    for (int64_t l = 0; l < dims[3]; l++) {
                         data_tmp[l] = (float)dist(gen);
                     }
                 }
@@ -88,23 +88,24 @@ public:
 
     void ascending() {
         float *data_tmp;
-        for (int64_t i = 0; i < i_dim; i++) {
-            for (int64_t j = 0; j < j_dim; j++) {
-                for (int64_t k = 0; k < k_dim; k++) {
+        for (int64_t i = 0; i < dims[0]; i++) {
+            for (int64_t j = 0; j < dims[1]; j++) {
+                for (int64_t k = 0; k < dims[2]; k++) {
                     data_tmp = data + (i * i_incr * j_incr * k_incr) + j * j_incr * k_incr + k * k_incr;
-                    for (int64_t l = 0; l < l_dim; l++) {
-                        data_tmp[l] = i * j_dim * k_dim * l_dim + j * k_dim * l_dim + k * l_dim + l;
+                    for (int64_t l = 0; l < dims[3]; l++) {
+                        data_tmp[l] = i * dims[1] * dims[2] * dims[3] + j * dims[2] * dims[3] + k * dims[3] + l;
                     }
                 }
             }
         }
     }
 
+	float *at(int i, int j, int k, int l) {
+		return &data[i * i_incr * j_incr * k_incr + j * j_incr * k_incr + k * k_incr + l];
+	}
+
     float *data;
-    int64_t i_dim;
-    int64_t j_dim;
-    int64_t k_dim;
-    int64_t l_dim;
+	std::vector<int64_t> dims;
     int64_t i_incr;
     int64_t j_incr;
     int64_t k_incr;
@@ -326,13 +327,13 @@ inline void divn(MatrixCPU a, float n, MatrixCPU b) {
 inline void divn(MatrixCPU4Dim a, float n, MatrixCPU4Dim b) {
     float *a_data;
     float *b_data;
-    for (int64_t i = 0; i < a.i_dim; i++) {
-        for (int64_t j = 0; j < a.j_dim; j++) {
-            for (int k = 0; k < a.k_dim; k++) {
+    for (int64_t i = 0; i < a.dims[0]; i++) {
+        for (int64_t j = 0; j < a.dims[1]; j++) {
+            for (int k = 0; k < a.dims[2]; k++) {
                 a_data = a.data + i * a.i_incr * a.j_incr * a.k_incr + j * a.j_incr * a.k_incr + k * a.k_incr;
                 b_data = b.data + i * b.i_incr * b.j_incr * b.k_incr + j * b.j_incr * b.k_incr + k * b.k_incr;
-                cblas_scopy(a.l_dim, a_data, 1, b_data, 1);
-                cblas_sscal(a.l_dim, 1 / n, b_data, 1);
+                cblas_scopy(a.dims[3], a_data, 1, b_data, 1);
+                cblas_sscal(a.dims[3], 1 / n, b_data, 1);
             }
         }
     }
@@ -352,15 +353,42 @@ inline void transpose(MatrixCPU a, MatrixCPU b) {
 }
 
 inline void transpose2d(MatrixCPU4Dim a, MatrixCPU4Dim b) {
-    for (int i = 0; i < a.i_dim; i++) {
-        for (int j = 0; j < a.j_dim; j++) {
-            MatrixCPU4Dim b_query = b.query(i, j, 0, 0, 1, 1, b.k_dim, b.l_dim);
-            MatrixCPU b_2dim(b_query.data, b.k_dim, b.l_dim, b.k_incr);
-            MatrixCPU4Dim a_query = a.query(i, j, 0, 0, 1, 1, a.k_dim, a.l_dim);
-            MatrixCPU a_2dim(a_query.data, a.k_dim, a.l_dim, a.k_incr);
+    for (int i = 0; i < a.dims[0]; i++) {
+        for (int j = 0; j < a.dims[1]; j++) {
+            MatrixCPU4Dim b_query = b.query(i, j, 0, 0, 1, 1, b.dims[2], b.dims[3]);
+            MatrixCPU b_2dim(b_query.data, b.dims[2], b.dims[3], b.k_incr);
+            MatrixCPU4Dim a_query = a.query(i, j, 0, 0, 1, 1, a.dims[2], a.dims[3]);
+            MatrixCPU a_2dim(a_query.data, a.dims[2], a.dims[3], a.k_incr);
             transpose(a_2dim, b_2dim);
         }
     }
+}
+
+template <int64_t dim1, int64_t dim2>
+inline void transpose4d(MatrixCPU4Dim a, MatrixCPU4Dim b) {
+	for (int i = 0; i < a.dims[0]; i++) {
+		for (int j = 0; j < a.dims[1]; j++) {
+			for (int k = 0; k < a.dims[2]; k++) {
+				for (int l = 0; l < a.dims[3]; l++) {
+					std::vector<int> adims{i, j, k, l};
+					int bi = 0 == dim1 ? adims[dim2] : (0 == dim2 ? adims[dim1] : adims[0]);
+					int bj = 1 == dim1 ? adims[dim2] : (1 == dim2 ? adims[dim1] : adims[1]);
+					int bk = 2 == dim1 ? adims[dim2] : (2 == dim2 ? adims[dim1] : adims[2]);
+					int bl = 3 == dim1 ? adims[dim2] : (3 == dim2 ? adims[dim1] : adims[3]);
+					*b.at(bi, bj, bk, bl) = *a.at(i, j, k, l);
+				}
+			}
+		}
+	}
+    // for (int i = 0; i < a.i_dim; i++) {
+    //     for (int j = 0; j < a.j_dim; j++) {
+    //         MatrixCPU4Dim b_query = b.query(i, j, 0, 0, 1, 1, b.k_dim, b.l_dim);
+    //         MatrixCPU b_2dim(b_query.data, b.k_dim, b.l_dim, b.k_incr);
+    //         MatrixCPU4Dim a_query = a.query(i, j, 0, 0, 1, 1, a.k_dim, a.l_dim);
+    //         MatrixCPU a_2dim(a_query.data, a.k_dim, a.l_dim, a.k_incr);
+    //         transpose(a_2dim, b_2dim);
+    //     }
+    // }
 }
 
 inline void softmax(MatrixCPU a, MatrixCPU b) {
@@ -385,19 +413,19 @@ inline void softmax(MatrixCPU4Dim a, MatrixCPU4Dim b) {
     float *a_data;
     float *b_data;
 
-    for (int i = 0; i < a.i_dim; i++) {
-        for (int j = 0; j < a.j_dim; j++) {
-            for (int k = 0; k < a.k_dim; k++) {
+    for (int i = 0; i < a.dims[0]; i++) {
+        for (int j = 0; j < a.dims[1]; j++) {
+            for (int k = 0; k < a.dims[2]; k++) {
                 a_data = a.data + i * a.i_incr * a.j_incr * a.k_incr + j * a.j_incr * a.k_incr + k * a.k_incr;
                 b_data = b.data + i * b.i_incr * b.j_incr * b.k_incr + j * b.j_incr * b.k_incr + k * b.k_incr;
 
-                int size = a.l_dim;
+                int size = a.dims[3];
                 vvexpf(b_data, a_data, &size);
 
                 float exp_sum = 0;
 
-                vDSP_sve(b_data, 1, &exp_sum, a.l_dim);
-                cblas_sscal(a.l_dim, 1 / exp_sum, b_data, 1);
+                vDSP_sve(b_data, 1, &exp_sum, a.dims[3]);
+                cblas_sscal(a.dims[3], 1 / exp_sum, b_data, 1);
             }
         }
     }
@@ -411,15 +439,15 @@ inline void mmul2d(MatrixCPU4Dim a, MatrixCPU4Dim b, MatrixCPU4Dim out) {
     float *a_data;
     float *b_data;
     float *out_data;
-    for (int i = 0; i < out.i_dim; i++) {
-        for (int j = 0; j < out.j_dim; j++) {
+    for (int i = 0; i < out.dims[0]; i++) {
+        for (int j = 0; j < out.dims[1]; j++) {
             a_data = a.data + i * a.i_incr * a.j_incr * a.k_incr + j * a.j_incr * a.k_incr; 
             b_data = b.data + i * b.i_incr * b.j_incr * b.k_incr + j * b.j_incr * b.k_incr; 
             out_data = out.data + i * out.i_incr * out.j_incr * out.k_incr + j * out.j_incr * out.k_incr; 
 			// std::cout << "A" << a.i_dim << " " << a.j_dim << " " << a.k_dim << " " << a.l_dim << " " << a.i_incr << " " << a.j_incr << " " << a.k_incr << std::endl;
 			// std::cout << "B" << b.i_dim << " " << b.j_dim << " " << b.k_dim << " " << b.l_dim << " " << b.i_incr << " " << b.j_incr << " " << b.k_incr << std::endl;
 			// std::cout << "OUT " << out.i_dim << " " << out.j_dim << " " << out.k_dim << " " << out.l_dim << " " << out.i_incr << " " << out.j_incr << " " << out.k_incr << std::endl;
-            cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, a.k_dim, b.l_dim, a.l_dim, 1, a_data, a.k_incr, b_data, b.k_incr, 0, out_data, out.k_incr);
+            cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, a.dims[2], b.dims[3], a.dims[3], 1, a_data, a.k_incr, b_data, b.k_incr, 0, out_data, out.k_incr);
         }
     }
 }
@@ -445,14 +473,14 @@ inline void attention(MatrixCPU4Dim q, MatrixCPU4Dim k, MatrixCPU4Dim v, MatrixC
 	// std::cout << "K " << k.i_dim << " " << k.j_dim << " " << k.k_dim << " " << k.l_dim << " " << k.i_incr << " " << k.j_incr << " " << k.k_incr << std::endl;
 	// std::cout << "V " << v.i_dim << " " << v.j_dim << " " << v.k_dim << " " << v.l_dim << " " << v.i_incr << " " << v.j_incr << " " << v.k_incr << std::endl;
 	// std::cout << "OUT " << out.i_dim << " " << out.j_dim << " " << out.k_dim << " " << out.l_dim << " " << out.i_incr << " " << out.j_incr << " " << out.k_incr << std::endl;
-    MatrixCPU4Dim kt(k.i_dim, k.j_dim, k.l_dim, k.k_dim, k.j_dim, k.l_dim, k.k_dim);
+    MatrixCPU4Dim kt(k.dims[0], k.dims[1], k.dims[3], k.dims[2], k.dims[1], k.dims[3], k.dims[2]);
     transpose2d(k, kt);
-	MatrixCPU4Dim q_kt(q.i_dim, q.j_dim, q.k_dim, k.k_dim, q.j_dim, q.k_dim, k.k_dim);
+	MatrixCPU4Dim q_kt(q.dims[0], q.dims[1], q.dims[2], k.dims[2], q.dims[1], q.dims[2], k.dims[2]);
 	mmul2d(q, kt, q_kt);
-	float sqrt_dk = sqrt(q.l_dim);
-	MatrixCPU4Dim sm_in(q.i_dim, q.j_dim, q.k_dim, k.k_dim, q.j_dim, q.k_dim, k.k_dim); 
+	float sqrt_dk = sqrt(q.dims[3]);
+	MatrixCPU4Dim sm_in(q.dims[0], q.dims[1], q.dims[2], k.dims[2], q.dims[1], q.dims[2], k.dims[2]); 
 	divn(q_kt, sqrt_dk, sm_in);
-	MatrixCPU4Dim sm_out(q.i_dim, q.j_dim, q.k_dim, k.k_dim, q.j_dim, q.k_dim, k.k_dim); 
+	MatrixCPU4Dim sm_out(q.dims[0], q.dims[1], q.dims[2], k.dims[2], q.dims[1], q.dims[2], k.dims[2]); 
 	softmax(sm_in, sm_out);
 	mmul2d(sm_out, v, out);
 	kt.destroy();

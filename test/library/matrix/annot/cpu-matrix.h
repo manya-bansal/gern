@@ -314,8 +314,8 @@ public:
         Variable height("height");
         Variable width("width");
 
-        auto twoDimLoop = For(y = Expr(0), output["k_dim"], l_y,
-                                For(z = Expr(0), output["l_dim"], l_z,
+        auto twoDimLoop = For(y = Expr(0), output["dims[2]"], l_y,
+                                For(z = Expr(0), output["dims[3]"], l_z,
                                     Produces::Subset(output, {w, x, y, z, l_w, l_x, l_y, l_z}),
                                     Consumes::Subsets(
                                         SubsetObjMany({
@@ -324,8 +324,8 @@ public:
                                             SubsetObj(v, {w, x, 0, z, l_w, l_x, height, l_z}),
                                         }))));
         
-        auto outerLoop = For(w = Expr(0), output["i_dim"], l_w,
-                            For(x = Expr(0), output["j_dim"], l_x, twoDimLoop));
+        auto outerLoop = For(w = Expr(0), output["dims[0]"], l_w,
+                            For(x = Expr(0), output["dims[1]"], l_x, twoDimLoop));
 
         return annotate(outerLoop);
     }
@@ -475,12 +475,12 @@ public:
 		Variable l_y("l_y");
 		Variable l_z("l_z");
 
-		auto innerLoop = For(z = Expr(0), output["l_dim"], l_z, 
+		auto innerLoop = For(z = Expr(0), output["dims[3]"], l_z, 
 								Produces::Subset(output, {w, x, y, z, l_w, l_x, l_y, l_z}),
 							Consumes::Subset(input, {w, x, y, z, l_w, l_x, l_y, l_z}));
-		auto middleLoop = For(y = Expr(0), output["k_dim"], l_y, innerLoop);
-		auto secondMiddleLoop = For(x = Expr(0), output["j_dim"], l_x, middleLoop);
-		auto outerLoop = For(w = Expr(0), output["i_dim"], l_w, secondMiddleLoop);
+		auto middleLoop = For(y = Expr(0), output["dims[2]"], l_y, innerLoop);
+		auto secondMiddleLoop = For(x = Expr(0), output["dims[1]"], l_x, middleLoop);
+		auto outerLoop = For(w = Expr(0), output["dims[0]"], l_w, secondMiddleLoop);
 
 		return annotate(outerLoop);
 	}
@@ -525,13 +525,13 @@ public:
         Variable l_y("l_y");
         Variable l_z("l_z");
 
-        auto innerLoop = For(y = Expr(0), output["k_dim"], l_y,
-                            For(z = Expr(0), output["l_dim"], l_z,
+        auto innerLoop = For(y = Expr(0), output["dims[2]"], l_y,
+                            For(z = Expr(0), output["dims[3]"], l_z,
                                 Produces::Subset(output, {w, x, y, z, l_w, l_x, l_y, l_z}),
                                 Consumes::Subset(input, {w, x, y, z, l_w, l_x, l_y, l_z})));
 
-        auto outerLoop = For(w = Expr(0), output["i_dim"], l_w, 
-                            For(x = Expr(0), output["j_dim"], l_x, innerLoop));
+        auto outerLoop = For(w = Expr(0), output["dims[0]"], l_w, 
+                            For(x = Expr(0), output["dims[1]"], l_x, innerLoop));
         return annotate(outerLoop);
     }
 
@@ -597,16 +597,20 @@ protected:
 
 class MatrixTranspose4D : public AbstractFunction {
 public:
-    MatrixTranspose4D()
+    MatrixTranspose4D(int64_t dim1, int64_t dim2)
         : input(new const MatrixCPU4Dim("input")),
             output(new const MatrixCPU4Dim("output")) {
+		if (dim1 < 0 || dim1 >= 4 || dim2 < 0 || dim2 >= 4) {
+			throw error::UserError("4d transpose annotation must have transpose dimensions between 0 and 3, inclusive");
+		}
+		this->dim1 = dim1;
+		this->dim2 = dim2;
     }
     std::string getName() {
-        return "gern::impl::transpose2d";
+        return "gern::impl::transpose4d";
     }
 
     Annotation getAnnotation() override {
-
         Variable w("w");
         Variable x("x");
         Variable y("y");
@@ -619,12 +623,40 @@ public:
         Variable row("row");
         Variable col("col");
 
-        auto innerLoop = For(y = Expr(0), output["k_dim"], l_y,
-                            For(z = Expr(0), output["l_dim"], l_z,
-                                Produces::Subset(output, {w, x, y, z, l_w, l_x, l_y, l_z}),
-                                Consumes::Subset(input, {w, x, z, y, l_w, l_x, l_z, l_y})));
-        auto outerLoop = For(w = Expr(0), output["i_dim"], l_w,
-                            For(x = Expr(0), output["j_dim"], l_x, innerLoop));
+		std::vector<Variable> produceVars = {w, x, y, z, l_w, l_x, l_y, l_z};
+		std::vector<Expr> consumeVars = {};
+
+		for (int i = 0; i < 4; i++) {
+			if (i == dim1) {
+				consumeVars.push_back(produceVars[dim2]);
+			} else if (i == dim2) {
+				consumeVars.push_back(produceVars[dim1]);
+			} else {
+				consumeVars.push_back(produceVars[i]);
+			}
+		}
+
+		for (int i = 4; i < 8; i++) {
+			if (i - 4 == dim1) {
+				consumeVars.push_back(produceVars[dim2 + 4]);
+			} else if (i - 4 == dim2) {
+				consumeVars.push_back(produceVars[dim1 + 4]);
+			} else {
+				consumeVars.push_back(produceVars[i]);
+			}
+		}
+
+		std::cout << "consume vars" << std::endl;
+		for (auto var : consumeVars) {
+			std::cout << var << std::endl;
+		}
+
+        auto innerLoop = For(y = Expr(0), output["dims[2]"], l_y,
+                            For(z = Expr(0), output["dims[3]"], l_z,
+                                Produces::Subset(output, produceVars),
+                                Consumes::Subset(input, consumeVars)));
+        auto outerLoop = For(w = Expr(0), output["dims[0]"], l_w,
+                            For(x = Expr(0), output["dims[1]"], l_x, innerLoop));
 
         return annotate(outerLoop);
     }
@@ -637,14 +669,23 @@ public:
 
     virtual FunctionSignature getFunction() override {
         FunctionSignature f;
-        f.name = "gern::impl::transpose2d";
+        f.name = "gern::impl::transpose4d";
         f.args = {Parameter(input), Parameter(output)};
+		std::cout << "d1 name " << d1.getName() << std::endl;
+		Variable boundD1 = d1.bind(2);
+		std::cout << "d1 bound name " << boundD1.getName() << std::endl;
+		std::cout << "d1 bound " << boundD1.isBound() << std::endl;
+		f.template_args = {boundD1, d2.bind(3)};
         return f;
     }
 
 protected:
     AbstractDataTypePtr input;
     AbstractDataTypePtr output;
+	Variable d1{"d1"};
+	Variable d2{"d2"};
+	int64_t dim1;
+	int64_t dim2;
     Variable end{"end"};
 };
 
@@ -720,8 +761,8 @@ public:
 
         Variable shared_len("shared_len");
 
-        auto innerLoop = For(y = Expr(0), output["k_dim"], l_y,
-                            For(z = Expr(0), output["l_dim"], l_z,
+        auto innerLoop = For(y = Expr(0), output["dims[2]"], l_y,
+                            For(z = Expr(0), output["dims[3]"], l_z,
                                 Produces::Subset(output, {w, x, y, z, l_w, l_x, l_y, l_z}),
                                 Consumes::Subsets(
                                     SubsetObjMany({
@@ -729,8 +770,8 @@ public:
                                         SubsetObj(b, {w, x, 0, z, l_w, l_x, shared_len, l_z})
                                     }))));
         
-        auto outerLoop = For(w = Expr(0), output["i_dim"], l_w, 
-                            For(x = Expr(0), output["j_dim"], l_x, innerLoop));
+        auto outerLoop = For(w = Expr(0), output["dims[0]"], l_w, 
+                            For(x = Expr(0), output["dims[1]"], l_x, innerLoop));
 
         return annotate(outerLoop);
     }
