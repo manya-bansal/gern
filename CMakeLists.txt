@@ -86,7 +86,7 @@ target_sources(
 
 target_compile_definitions(Gern_Gern PUBLIC $<$<CONFIG:Debug>:GERN_DEBUG_BUILD>)
 target_compile_features(Gern_Gern PUBLIC cxx_std_20)
-target_link_libraries(Gern_Gern PRIVATE ${CMAKE_DL_LIBS})
+target_link_libraries(Gern_Gern PRIVATE ${CMAKE_DL_LIBS} "${TORCH_LIBRARIES}")
 
 configure_file(
     "test/config.h.in"
@@ -97,6 +97,9 @@ include_directories(/Users/maggie/school/gern/include/gern)
 include_directories(/Users/maggie/school/gern/test)
 set(pybind11_DIR /Users/maggie/.pyenv/versions/3.12.5/lib/python3.12/site-packages/pybind11/share/cmake/pybind11)
 find_package(pybind11 REQUIRED)
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+
 pybind11_add_module(gern_py
     src/python_bindings/bindings.cpp
     src/annotations/abstract_function.cpp
@@ -119,6 +122,7 @@ pybind11_add_module(gern_py
     # src/resolve_constraints/resolve_constraints.cpp
     src/utils/name_generator.cpp)
 set_target_properties(gern_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY "../../python")
+target_link_libraries(gern_py PRIVATE "${TORCH_LIBRARIES}")
 target_compile_features(gern_py PUBLIC cxx_std_20)
 
 ##

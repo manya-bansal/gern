@@ -2,17 +2,18 @@ import torch
 import torch.fx
 import torch.utils.benchmark as benchmark
 import operator
-from generate_torch_compile_pipeline import gen, FnInterface
+from generate_torch_compile_pipeline_4d import gen, FnInterface
 import math
 from gern_py import *
 import time
 
 torch_to_gern = {
-    torch.t: FnInterface(MatrixTranspose),
-    operator.matmul: FnInterface(MatrixMultiply, {"shared_len": lambda args: args[0].meta["example_value"].size(dim=-1)}),
-    operator.truediv: FnInterface(MatrixDivn),
-    torch.nn.functional.softmax: FnInterface(MatrixSoftmax),
-    torch.nn.functional.scaled_dot_product_attention: FnInterface(MatrixAttention, {"height": lambda args: args[0].meta["example_value"].size(dim=-2), "width": lambda args: args[0].meta["example_value"].size(dim=-1)})
+    # torch.t: FnInterface(MatrixTranspose),
+    # operator.matmul: FnInterface(MatrixMultiply, {"shared_len": lambda args: args[0].meta["example_value"].size(dim=-1)}),
+    # operator.truediv: FnInterface(MatrixDivn),
+    # torch.nn.functional.softmax: FnInterface(MatrixSoftmax),
+    torch.nn.functional.scaled_dot_product_attention: FnInterface(MatrixAttention4D, extra_args={"height": lambda args: args[0].meta["example_value"].size(dim=-2), "width": lambda args: args[0].meta["example_value"].size(dim=-1)}),
+    "transpose": FnInterface(MatrixTranspose4D, fn_args=(lambda args: args[1], lambda args: args[2]), skip_nontensor_args=True)
 }
 
 class M(torch.nn.Module):
@@ -24,9 +25,9 @@ class UnfusedAttention(torch.nn.Module):
     
 
 def benchmark_runtimes(module, label, rows, cols, tiling):
-    q = torch.randn((rows, cols))
-    k = torch.randn((rows, cols))
-    v = torch.randn((rows, cols))
+    q = torch.randn((1, 12, rows, cols))
+    k = torch.randn((1, 12, rows, cols))
+    v = torch.randn((1, 12, rows, cols))
 
     results = []
 
@@ -67,9 +68,9 @@ def benchmark_runtimes(module, label, rows, cols, tiling):
         sub_label="default torch.compile"
     )
 
-    q_4d = q[None, None, :, :]
-    k_4d = k[None, None, :, :]
-    v_4d = v[None, None, :, :]
+    q_4d = q
+    k_4d = k
+    v_4d = v
 
     flash_attention = benchmark.Timer(
         stmt="""
@@ -184,13 +185,13 @@ def check_module(M, row_tilings, *args):
         gern_output = opt_M(*args)
         assert(torch.allclose(reference, gern_output, atol=1e-6))
 
-def verify_correctness():
-    q = torch.randn((1024, 64))
-    k = torch.randn((1024, 64))
-    v = torch.randn((1024, 64))
+def verify_correctness(Module):
+    q = torch.randn((1, 12, 1024, 64))
+    k = torch.randn((1, 12, 1024, 64))
+    v = torch.randn((1, 12, 1024, 64))
 
-    m = M()
-    opt_M = gen(M(), torch_to_gern)
+    m = Module()
+    opt_M = gen(Module(), torch_to_gern)
 
     output = opt_M(q, k, v)
     ref = m(q, k, v)
@@ -200,9 +201,9 @@ def verify_correctness():
 
     print(torch.allclose(ref, output, atol=1e-6))
 
-    q1 = torch.randn((1024, 64))
-    k1 = torch.randn((1024, 64))
-    v1 = torch.randn((1024, 64))
+    q1 = torch.randn((1, 12, 1024, 64))
+    k1 = torch.randn((1, 12, 1024, 64))
+    v1 = torch.randn((1, 12, 1024, 64))
 
     output = opt_M(q1, k1, v1)
     ref = m(q1, k1, v1)
@@ -210,9 +211,9 @@ def verify_correctness():
 
     torch.compiler.reset()
 
-    q2 = torch.randn((1024, 32))
-    k2 = torch.randn((1024, 32))
-    v2 = torch.randn((1024, 32))
+    q2 = torch.randn((1, 12, 1024, 64))
+    k2 = torch.randn((1, 12, 1024, 64))
+    v2 = torch.randn((1, 12, 1024, 64))
     
     output = opt_M(q2, k2, v2)
     ref = m(q2, k2, v2)
@@ -282,30 +283,43 @@ def individual_benchmarks():
     # compare.print()    
 
 if __name__ == "__main__":
-    # verify_correctness()
+    # verify_correctness(UnfusedAttention)
     # individual_benchmarks() 
 
-    ### FLASH ATTENTION BENCHMARKS
-    all_results = []
-    # row_vals = [512, 1024, 1536, 2048]
-    # row_tilings = [[32, 64, 128, 256, 512], [32, 64, 128, 256, 512, 1024], [128, 256, 512, 1536], [512, 1024, 2048]]
-    # col_vals = [32, 64, 96, 128]
-    # row_vals = [512, 1024, 2048]
-    # row_tilings=[[32, 64, 128, 256, 512], [32, 64, 128, 256, 512, 1024], [32, 64, 128, 256, 512, 2048]]
-    row_vals = [1024]
-    row_tilings=[[32, 64, 128, 256, 512, 1024]]
-    col_vals = [64]
-    for rows, row_tiling in zip(row_vals, row_tilings):
-        for cols in col_vals:
-            results = benchmark_runtimes(M, "fused", rows, cols, row_tiling)
-            all_results.append(benchmark.Compare(results))
+    class TransposeModule(torch.nn.Module):
+        def forward(self, a):
+            return a.transpose(1, 2)
 
-            results = benchmark_runtimes(UnfusedAttention, "unfused", rows, cols, row_tiling)
-            all_results.append(benchmark.Compare(results))
+    class AttentionTranspose(torch.nn.Module):
+        def forward(self, q, k, v):
+            return torch.nn.functional.scaled_dot_product_attention(q, k, v).transpose(1, 2)
+    
+    # verify_correctness(AttentionTranspose)
+    
+    benchmark_module(TransposeModule, "transpose", [512], ('a', torch.randn(1, 12, 512, 64)))
+    benchmark_module(AttentionTranspose, "attention + transpose", [512], ('q', torch.randn(1, 12, 512, 64)), ('k', torch.randn(1, 12, 512, 64)), ('v', torch.randn(1, 12, 512, 64)))
+
+    ### FLASH ATTENTION BENCHMARKS
+    # all_results = []
+    # # row_vals = [512, 1024, 1536, 2048]
+    # # row_tilings = [[32, 64, 128, 256, 512], [32, 64, 128, 256, 512, 1024], [128, 256, 512, 1536], [512, 1024, 2048]]
+    # # col_vals = [32, 64, 96, 128]
+    # # row_vals = [512, 1024, 2048]
+    # # row_tilings=[[32, 64, 128, 256, 512], [32, 64, 128, 256, 512, 1024], [32, 64, 128, 256, 512, 2048]]
+    # row_vals = [1024]
+    # row_tilings=[[32, 64, 128, 256, 512, 1024]]
+    # col_vals = [64]
+    # for rows, row_tiling in zip(row_vals, row_tilings):
+    #     for cols in col_vals:
+    #         # results = benchmark_runtimes(M, "fused", rows, cols, row_tiling)
+    #         # all_results.append(benchmark.Compare(results))
+
+    #         results = benchmark_runtimes(UnfusedAttention, "unfused", rows, cols, row_tiling)
+    #         all_results.append(benchmark.Compare(results))
             
 
-    for res in all_results:
-        res.print()
+    # for res in all_results:
+    #     res.print()
     ### END FLASH ATTENTION BENCHMARKS
 
     # attention_benchmark()

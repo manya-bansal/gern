@@ -176,8 +176,8 @@ def gen(M, torch_to_gern, *args, tile_rows=512, debug=False):
 
                     l_w_val = Int.init(out_size[0])
                     l_x_val = Int.init(out_size[1])
-                    l_y_val = Int.init(tile_rows)
-                    l_z_val = Int.init(two_dim_out_size[1])
+                    l_y_val = Int.init(out_size[2])
+                    l_z_val = Int.init(out_size[3])
 
                     filtered_variables.append((l_w, l_w_val))
                     filtered_variables.append((l_x, l_x_val))
@@ -228,10 +228,10 @@ def gen(M, torch_to_gern, *args, tile_rows=512, debug=False):
                         print("node.args", node.args)
                         print("node.name", node.name)
 
-                    if node.op == "call_method" and node.target == "transpose":
-                        print("call method detected")
-                        print(node)
-                        print(isinstance(node.args[0], torch.fx.Node))
+                    # if node.op == "call_method" and node.target == "transpose":
+                    #     print("call method detected")
+                    #     print(node)
+                    #     print(isinstance(node.args[0], torch.fx.Node))
 
                     if node.op == "call_function" and node.target in torch_to_gern or node.op == "call_method" and node.target in torch_to_gern and isinstance(node.args[0], torch.fx.Node):
                         fn_interface = torch_to_gern[node.target]
@@ -280,9 +280,9 @@ def gen(M, torch_to_gern, *args, tile_rows=512, debug=False):
                 if debug:
                     print("PRINTING FINAL GM GRAPH" , gm.graph)
                 gm.recompile()
-                print("=== GM GRAPH ===")
-                gm.graph.print_tabular()
-                print("=== END GM GRAPH ===")
+                # print("=== GM GRAPH ===")
+                # gm.graph.print_tabular()
+                # print("=== END GM GRAPH ===")
                 return gm.forward(*args)
 
             else:

@@ -51,7 +51,7 @@ public:
     FunctionSignature getAllocateFunction() const override {
         return FunctionSignature{
             .name = "gern::impl::MatrixCPU4Dim::allocate",
-            .args = {w, x, y, z, l_w, l_x, l_y, l_z},
+            .args = {l_w, l_x, l_y, l_z},
         };
     }
     FunctionSignature getFreeFunction() const override {

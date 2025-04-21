@@ -216,10 +216,10 @@ PYBIND11_MODULE(gern_py, m) {
 	py::class_<impl::MatrixCPU4Dim>(m, "MatrixCPU4Dim")
 		.def("init", [](uintptr_t ptr, int64_t i_dim, int64_t j_dim, int64_t k_dim, int64_t l_dim, int64_t i_incr, int64_t j_incr, int64_t k_incr){
 			float* data = reinterpret_cast<float*>(ptr);
-			return new impl::MatrixCPU4Dim(data, i_dim, j_dim, k_dim, l_dim, i_incr, j_incr, k_incr);
+			return new impl::MatrixCPU4Dim(data, i_dim, j_dim, k_dim, l_dim);
 		}, py::return_value_policy::reference)
 		.def("init", [](int64_t i_dim, int64_t j_dim, int64_t k_dim, int64_t l_dim, int64_t i_incr, int64_t j_incr, int64_t k_incr){
-			auto mat = new impl::MatrixCPU4Dim(i_dim, j_dim, k_dim, l_dim, i_incr, j_incr, k_incr);
+			auto mat = new impl::MatrixCPU4Dim(i_dim, j_dim, k_dim, l_dim);
 			return mat;
 		}, py::return_value_policy::reference)
 		.def("vvals", &impl::MatrixCPU4Dim::vvals)

@@ -76,6 +76,7 @@ target_compile_options(gern_test PRIVATE
 
 include_directories(${PROJECT_BINARY_DIR}/test)
 target_link_libraries(gern_test PRIVATE Gern::Gern GTest::gtest_main "-framework Accelerate")
+target_link_libraries(gern_test PRIVATE "${TORCH_LIBRARIES}")
 # target_link_libraries(gern_test PRIVATE ginac::ginac)
 
 if (DEFINED Gern_CUDA_ARCH)
