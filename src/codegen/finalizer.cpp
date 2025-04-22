@@ -1,6 +1,7 @@
 #include "codegen/finalizer.h"
 #include "annotations/rewriter.h"
 #include "annotations/rewriter_helpers.h"
+#include "codegen/concretize.h"
 #include "math.h"
 
 namespace gern {
@@ -29,6 +30,7 @@ LowerIR Finalizer::finalize() {
 
     // Figure out which adts need to be freed.
     to_free.scope();
+    to_insert.scope();
     visit(ir);
 
     std::vector<LowerIR> new_ir;
@@ -37,6 +39,11 @@ LowerIR Finalizer::finalize() {
     auto free_ds = to_free.pop();
     for (auto ds : free_ds) {
         new_ir.push_back(new const FreeNode(makeFreeCall(ds)));
+    }
+
+    auto insert_nodes = to_insert.pop();
+    for (auto insert_node : insert_nodes) {
+        new_ir.push_back(insert_node);
     }
 
     return new const BlockNode(new_ir);
@@ -64,7 +71,10 @@ void Finalizer::visit(const QueryNode *node) {
     if (node->child.freeQuery()) {
         to_free.insert(node->child);
     }
-    final_ir = new const QueryNode(node->parent, node->child, node->fields, node->call);
+    final_ir = new const QueryNode(node->parent, node->child, node->fields, node->call, node->insert, node->insert_call);
+    if (node->insert && node->parent.insertQuery()) {
+        to_insert.insert(node->insert_call);
+    }
 }
 
 void Finalizer::visit(const ComputeNode *node) {
@@ -74,6 +84,7 @@ void Finalizer::visit(const ComputeNode *node) {
 void Finalizer::visit(const IntervalNode *node) {
     std::vector<LowerIR> new_body;
     to_free.scope();
+    to_insert.scope();
 
     visit(node->body);
     new_body.push_back(final_ir);
@@ -81,6 +92,11 @@ void Finalizer::visit(const IntervalNode *node) {
     auto free_ds = to_free.pop();
     for (auto ds : free_ds) {
         new_body.push_back(new const FreeNode(makeFreeCall(ds)));
+    }
+
+    auto insert_nodes = to_insert.pop();
+    for (auto insert_node : insert_nodes) {
+        new_body.push_back(insert_node);
     }
 
     final_ir = new const IntervalNode(node->start,
@@ -316,7 +332,7 @@ void ADTReplacer::visit(const QueryNode *node) {
     AbstractDataTypePtr parent_adt = get_adt(node->parent);
     AbstractDataTypePtr child_adt = get_adt(node->child);
 
-    final_ir = new const QueryNode(parent_adt, child_adt, node->fields, MethodCall(method_data, new_call));
+    final_ir = new const QueryNode(parent_adt, child_adt, node->fields, MethodCall(method_data, new_call), node->insert, node->insert_call);
 }
 
 void ADTReplacer::visit(const ComputeNode *node) {
