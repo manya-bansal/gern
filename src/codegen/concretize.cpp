@@ -48,12 +48,13 @@ void Concretize::visit(const Computation *node) {
     std::vector<LowerIR> lowered;
     SubsetObj output_subset = node->getAnnotation().getPattern().getOutput();
     // Now, prepare the output subset.
-    auto [ir, ir_insert] = prepare_for_current_scope(output_subset, true);
+    auto [ir, ir_insert] = prepare_for_current_scope(output_subset, output_subset.getDS().insertQuery());
     lowered.push_back(ir);
 
     // Now visit each composition.
     for (const auto &c : node->composed) {
-        auto [ir, ir_insert] = prepare_for_current_scope(c.getAnnotation().getPattern().getOutput(), true);
+        auto output = c.getAnnotation().getPattern().getOutput();
+        auto [ir, ir_insert] = prepare_for_current_scope(output, output.getDS().insertQuery());
         lowered.push_back(ir);
         this->visit(c);
         lowered.push_back(lowerIR);
@@ -95,7 +96,7 @@ void Concretize::visit(const TiledComputation *node) {
     LowerIR accum_insert = LowerIR(new const BlankNode());
     // If it's a reduce, stage the output before lowering the tiled computation.
     if (node->reduce) {
-        auto [ir, ir_insert] = prepare_for_current_scope(output_subset, true);
+        auto [ir, ir_insert] = prepare_for_current_scope(output_subset, output_subset.getDS().insertQuery());
         lowered.push_back(ir);
         accum_insert = ir_insert;
     }
@@ -170,7 +171,7 @@ void Concretize::visit(const ComputeFunctionCall *node) {
         auto [ir, _] = prepare_for_current_scope(input, false);
         lowered.push_back(ir);
     }
-    auto [ir, ir_insert] = prepare_for_current_scope(pattern.getOutput(), true);
+    auto [ir, ir_insert] = prepare_for_current_scope(pattern.getOutput(), pattern.getOutput().getDS().insertQuery());
     lowered.push_back(ir);
 
     // Now, generate the function call.
@@ -231,7 +232,8 @@ void Concretize::visit(const StageNode *node) {
     auto [ir, ir_insert] = prepare_for_current_scope(node->staged_subset,
                                                      node->query_f,
                                                      node->insert_f,
-                                                     node->insert && (node->staged_subset.getDS() == node->body.getAnnotation().getPattern().getOutput().getDS()));
+                                                     node->insert);
+    //  (node->staged_subset.getDS() == node->body.getAnnotation().getPattern().getOutput().getDS()));
     lowered.push_back(ir);
     // Visit the body it was staged for.
     this->visit(node->body);
@@ -410,7 +412,7 @@ FunctionCall Concretize::constructFunctionCall(FunctionSignature f,
 
 std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj subset, bool construct_dual) {
     auto adt = subset.getDS();
-    return prepare_for_current_scope(subset, adt.getQueryFunction(), adt.getInsertFunction(), adt.insertQuery() && construct_dual);
+    return prepare_for_current_scope(subset, adt.getQueryFunction(), adt.getInsertFunction(), construct_dual);
 }
 
 std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj subset,

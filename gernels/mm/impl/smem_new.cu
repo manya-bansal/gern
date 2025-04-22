@@ -60,37 +60,66 @@ __global__ void sgemm_shared_mem_block(int M, int N, int K, float alpha,
         alpha * tmp + beta * C[threadRow * N + threadCol];
 }
 
+// template<int64_t block_x, int64_t block_y, int64_t k_dim, int64_t k_tiled, int64_t smem_size, int64_t thread_x, int64_t thread_y>
+// __global__ void function_73(impl::MatrixGPU<dim, dim, dim, 1> A, impl::ColumnMajorMatrix<dim, dim> B, impl::MatrixGPU<dim, dim, dim, 1> C) {
+
+//     int64_t _gern_i_1_7_13_19_25_31_37_43_49_55_61_67 = ((((blockIdx.x / 1) % (((block_x + (C.row - 0)) - 1) / block_x)) * block_x) + 0);
+//     auto _query_A_74 = A.template query_global_2_global<block_x, k_dim>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67, 0);
+
+//     int64_t _gern_j_2_8_14_20_26_32_38_44_50_56_62 = ((((blockIdx.y / 1) % (((block_y + (C.col - 0)) - 1) / block_y)) * block_y) + 0);
+//     auto _query_B_75 = B.template query_global_2_global<k_dim, block_y>(0, (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + 0));
+
+//     auto _query_C_76 = C.template query_global_2_global<block_x, block_y>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67, (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + 0));
+
+//     int64_t _gern_i_1_7_13_19_25 = ((((threadIdx.x / (1 * (((thread_y + (block_y - 0)) - 1) / thread_y))) % (((thread_x + (block_x - 0)) - 1) / thread_x)) * thread_x) + 0);
+//     int64_t _gern_j_2_8_14_20 = ((((threadIdx.x / 1) % (((thread_y + (block_y - 0)) - 1) / thread_y)) * thread_y) + 0);
+
+//     auto _query_C_81 = _query_C_76.template query_2_reg_no_vector_zero<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37_43_49_55_61_67 + _gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + _gern_j_2_8_14_20 + 0));
+
+//     for (int64_t _gern_k_3_9_15_21_27_33_39_45 = 0; (_gern_k_3_9_15_21_27_33_39_45 < k_dim); _gern_k_3_9_15_21_27_33_39_45 = (_gern_k_3_9_15_21_27_33_39_45 + k_tiled)) {
+//         auto _query_A_77 = _query_A_74.template query_global_2_shared_restrict<block_x, k_tiled>(0, (_gern_k_3_9_15_21_27_33_39_45 + 0));
+
+//         auto _query_B_78 = _query_B_75.template query_global_2_shared_restrict<k_tiled, block_y>((_gern_k_3_9_15_21_27_33_39_45 + 0), 0);
+
+//         auto _query_A_79 = _query_A_77.template query_global_2_global_sync<thread_x, k_tiled>((_gern_i_1_7_13_19_25 + 0), 0);
+
+//         auto _query_B_80 = _query_B_78.template query_global_2_global<k_tiled, thread_y>(0, (_gern_j_2_8_14_20 + 0));
+
+//         // auto _query_C_81 = _query_C_76.template query_global_2_global<thread_x, thread_y>((_gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20 + 0));
+
+//         matrix_multiply_sync<k_tiled>(_query_A_79, _query_B_80, _query_C_81);
+//     }
+
+//     C.template insert_2_reg_no_vector<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37_43_49_55_61_67 + _gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + _gern_j_2_8_14_20 + 0), _query_C_81);
+// }
+
 template<int64_t block_x, int64_t block_y, int64_t k_dim, int64_t k_tiled, int64_t smem_size, int64_t thread_x, int64_t thread_y>
-__global__ void function_73(impl::MatrixGPU<dim, dim, dim, 1> A, impl::ColumnMajorMatrix<dim, dim> B, impl::MatrixGPU<dim, dim, dim, 1> C) {
+__global__ void function_79(impl::MatrixGPU<dim, dim, dim, 1> A, impl::ColumnMajorMatrix<dim, dim> B, impl::MatrixGPU<dim, dim, dim, 1> C) {
+    int64_t _gern_i_1_7_13_19_25_31_37_43_49_55_61_67_73 = ((((blockIdx.x / 1) % (((block_x + (C.row - 0)) - 1) / block_x)) * block_x) + 0);
+    int64_t _gern_j_2_8_14_20_26_32_38_44_50_56_62_68 = ((((blockIdx.y / 1) % (((block_y + (C.col - 0)) - 1) / block_y)) * block_y) + 0);
+    int64_t _gern_i_1_7_13_19_25_31 = ((((threadIdx.x / (1 * (((thread_y + (block_y - 0)) - 1) / thread_y))) % (((thread_x + (block_x - 0)) - 1) / thread_x)) * thread_x) + 0);
+    int64_t _gern_j_2_8_14_20_26 = ((((threadIdx.x / 1) % (((thread_y + (block_y - 0)) - 1) / thread_y)) * thread_y) + 0);
 
-    int64_t _gern_i_1_7_13_19_25_31_37_43_49_55_61_67 = ((((blockIdx.x / 1) % (((block_x + (C.row - 0)) - 1) / block_x)) * block_x) + 0);
-    auto _query_A_74 = A.template query_global_2_global<block_x, k_dim>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67, 0);
+    auto _query_A_80 = A.template query_global_2_global<block_x, k_dim>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67_73, 0);
 
-    int64_t _gern_j_2_8_14_20_26_32_38_44_50_56_62 = ((((blockIdx.y / 1) % (((block_y + (C.col - 0)) - 1) / block_y)) * block_y) + 0);
-    auto _query_B_75 = B.template query_global_2_global<k_dim, block_y>(0, (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + 0));
+    auto _query_B_81 = B.template query_global_2_global<k_dim, block_y>(0, (_gern_j_2_8_14_20_26_32_38_44_50_56_62_68 + 0));
 
-    auto _query_C_76 = C.template query_global_2_global<block_x, block_y>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67, (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + 0));
+    auto _query_C_82 = C.template query_global_2_global<block_x, block_y>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67_73, (_gern_j_2_8_14_20_26_32_38_44_50_56_62_68 + 0));
 
-    int64_t _gern_i_1_7_13_19_25 = ((((threadIdx.x / (1 * (((thread_y + (block_y - 0)) - 1) / thread_y))) % (((thread_x + (block_x - 0)) - 1) / thread_x)) * thread_x) + 0);
-    int64_t _gern_j_2_8_14_20 = ((((threadIdx.x / 1) % (((thread_y + (block_y - 0)) - 1) / thread_y)) * thread_y) + 0);
+    auto _query_C_85 = _query_C_82.template query_2_reg_no_vector_zero<thread_x, thread_y>((_gern_i_1_7_13_19_25_31 + 0), (_gern_j_2_8_14_20_26 + 0));
 
-    auto _query_C_81 = _query_C_76.template query_2_reg_no_vector_zero<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37_43_49_55_61_67 + _gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + _gern_j_2_8_14_20 + 0));
+    for (int64_t _gern_k_3_9_15_21_27_33_39_45_51 = 0; (_gern_k_3_9_15_21_27_33_39_45_51 < k_dim); _gern_k_3_9_15_21_27_33_39_45_51 = (_gern_k_3_9_15_21_27_33_39_45_51 + k_tiled)) {
+        auto _query_A_83 = _query_A_80.template query_global_2_shared_restrict<block_x, k_tiled>(0, (_gern_k_3_9_15_21_27_33_39_45_51 + 0));
 
-    for (int64_t _gern_k_3_9_15_21_27_33_39_45 = 0; (_gern_k_3_9_15_21_27_33_39_45 < k_dim); _gern_k_3_9_15_21_27_33_39_45 = (_gern_k_3_9_15_21_27_33_39_45 + k_tiled)) {
-        auto _query_A_77 = _query_A_74.template query_global_2_shared_restrict<block_x, k_tiled>(0, (_gern_k_3_9_15_21_27_33_39_45 + 0));
+        auto _query_B_84 = _query_B_81.template query_global_2_shared_restrict<k_tiled, block_y>((_gern_k_3_9_15_21_27_33_39_45_51 + 0), 0);
 
-        auto _query_B_78 = _query_B_75.template query_global_2_shared_restrict<k_tiled, block_y>((_gern_k_3_9_15_21_27_33_39_45 + 0), 0);
+        auto _query_A_86 = _query_A_83.template query_global_2_global_sync<thread_x, k_tiled>((_gern_i_1_7_13_19_25_31 + 0), 0);
 
-        auto _query_A_79 = _query_A_77.template query_global_2_global_sync<thread_x, k_tiled>((_gern_i_1_7_13_19_25 + 0), 0);
+        auto _query_B_87 = _query_B_84.template query_global_2_global<k_tiled, thread_y>(0, (_gern_j_2_8_14_20_26 + 0));
 
-        auto _query_B_80 = _query_B_78.template query_global_2_global<k_tiled, thread_y>(0, (_gern_j_2_8_14_20 + 0));
-
-        // auto _query_C_81 = _query_C_76.template query_global_2_global<thread_x, thread_y>((_gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20 + 0));
-
-        matrix_multiply_sync<k_tiled>(_query_A_79, _query_B_80, _query_C_81);
+        matrix_multiply_sync<k_tiled>(_query_A_86, _query_B_87, _query_C_85);
     }
-
-    C.template insert_2_reg_no_vector<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37_43_49_55_61_67 + _gern_i_1_7_13_19_25 + 0), (_gern_j_2_8_14_20_26_32_38_44_50_56_62 + _gern_j_2_8_14_20 + 0), _query_C_81);
+    _query_C_82.template insert_2_reg_no_vector<thread_x, thread_y>((_gern_i_1_7_13_19_25_31 + 0), (_gern_j_2_8_14_20_26 + 0), _query_C_85);
 }
 
 template<const int BLOCKSIZE, const int M, const int N, const int K>
@@ -192,7 +221,7 @@ int main() {
     constexpr int64_t thread_y = 1;
     dim3 grid_82 = dim3((1 * (((block_x + (C.row - 0)) - 1) / block_x)), (1 * (((block_y + (C.col - 0)) - 1) / block_y)), 1);
     dim3 block_83 = dim3(((1 * (((thread_y + (block_y - 0)) - 1) / thread_y)) * (((thread_x + (block_x - 0)) - 1) / thread_x)), 1, 1);
-    auto function_sp_84 = function_73<block_x, block_y, k_dim, k_tiled, smem_size, thread_x, thread_y>;
+    auto function_sp_84 = function_79<block_x, block_y, k_dim, k_tiled, smem_size, thread_x, thread_y>;
     cudaFuncSetAttribute(function_sp_84, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size);
 
     impl::MatrixGPU<M, N, N, 1> C_gern;

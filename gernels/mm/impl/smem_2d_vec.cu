@@ -109,10 +109,6 @@ __global__ void gernel_mine(int M, int N, int K, float alpha, AT A_ds, BT B_ds, 
     const uint cRow = blockIdx.y;
     const uint cCol = blockIdx.x;
 
-    float *A = A_ds.data;
-    float *B = B_ds.data;
-    float *C = C_ds.data;
-
     // BN/TN are the number of threads to span a column
     const int threadCol = threadIdx.x % (BN / TN);
     const int threadRow = threadIdx.x / (BN / TN);
@@ -122,14 +118,10 @@ __global__ void gernel_mine(int M, int N, int K, float alpha, AT A_ds, BT B_ds, 
     __shared__ float Bs[BK * BN];
 
     auto a_q = A_ds.template query_global_2_global<BM, BK>(cRow * BM, 0);
-    A = a_q.data;
     auto b_q = B_ds.template query_global_2_global<BK, BN>(0, cCol * BN);
-    B = b_q.data;
     auto c_q = C_ds.template query_global_2_global<BM, BN>(cRow * BM, cCol * BN);
-    C = c_q.data;
 
     auto c_reg = c_q.template query_2_reg_no_vector_zero<TM, TN>(threadRow * TM, threadCol * TN);
-    float *threadResults = c_reg.array;
 
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
@@ -152,6 +144,59 @@ __global__ void gernel_mine(int M, int N, int K, float alpha, AT A_ds, BT B_ds, 
     }
 
     c_q.template insert_from_reg_no_vector<TM, TN>(threadRow * TM, threadCol * TN, c_reg);
+}
+
+template<int64_t block_x, int64_t block_y, int64_t k_dim, int64_t k_tiled, int64_t smem_size, int64_t thread_k, int64_t thread_x, int64_t thread_y, typename AT, typename BT, typename CT>
+__global__ void function_85(AT A, BT B, CT C) {
+
+    const int threadCol = threadIdx.x % (block_y / thread_y);
+    const int threadRow = threadIdx.x / (block_y / thread_y);
+
+    const uint cRow = blockIdx.y;
+    const uint cCol = blockIdx.x;
+
+    int64_t _gern_i_1_7_13_19_25_31_37_43_49_55_61_67_73_79 = (cRow * block_x);
+    int64_t _gern_j_2_8_14_20_26_32_38_44_50_56_62_68_74 = (cCol * block_y);
+
+    // int64_t _gern_i_1_7_13_19_25_31_37 = (threadRow * thread_x);
+    // int64_t _gern_j_2_8_14_20_26_32 = (threadCol * thread_y);
+
+    // uint _gern_i_1_7_13_19_25_31_37_43_49_55_61_67_73_79 = ((((cCol / 1) % (((block_x + (dim - 0)) - 1) / block_x)) * block_x) + 0);
+    // uint _gern_j_2_8_14_20_26_32_38_44_50_56_62_68_74 = ((((cRow / 1) % (((block_y + (dim - 0)) - 1) / block_y)) * block_y) + 0);
+    int64_t _gern_i_1_7_13_19_25_31_37 = ((((threadIdx.x / (1 * (((thread_y + (block_y - 0)) - 1) / thread_y))) % (((thread_x + (block_x - 0)) - 1) / thread_x)) * thread_x) + 0);
+    int64_t _gern_j_2_8_14_20_26_32 = ((((threadIdx.x / 1) % (((thread_y + (block_y - 0)) - 1) / thread_y)) * thread_y) + 0);
+
+    __shared__ float As[block_x * k_tiled];
+    __shared__ float Bs[k_tiled * block_y];
+
+    auto _query_A_86 = A.template query_global_2_global<block_x, k_dim>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67_73_79, 0);
+
+    auto _query_B_87 = B.template query_global_2_global<k_dim, block_y>(0, (_gern_j_2_8_14_20_26_32_38_44_50_56_62_68_74 + 0));
+
+    auto _query_C_88 = C.template query_global_2_global<block_x, block_y>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67_73_79, (_gern_j_2_8_14_20_26_32_38_44_50_56_62_68_74 + 0));
+
+    auto _query_C_91 = _query_C_88.template query_2_reg_no_vector_zero<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37 + 0), (_gern_j_2_8_14_20_26_32 + 0));
+
+    for (int64_t _gern_k_3_9_15_21_27_33_39_45_51_57 = 0; (_gern_k_3_9_15_21_27_33_39_45_51_57 < k_dim); _gern_k_3_9_15_21_27_33_39_45_51_57 = (_gern_k_3_9_15_21_27_33_39_45_51_57 + k_tiled)) {
+
+        auto _query_A_89 = _query_A_86.template query_global_2_shared_vec_t<block_x, k_tiled, (block_x / thread_x) * (block_y / thread_y)>(0, (_gern_k_3_9_15_21_27_33_39_45_51_57 + 0), As);
+
+        auto _query_B_90 = _query_B_87.template query_global_2_shared_vec<k_tiled, block_y, (block_x / thread_x) * (block_y / thread_y)>((_gern_k_3_9_15_21_27_33_39_45_51_57 + 0), 0, Bs);
+
+        __syncthreads();
+
+        for (int64_t _gern_k_3_9_15_21 = 0; (_gern_k_3_9_15_21 < k_tiled); _gern_k_3_9_15_21 = (_gern_k_3_9_15_21 + thread_k)) {
+            auto _query_A_92 = _query_A_89.template query_2_reg_no_vector<thread_k, thread_x>((_gern_k_3_9_15_21 + 0), (_gern_i_1_7_13_19_25_31_37 + 0));
+
+            auto _query_B_93 = _query_B_90.template query_2_reg_no_vector<thread_k, thread_y>((_gern_k_3_9_15_21 + 0), (_gern_j_2_8_14_20_26_32 + 0));
+
+            matrix_multiply_reg_flat_T<thread_k>(_query_A_92, _query_B_93, _query_C_91);
+        }
+
+        __syncthreads();
+    }
+
+    _query_C_88.template insert_2_reg_no_vector<thread_x, thread_y>((_gern_i_1_7_13_19_25_31_37 + 0), (_gern_j_2_8_14_20_26_32 + 0), _query_C_91);
 }
 
 int main() {
@@ -204,12 +249,24 @@ int main() {
     std::cout << "Time: " << time_gern << " ms" << std::endl;
     std::cout << "GFLOPS: " << static_cast<double>(int64_t(2) * M * N * K) / (time_gern * 1e9) << std::endl;
 
+    impl::MatrixGPU<M, N, N, 1> C_gern_gen(offset);
+    auto func_gern_gen = [&]() {
+        function_85<BM, BN, K, BK, 0, 1, TM, TN>
+            <<<gridDim, blockDim>>>(A, B, C_gern_gen);
+    };
+
+    double time_gern_gen = benchmark::benchmark(10, 1, func_gern_gen, 2);
+    std::cout << "Time: " << time_gern_gen << " ms" << std::endl;
+    std::cout << "GFLOPS: " << static_cast<double>(int64_t(2) * M * N * K) / (time_gern_gen * 1e9) << std::endl;
+
     auto C_gern_cpu = C_gern.get();
     auto C_cpu = C.get();
+    auto C_gern_gen_cpu = C_gern_gen.get();
 
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
             assert(C_gern_cpu(i, j) == C_cpu(i, j));
+            assert(C_gern_gen_cpu(i, j) == C_cpu(i, j));
         }
     }
 }

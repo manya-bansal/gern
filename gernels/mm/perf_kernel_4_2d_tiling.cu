@@ -47,6 +47,7 @@ int main() {
     Variable thread_y("thread_y");
     Variable smem_size("smem_size");
     Variable one_val("one_val");
+    Variable thread_k("thread_k");
 
     block_x = block_x.bind(32);
     block_y = block_y.bind(32);
@@ -78,13 +79,14 @@ int main() {
                                                 (Tile(C_DS["row"], thread_x) || Grid::Unit::THREAD_X)(
                                                     (Tile(C_DS["col"], thread_y) || Grid::Unit::THREAD_X)(
                                                         Stage(C_DS, c_raw.getQueryFunctionZero(), c_raw.getInsertFunction(),
-                                                              Stage(A_DS, a_raw.getQueryFunctionSync(),
-                                                                    Stage(B_DS, a_raw.getQueryFunction(),
-                                                                          (*mm_sp)(A_DS, B_DS, C_DS))))))))))))),
+                                                              Reduce(k_dim, thread_k.bind(1))(
+                                                                  Stage(A_DS, a_raw.getQueryFunctionSync(),
+                                                                        Stage(B_DS, a_raw.getQueryFunction(),
+                                                                              (*mm_sp)(A_DS, B_DS, C_DS)))))))))))))),
             {}, smem_size),
     };
 
-    Runner runner = mm_helpers::runner(program, "kernel_3.cu");
+    Runner runner = mm_helpers::runner(program, "kernel_4.cu");
 
     AImpl A;
     A.ascending();

@@ -1,3 +1,3 @@
-#define M_CONST 8192
-#define N_CONST 8192
-#define K_CONST 8192
+#define M_CONST 4096
+#define N_CONST 4096
+#define K_CONST 4096
