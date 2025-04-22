@@ -247,3 +247,51 @@ TEST(LoweringGPU, RepeatUnit) {
     result.destroy();
     a_host.destroy();
 }
+
+TEST(LoweringGPU, ReductionHoister) {
+    auto inputDS = AbstractDataTypePtr(new const annot::ArrayGPU("input_con"));
+    auto outputDS = AbstractDataTypePtr(new const annot::ArrayGPU("output_con"));
+
+    annot::reductionGPU reduce;
+    Variable v("v");
+    Variable step("step");
+    Variable blk("blk");
+    Variable k("k");
+    Variable k2("k2");
+
+    Composable program =
+        Global(
+
+            (Tile(outputDS["size"], k2.bind(10)))(
+                Reduce(k, step.bind(5))(
+                    (Tile(outputDS["size"], step.bind(5)) || Grid::Unit::BLOCK_X)(
+                        (Tile(outputDS["size"], blk.bind(1)) || Grid::Unit::THREAD_X)(
+                            Reduce(k, blk.bind(1))(
+                                reduce(inputDS, outputDS, k)))))));
+
+    Runner run(program);
+    run.compile(test::gpuRunner("array"));
+    // Now, actually run the function.
+    impl::ArrayGPU a(10);
+    a.ascending();
+    impl::ArrayGPU b(10);
+    int64_t step_val = 1;
+    int64_t k_val = 10;
+
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+        {k.getName(), &k_val},
+    }));
+
+    impl::ArrayCPU result = b.get();
+    impl::ArrayCPU a_host = a.get();
+    for (int i = 0; i < 10; i++) {
+        ASSERT_TRUE(result.data[i] == k_val * (k_val - 1) / 2);
+    }
+
+    a.destroy();
+    b.destroy();
+    result.destroy();
+    a_host.destroy();
+}

@@ -48,12 +48,12 @@ void Concretize::visit(const Computation *node) {
     std::vector<LowerIR> lowered;
     SubsetObj output_subset = node->getAnnotation().getPattern().getOutput();
     // Now, prepare the output subset.
-    auto [ir, ir_insert] = prepare_for_current_scope(output_subset);
+    auto [ir, ir_insert] = prepare_for_current_scope(output_subset, true);
     lowered.push_back(ir);
 
     // Now visit each composition.
     for (const auto &c : node->composed) {
-        auto [ir, ir_insert] = prepare_for_current_scope(c.getAnnotation().getPattern().getOutput());
+        auto [ir, ir_insert] = prepare_for_current_scope(c.getAnnotation().getPattern().getOutput(), true);
         lowered.push_back(ir);
         this->visit(c);
         lowered.push_back(lowerIR);
@@ -95,7 +95,7 @@ void Concretize::visit(const TiledComputation *node) {
     LowerIR accum_insert = LowerIR(new const BlankNode());
     // If it's a reduce, stage the output before lowering the tiled computation.
     if (node->reduce) {
-        auto [ir, ir_insert] = prepare_for_current_scope(output_subset);
+        auto [ir, ir_insert] = prepare_for_current_scope(output_subset, true);
         lowered.push_back(ir);
         accum_insert = ir_insert;
     }
@@ -147,7 +147,18 @@ void Concretize::visit(const TiledComputation *node) {
 
 void Concretize::visit(const ComputeFunctionCall *node) {
     std::vector<LowerIR> lowered;
+
     auto annotation = node->getAnnotation();
+    // Track all the tileable and reducable fields.
+    auto tileable_fileds = node->getAnnotation().getPattern().getTileableFields();
+    for (const auto &field : tileable_fileds) {
+        declare_intervals(field.first, get<2>(field.second));
+    }
+
+    auto reducable_fields = node->getAnnotation().getPattern().getReducableFields();
+    for (const auto &field : reducable_fields) {
+        declare_intervals(field.first, get<2>(field.second));
+    }
     // Emit any asserts that we need.
     for (const auto &constraint : annotation.getConstraints()) {
         lowered.push_back(new const AssertNode(get_base_constraint(constraint, {})));
@@ -156,10 +167,10 @@ void Concretize::visit(const ComputeFunctionCall *node) {
     // For each input and the output, first prepare it and then proceed.
     auto pattern = annotation.getPattern();
     for (const auto &input : pattern.getInputs()) {
-        auto [ir, _] = prepare_for_current_scope(input);
+        auto [ir, _] = prepare_for_current_scope(input, false);
         lowered.push_back(ir);
     }
-    auto [ir, ir_insert] = prepare_for_current_scope(pattern.getOutput());
+    auto [ir, ir_insert] = prepare_for_current_scope(pattern.getOutput(), true);
     lowered.push_back(ir);
 
     // Now, generate the function call.
@@ -220,7 +231,7 @@ void Concretize::visit(const StageNode *node) {
     auto [ir, ir_insert] = prepare_for_current_scope(node->staged_subset,
                                                      node->query_f,
                                                      node->insert_f,
-                                                     node->insert);
+                                                     node->insert && (node->staged_subset.getDS() == node->body.getAnnotation().getPattern().getOutput().getDS()));
     lowered.push_back(ir);
     // Visit the body it was staged for.
     this->visit(node->body);
@@ -366,7 +377,7 @@ Expr Concretize::get_base_expr(Expr e,
 
 FunctionCall Concretize::constructFunctionCall(FunctionSignature f,
                                                std::vector<Variable> ref_md_fields,
-                                               std::vector<Expr> true_md_fields) const {
+                                               std::vector<Expr> true_md_fields) {
 
     if (ref_md_fields.size() != true_md_fields.size()) {
         throw error::InternalError("Incorrect number of fields passed!");
@@ -397,9 +408,9 @@ FunctionCall Concretize::constructFunctionCall(FunctionSignature f,
     return f_new;
 }
 
-std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj subset) {
+std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj subset, bool construct_dual) {
     auto adt = subset.getDS();
-    return prepare_for_current_scope(subset, adt.getQueryFunction(), adt.getInsertFunction(), adt.insertQuery());
+    return prepare_for_current_scope(subset, adt.getQueryFunction(), adt.getInsertFunction(), adt.insertQuery() && construct_dual);
 }
 
 std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj subset,
@@ -433,13 +444,16 @@ std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj sub
             call.output = Parameter(queried);
             MethodCall method_call = MethodCall(parent, call);
             current_adt.insert(adt, SubsetObj(queried, fields_expr));
-            ir = LowerIR(new const QueryNode(adt, queried, fields_expr, method_call));
-            // Do we need to insert?
+
             if (construct_dual) {
                 auto insert_call = constructFunctionCall(dual_f, parent.getFields(), fields_expr);
                 insert_call.args.push_back(queried);
                 ir_insert = LowerIR(new const InsertNode(MethodCall(parent, insert_call)));
             }
+
+            ir = LowerIR(new const QueryNode(adt, queried, fields_expr, method_call, construct_dual, ir_insert));
+            // Do we need to insert?
+
         } else {
             std::vector<Expr> fields_expr;
             for (const auto &field : subset.getFields()) {
@@ -457,7 +471,7 @@ std::tuple<LowerIR, LowerIR> Concretize::prepare_for_current_scope(SubsetObj sub
         }
     }
 
-    return std::make_tuple(ir, ir_insert);
+    return std::make_tuple(ir, LowerIR(new const BlankNode()));
 }
 
 Constraint Concretize::get_base_constraint(Constraint c,

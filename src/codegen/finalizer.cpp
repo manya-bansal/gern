@@ -1,6 +1,7 @@
 #include "codegen/finalizer.h"
 #include "annotations/rewriter.h"
 #include "annotations/rewriter_helpers.h"
+#include "codegen/concretize.h"
 #include "math.h"
 
 namespace gern {
@@ -29,6 +30,7 @@ LowerIR Finalizer::finalize() {
 
     // Figure out which adts need to be freed.
     to_free.scope();
+    to_insert.scope();
     visit(ir);
 
     std::vector<LowerIR> new_ir;
@@ -37,6 +39,11 @@ LowerIR Finalizer::finalize() {
     auto free_ds = to_free.pop();
     for (auto ds : free_ds) {
         new_ir.push_back(new const FreeNode(makeFreeCall(ds)));
+    }
+
+    auto insert_nodes = to_insert.pop();
+    for (auto insert_node : insert_nodes) {
+        new_ir.push_back(insert_node);
     }
 
     return new const BlockNode(new_ir);
@@ -64,7 +71,10 @@ void Finalizer::visit(const QueryNode *node) {
     if (node->child.freeQuery()) {
         to_free.insert(node->child);
     }
-    final_ir = new const QueryNode(node->parent, node->child, node->fields, node->call);
+    final_ir = new const QueryNode(node->parent, node->child, node->fields, node->call, node->insert, node->insert_call);
+    if (node->insert && node->parent.insertQuery()) {
+        to_insert.insert(node->insert_call);
+    }
 }
 
 void Finalizer::visit(const ComputeNode *node) {
@@ -74,6 +84,7 @@ void Finalizer::visit(const ComputeNode *node) {
 void Finalizer::visit(const IntervalNode *node) {
     std::vector<LowerIR> new_body;
     to_free.scope();
+    to_insert.scope();
 
     visit(node->body);
     new_body.push_back(final_ir);
@@ -81,6 +92,11 @@ void Finalizer::visit(const IntervalNode *node) {
     auto free_ds = to_free.pop();
     for (auto ds : free_ds) {
         new_body.push_back(new const FreeNode(makeFreeCall(ds)));
+    }
+
+    auto insert_nodes = to_insert.pop();
+    for (auto insert_node : insert_nodes) {
+        new_body.push_back(insert_node);
     }
 
     final_ir = new const IntervalNode(node->start,
@@ -316,7 +332,7 @@ void ADTReplacer::visit(const QueryNode *node) {
     AbstractDataTypePtr parent_adt = get_adt(node->parent);
     AbstractDataTypePtr child_adt = get_adt(node->child);
 
-    final_ir = new const QueryNode(parent_adt, child_adt, node->fields, MethodCall(method_data, new_call));
+    final_ir = new const QueryNode(parent_adt, child_adt, node->fields, MethodCall(method_data, new_call), node->insert, node->insert_call);
 }
 
 void ADTReplacer::visit(const ComputeNode *node) {
@@ -428,7 +444,7 @@ void Scoper::visit(const InsertNode *node) {
 
 void Scoper::visit(const QueryNode *node) {
     std::vector<Argument> scoped_by = node->call.call.args;
-    scoped_by.push_back(Argument(node->parent));
+    scoped_by.push_back(Argument(node->call.data));
     adt_scope[node->child] = get_scope(scoped_by);
     new_statements[adt_scope[node->child]].push_back(node);
 }
@@ -439,21 +455,29 @@ void Scoper::visit(const ComputeNode *node) {
 }
 
 void Scoper::visit(const IntervalNode *node) {
-    cur_scope++;
-    var_scope[node->getIntervalVariable()] = cur_scope;
+    // If not mapped to grid, increment the scope.
+    if (!node->isMappedToGrid()) {
+        cur_scope++;
+    }
+
+    int scope = (node->isMappedToGrid()) ? 0 : cur_scope;
+    var_scope[node->getIntervalVariable()] = scope;
     visit(node->body);
 
     // Generate the new body!
-    std::vector<LowerIR> new_body = new_statements[cur_scope];
-    new_statements.erase(cur_scope);
-    cur_scope--;
+    std::vector<LowerIR> new_body = new_statements[scope];
+    new_statements.erase(scope);
+
+    if (!node->isMappedToGrid()) {
+        cur_scope--;
+    }
 
     // Insert the new interval node with the new body at the previous scope.
-    new_statements[cur_scope].push_back(new const IntervalNode(node->start,
-                                                               node->end,
-                                                               node->step,
-                                                               new const BlockNode(new_body),
-                                                               node->p));
+    new_statements[(node->isMappedToGrid()) ? 0 : cur_scope].push_back(new const IntervalNode(node->start,
+                                                                                              node->end,
+                                                                                              node->step,
+                                                                                              new const BlockNode(new_body),
+                                                                                              node->p));
 }
 
 void Scoper::visit(const DefNode *node) {

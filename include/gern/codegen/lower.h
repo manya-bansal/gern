@@ -102,14 +102,21 @@ struct SharedMemoryDeclNode : public LowerIRNode {
 // from the parent data-structure corresponding to
 // the subset with meta-data values in fields.
 struct QueryNode : public LowerIRNode {
-    QueryNode(AbstractDataTypePtr parent, AbstractDataTypePtr child, const std::vector<Expr> &fields, MethodCall call)
-        : parent(parent), child(child), fields(fields), call(call) {
+    QueryNode(AbstractDataTypePtr parent,
+              AbstractDataTypePtr child,
+              const std::vector<Expr> &fields,
+              MethodCall call,
+              const bool &insert,
+              LowerIR insert_call)
+        : parent(parent), child(child), fields(fields), call(call), insert(insert), insert_call(insert_call) {
     }
     void accept(LowerIRVisitor *) const;
     AbstractDataTypePtr parent;
     AbstractDataTypePtr child;
     std::vector<Expr> fields;
     MethodCall call;
+    bool insert;
+    LowerIR insert_call;
 };
 
 // IR Node marks a FunctionSignature call.

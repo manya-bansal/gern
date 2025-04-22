@@ -15,6 +15,9 @@ class Concretize : public ComposableVisitorStrict {
 public:
     Concretize(Composable program);
     LowerIR concretize();
+    static FunctionCall constructFunctionCall(FunctionSignature f,
+                                              std::vector<Variable> ref_md_fields,
+                                              std::vector<Expr> true_md_fields);
 
 private:
     Composable program;
@@ -45,7 +48,7 @@ private:
                                                            FunctionSignature dual_f,
                                                            bool construct_dual);
 
-    std::tuple<LowerIR, LowerIR> prepare_for_current_scope(SubsetObj subset);
+    std::tuple<LowerIR, LowerIR> prepare_for_current_scope(SubsetObj subset, bool construct_dual);
 
     Argument get_argument(Expr e);
     std::vector<Argument> constuct_arguments(std::vector<Argument> args);
@@ -54,9 +57,6 @@ private:
                        std::set<Variable> stop_at);
     Constraint get_base_constraint(Constraint c,
                                    std::set<Variable> stop_at);
-    FunctionCall constructFunctionCall(FunctionSignature f,
-                                       std::vector<Variable> ref_md_fields,
-                                       std::vector<Expr> true_md_fields) const;
 };
 
 }  // namespace gern

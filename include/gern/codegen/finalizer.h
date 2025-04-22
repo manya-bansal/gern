@@ -31,7 +31,7 @@ private:
     LowerIR ir;
     LowerIR final_ir;
     util::ScopedSet<AbstractDataTypePtr> to_free;
-    util::ScopedSet<const InsertNode *> to_insert;
+    util::ScopedSet<LowerIR> to_insert;
 };
 
 class ADTReplacer : public LowerIRVisitor {
