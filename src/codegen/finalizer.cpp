@@ -423,6 +423,7 @@ int32_t Scoper::get_scope(std::vector<Argument> args) const {
         } else {
             throw error::InternalError("Unknown argument type: " + arg.str());
         }
+        std::cout << "Scope: " << scope << std::endl;
     }
     return std::min(scope, cur_scope);
 }
@@ -444,7 +445,7 @@ void Scoper::visit(const InsertNode *node) {
 
 void Scoper::visit(const QueryNode *node) {
     std::vector<Argument> scoped_by = node->call.call.args;
-    scoped_by.push_back(Argument(node->parent));
+    scoped_by.push_back(Argument(node->call.data));
     adt_scope[node->child] = get_scope(scoped_by);
     new_statements[adt_scope[node->child]].push_back(node);
 }

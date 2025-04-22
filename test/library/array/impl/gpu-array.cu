@@ -31,5 +31,14 @@ __device__ inline void add_1_thread(ArrayGPU a, ArrayGPU b) {
     b.data[x] = a.data[x] + 1;
 }
 
+template<typename T1, typename T2>
+__device__ inline void reduction(T1 a, T2 b, int64_t k) {
+    for (int64_t i = 0; i < b.size; i++) {
+        for (int64_t j = 0; j < k; j++) {
+            b.data[i] += a.data[j];
+        }
+    }
+}
+
 }  // namespace impl
 }  // namespace gern
