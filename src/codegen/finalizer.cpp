@@ -455,21 +455,30 @@ void Scoper::visit(const ComputeNode *node) {
 }
 
 void Scoper::visit(const IntervalNode *node) {
-    cur_scope++;
-    var_scope[node->getIntervalVariable()] = cur_scope;
+    // If not mapped to grid, increment the scope.
+    if (!node->isMappedToGrid()) {
+        cur_scope++;
+    }
+
+    int scope = (node->isMappedToGrid()) ? 0 : cur_scope;
+    var_scope[node->getIntervalVariable()] = scope;
     visit(node->body);
 
     // Generate the new body!
-    std::vector<LowerIR> new_body = new_statements[cur_scope];
-    new_statements.erase(cur_scope);
-    cur_scope--;
+    std::vector<LowerIR> new_body = new_statements[scope];
+    std::cout << "New body: " << LowerIR(new const BlockNode(new_body)) << std::endl;
+    new_statements.erase(scope);
+
+    if (!node->isMappedToGrid()) {
+        cur_scope--;
+    }
 
     // Insert the new interval node with the new body at the previous scope.
-    new_statements[cur_scope].push_back(new const IntervalNode(node->start,
-                                                               node->end,
-                                                               node->step,
-                                                               new const BlockNode(new_body),
-                                                               node->p));
+    new_statements[(node->isMappedToGrid()) ? 0 : cur_scope].push_back(new const IntervalNode(node->start,
+                                                                                              node->end,
+                                                                                              node->step,
+                                                                                              new const BlockNode(new_body),
+                                                                                              node->p));
 }
 
 void Scoper::visit(const DefNode *node) {
