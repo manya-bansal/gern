@@ -77,10 +77,10 @@ int main() {
 
     // Now, let's benchmark it!
     auto func = [&]() {
-        runner.evaluate({{"A", &A},
-                         {"B", &B},
-                         {"C", &C}});
-        // function_31<32, 32, k, 1><<<grid, thrds>>>(A, B, C);
+        // runner.evaluate({{"A", &A},
+        //                  {"B", &B},
+        //                  {"C", &C}});
+        function_31<32, 32, k, 1><<<grid, thrds>>>(A, B, C);
     };
 
     double time = benchmark::benchmark(10, 1, func, 2);

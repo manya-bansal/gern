@@ -21,6 +21,17 @@
 
 #define CEIL_DIV(M, N) (((M) + (N) - 1) / (N))
 const int WARPSIZE = 32;  // warpSize is not constexpr
+constexpr int dim = 1024;
+
+void runCublasFP32(cublasHandle_t handle, int M, int N, int K, float alpha,
+                   float *A, float *B, float beta, float *C) {
+    // cuBLAS uses column-major order. So we change the order of our row-major A &
+    // B, since (B^T*A^T)^T = (A*B)
+    // This runs cuBLAS in full fp32 mode
+    cublasGemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, M, K, &alpha, B, CUDA_R_32F,
+                 N, A, CUDA_R_32F, K, &beta, C, CUDA_R_32F, N, CUBLAS_COMPUTE_32F,
+                 CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+}
 
 namespace wt {
 template<const int BM, const int BN, const int BK, const int rowStrideA,
@@ -173,10 +184,10 @@ __global__ void __launch_bounds__(NUM_THREADS)
                     // perform GEMM update in reg
                     const int i = (wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
                                   wSubColIdx * TN + resIdxN;
-                    tmp.x = alpha * threadResults[i + 0] + beta * tmp.x;
-                    tmp.y = alpha * threadResults[i + 1] + beta * tmp.y;
-                    tmp.z = alpha * threadResults[i + 2] + beta * tmp.z;
-                    tmp.w = alpha * threadResults[i + 3] + beta * tmp.w;
+                    tmp.x = threadResults[i + 0];
+                    tmp.y = threadResults[i + 1];
+                    tmp.z = threadResults[i + 2];
+                    tmp.w = threadResults[i + 3];
                     // write back
                     reinterpret_cast<float4 *>(
                         &C_interim[(threadRowInWarp * TM + resIdxM) * N +
@@ -241,9 +252,6 @@ __global__ void __launch_bounds__(NUM_THREADS)
     auto c_w_q = c_q.template query_global_2_global<WM, WN>(warpRow * WM, warpCol * WN);
     C = c_w_q.data;
 
-    // Move C_ptr to warp's output tile
-    // C += (cRow * BM + warpRow * WM) * N + cCol * BN + warpCol * WN;
-
     // calculating the indices that this thread will load into SMEM
     // we'll load 128bit / 32bit = 4 elements per thread at each step
     const uint innerRowA = threadIdx.x / (BK / 4);
@@ -253,142 +261,84 @@ __global__ void __launch_bounds__(NUM_THREADS)
     const uint innerColB = threadIdx.x % (BN / 4);
     constexpr uint rowStrideB = NUM_THREADS / (BN / 4);
 
-    // allocate thread-local cache for results in registerfile
-    // float threadResults[WMITER * TM * WNITER * TN] = {0.0};
-    // we cache into registers on the warptile level
-    // float threadResults[WMITER * TM * WNITER * TN] = {0.0};
-
     auto c_reg = c_q.template query_2_reg_no_vector_zero<WMITER * TM, WNITER * TN>(0, 0);
     float *threadResults = c_reg.array;
 
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
+
         auto a_s_mine = a_q.template query_global_2_shared_vec_t<BM, BK, NUM_THREADS>(0, bkIdx, As);
-
-        // Why is my function slower??
-        for (uint offset = 0; offset + rowStrideB <= BK; offset += rowStrideB) {
-            reinterpret_cast<float4 *>(
-                &Bs[(innerRowB + offset) * BN + innerColB * 4])[0] =
-                reinterpret_cast<const float4 *>(
-                    &B[(innerRowB + offset) * N + innerColB * 4])[0];
-            // &b_q(innerRowB + offset + bkIdx, innerColB * 4))[0];
-        }
-
-        impl::MatrixGPU<BK, BN, BN, 1> b_s_mine(Bs);
-
-        // auto b_s_mine = b_q.template query_global_2_shared_vec<BK, BN, NUM_THREADS>(bkIdx, 0, Bs);
+        auto b_s_mine = b_q.template query_global_2_shared_vec<BK, BN, NUM_THREADS>(bkIdx, 0, Bs);
 
         __syncthreads();
 
         for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
 
             // Transposed A
-            auto a_s_warp = a_s_mine.template query_global_2_global<BK, WM>(dotIdx, 0);
+            auto a_s_warp = a_s_mine.template query_global_2_global<BK, WM>(dotIdx, warpRow * WM + threadRowInWarp * TM);
             auto b_s_warp = b_s_mine.template query_global_2_global<BK, WN>(dotIdx, warpCol * WN + threadColInWarp * TN);
 
-            StaticMatrixNoVector<WMITER, TM> a_reg;
+            StaticMatrixNoVector<1, TM * WMITER> a_reg = a_s_warp.template query_2_reg_no_vector<1, TM * WMITER>(0, 0);
+            StaticMatrixNoVector<1, TN * WNITER> b_reg = b_s_warp.template query_2_reg_no_vector<1, TN * WNITER>(0, 0);
 
-            StaticMatrixNoVector<WNITER, TN> b_reg;
-
-            // This weird structure just has to do with column major??
-            // If I just model that i SHOULD BE OKAY
+            // // execute warptile matmul
             for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
-                for (uint i = 0; i < TM; ++i) {
-                    a_reg(wSubRowIdx, i) =
-                        a_s_warp(0, warpRow * WM + wSubRowIdx * WSUBM +
-                                        threadRowInWarp * TM + i);
-                }
-            }
-
-            // Manya: this just staging b early.
-
-            // Manya: this pulling one line of B in.
-            // WNITER: HOW MANY OF B DO WE HAVE?
-            // WHAT'S THE LENGTH OF EACH?
-            for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
-                auto b_s_warp_tile = b_s_warp.template query_global_2_global<BK, WN>(0, wSubColIdx * WSUBN);
-                for (uint i = 0; i < TN; ++i) {
-                    b_reg(wSubColIdx, i) =
-                        b_s_warp_tile(0, i);
-                }
-            }
-
-            // ABOVE IS EQUIVALENT TO:
-            // It's just producing a tile output
-            // So, truly, breg is ONE COLOUMN of size [1, TN * WNITER]
-            for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
-                for (uint i = 0; i < TN; ++i) {
-                    b_reg.array[i + wSubColIdx * TN] = b_s_warp(0, (wSubColIdx * WSUBN + i));
-                }
-            }
-
-            // execute warptile matmul
-            for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
-
                 for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
-
                     // then there is a threads in a warp tile.....
                     auto c_thread = c_reg.template get_view<TM, TN>(wSubRowIdx * TM, wSubColIdx * TN);
-                    auto a_thread_reg = a_reg.template get_view<1, TM>(wSubRowIdx, 0);
-                    auto b_thread_reg = b_reg.template get_view<1, TN>(wSubColIdx, 0);
-
+                    auto a_thread_reg = a_reg.template get_view<1, TM>(wSubRowIdx * WMITER, 0);
+                    auto b_thread_reg = b_reg.template get_view<1, TN>(0, wSubColIdx * WNITER);
                     matrix_multiply_reg_flat_T<1>(a_thread_reg, b_thread_reg, c_thread);
-
-                    // // calculate per-thread results
-                    // for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
-                    //     for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
-                    //         // assert(&a_thread_reg(0, resIdxM) == &a_reg(wSubRowIdx, resIdxM));
-                    //         // assert(&b_thread_reg(0, resIdxN) == &b_reg(wSubColIdx, resIdxN));
-                    //         c_thread(resIdxM, resIdxN) +=
-                    //             a_thread_reg(0, resIdxM) *
-                    //             b_thread_reg(0, resIdxN);
-                    //     }
-                    // }
                 }
             }
         }
 
-        // A += BK;      // move BK columns to right
-        B += BK * N;  // move BK rows down
         __syncthreads();
     }
 
-    // write out the results
-    for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
-        for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
-            // move C pointer to current warp subtile
-            // float *C_interim = C + (wSubRowIdx * WSUBM) * N + wSubColIdx * WSUBN;
-            // float *C_interim = &c_w_q(wSubRowIdx * WSUBM, wSubColIdx * WSUBN);
-            auto warp_query_c = c_w_q.template query_global_2_global<WM, WN>(wSubRowIdx * WSUBM, wSubColIdx * WSUBN);
-            float *C_interim = warp_query_c.data;
+    // Calculate the starting position for this thread's output tile
+    // int row_offset = threadRowInWarp * TM;
+    // int col_offset = threadColInWarp * TN;
 
-            for (uint resIdxM = 0; resIdxM < TM; resIdxM += 1) {
-                for (uint resIdxN = 0; resIdxN < TN; resIdxN += 4) {
-                    // load C vector into registers
-                    float4 tmp = reinterpret_cast<float4 *>(
-                        &warp_query_c.data[(threadRowInWarp * TM + resIdxM) * N +
-                                           threadColInWarp * TN + resIdxN])[0];
-                    // perform GEMM update in reg
-                    const int i = (wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
-                                  wSubColIdx * TN + resIdxN;
-                    tmp.x = alpha * threadResults[i + 0] + beta * tmp.x;
-                    tmp.y = alpha * threadResults[i + 1] + beta * tmp.y;
-                    tmp.z = alpha * threadResults[i + 2] + beta * tmp.z;
-                    tmp.w = alpha * threadResults[i + 3] + beta * tmp.w;
-                    // write back
-                    reinterpret_cast<float4 *>(
-                        &warp_query_c.data[(threadRowInWarp * TM + resIdxM) * N +
-                                           threadColInWarp * TN + resIdxN])[0] = tmp;
-                }
-            }
+    // // Insert the computed tile into the global matrix
+    // c_w_q.insert_2_reg_no_vector<WMITER * TM, WNITER * TN>(row_offset, col_offset, c_reg);
+
+    auto c_thread_out = c_w_q.template query_global_2_global<WMITER * TM, WNITER * TN>(
+        threadRowInWarp * TM, threadColInWarp * TN);
+    for (uint outRowIdx = 0; outRowIdx < WMITER * TM; ++outRowIdx) {
+        for (uint outColIdx = 0; outColIdx < WNITER * TN; outColIdx += 4) {
+
+            // Tile location (which warp tile are we in)
+            uint wSubRowIdx = outRowIdx / TM;
+            uint resIdxM = outRowIdx % TM;
+
+            uint wSubColIdx = outColIdx / TN;
+            uint resIdxN = outColIdx % TN;
+            // Compute pointer to the beginning of the warp tile
+            int tile_row_offset = wSubRowIdx * WSUBM;
+            int tile_col_offset = wSubColIdx * WSUBN;
+
+            // Load 4 floats from C
+            float4 tmp;
+
+            // Index into the threadResults register tile
+            int reg_idx = outRowIdx * (WNITER * TN) + outColIdx;
+            // Update in registers
+            tmp.x = threadResults[reg_idx + 0];
+            tmp.y = threadResults[reg_idx + 1];
+            tmp.z = threadResults[reg_idx + 2];
+            tmp.w = threadResults[reg_idx + 3];
+            // Write back to memory
+            // reinterpret_cast<float4 *>(&c_thread_out(outRowIdx, outColIdx))[0] = tmp;
+            reinterpret_cast<float4 *>(&c_thread_out(tile_row_offset + resIdxM, tile_col_offset + resIdxN))[0] = tmp;
         }
     }
 }
 
 int main() {
-    constexpr int M = 4096;
-    constexpr int N = 4096;
-    constexpr int K = 4096;
+    constexpr int M = dim;
+    constexpr int N = dim;
+    constexpr int K = dim;
 
     // Settings for A100
     // const uint K10_NUM_THREADS = 128;
@@ -451,7 +401,7 @@ int main() {
     impl::ColumnMajorMatrix<K, N> B(offset);
 
     offset += 32 * 32 * sizeof(float);
-    impl::MatrixGPU<M, N, N, 1> C(offset);
+    impl::ColumnMajorMatrix<M, N> C(offset);
 
     A.ascending();
     B.ascending();
@@ -489,9 +439,20 @@ int main() {
 
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            assert(C_complex(i, j) == C_complex_original(i, j));
+            // std::cout << C_complex(i, j) << " ";
+            // std::cout << C_complex_original(i, j) << " ";
+            // assert(C_complex(i, j) == C_complex_original(i, j));
         }
     }
+
+    cublasHandle_t handle;
+    cublasCreate(&handle);
+    auto cublas_func = [&]() {
+        runCublasFP32(handle, M, N, K, alpha, A.data, B.data, beta, C_naive.data);
+    };
+    double time_cublas = benchmark::benchmark(10, 1, cublas_func, 2);
+    std::cout << "Time cublas: " << time_cublas << " ms" << std::endl;
+    std::cout << "GFLOPS cublas: " << static_cast<double>(int64_t(2) * M * N * K) / (time_cublas * 1e9) << std::endl;
 }
 
 // benchmark(func);

@@ -12,6 +12,8 @@
 
 #define CEIL_DIV(M, N) (((M) + (N) - 1) / (N))
 
+constexpr int dim = 8192;
+
 template<const int BM, const int BN, const int BK, const int TM, const int TN>
 __global__ void sgemmVectorize(int M, int N, int K, float alpha, float *A,
                                float *B, float beta, float *C) {
@@ -153,9 +155,9 @@ __global__ void gernel_mine(int M, int N, int K, float alpha, AT A_ds, BT B_ds, 
 }
 
 int main() {
-    constexpr int M = 4096;
-    constexpr int N = 4096;
-    constexpr int K = 4096;
+    constexpr int M = dim;
+    constexpr int N = dim;
+    constexpr int K = dim;
 
     const uint BM = 128;
     const uint BN = 128;

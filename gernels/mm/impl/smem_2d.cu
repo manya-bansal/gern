@@ -10,6 +10,8 @@
 
 #define CEIL_DIV(M, N) (((M) + (N) - 1) / (N))
 
+constexpr int dim = 8192;
+
 template<const int BM, const int BN, const int BK, const int TM, const int TN>
 __global__ void __launch_bounds__((BM * BN) / (TM * TN), 1)
     sgemm2DBlocktiling(int M, int N, int K, float alpha, const float *A,
@@ -163,6 +165,7 @@ __global__ void __launch_bounds__((BM * BN) / (TM * TN), 1)
         auto b_s_mine = b_q.template query_global_2_shared<BK, BN, (BM / TM) * (BN / TN)>(bkIdx, 0, Bs);
 
         __syncthreads();
+        __syncthreads();
 
         // calculate per-thread results
         for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
@@ -179,21 +182,25 @@ __global__ void __launch_bounds__((BM * BN) / (TM * TN), 1)
         __syncthreads();
     }
 
-    // write out the results
-    // for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
-    //     for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
-    //         C[(threadRow * TM + resIdxM) * N + threadCol * TN + resIdxN] =
-    //             threadResults[resIdxM * TN + resIdxN];
+    //     int i = threadRow * TM * N;
+    //     int j = threadCol * TN;
+    //     float *C_temp = &C[i + j];
+    // // write out the results
+    // #pragma unroll
+    //     for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
+    //         for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
+    //             C_temp[resIdxM * N + resIdxN] =
+    //                 threadResults[resIdxM * TN + resIdxN];
+    //         }
     //     }
-    // }
 
     c_q.template insert_2_reg_no_vector<TM, TN>(threadRow * TM, threadCol * TN, c_reg);
 }
 
 int main() {
-    constexpr int M = 4096;
-    constexpr int N = 4096;
-    constexpr int K = 4096;
+    constexpr int M = dim;
+    constexpr int N = dim;
+    constexpr int K = dim;
 
     const uint BM = 128;
     const uint BN = 128;

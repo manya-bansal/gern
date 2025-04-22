@@ -14,6 +14,22 @@
 
 using namespace gern;
 
+template<int64_t block_x, int64_t block_y, int64_t k_dim, int64_t thread_x, int64_t dim>
+__global__ void function_31(impl::MatrixGPU<dim, dim, dim, 1> A, impl::MatrixGPU<dim, dim, dim, 1> B, impl::MatrixGPU<dim, dim, dim, 1> C) {
+
+    int64_t _gern_i_1_7_13_19_25 = ((((blockIdx.y / 1) % (((block_x + (C.row - 0)) - 1) / block_x)) * block_x) + 0);
+    int64_t _gern_j_2_8_14_20 = ((((blockIdx.x / 1) % (((block_y + (C.col - 0)) - 1) / block_y)) * block_y) + 0);
+    int64_t _gern_i_1_7_13 = ((((threadIdx.x / (1 * (((thread_x + (block_y - 0)) - 1) / thread_x))) % (((thread_x + (block_x - 0)) - 1) / thread_x)) * thread_x) + 0);
+    auto _query_A_33 = A.template query_global_2_global<thread_x, k_dim>((_gern_i_1_7_13 + _gern_i_1_7_13_19_25), 0);
+
+    int64_t _gern_j_2_8 = ((((threadIdx.x / 1) % (((thread_x + (block_y - 0)) - 1) / thread_x)) * thread_x) + 0);
+    auto _query_C_32 = C.template query_global_2_global<thread_x, thread_x>((_gern_i_1_7_13 + _gern_i_1_7_13_19_25), (_gern_j_2_8 + (_gern_j_2_8_14_20 + 0)));
+
+    auto _query_B_34 = B.template query_global_2_global<k_dim, thread_x>(0, (_gern_j_2_8 + (_gern_j_2_8_14_20 + 0)));
+
+    matrix_multiply<k_dim>(_query_A_33, _query_B_34, _query_C_32);
+}
+
 template<const uint BLOCKSIZE>
 __global__ void sgemm_global_mem_coalesce(int M, int N, int K, float alpha,
                                           const float *A, const float *B,
@@ -90,11 +106,15 @@ int main() {
 
     // mm_helpers::evalute_and_check(runner, A, B, C);
 
+    dim3 grid(m / 32, n / 32, 1);
+    dim3 block(32 * 32);
+
     // Set up all the values.
     auto func = [&]() {
-        runner.evaluate({{A_DS.getName(), &A},
-                         {B_DS.getName(), &B},
-                         {C_DS.getName(), &C}});
+        // runner.evaluate({{A_DS.getName(), &A},
+        //                  {B_DS.getName(), &B},
+        //                  {C_DS.getName(), &C}});
+        function_31<32, 32, k, 1><<<grid, block>>>(A, B, C);
     };
 
     double time = benchmark::benchmark(10, 1, func, 2);
@@ -102,8 +122,6 @@ int main() {
     std::cout << "GFLOPS: " << mm_helpers::gflops(m, n, k, time) << std::endl;
     std::cout << "% of peak " << mm_helpers::gflops(m, n, k, time) / (44 * 10) << std::endl;
 
-    dim3 grid(m / 32, n / 32, 1);
-    dim3 block(32 * 32);
     auto func2 = [&]() {
         sgemm_global_mem_coalesce<32><<<grid, block>>>(m, n, k, 1.0f, A.data, B.data, 0.0f, C.data);
     };

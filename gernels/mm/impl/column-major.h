@@ -98,7 +98,7 @@ public:
     template<int64_t M, int64_t N, int64_t BLOCKSIZE>
     __device__ inline MatrixGPU<M, N, N, 1> query_global_2_shared_vec(int64_t x,
                                                                       int64_t y,
-                                                                      float *shmem) const {
+                                                                      float *shmem) {
 
         int thread_id = threadIdx.x;
         constexpr int BLOCKSIZE_VEC = 4;
@@ -121,16 +121,16 @@ public:
             int col = thread_id % N;
             // shmem[thread_id] = operator()(x + row, y + col);
             reinterpret_cast<float4 *>(&shmem[innerRowB * N + innerColB * 4])[0] =
-                reinterpret_cast<float4 *>(&operator()(x + innerRowB, y + innerColB * 4))[0];
+                reinterpret_cast<float4 *>(data + (x + innerRowB) * lda + (y + innerColB * 4))[0];
         } else {
             constexpr int strideB = (BLOCKSIZE * 4) / N;
             auto temp = query_global_2_global<M, N>(x, y);
 
-            for (uint offset = 0; offset + strideB <= M; offset += strideB) {
+            for (uint loadOffset = 0; loadOffset + strideB <= M; loadOffset += strideB) {
                 reinterpret_cast<float4 *>(
-                    &shmem[(innerRowB + offset) * N + innerColB * 4])[0] =
+                    &shmem[(innerRowB + loadOffset) * N + innerColB * 4])[0] =
                     reinterpret_cast<const float4 *>(
-                        &temp(innerRowB + offset, innerColB * 4))[0];
+                        &temp(innerRowB + loadOffset, innerColB * 4))[0];
             }
         }
 
@@ -221,6 +221,46 @@ public:
         MatrixCPU cpu(NumRow, NumCol, NumCol);
         cudaMemcpy(cpu.data, data, sizeof(float) * NumCol * lda, cudaMemcpyDeviceToHost);
         return cpu;
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    inline __device__ StaticMatrixNoVector<num_row, num_col> query_2_reg_no_vector_zero(int64_t x, int64_t y) {
+        StaticMatrixNoVector<num_row, num_col> matrix;
+        for (int64_t i = 0; i < num_row; i++) {
+            for (int64_t j = 0; j < num_col; j++) {
+                matrix(i, j) = 0.0f;
+            }
+        }
+        return matrix;
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ void insert_2_reg_no_vector(int64_t x, int64_t y, const StaticMatrixNoVector<num_row, num_col> &to_insert) {
+        for (int64_t i = 0; i < num_row; ++i) {
+            for (int64_t j = 0; j < num_col; ++j) {
+                data[(x + i) * lda + (y + j)] = to_insert(i, j);
+            }
+        }
+    }
+
+    template<int64_t num_row, int64_t num_col>
+    __device__ inline void insert_2_reg_vector(int64_t x, int64_t y, const StaticMatrixNoVector<num_row, num_col> &to_insert) {
+        static_assert(num_col % 4 == 0, "Number of columns must be divisible by 4 for float4 operations.");
+
+        auto temp = query_global_2_global<num_row, num_col>(x, y);
+
+        for (int64_t i = 0; i < num_row; ++i) {
+            for (int64_t j = 0; j < num_col; j += 4) {
+                float4 tmp;
+                tmp.x = to_insert(i, j);
+                tmp.y = to_insert(i, j + 1);
+                tmp.z = to_insert(i, j + 2);
+                tmp.w = to_insert(i, j + 3);
+
+                // Calculate the linear index for row-major storage
+                reinterpret_cast<float4 *>(&temp(i, j))[0] = tmp;
+            }
+        }
     }
 
     void destroy() {

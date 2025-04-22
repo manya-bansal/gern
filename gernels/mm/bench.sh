@@ -9,7 +9,7 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-range_1=(128 512 1024 2048 4096)
+range_1=(256 512 1024 2048 4096 8192)
 
 for m in ${range_1[@]}; do
     # First let's write the value to a .h file.

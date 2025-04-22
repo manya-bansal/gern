@@ -10,6 +10,8 @@
 
 #define CEIL_DIV(M, N) (((M) + (N) - 1) / (N))
 
+constexpr int dim = 256;
+
 template<const int BLOCKSIZE>
 __global__ void sgemm_shared_mem_block(int M, int N, int K, float alpha,
                                        const float *A, const float *B,
@@ -59,7 +61,7 @@ __global__ void sgemm_shared_mem_block(int M, int N, int K, float alpha,
 }
 
 template<int64_t block_x, int64_t block_y, int64_t k_dim, int64_t k_tiled, int64_t smem_size, int64_t thread_x, int64_t thread_y>
-__global__ void function_73(impl::MatrixGPU<1024, 1024, 1024, 1> A, impl::ColumnMajorMatrix<1024, 1024> B, impl::MatrixGPU<1024, 1024, 1024, 1> C) {
+__global__ void function_73(impl::MatrixGPU<dim, dim, dim, 1> A, impl::ColumnMajorMatrix<dim, dim> B, impl::MatrixGPU<dim, dim, dim, 1> C) {
 
     int64_t _gern_i_1_7_13_19_25_31_37_43_49_55_61_67 = ((((blockIdx.x / 1) % (((block_x + (C.row - 0)) - 1) / block_x)) * block_x) + 0);
     auto _query_A_74 = A.template query_global_2_global<block_x, k_dim>(_gern_i_1_7_13_19_25_31_37_43_49_55_61_67, 0);
@@ -133,9 +135,9 @@ __global__ void gernel_mine(impl::MatrixGPU<M, K, K, 1> A_ds,
 }
 
 int main() {
-    constexpr int M = 1024;
-    constexpr int N = 1024;
-    constexpr int K = 1024;
+    constexpr int M = dim;
+    constexpr int N = dim;
+    constexpr int K = dim;
 
     // impl::SharedMemoryManager smem_manager;
     int32_t offset = 0;
@@ -184,7 +186,7 @@ int main() {
 
     constexpr int64_t block_x = 32;
     constexpr int64_t block_y = 32;
-    constexpr int64_t k_dim = 1024;
+    constexpr int64_t k_dim = dim;
     constexpr int64_t k_tiled = 32;
     constexpr int64_t thread_x = 1;
     constexpr int64_t thread_y = 1;
