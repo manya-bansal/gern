@@ -423,7 +423,6 @@ int32_t Scoper::get_scope(std::vector<Argument> args) const {
         } else {
             throw error::InternalError("Unknown argument type: " + arg.str());
         }
-        std::cout << "Scope: " << scope << std::endl;
     }
     return std::min(scope, cur_scope);
 }
@@ -467,7 +466,6 @@ void Scoper::visit(const IntervalNode *node) {
 
     // Generate the new body!
     std::vector<LowerIR> new_body = new_statements[scope];
-    std::cout << "New body: " << LowerIR(new const BlockNode(new_body)) << std::endl;
     new_statements.erase(scope);
 
     if (!node->isMappedToGrid()) {
