@@ -16,10 +16,9 @@ static void basic_mm(T &a, T &b, T &c) {
             for (int64_t k = 0; k < K; ++k)
                 c.get(i, j) += a.get(i, k) * b.get(k, j);
 }
-template<typename T>
-static void open_blas_mm(T &a, T &b, T &c) {
+template<typename T1, typename T2, typename T3>
+static void open_blas_mm(T1 &a, T2 &b, T3 &c) {
     int64_t N = c.row, M = c.col, K = a.col;
-
     cblas_sgemm(
         CblasRowMajor,
         CblasNoTrans,
@@ -152,7 +151,7 @@ std::function<void(impl::A3 &a, impl::B3 &b, impl::MatrixViewBasic &c)> get_blis
 }
 
 template<typename T1, typename T2, typename T3, typename T4>
-static void run_function(std::function<void(T1 &, T2 &, T3 &)> func, std::string func_name, bool warmup, int64_t samples, int64_t iterations,
+static double run_function(std::function<void(T1 &, T2 &, T3 &)> func, std::string func_name, bool warmup, int64_t samples, int64_t iterations,
                          T1 &a, T2 &b, T3 &c, bool check_res, T4 &res) {
 
     if (warmup) {
@@ -181,53 +180,65 @@ static void run_function(std::function<void(T1 &, T2 &, T3 &)> func, std::string
             std::cout << "INCORRECT FUNCTION: " << func_name << std::endl;
         }
     }
+
+    return time;
 }
 int main() {
     openblas_set_num_threads(1);
+    // std::cout << openblas_get_num_threads() << std::endl;
+
+
+    std::vector<std::pair<int64_t, double>> data;
 
     for (int64_t cnt = 1; cnt <= 10; ++cnt) {
 
-        int64_t n = cnt * 768, m = cnt * 768, k = cnt * 768;
+        int64_t n = cnt * 256, m = cnt * 256, k = cnt * 256;
 
         std::cout << "Running with dimensions: " << n << ", " << m << ", " << k << std::endl;
-
-        impl::MatrixViewBasic a = impl::MatrixViewBasic::allocate(0, 0, n, k);
-        impl::MatrixViewBasic b = impl::MatrixViewBasic::allocate(0, 0, k, m);
-        impl::MatrixViewBasic c = impl::MatrixViewBasic::allocate(0, 0, n, m);
-
+        
         impl::MatrixViewPackOnQuery a_pack = impl::MatrixViewPackOnQuery::allocate(0, 0, n, k);
         impl::MatrixViewPackOnQuery b_pack = impl::MatrixViewPackOnQuery::allocate(0, 0, k, m);
+        impl::MatrixViewBasic res = impl::MatrixViewBasic::allocate(0, 0, n, m);
+        impl::MatrixViewBasic c = impl::MatrixViewBasic::allocate(0, 0, n, m);
 
+
+        random_fill(a_pack);
+        random_fill(b_pack);
+
+        // run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
+        //     open_blas_mm<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>, "open_blas", true, 1, 1, a_pack, b_pack, res, false, c);
+
+        double time = run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
+            get_inner_kernel_gern_packed(), "inner_kernel_gern_packed", true, 1, 1, a_pack, b_pack, c, false, res);
+
+        data.push_back({n, time});
+
+#ifdef BLIS_KERNEL
         impl::A3 a3 = impl::A3::allocate(0, 0, n, k);
         impl::B3 b3 = impl::B3::allocate(0, 0, k, m);
 
-        impl::MatrixViewBasic res = impl::MatrixViewBasic::allocate(0, 0, n, m);
+        impl::copy_data(a_pack, a3);
+        impl::copy_data(b_pack, b3);
 
-        random_fill(a);
-        impl::copy_data(a, a_pack);
-        impl::copy_data(a, a3);
-
-        random_fill(b);
-        impl::copy_data(b, b_pack);
-        impl::copy_data(b, b3);
-
-        run_function<impl::MatrixViewBasic, impl::MatrixViewBasic, impl::MatrixViewBasic>(
-            open_blas_mm<impl::MatrixViewBasic>, "open_blas", false, 1, 1, a, b, res, false, c);
-
-        run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
-            get_inner_kernel_gern_packed(), "inner_kernel_gern_packed", false, 1, 1, a_pack, b_pack, c, true, res);
-
-#ifdef BLIS_KERNEL
         run_function<impl::A3, impl::B3, impl::MatrixViewBasic>(
             get_blis(), "blis", false, 1, 1, a3, b3, c, true, res);
+
+        a3.destroy();
+        b3.destroy();
 #endif
 
-        a.destroy();
-        b.destroy();
         c.destroy();
         a_pack.destroy();
         b_pack.destroy();
 
         std::cout << std::endl;
     }
+
+    std::cout << std::endl;
+
+    std::cout << "Data for roofline curve" << std::endl;
+    for (auto &[n, sec] : data) {
+        std::cout << n/12 << std::endl << 2 * n*n*n / sec << std::endl;
+    }
+    std::cout << std::endl;
 }

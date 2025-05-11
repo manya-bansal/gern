@@ -4,13 +4,13 @@
   "description": "",
   "license": "MIT",
   "$dependencies": [
-    "ginac"
+    "ginac", "openblas"
   ],
   "features": {
     "dev": {
       "description": "Build settings intended for developers",
       "dependencies": [
-        "gtest", "openblas"
+        "gtest"
       ]
     }
   }

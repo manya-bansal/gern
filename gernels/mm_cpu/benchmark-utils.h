@@ -82,8 +82,9 @@ inline double benchmark_new(uint64_t samples, uint64_t iterations,
 
 
 [[maybe_unused]] static gern::Runner::Options cpuRunner() {
-    std::string include = " -I " + std::string(GERN_ROOT_DIR) + "/benchmark/";
-    include += " -I " + std::string(GERN_ROOT_DIR) + "/benchmark/lib/impl";
+    std::string include = " -I " + std::string(GERN_ROOT_DIR) + "/mm_cpu/";
+    include += " -I " + std::string(GERN_ROOT_DIR) + "/mm_cpu/lib/impl";
+
 
     gern::Runner::Options o;
     o.filename = "benchmark.cpp";

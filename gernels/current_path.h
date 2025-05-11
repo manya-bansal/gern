@@ -1,4 +1,4 @@
 #pragma once
 
-#define GERNELS_PATH "/home/manya/gern/gernels"
-#define GERNELS_ARCH "89"
+#define GERNELS_PATH "/home/ege/Desktop/UROP/gern/gernels"
+#define GERNELS_ARCH "86"
