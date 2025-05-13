@@ -2,8 +2,7 @@
 #include "lib/annot/cpu-matrix.h"
 #include "lib/impl/cpu-matrix.h"
 
-#include "cblas.h"
-#include "openblas_config.h"
+#include <mkl.h>
 
 using namespace gern;
 
@@ -152,7 +151,7 @@ std::function<void(impl::A3 &a, impl::B3 &b, impl::MatrixViewBasic &c)> get_blis
 
 template<typename T1, typename T2, typename T3, typename T4>
 static double run_function(std::function<void(T1 &, T2 &, T3 &)> func, std::string func_name, bool warmup, int64_t samples, int64_t iterations,
-                         T1 &a, T2 &b, T3 &c, bool check_res, T4 &res) {
+                           T1 &a, T2 &b, T3 &c, bool check_res, T4 &res) {
 
     if (warmup) {
         impl::fill_with(c, 0);
@@ -184,34 +183,32 @@ static double run_function(std::function<void(T1 &, T2 &, T3 &)> func, std::stri
     return time;
 }
 int main() {
-    openblas_set_num_threads(1);
-    // std::cout << openblas_get_num_threads() << std::endl;
+    // openblas_set_num_threads(1);
+    mkl_set_num_threads(1);
 
+    std::vector<std::tuple<int64_t, double, double>> data;
 
-    std::vector<std::pair<int64_t, double>> data;
-
-    for (int64_t cnt = 1; cnt <= 10; ++cnt) {
+    for (int64_t cnt = 1; cnt <= 35; ++cnt) {
 
         int64_t n = cnt * 256, m = cnt * 256, k = cnt * 256;
 
         std::cout << "Running with dimensions: " << n << ", " << m << ", " << k << std::endl;
-        
+
         impl::MatrixViewPackOnQuery a_pack = impl::MatrixViewPackOnQuery::allocate(0, 0, n, k);
         impl::MatrixViewPackOnQuery b_pack = impl::MatrixViewPackOnQuery::allocate(0, 0, k, m);
         impl::MatrixViewBasic res = impl::MatrixViewBasic::allocate(0, 0, n, m);
         impl::MatrixViewBasic c = impl::MatrixViewBasic::allocate(0, 0, n, m);
 
-
         random_fill(a_pack);
         random_fill(b_pack);
 
-        // run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
-        //     open_blas_mm<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>, "open_blas", true, 1, 1, a_pack, b_pack, res, false, c);
+        double time_blas = run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
+            open_blas_mm<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>, "open_blas", true, 2, 2, a_pack, b_pack, res, false, c);
 
-        double time = run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
-            get_inner_kernel_gern_packed(), "inner_kernel_gern_packed", true, 1, 1, a_pack, b_pack, c, false, res);
+        double time_gern = run_function<impl::MatrixViewPackOnQuery, impl::MatrixViewPackOnQuery, impl::MatrixViewBasic>(
+            get_inner_kernel_gern_packed(), "inner_kernel_gern_packed", true, 2, 2, a_pack, b_pack, c, true, res);
 
-        data.push_back({n, time});
+        data.push_back({n, time_blas, time_gern});
 
 #ifdef BLIS_KERNEL
         impl::A3 a3 = impl::A3::allocate(0, 0, n, k);
@@ -236,9 +233,9 @@ int main() {
 
     std::cout << std::endl;
 
-    std::cout << "Data for roofline curve" << std::endl;
-    for (auto &[n, sec] : data) {
-        std::cout << n/12 << std::endl << 2 * n*n*n / sec << std::endl;
+    std::cout << "Plaintext data" << std::endl;
+    for (auto &[a, b, c] : data) {
+        std::cout << a << ' ' << b << ' ' << c << std::endl;
     }
     std::cout << std::endl;
 }

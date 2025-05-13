@@ -26,5 +26,5 @@ target_include_directories(mm_benchmark PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 target_compile_options(mm_benchmark PRIVATE -O3 -march=native)
 
-find_package(OpenBLAS REQUIRED)
-target_link_libraries(mm_benchmark PRIVATE Gern::Gern ${OpenBLAS_LIBRARIES})
+find_package(MKL CONFIG REQUIRED)
+target_link_libraries(mm_benchmark PRIVATE Gern::Gern MKL::MKL)

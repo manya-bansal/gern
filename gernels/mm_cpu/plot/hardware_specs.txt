@@ -1,0 +1,3 @@
+The CPU that these tests were run on is as follows:
+11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz
+
