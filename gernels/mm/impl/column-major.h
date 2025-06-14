@@ -251,13 +251,7 @@ public:
 
         for (int64_t i = 0; i < num_row; ++i) {
             for (int64_t j = 0; j < num_col; j += 4) {
-                float4 tmp;
-                tmp.x = to_insert(i, j);
-                tmp.y = to_insert(i, j + 1);
-                tmp.z = to_insert(i, j + 2);
-                tmp.w = to_insert(i, j + 3);
-
-                // Calculate the linear index for row-major storage
+                float4 tmp = reinterpret_cast<const float4 *>(to_insert.array + i * num_col + j)[0];
                 reinterpret_cast<float4 *>(&temp(i, j))[0] = tmp;
             }
         }

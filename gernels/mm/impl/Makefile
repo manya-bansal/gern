@@ -6,7 +6,7 @@ CUBLAS_PATH = /usr/local/cuda-12.3/targets/x86_64-linux/lib/
 CUDA_OBJDUMP = /usr/local/cuda-12.3/bin/cuobjdump
 NVDIASM = /usr/local/cuda-12.3/bin/nvdisasm
 
-all: smem_2d_vec.run
+all: smem_warp_tile.run
 
 
 %.run: $(BUILD).dir

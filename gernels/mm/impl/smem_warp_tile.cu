@@ -218,10 +218,6 @@ __global__ void __launch_bounds__(NUM_THREADS)
     const uint cRow = blockIdx.y;
     const uint cCol = blockIdx.x;
 
-    float *C = C_ds.data;
-    float *A = A_ds.data;
-    float *B = B_ds.data;
-
     // Placement of the warp in the threadblock tile
     const uint warpIdx = threadIdx.x / WARPSIZE;  // the warp this thread is in
     const uint warpCol = warpIdx % (BN / WN);
@@ -244,25 +240,11 @@ __global__ void __launch_bounds__(NUM_THREADS)
     // Move blocktile to beginning of A's row and B's column
 
     auto a_q = A_ds.template query_global_2_global<BM, BK>(cRow * BM, 0);
-    A = a_q.data;
     auto b_q = B_ds.template query_global_2_global<BK, BN>(0, cCol * BN);
-    B = b_q.data;
 
     auto c_q = C_ds.template query_global_2_global<BM, BN>(cRow * BM, cCol * BN);
     auto c_w_q = c_q.template query_global_2_global<WM, WN>(warpRow * WM, warpCol * WN);
-    C = c_w_q.data;
-
-    // calculating the indices that this thread will load into SMEM
-    // we'll load 128bit / 32bit = 4 elements per thread at each step
-    const uint innerRowA = threadIdx.x / (BK / 4);
-    const uint innerColA = threadIdx.x % (BK / 4);
-    constexpr uint rowStrideA = (NUM_THREADS * 4) / BK;
-    const uint innerRowB = threadIdx.x / (BN / 4);
-    const uint innerColB = threadIdx.x % (BN / 4);
-    constexpr uint rowStrideB = NUM_THREADS / (BN / 4);
-
-    auto c_reg = c_q.template query_2_reg_no_vector_zero<WMITER * TM, WNITER * TN>(0, 0);
-    float *threadResults = c_reg.array;
+    auto c_reg = c_w_q.template query_2_reg_no_vector_zero<WMITER * TM, WNITER * TN>(threadRowInWarp * TM, threadColInWarp * TN);
 
     // outer-most loop over block tiles
     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
@@ -274,20 +256,16 @@ __global__ void __launch_bounds__(NUM_THREADS)
 
         for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
 
-            // Transposed A
-            auto a_s_warp = a_s_mine.template query_global_2_global<BK, WM>(dotIdx, warpRow * WM + threadRowInWarp * TM);
-            auto b_s_warp = b_s_mine.template query_global_2_global<BK, WN>(dotIdx, warpCol * WN + threadColInWarp * TN);
-
-            StaticMatrixNoVector<1, TM * WMITER> a_reg = a_s_warp.template query_2_reg_no_vector<1, TM * WMITER>(0, 0);
-            StaticMatrixNoVector<1, TN * WNITER> b_reg = b_s_warp.template query_2_reg_no_vector<1, TN * WNITER>(0, 0);
+            StaticMatrixNoVector<1, TM * WMITER> a_reg = a_s_mine.template query_2_reg_no_vector<1, TM * WMITER>(dotIdx, warpRow * WM + threadRowInWarp * TM * WMITER);
+            StaticMatrixNoVector<1, TN * WNITER> b_reg = b_s_mine.template query_2_reg_no_vector<1, TN * WNITER>(dotIdx, warpCol * WN + threadColInWarp * TN * WNITER);
 
             // // execute warptile matmul
             for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
                 for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
                     // then there is a threads in a warp tile.....
                     auto c_thread = c_reg.template get_view<TM, TN>(wSubRowIdx * TM, wSubColIdx * TN);
-                    auto a_thread_reg = a_reg.template get_view<1, TM>(wSubRowIdx * WMITER, 0);
-                    auto b_thread_reg = b_reg.template get_view<1, TN>(0, wSubColIdx * WNITER);
+                    auto a_thread_reg = a_reg.template get_view<1, TM>(wSubRowIdx * TM, 0);
+                    auto b_thread_reg = b_reg.template get_view<1, TN>(0, wSubColIdx * TN);
                     matrix_multiply_reg_flat_T<1>(a_thread_reg, b_thread_reg, c_thread);
                 }
             }
@@ -296,43 +274,7 @@ __global__ void __launch_bounds__(NUM_THREADS)
         __syncthreads();
     }
 
-    // Calculate the starting position for this thread's output tile
-    // int row_offset = threadRowInWarp * TM;
-    // int col_offset = threadColInWarp * TN;
-
-    // // Insert the computed tile into the global matrix
-    // c_w_q.insert_2_reg_no_vector<WMITER * TM, WNITER * TN>(row_offset, col_offset, c_reg);
-
-    auto c_thread_out = c_w_q.template query_global_2_global<WMITER * TM, WNITER * TN>(
-        threadRowInWarp * TM, threadColInWarp * TN);
-    for (uint outRowIdx = 0; outRowIdx < WMITER * TM; ++outRowIdx) {
-        for (uint outColIdx = 0; outColIdx < WNITER * TN; outColIdx += 4) {
-
-            // Tile location (which warp tile are we in)
-            uint wSubRowIdx = outRowIdx / TM;
-            uint resIdxM = outRowIdx % TM;
-
-            uint wSubColIdx = outColIdx / TN;
-            uint resIdxN = outColIdx % TN;
-            // Compute pointer to the beginning of the warp tile
-            int tile_row_offset = wSubRowIdx * WSUBM;
-            int tile_col_offset = wSubColIdx * WSUBN;
-
-            // Load 4 floats from C
-            float4 tmp;
-
-            // Index into the threadResults register tile
-            int reg_idx = outRowIdx * (WNITER * TN) + outColIdx;
-            // Update in registers
-            tmp.x = threadResults[reg_idx + 0];
-            tmp.y = threadResults[reg_idx + 1];
-            tmp.z = threadResults[reg_idx + 2];
-            tmp.w = threadResults[reg_idx + 3];
-            // Write back to memory
-            // reinterpret_cast<float4 *>(&c_thread_out(outRowIdx, outColIdx))[0] = tmp;
-            reinterpret_cast<float4 *>(&c_thread_out(tile_row_offset + resIdxM, tile_col_offset + resIdxN))[0] = tmp;
-        }
-    }
+    c_w_q.template insert_2_reg_vector<WMITER * TM, WNITER * TN>(threadRowInWarp * TM * WMITER, threadColInWarp * TN * WNITER, c_reg);
 }
 
 int main() {
@@ -439,9 +381,7 @@ int main() {
 
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            // std::cout << C_complex(i, j) << " ";
-            // std::cout << C_complex_original(i, j) << " ";
-            // assert(C_complex(i, j) == C_complex_original(i, j));
+            assert(C_complex(i, j) == C_complex_original(i, j));
         }
     }
 
