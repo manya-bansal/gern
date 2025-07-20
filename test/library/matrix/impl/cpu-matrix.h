@@ -131,6 +131,18 @@ inline void add(MatrixCPU a, MatrixCPU b) {
     }
 }
 
+inline void transpose(MatrixCPU a, MatrixCPU b) {
+    float *a_data;
+    float *b_data;
+    for(int64_t i = 0; i < b.row; i++) {
+        b_data = b.data + (i * b.lda);
+        for(int64_t j = 0; j < b.col; j++) {
+            a_data = a.data + (j * a.lda);
+            b_data[j] = a_data [i] ;
+        }
+    }
+}
+
 inline void exp_matrix(MatrixCPU a, MatrixCPU b) {
     float *a_data;
     float *b_data;

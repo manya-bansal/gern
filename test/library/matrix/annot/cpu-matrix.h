@@ -125,6 +125,52 @@ protected:
     Variable end{"end"};
 };
 
+class MatrixTransposeCPU : public AbstractFunction {
+public:
+    MatrixTransposeCPU()
+        : input(new const MatrixCPU("input")),
+          output(new const MatrixCPU("output")) {
+    }
+    std::string getName() {
+        return "gern::impl::transpose";
+    }
+
+    Annotation getAnnotation() override {
+
+        Variable x("x");
+        Variable y("y");
+        Variable l_x("l_x");
+        Variable l_y("l_y");
+
+        Variable row("row");
+        Variable col("col");
+
+        return annotate(Tileable(x = Expr(0), output["row"], l_x,
+                                 Tileable(y = Expr(0), output["col"], l_y,
+                                          Produces::Subset(output, {x, y, l_x, l_y}),
+                                          Consumes::Subset(input, {y, x, l_y, l_x}))));
+    }
+
+    std::vector<std::string> getHeader() override {
+        return {
+            "cpu-matrix.h",
+        };
+    }
+
+    virtual FunctionSignature getFunction() override {
+        FunctionSignature f;
+        f.name = "gern::impl::transpose";
+        f.args = {Parameter(input), Parameter(output)};
+        return f;
+    }
+
+protected:
+    AbstractDataTypePtr input;
+    AbstractDataTypePtr output;
+    Variable end{"end"};
+
+};
+
 class SumRow : public AbstractFunction {
 public:
     SumRow()

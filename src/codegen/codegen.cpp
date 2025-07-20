@@ -12,7 +12,7 @@
 #include "codegen/lower.h"
 #include "utils/debug.h"
 #include "utils/error.h"
-
+#include <algorithm>
 namespace gern {
 namespace codegen {
 

@@ -146,3 +146,48 @@ TEST(LoweringCPU, MatrixCPUAdd) {
 //     reference.destroy();
 //     max_row_ref.destroy();
 // }
+
+TEST(LoweringCPU, MatrixCPUTranspose) {
+    auto inputDS = AbstractDataTypePtr(new const annot::MatrixCPU("input"));
+    auto outputDS = AbstractDataTypePtr(new const annot::MatrixCPU("output"));
+
+    annot::MatrixTransposeCPU transpose;
+    Variable l_x("l_x");
+    Variable l_y("l_y");
+
+    Composable program = {
+        (Tile(outputDS["row"], l_x))(
+            Tile(outputDS["col"], l_y)(
+                transpose(inputDS, outputDS)))};
+
+    Runner run(program);
+
+    run.compile(test::cpuRunner(std::vector<std::string>{"matrix"}));
+
+    int64_t row_val_input = 21;
+    int64_t col_val_input = 15;
+    impl::MatrixCPU a(row_val_input, col_val_input, col_val_input);
+    a.ascending();
+    int64_t row_val_output = 15;
+    int64_t col_val_output = 21;
+    impl::MatrixCPU b(row_val_output, col_val_output, col_val_output);
+
+    int64_t l_x_val = 5;
+    int64_t l_y_val = 7;
+
+    ASSERT_NO_THROW(run.evaluate({
+        {inputDS.getName(), &a},
+        {outputDS.getName(), &b},
+        {l_x.getName(), &l_x_val},
+        {l_y.getName(), &l_y_val},
+    }));
+
+    for (int i = 0 ; i < row_val_input ; i ++ ) {
+        for (int j = 0 ; j < col_val_input ; j ++ ) {
+            ASSERT_EQ(a(i,j), b(j,i)); // note: a(i,j) = a.data[i * a.lda + j]
+        }
+    }
+
+    a.destroy();
+    b.destroy();
+}
